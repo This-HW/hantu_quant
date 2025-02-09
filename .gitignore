@@ -45,4 +45,11 @@ core/database/stock_data.db
 trading.log
 
 # New additions
-data/token/ 
+data/*
+
+# AI tools
+.DS_Store
+.vscode/
+.idea/
+.cursorignore
+.cursorrules

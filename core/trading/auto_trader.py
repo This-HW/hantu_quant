@@ -5,7 +5,7 @@ from typing import Dict, List
 import pandas as pd
 
 from core.api.kis_api import KISAPI
-from strategies.base import BaseStrategy
+from hantu_backtest.strategies.base import BacktestStrategy
 from core.config.trading_config import (
     TRADE_AMOUNT, MAX_STOCKS,
     MAX_TRADES_PER_DAY, MAX_TRADES_PER_STOCK,
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class AutoTrader:
     """자동 매매 트레이더"""
     
-    def __init__(self, api: KISAPI, strategy: BaseStrategy):
+    def __init__(self, api: KISAPI, strategy: BacktestStrategy):
         self.api = api
         self.strategy = strategy
         self.positions: Dict[str, Dict] = {}  # 보유 포지션

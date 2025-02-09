@@ -1,137 +1,124 @@
 # Hantu Quant
 
-한국투자증권 API를 이용한 퀀트 자동매매 시스템
+한투 API를 이용한 퀀트 트레이딩 시스템
 
 ## 프로젝트 구조
+
 ```
 hantu_quant/
 ├── core/                   # 핵심 기능
-│   ├── api/               # API 관련
-│   │   ├── kis_api.py     # API 통합 클라이언트
+│   ├── api/               # API 관련 모듈
+│   │   ├── kis_api.py    # 한국투자증권 API
+│   │   ├── krx_client.py # KRX API
 │   │   ├── rest_client.py # REST API 클라이언트
-│   │   └── websocket_client.py # WebSocket API 클라이언트
-│   ├── config/            # 설정 관련
-│   └── database/          # 데이터베이스 관련
-├── strategies/            # 매매 전략
-│   ├── base.py           # 기본 전략 클래스
-│   └── momentum.py       # 모멘텀 전략
-└── utils/                # 유틸리티
+│   │   └── websocket_client.py # WebSocket 클라이언트
+│   ├── config/           # 설정 관련 모듈
+│   │   ├── settings.py   # 기본 설정
+│   │   ├── api_config.py # API 설정
+│   │   └── trading_config.py # 트레이딩 설정
+│   ├── database/         # 데이터베이스 관련
+│   │   ├── models.py     # DB 모델
+│   │   ├── repository.py # 저장소 클래스
+│   │   └── session.py    # DB 세션 관리
+│   ├── realtime/        # 실시간 처리
+│   │   ├── processor.py  # 데이터 처리기
+│   │   └── handlers.py   # 이벤트 핸들러
+│   └── utils/           # 유틸리티
+├── hantu_backtest/      # 백테스팅 엔진
+│   ├── core/            # 백테스트 핵심
+│   ├── optimization/    # 전략 최적화
+│   ├── strategies/      # 백테스트 전략
+│   └── visualization/   # 결과 시각화
+├── hantu_common/        # 공통 라이브러리
+│   ├── data/           # 데이터 관리
+│   ├── indicators/     # 기술적 지표
+│   └── utils/          # 공통 유틸리티
+├── scripts/            # 실행 스크립트
+│   ├── collect_data.py # 데이터 수집
+│   ├── init_db.py     # DB 초기화
+│   └── query_db.py    # DB 조회
+├── tests/             # 테스트 코드
+├── data/              # 데이터 저장소
+│   ├── db/           # 데이터베이스 파일
+│   ├── stock/        # 주식 데이터
+│   └── logs/         # 로그 파일
+└── logs/             # 애플리케이션 로그
 ```
 
-## 기능
-- 실시간 시세 조회
-- 자동 매매 실행
-- 다양한 매매 전략 지원
-- 실시간 포트폴리오 관리
-- 거래 이력 관리
+## 주요 기능
 
-## 설치 방법
+### 1. 실시간 트레이딩
+- 한국투자증권 API를 통한 실시간 주식 거래
+- WebSocket을 통한 실시간 시세 수신
+- 자동 매매 전략 실행
 
-1. 저장소 클론
-```bash
-git clone https://github.com/yourusername/hantu_quant.git
-cd hantu_quant
-```
+### 2. 백테스팅
+- 과거 데이터 기반 전략 테스트
+- 다양한 성과 지표 계산
+- 전략 최적화 및 시각화
 
-2. 가상환경 생성 및 활성화
+### 3. 데이터 관리
+- SQLite 데이터베이스를 통한 데이터 관리
+- KRX 종목 정보 자동 수집
+- 실시간/일별 주가 데이터 관리
+
+### 4. 기술적 지표
+- RSI, MACD, 볼린저 밴드 등 구현
+- 커스텀 지표 추가 가능
+- 실시간 지표 계산
+
+## 설치 및 실행
+
+1. 환경 설정
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# or
-.venv\Scripts\activate  # Windows
-```
-
-3. 의존성 패키지 설치
-```bash
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## 환경 설정
-
-1. `.env` 파일 생성 및 설정
+2. 환경 변수 설정
 ```bash
-# .env 파일을 생성하고 아래 내용을 채워넣으세요
-# 한국투자증권 API 설정
-APP_KEY="발급받은_앱키"
-APP_SECRET="발급받은_시크릿키"
-ACCOUNT_NUMBER="계좌번호"
-ACCOUNT_PROD_CODE="01"
-
-# 서버 설정 (virtual: 모의투자, prod: 실전투자)
-SERVER=virtual
-
-# 로깅 설정 (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-LOG_LEVEL=INFO
-
-# 데이터베이스 설정
-DATABASE_URL=sqlite:///core/database/stock_data.db
+cp .env.example .env
+# .env 파일에 API 키 등 설정
 ```
 
-## 실행 방법
-
-1. 기본 실행 (모멘텀 전략 사용)
+3. 데이터베이스 초기화
 ```bash
-python main.py
+python scripts/init_db.py
 ```
 
-2. 특정 종목 모니터링
-```python
-# main.py 파일에서 target_codes 리스트 수정
-target_codes = [
-    "005930",  # 삼성전자
-    "000660",  # SK하이닉스
-    # ... 추가 종목 코드
-]
+4. 실행
+```bash
+# 실시간 트레이딩
+python main.py trade
+
+# 백테스트 실행
+python -m hantu_backtest.main
 ```
 
-## 매매 전략 설정
+## 개발 가이드
 
-1. 모멘텀 전략 파라미터 (`core/config/trading_config.py`)
-```python
-# 수익률 설정
-TARGET_PROFIT_RATE = 0.05  # 목표 수익률 (5%)
-STOP_LOSS_RATE = -0.03    # 손절률 (-3%)
+### 1. 새로운 전략 추가
+- `hantu_backtest/strategies/` 디렉토리에 전략 클래스 추가
+- `BacktestStrategy` 클래스를 상속받아 구현
 
-# RSI 설정
-RSI_PERIOD = 14           # RSI 계산 기간
-RSI_OVERSOLD = 30         # RSI 과매도 기준
-RSI_OVERBOUGHT = 70       # RSI 과매수 기준
+### 2. 기술적 지표 추가
+- `hantu_common/indicators/` 디렉토리에 지표 클래스 추가
+- `Indicator` 기본 클래스를 상속받아 구현
 
-# 이동평균선 설정
-MA_SHORT = 5              # 단기 이동평균
-MA_MEDIUM = 20           # 중기 이동평균
-```
+### 3. 테스트 작성
+- `tests/` 디렉토리에 테스트 코드 추가
+- pytest를 사용한 단위 테스트 작성
 
-## 로그 확인
+## 의존성 패키지
 
-- 실행 로그: `trading.log`
-- 데이터베이스: `core/database/stock_data.db`
+- pandas==2.2.0
+- numpy==1.26.3
+- sqlalchemy==2.0.25
+- matplotlib==3.8.2
+- pyarrow==15.0.0
+- 기타: requirements.txt 참조
 
-## 주의사항
+## 라이선스
 
-1. API 키 보안
-- `.env` 파일은 절대로 Git에 커밋하지 마세요
-- API 키와 시크릿은 안전하게 보관하세요
-
-2. 모의투자 테스트
-- 실전 투자 전에 반드시 모의투자로 충분한 테스트를 진행하세요
-- `SERVER=virtual` 설정으로 모의투자 환경에서 테스트하세요
-
-3. 거래 제한
-- 거래량이 적은 종목은 제외하는 것이 좋습니다
-- 장 시작 시간(09:00)과 종료 시간(15:30)을 확인하세요
-
-## 문제 해결
-
-1. WebSocket 연결 오류
-- 인터넷 연결 상태 확인
-- API 키와 시크릿 값 확인
-- 서버 설정(virtual/prod) 확인
-
-2. 주문 실패
-- 계좌 잔고 확인
-- 주문 가능 시간 확인
-- 호가 단위 확인
-
-## 라이센스
 MIT License 
