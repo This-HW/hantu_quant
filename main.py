@@ -12,21 +12,10 @@ from core.api.krx_client import KRXClient
 from core.trading.auto_trader import AutoTrader
 from hantu_backtest.strategies.momentum import MomentumStrategy
 from core.config.settings import LOG_LEVEL, LOG_FORMAT
+from core.utils.log_utils import setup_logging
 
 # 로깅 설정
-file_handler = logging.FileHandler('trading.log')
-file_handler.setLevel(LOG_LEVEL)
-file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
-
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-console_handler.setFormatter(logging.Formatter('%(message)s'))
-
-logging.basicConfig(
-    level=LOG_LEVEL,
-    handlers=[file_handler, console_handler]
-)
-
+setup_logging('trading.log', LOG_LEVEL, add_sensitive_filter=True)
 logger = logging.getLogger(__name__)
 
 def reset_daily_counts(trader: AutoTrader):

@@ -117,6 +117,15 @@ class APIConfig:
         if include_content_type:
             headers['content-type'] = 'application/json; charset=utf-8'
             
+        # 로깅 시 민감 정보 마스킹
+        safe_headers = headers.copy()
+        if self.access_token:
+            safe_headers['authorization'] = 'Bearer ***MASKED***'
+        safe_headers['appkey'] = '***MASKED***'
+        safe_headers['appsecret'] = '***MASKED***'
+        
+        logger.debug(f"[get_headers] 헤더 생성: {safe_headers}")
+        
         return headers
         
     def refresh_token(self, force: bool = False) -> bool:
@@ -141,6 +150,12 @@ class APIConfig:
                 "appsecret": self.app_secret
             }
             
+            # 로깅 시 민감 정보 마스킹
+            safe_data = data.copy()
+            safe_data["appkey"] = "***MASKED***"
+            safe_data["appsecret"] = "***MASKED***"
+            logger.debug(f"[refresh_token] 토큰 갱신 요청: {safe_data}")
+            
             response = requests.post(url, json=data, timeout=settings.REQUEST_TIMEOUT)
             
             if response.status_code == 200:
@@ -149,6 +164,10 @@ class APIConfig:
                 expires_in = int(token_data.get('expires_in', 86400))  # 기본값 24시간
                 self.token_expired_at = datetime.now() + timedelta(seconds=expires_in)
                 
+                # 로그에 토큰 데이터 마스킹
+                safe_token_data = {k: "***MASKED***" if k == "access_token" else v for k, v in token_data.items()}
+                logger.debug(f"[refresh_token] 토큰 응답: {safe_token_data}")
+                
                 # 토큰 정보 저장
                 self._save_token()
                 
@@ -156,7 +175,8 @@ class APIConfig:
                 return True
             else:
                 logger.error(f"[refresh_token] 토큰 갱신 실패 - 상태 코드: {response.status_code}")
-                logger.error(f"[refresh_token] 에러 응답: {response.text}")
+                # 에러 응답은 일반적으로 민감정보를 포함하지 않으나, 안전을 위해 자세한 내용은 DEBUG 레벨로만 로깅
+                logger.debug(f"[refresh_token] 에러 응답: {response.text}")
                 return False
                 
         except Exception as e:

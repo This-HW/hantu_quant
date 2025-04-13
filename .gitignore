@@ -44,8 +44,14 @@ logs/
 core/database/stock_data.db
 trading.log
 
-# New additions
+# Sensitive data and tokens
+data/token/
+data/token/token_info_*.json
+.env
+
+# Data directories
 data/*
+!data/.gitkeep
 
 # AI tools
 .DS_Store
