@@ -47,12 +47,8 @@ SERVER = os.getenv('SERVER', 'virtual')
 # API 엔드포인트
 VIRTUAL_URL = "https://openapivts.koreainvestment.com:29443"     # 모의투자 서버
 PROD_URL = "https://openapi.koreainvestment.com:9443"            # 실제투자 서버
-SOCKET_VIRTUAL_URL = "wss://openapivts.koreainvestment.com:29443"  # 모의투자 WebSocket
-SOCKET_PROD_URL = "wss://openapi.koreainvestment.com:21000"        # 실제투자 WebSocket
-
-# WebSocket URL
-VIRTUAL_WS_URL = 'ws://ops.koreainvestment.com:31000'
-PROD_WS_URL = 'ws://ops.koreainvestment.com:21000'
+SOCKET_VIRTUAL_URL = "wss://openapivts.koreainvestment.com:29443/websocket"  # 모의투자 WebSocket
+SOCKET_PROD_URL = "wss://openapi.koreainvestment.com:21000/websocket"        # 실제투자 WebSocket
 
 # API 요청 설정
 REQUEST_TIMEOUT = 10

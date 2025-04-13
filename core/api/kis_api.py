@@ -50,12 +50,16 @@ class KISAPI(KISRestClient):
         
     async def connect_websocket(self) -> bool:
         """WebSocket 연결"""
-        if not self.config.ensure_valid_token():
-            logger.error("[connect_websocket] API 토큰이 유효하지 않습니다")
+        try:
+            if not self.config.ensure_valid_token():
+                logger.error("[connect_websocket] API 토큰이 유효하지 않습니다")
+                return False
+                
+            self.ws_client = KISWebSocketClient(self.config.access_token)
+            return await self.ws_client.connect()
+        except Exception as e:
+            logger.error(f"[connect_websocket] WebSocket 연결 중 오류 발생: {str(e)}")
             return False
-            
-        self.ws_client = KISWebSocketClient(self.config.access_token)
-        return await self.ws_client.connect()
         
     def add_callback(self, tr_id: str, callback: Callable):
         """실시간 데이터 수신 콜백 등록"""
@@ -80,9 +84,14 @@ class KISAPI(KISRestClient):
         try:
             # WebSocket 연결
             if not await self.connect_websocket():
-                raise Exception("WebSocket 연결 실패")
+                logger.error("[start_real_time] WebSocket 연결 실패")
+                return False
+                
+            # 연결 성공 후 잠시 대기 (안정화)
+            await asyncio.sleep(1)
                 
             # 종목별 실시간 데이터 구독
+            subscription_success = False
             for code in stock_codes:
                 tr_list = [
                     'H1_', # 주식 호가
@@ -90,19 +99,37 @@ class KISAPI(KISRestClient):
                     'K3_'  # 주식 체잔
                 ]
                 
-                if not await self.subscribe_stock(code, tr_list):
-                    logger.error(f"[start_real_time] {code} 구독 실패")
-                    continue
-                    
-                logger.info(f"[start_real_time] {code} 구독 시작")
+                try:
+                    if not await self.subscribe_stock(code, tr_list):
+                        logger.error(f"[start_real_time] {code} 구독 실패")
+                        continue
+                        
+                    logger.info(f"[start_real_time] {code} 구독 시작")
+                    subscription_success = True
+                except Exception as e:
+                    logger.error(f"[start_real_time] {code} 구독 중 오류: {str(e)}")
+                
+            # 최소 하나 이상의 종목이 구독되었는지 확인
+            if not subscription_success:
+                logger.error("[start_real_time] 모든 종목 구독 실패")
+                return False
                 
             # 실시간 데이터 수신
             if self.ws_client:
                 await self.ws_client.start_streaming()
+                return True
+            return False
                 
         except Exception as e:
             logger.error(f"[start_real_time] 실시간 데이터 수신 중 오류 발생: {str(e)}")
-            raise
+            # 연결이 남아있다면 정리
+            if self.ws_client:
+                try:
+                    await self.ws_client.close()
+                except:
+                    pass
+                self.ws_client = None
+            return False
             
     async def close(self):
         """연결 종료"""

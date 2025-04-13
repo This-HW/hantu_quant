@@ -10,7 +10,8 @@ from datetime import datetime
 from core.api.kis_api import KISAPI
 from core.api.krx_client import KRXClient
 from core.trading.auto_trader import AutoTrader
-from hantu_backtest.strategies.momentum import MomentumStrategy
+from hantu_backtest.strategies.momentum import MomentumStrategy as BacktestMomentumStrategy
+from core.strategy.momentum import MomentumStrategy as TradingMomentumStrategy
 from core.config.settings import LOG_LEVEL, LOG_FORMAT
 from core.utils.log_utils import setup_logging
 
@@ -79,7 +80,13 @@ def check_balance():
 def find_stocks():
     """조건에 맞는 종목 찾기"""
     try:
-        strategy = MomentumStrategy()
+        # API 클라이언트 초기화
+        api = KISAPI()
+        
+        # 트레이딩용 전략 클래스 사용
+        strategy = TradingMomentumStrategy(api)
+        
+        # 종목 검색
         stocks = strategy.find_candidates()
         
         print("\n=== 조건에 맞는 종목 목록 ===")
@@ -87,8 +94,9 @@ def find_stocks():
             for stock in stocks:
                 print(f"종목코드: {stock['code']}")
                 print(f"종목명: {stock['name']}")
-                print(f"현재가: {stock['current_price']:,}원")
+                print(f"현재가: {stock['price']:,}원")  # current_price 대신 price 사용
                 print(f"거래량: {stock['volume']:,}")
+                print(f"모멘텀 점수: {stock['momentum_score']:.1f}")  # 모멘텀 점수 추가
                 print("---")
         else:
             print("조건에 맞는 종목이 없습니다.")
@@ -109,11 +117,12 @@ def save_krx_stock_list():
 async def run_trading():
     """자동 매매 실행"""
     try:
+        logger.info("[run_trading] 자동 매매를 시작합니다.")
         # API 클라이언트 초기화
         api = KISAPI()
         
-        # 전략 설정
-        strategy = MomentumStrategy(api)
+        # 전략 설정 - 트레이딩용 전략 사용
+        strategy = TradingMomentumStrategy(api)
         
         # 트레이더 초기화
         trader = AutoTrader(api, strategy)
@@ -131,7 +140,12 @@ async def run_trading():
         schedule.every().day.at("09:00").do(reset_daily_counts, trader)
         
         # 자동 매매 시작
-        await trader.start(target_codes)
+        start_result = await trader.start(target_codes)
+        if not start_result:
+            logger.error("[run_trading] 자동 매매 시작 실패")
+            return
+            
+        logger.info("[run_trading] 자동 매매가 성공적으로 시작되었습니다.")
         
         # 스케줄러 실행
         while True:
@@ -139,8 +153,15 @@ async def run_trading():
             await asyncio.sleep(1)
             
     except Exception as e:
-        logger.error(f"프로그램 실행 중 오류 발생: {e}")
-        raise
+        logger.error(f"[run_trading] 자동 매매 실행 실패: {str(e)}")
+    finally:
+        # 트레이더가 실행 중이면 종료
+        if 'trader' in locals() and trader:
+            try:
+                await trader.stop()
+                logger.info("[run_trading] 트레이더가 정상적으로 종료되었습니다.")
+            except Exception as e:
+                logger.error(f"[run_trading] 트레이더 종료 중 오류: {str(e)}")
 
 if __name__ == "__main__":
     asyncio.run(main())

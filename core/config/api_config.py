@@ -5,6 +5,7 @@ API configuration management module.
 import os
 import json
 import logging
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict
@@ -56,6 +57,11 @@ class APIConfig:
         
         # 토큰 디렉토리 생성
         self._token_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        # API 호출 제한 설정
+        self.rate_limit = settings.RATE_LIMIT_PER_SEC
+        self.last_request_time = 0
+        self.request_times = []
         
         # 초기화 완료
         self._initialized = True
@@ -127,6 +133,30 @@ class APIConfig:
         logger.debug(f"[get_headers] 헤더 생성: {safe_headers}")
         
         return headers
+    
+    def apply_rate_limit(self) -> None:
+        """API 호출 제한 적용 (Rate Limiting)
+        
+        한국투자증권 API 호출 제한을 준수하기 위한 처리
+        설정된 초당 최대 요청 수(RATE_LIMIT_PER_SEC)를 초과하지 않도록 함
+        """
+        current_time = time.time()
+        
+        # 1초 이내의 요청 시간만 유지
+        self.request_times = [t for t in self.request_times if current_time - t < 1.0]
+        
+        # 요청 횟수가 제한에 도달한 경우 대기
+        if len(self.request_times) >= self.rate_limit:
+            # 가장 오래된 요청으로부터 1초가 지날 때까지 대기
+            wait_time = 1.0 - (current_time - self.request_times[0])
+            if wait_time > 0:
+                logger.debug(f"[apply_rate_limit] Rate limit 도달, {wait_time:.4f}초 대기")
+                time.sleep(wait_time)
+                current_time = time.time()  # 대기 후 현재 시간 갱신
+        
+        # 현재 요청 시간 기록
+        self.request_times.append(current_time)
+        self.last_request_time = current_time
         
     def refresh_token(self, force: bool = False) -> bool:
         """토큰 갱신
@@ -141,6 +171,9 @@ class APIConfig:
             # 토큰이 유효하고 강제 갱신이 아닌 경우
             if not force and self.validate_token():
                 return True
+            
+            # API 호출 제한 적용
+            self.apply_rate_limit()    
                 
             url = f"{self.base_url}/oauth2/tokenP"
             

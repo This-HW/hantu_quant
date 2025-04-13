@@ -5,7 +5,7 @@ import websockets
 from typing import Dict, Optional, Callable, List
 from core.config.settings import (
     APP_KEY, APP_SECRET, ACCOUNT_NUMBER,
-    SERVER, VIRTUAL_WS_URL, PROD_WS_URL
+    SERVER, SOCKET_VIRTUAL_URL, SOCKET_PROD_URL
 )
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ class KISWebSocketClient:
     
     def __init__(self, access_token: str):
         self.access_token = access_token
-        self.ws_url = PROD_WS_URL if SERVER == 'prod' else VIRTUAL_WS_URL
+        self.ws_url = SOCKET_PROD_URL if SERVER == 'prod' else SOCKET_VIRTUAL_URL
         self.subscribed_codes: Dict[str, List[str]] = {}  # {종목코드: [TR_ID 리스트]}
         self.callbacks: Dict[str, Callable] = {}  # {TR_ID: callback 함수}
         self.websocket = None
@@ -28,12 +28,13 @@ class KISWebSocketClient:
     async def connect(self):
         """WebSocket 연결"""
         try:
-            self.websocket = await websockets.connect(self.ws_url)
+            logger.info(f"WebSocket 연결 시도: {self.ws_url}")
+            self.websocket = await websockets.connect(self.ws_url, ping_interval=30)
             self.running = True
             logger.info("WebSocket 연결 성공")
             return True
         except Exception as e:
-            logger.error(f"WebSocket 연결 실패: {e}")
+            logger.error(f"WebSocket 연결 실패: {str(e)}")
             return False
             
     async def subscribe(self, stock_code: str, tr_list: List[str]):
@@ -111,15 +112,21 @@ class KISWebSocketClient:
                 try:
                     data = await self.websocket.recv()
                     await self._handle_message(data)
-                except websockets.exceptions.ConnectionClosed:
-                    logger.error("WebSocket 연결이 종료되었습니다.")
-                    await self._reconnect()
+                except websockets.exceptions.ConnectionClosed as e:
+                    logger.error(f"WebSocket 연결이 종료되었습니다. 코드: {e.code}, 사유: {e.reason}")
+                    success = await self._reconnect()
+                    if not success:
+                        logger.error("재연결 실패로 스트리밍을 종료합니다.")
+                        break
                 except json.JSONDecodeError as e:
                     logger.error(f"JSON 디코딩 오류: {e}")
                     continue
+                except Exception as e:
+                    logger.error(f"스트리밍 중 예상치 못한 오류: {str(e)}")
+                    await asyncio.sleep(1)  # 짧은 대기 후 계속
                     
         except Exception as e:
-            logger.error(f"스트리밍 중 오류 발생: {e}")
+            logger.error(f"스트리밍 중 심각한 오류 발생: {str(e)}")
             self.running = False
             
     async def _handle_message(self, message: str):
@@ -140,21 +147,31 @@ class KISWebSocketClient:
         """WebSocket 재연결"""
         logger.info("WebSocket 재연결 시도...")
         
-        while not self.websocket:
+        max_retries = 5
+        retry_count = 0
+        
+        while not self.websocket and retry_count < max_retries:
             try:
-                await self.connect()
+                retry_count += 1
+                logger.info(f"재연결 시도 {retry_count}/{max_retries}")
                 
-                # 기존 구독 정보 복구
-                for stock_code, tr_list in self.subscribed_codes.items():
-                    await self.subscribe(stock_code, tr_list)
+                if await self.connect():
+                    # 기존 구독 정보 복구
+                    for stock_code, tr_list in self.subscribed_codes.items():
+                        await self.subscribe(stock_code, tr_list)
                     
-                logger.info("WebSocket 재연결 성공")
-                break
+                    logger.info("WebSocket 재연결 성공")
+                    return True
                 
             except Exception as e:
-                logger.error(f"재연결 실패: {e}")
-                await asyncio.sleep(5)  # 5초 후 재시도
-                
+                logger.error(f"재연결 실패 ({retry_count}/{max_retries}): {str(e)}")
+                await asyncio.sleep(min(5 * retry_count, 30))  # 지수 백오프, 최대 30초
+        
+        if retry_count >= max_retries:
+            logger.error(f"최대 재시도 횟수({max_retries})를 초과했습니다. 재연결 중단.")
+            self.running = False
+            return False
+            
     async def close(self):
         """WebSocket 연결 종료"""
         self.running = False

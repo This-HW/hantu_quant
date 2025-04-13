@@ -38,16 +38,43 @@ class AutoTrader:
         """자동 매매 시작"""
         logger.info("자동 매매를 시작합니다.")
         
-        # 보유 종목 정보 초기화
-        balance = self.api.get_balance()
-        for code, quantity in balance.items():
-            self.positions[code] = {
-                'quantity': quantity,
-                'entry_price': 0  # TODO: 평균 매수가 조회 필요
-            }
+        try:
+            # 보유 종목 정보 초기화
+            balance = self.api.get_balance()
+            if not balance:
+                logger.error("잔고 조회 실패")
+                return False
+                
+            for code, quantity in balance.items():
+                self.positions[code] = {
+                    'quantity': quantity,
+                    'entry_price': 0  # TODO: 평균 매수가 조회 필요
+                }
+                
+            # 실시간 데이터 수신 시작
+            ws_success = await self.api.start_real_time(target_codes)
+            if not ws_success:
+                logger.error("WebSocket 연결 실패")
+                return False
+                
+            logger.info(f"{len(target_codes)}개 종목에 대한 실시간 데이터 수신 시작")
+            return True
             
-        # 실시간 데이터 수신 시작
-        await self.api.start_real_time(target_codes)
+        except Exception as e:
+            logger.error(f"자동 매매 시작 중 오류 발생: {str(e)}")
+            return False
+        
+    async def stop(self):
+        """자동 매매 종료"""
+        logger.info("자동 매매를 종료합니다.")
+        try:
+            # API 연결 종료
+            await self.api.close()
+            logger.info("API 연결이 종료되었습니다.")
+            return True
+        except Exception as e:
+            logger.error(f"자동 매매 종료 중 오류 발생: {str(e)}")
+            return False
         
     def update_price_data(self, code: str, price_data: pd.DataFrame):
         """가격 데이터 업데이트 및 매매 신호 처리"""
