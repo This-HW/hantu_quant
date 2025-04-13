@@ -1,0 +1,66 @@
+{
+  "api_development": {
+    "description": "API 연동 및 개발 관련 작업",
+    "files": [
+      "core/config/settings.py",
+      "core/config/api_config.py",
+      "core/api/kis_api.py",
+      "core/api/rest_client.py",
+      "core/api/websocket_client.py"
+    ]
+  },
+  "strategy_development": {
+    "description": "트레이딩 전략 개발 관련 작업",
+    "files": [
+      "core/strategy/momentum.py",
+      "hantu_backtest/strategies/momentum.py",
+      "hantu_common/indicators/momentum.py",
+      "hantu_common/indicators/base.py"
+    ]
+  },
+  "trading_engine": {
+    "description": "자동 매매 엔진 관련 작업",
+    "files": [
+      "core/trading/auto_trader.py",
+      "core/trading/order_manager.py",
+      "core/realtime/processor.py",
+      "main.py"
+    ]
+  },
+  "backtest": {
+    "description": "백테스트 관련 작업",
+    "files": [
+      "hantu_backtest/core/engine.py",
+      "hantu_backtest/core/analyzer.py",
+      "hantu_backtest/visualization/plots.py",
+      "hantu_backtest/strategies/base.py"
+    ]
+  },
+  "database": {
+    "description": "데이터베이스 관련 작업",
+    "files": [
+      "core/database/models.py",
+      "core/database/repository.py",
+      "core/database/session.py",
+      "scripts/init_db.py"
+    ]
+  },
+  "security": {
+    "description": "보안 관련 작업",
+    "files": [
+      ".env.example",
+      "core/utils/log_utils.py",
+      "core/config/api_config.py",
+      ".gitignore"
+    ]
+  },
+  "deployment": {
+    "description": "배포 및 환경 설정 관련 작업",
+    "files": [
+      "scripts/manage.py",
+      "requirements.txt",
+      "setup.py",
+      ".env.example"
+    ]
+  }
+} 

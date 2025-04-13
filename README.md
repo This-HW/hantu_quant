@@ -43,7 +43,12 @@ hantu_quant/
 │   ├── db/           # 데이터베이스 파일
 │   ├── stock/        # 주식 데이터
 │   └── logs/         # 로그 파일
-└── logs/             # 애플리케이션 로그
+├── logs/             # 애플리케이션 로그
+└── .ai/              # AI 협업 디렉토리
+    ├── context/      # 프로젝트 컨텍스트
+    ├── templates/    # 작업 템플릿
+    ├── workflows/    # 작업 워크플로우
+    └── history/      # 작업 히스토리
 ```
 
 ## 주요 기능
@@ -136,6 +141,46 @@ python scripts/manage.py reset-tokens
 # 테스트 실행
 python scripts/manage.py test
 ```
+
+## AI 협업 가이드
+
+이 프로젝트는 AI 협업자와 효율적으로 작업하기 위한 구조를 제공합니다.
+
+### AI 협업 디렉토리 구조
+
+`.ai` 디렉토리는 AI 협업을 위한 다양한 자료와 템플릿을 포함합니다:
+- `context/`: 프로젝트 컨텍스트 및 참조 파일 목록
+- `templates/`: 작업 요청 및 응답 템플릿
+- `workflows/`: 작업 유형별 워크플로우
+- `history/`: 완료된 작업 히스토리
+
+### AI 협업 방법
+
+1. **프로젝트 컨텍스트 이해**:
+   ```
+   AI에게: .ai/context/project_context.md 파일을 읽고 프로젝트를 이해해주세요.
+   ```
+
+2. **작업 유형별 파일 참조**:
+   ```
+   AI에게: .ai/context/file_references.json에서 [작업유형] 관련 파일들을 확인해주세요.
+   ```
+
+3. **워크플로우 기반 작업**:
+   ```
+   AI에게: .ai/workflows/[워크플로우명].md에 따라 작업을 진행해주세요.
+   ```
+
+4. **템플릿 기반 작업 요청**:
+   ```
+   AI에게: .ai/templates/task_request.md를 기반으로 작업 요청을 처리해주세요.
+   ```
+
+5. **작업 히스토리 기록**:
+   중요한 작업 완료 후 히스토리를
+   `.ai/history/` 디렉토리에 기록합니다.
+
+자세한 내용은 `.ai/README.md` 파일을 참조하세요.
 
 ## 개발 가이드
 
