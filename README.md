@@ -36,7 +36,8 @@ hantu_quant/
 ├── scripts/            # 실행 스크립트
 │   ├── collect_data.py # 데이터 수집
 │   ├── init_db.py     # DB 초기화
-│   └── query_db.py    # DB 조회
+│   ├── query_db.py    # DB 조회
+│   └── manage.py      # 프로젝트 관리 스크립트
 ├── tests/             # 테스트 코드
 ├── data/              # 데이터 저장소
 │   ├── db/           # 데이터베이스 파일
@@ -71,6 +72,13 @@ hantu_quant/
 
 1. 환경 설정
 ```bash
+# 자동 환경 설정 (디렉토리 생성 등)
+python scripts/manage.py setup
+
+# 의존성 패키지 설치
+python scripts/manage.py install
+
+# 또는 수동 설치
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -92,8 +100,41 @@ python scripts/init_db.py
 # 실시간 트레이딩
 python main.py trade
 
+# 계좌 잔고 조회
+python main.py balance
+
+# 조건에 맞는 종목 검색
+python main.py find
+
+# KRX 종목 목록 저장
+python main.py list-stocks
+
 # 백테스트 실행
 python -m hantu_backtest.main
+```
+
+## 프로젝트 관리
+
+프로젝트 관리를 위한 스크립트를 제공합니다:
+
+```bash
+# 환경 설정
+python scripts/manage.py setup
+
+# 의존성 패키지 설치
+python scripts/manage.py install
+
+# 데이터 백업
+python scripts/manage.py backup
+
+# 로그 파일 정리
+python scripts/manage.py clean-logs
+
+# 토큰 파일 초기화
+python scripts/manage.py reset-tokens
+
+# 테스트 실행
+python scripts/manage.py test
 ```
 
 ## 개발 가이드
@@ -110,6 +151,31 @@ python -m hantu_backtest.main
 - `tests/` 디렉토리에 테스트 코드 추가
 - pytest를 사용한 단위 테스트 작성
 
+## 환경 설정
+
+### 모의투자 vs 실제투자
+- 모의투자: `.env` 파일에서 `SERVER=virtual` 설정
+- 실제투자: `.env` 파일에서 `SERVER=prod` 설정
+
+### 토큰 관리
+- 모의투자 토큰: `data/token/token_info_virtual.json`
+- 실제투자 토큰: `data/token/token_info_real.json`
+
+## 문제 해결
+
+### API 토큰 오류
+API 토큰 관련 오류가 발생할 경우:
+```bash
+# 토큰 파일 초기화 후 다시 시도
+python scripts/manage.py reset-tokens
+```
+
+### 로그 확인
+로그 파일을 통해 문제 분석:
+```bash
+tail -f logs/trading.log
+```
+
 ## 의존성 패키지
 
 - pandas==2.2.0
@@ -118,6 +184,11 @@ python -m hantu_backtest.main
 - matplotlib==3.8.2
 - pyarrow==15.0.0
 - 기타: requirements.txt 참조
+
+## 프로젝트 문서
+
+- [프로젝트 요약](PROJECT_SUMMARY.md): 구조 및 기능 요약
+- [로드맵](ROADMAP.md): 개발 계획 및 로드맵
 
 ## 라이선스
 
