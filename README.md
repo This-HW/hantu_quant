@@ -154,14 +154,37 @@ python scripts/manage.py test
 - `workflows/`: 작업 유형별 워크플로우
 - `history/`: 완료된 작업 히스토리
 
+### AI 협업 명령어 체계
+
+효율적인 AI 협업을 위한 간결한 명령어 체계를 제공합니다:
+
+```
+/init        # 기본 프로젝트 컨텍스트 로드
+/api         # API 개발 작업 초기화
+/strategy    # 전략 개발 작업 초기화
+/trading     # 트레이딩 엔진 작업 초기화
+/backtest    # 백테스트 작업 초기화
+/help        # 전체 명령어 목록 표시
+```
+
+전체 명령어 목록과 상세 설명은 `.ai/templates/commands.md` 파일을 참조하세요.
+
 ### AI 협업 방법
 
 1. **프로젝트 컨텍스트 이해**:
+   ```
+   /init
+   ```
+   또는
    ```
    AI에게: .ai/context/project_context.md 파일을 읽고 프로젝트를 이해해주세요.
    ```
 
 2. **작업 유형별 파일 참조**:
+   ```
+   /api
+   ```
+   또는
    ```
    AI에게: .ai/context/file_references.json에서 [작업유형] 관련 파일들을 확인해주세요.
    ```
@@ -177,8 +200,13 @@ python scripts/manage.py test
    ```
 
 5. **작업 히스토리 기록**:
-   중요한 작업 완료 후 히스토리를
-   `.ai/history/` 디렉토리에 기록합니다.
+   ```
+   /history [작업명]
+   ```
+   또는
+   ```
+   AI에게: 방금 완료한 작업을 .ai/history/ 디렉토리에 기록해주세요.
+   ```
 
 자세한 내용은 `.ai/README.md` 파일을 참조하세요.
 

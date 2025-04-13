@@ -10,7 +10,8 @@
 │   ├── project_context.md   # 기본 프로젝트 컨텍스트
 │   └── file_references.json # 작업 유형별 참조 파일 목록
 ├── templates/           # 작업 요청 및 응답 템플릿
-│   └── task_request.md      # 작업 요청 템플릿
+│   ├── task_request.md      # 작업 요청 템플릿
+│   └── commands.md          # 명령어 체계 문서
 ├── workflows/           # 작업 워크플로우 템플릿
 │   ├── api_integration.md   # API 통합 작업 워크플로우
 │   └── strategy_development.md # 전략 개발 워크플로우
@@ -27,13 +28,23 @@
 AI에게: .ai/context/project_context.md 파일을 읽고 프로젝트에 대한 기본 이해를 해주세요.
 ```
 
+또는 간단한 명령어를 사용할 수 있습니다:
+```
+/init
+```
+
 ### 2. 특정 유형의 작업 요청 시
 
 작업 유형에 따라 필요한 파일들을 자동으로 참조하도록 요청합니다:
 
 ```
-AI에게: 이제 API 개발 작업을 시작하겠습니다. .ai/context/file_references.json에서 
+AI에게: .ai/context/file_references.json에서 
 api_development 작업 유형에 해당하는 파일들을 모두 읽고 작업을 준비해주세요.
+```
+
+또는 간단한 명령어를 사용할 수 있습니다:
+```
+/api
 ```
 
 ### 3. 작업 워크플로우에 따른 작업 진행
@@ -62,8 +73,23 @@ AI에게: .ai/templates/task_request.md를 기반으로 다음 작업 요청을 
 AI에게: 방금 완료한 작업에 대한 히스토리를 .ai/history/ 디렉토리에 기록해주세요.
 ```
 
+또는 간단한 명령어를 사용할 수 있습니다:
+```
+/history 작업명
+```
+
+### 6. 명령어 체계 활용
+
+효율적인 작업을 위해 명령어 체계를 활용할 수 있습니다:
+```
+/help  # 사용 가능한 모든 명령어 확인
+```
+
+상세한 명령어 목록과 설명은 `.ai/templates/commands.md` 파일을 참조하세요.
+
 ## 유지 관리
 
 - 새로운 작업 유형이 추가되면 `file_references.json`에 관련 파일 목록 추가
 - 새로운 워크플로우가 필요하면 `workflows/` 디렉토리에 추가
-- 프로젝트 구조나 방향이 변경되면 `project_context.md` 업데이트 
+- 프로젝트 구조나 방향이 변경되면 `project_context.md` 업데이트
+- 새로운 명령어가 필요하면 `commands.md` 파일에 추가 
