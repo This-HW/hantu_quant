@@ -48,6 +48,7 @@ trading.log
 data/token/
 data/token/token_info_*.json
 .env
+examples/env_test.py
 
 # Data directories
 data/*

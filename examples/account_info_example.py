@@ -10,7 +10,7 @@ import requests
 
 # 로깅 설정
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,  # 로깅 레벨을 DEBUG로 변경
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler(sys.stdout)]
 )
@@ -84,6 +84,8 @@ def get_account_balance(api_config: APIConfig):
         
         if response.status_code == 200:
             result = response.json()
+            # 전체 응답 내용 로깅
+            logger.debug(f"응답 내용: {json.dumps(result, indent=2, ensure_ascii=False)}")
             return result
         else:
             logger.error(f"API 호출 실패 - 상태 코드: {response.status_code}")
@@ -151,6 +153,8 @@ def get_account_info(api_config: APIConfig):
         
         if response.status_code == 200:
             result = response.json()
+            # 전체 응답 내용 로깅
+            logger.debug(f"응답 내용: {json.dumps(result, indent=2, ensure_ascii=False)}")
             return result
         else:
             logger.error(f"API 호출 실패 - 상태 코드: {response.status_code}")
@@ -208,6 +212,8 @@ def get_stock_holdings(api_config: APIConfig):
     # 요청 전송 및 결과 처리
     try:
         logger.info(f"주식 보유 내역 조회 요청 - URL: {url}")
+        logger.debug(f"요청 헤더: {headers}")  # 민감 정보는 로깅에서 마스킹 처리 필요
+        logger.debug(f"요청 파라미터: {params}")
         
         response = requests.get(
             url, 
@@ -220,6 +226,8 @@ def get_stock_holdings(api_config: APIConfig):
         
         if response.status_code == 200:
             result = response.json()
+            # 전체 응답 내용 로깅
+            logger.debug(f"응답 내용: {json.dumps(result, indent=2, ensure_ascii=False)}")
             return result
         else:
             logger.error(f"API 호출 실패 - 상태 코드: {response.status_code}")
