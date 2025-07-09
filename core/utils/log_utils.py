@@ -91,4 +91,15 @@ def setup_logging(log_file: str = None, level: int = logging.INFO, add_sensitive
         for handler in root_logger.handlers:
             handler.addFilter(sensitive_filter)
             
-    return root_logger 
+    return root_logger
+
+def get_logger(name: str) -> logging.Logger:
+    """로거 인스턴스 생성
+    
+    Args:
+        name: 로거 이름 (보통 __name__ 사용)
+        
+    Returns:
+        로거 인스턴스
+    """
+    return logging.getLogger(name) 
