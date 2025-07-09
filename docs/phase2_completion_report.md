@@ -22,7 +22,7 @@
 ### 2. 일일 업데이트 스케줄러 (DailyUpdater)
 - **위치**: `core/daily_selection/daily_updater.py`
 - **핵심 기능**:
-  - 매일 08:30 자동 실행 스케줄러
+  - Phase 1 완료 후 자동 실행 스케줄러
   - 시장 상황 분석 및 기준 동적 조정
   - 감시 리스트 종목 일괄 분석
   - 필터링 및 선정 로직
@@ -143,7 +143,7 @@ python workflows/phase2_daily_selection.py criteria --market sideways --optimize
 
 ### 5. 스케줄러 관리
 ```bash
-# 스케줄러 시작 (매일 08:30 실행)
+# 스케줄러 시작 (Phase 1 완료 후 자동 실행)
 python workflows/phase2_daily_selection.py scheduler --start
 
 # 스케줄러 상태 확인
@@ -170,7 +170,7 @@ python workflows/phase2_daily_selection.py performance --export performance_repo
 ### 일일 선정 결과 파일
 ```json
 {
-  "timestamp": "2024-01-15T08:30:00",
+  "timestamp": "2024-01-15T06:00:00",
   "version": "1.0.0",
   "market_date": "2024-01-15",
   "market_condition": "sideways",

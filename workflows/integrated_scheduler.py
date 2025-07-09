@@ -41,6 +41,9 @@ class IntegratedScheduler:
         self._v_last_screening = None
         self._v_last_daily_update = None
         
+        # Phase 1 완료 후 Phase 2 자동 실행을 위한 플래그
+        self._v_phase1_completed = False
+        
         logger.info("통합 스케줄러 초기화 완료")
     
     def start_scheduler(self):
@@ -52,11 +55,11 @@ class IntegratedScheduler:
         # 스케줄 설정
         schedule.clear()
         
-        # Phase 1: 주간 스크리닝 (매주 일요일 20:00)
-        schedule.every().sunday.at("20:00").do(self._run_weekly_screening)
+        # Phase 1: 일간 스크리닝 (매일 06:00)
+        schedule.every().day.at("06:00").do(self._run_daily_screening)
         
-        # Phase 2: 일일 업데이트 (매일 08:30)
-        schedule.every().day.at("08:30").do(self._run_daily_update)
+        # Phase 2: 일일 업데이트 (Phase 1 완료 후 자동 실행)
+        # Phase 1 완료 후 _run_daily_screening에서 직접 호출
         
         # 시장 마감 후 정리 작업 (매일 16:00)
         schedule.every().day.at("16:00").do(self._run_market_close_tasks)
@@ -70,8 +73,8 @@ class IntegratedScheduler:
         
         logger.info("통합 스케줄러 시작됨")
         print("🚀 통합 스케줄러 시작!")
-        print("├─ 주간 스크리닝: 매주 일요일 20:00")
-        print("├─ 일일 업데이트: 매일 08:30")
+        print("├─ 일간 스크리닝: 매일 06:00")
+        print("├─ 일일 업데이트: Phase 1 완료 후 자동 실행")
         print("└─ 마감 후 정리: 매일 16:00")
     
     def stop_scheduler(self):
@@ -113,30 +116,38 @@ class IntegratedScheduler:
                 logger.error(f"스케줄러 루프 오류: {e}")
                 time.sleep(60)
     
-    def _run_weekly_screening(self):
-        """주간 스크리닝 실행 (Phase 1)"""
+    def _run_daily_screening(self):
+        """일간 스크리닝 실행 (Phase 1)"""
         try:
-            logger.info("=== 주간 스크리닝 시작 ===")
-            print(f"🔍 주간 스크리닝 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            logger.info("=== 일간 스크리닝 시작 ===")
+            print(f"🔍 일간 스크리닝 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             
             # 전체 시장 스크리닝 실행
             _v_success = self._v_phase1_workflow.run_full_screening()
             
             if _v_success:
                 self._v_last_screening = datetime.now()
-                logger.info("주간 스크리닝 완료")
-                print("✅ 주간 스크리닝 완료!")
+                self._v_phase1_completed = True
+                logger.info("일간 스크리닝 완료")
+                print("✅ 일간 스크리닝 완료!")
                 
                 # 감시 리스트 통계 출력
                 self._v_phase1_workflow.list_watchlist()
                 
+                # Phase 1 완료 후 즉시 Phase 2 실행
+                print("\n🔄 Phase 1 완료 - Phase 2 자동 실행 시작...")
+                time.sleep(2)  # 2초 대기
+                self._run_daily_update()
+                
             else:
-                logger.error("주간 스크리닝 실패")
-                print("❌ 주간 스크리닝 실패")
+                logger.error("일간 스크리닝 실패")
+                print("❌ 일간 스크리닝 실패")
+                self._v_phase1_completed = False
                 
         except Exception as e:
-            logger.error(f"주간 스크리닝 오류: {e}")
-            print(f"❌ 주간 스크리닝 오류: {e}")
+            logger.error(f"일간 스크리닝 오류: {e}")
+            print(f"❌ 일간 스크리닝 오류: {e}")
+            self._v_phase1_completed = False
     
     def _run_daily_update(self):
         """일일 업데이트 실행 (Phase 2)"""
@@ -209,13 +220,14 @@ class IntegratedScheduler:
     def run_immediate_tasks(self):
         """즉시 실행 (테스트용)"""
         print("🔄 즉시 실행 모드")
-        print("1. 스크리닝 실행...")
-        self._run_weekly_screening()
+        print("1. 일간 스크리닝 실행...")
+        self._run_daily_screening()
         
-        print("\n2. 일일 업데이트 실행...")
-        self._run_daily_update()
+        # Phase 1이 성공했을 때만 Phase 2가 자동 실행됨
+        if not self._v_phase1_completed:
+            print("\n❌ Phase 1 실패로 인해 Phase 2를 건너뜁니다")
         
-        print("\n3. 정리 작업 실행...")
+        print("\n2. 정리 작업 실행...")
         self._run_market_close_tasks()
         
         print("\n✅ 모든 작업 완료!")
