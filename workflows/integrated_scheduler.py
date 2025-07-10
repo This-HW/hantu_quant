@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from workflows.phase1_watchlist import Phase1Workflow
 from workflows.phase2_daily_selection import Phase2CLI
+from core.watchlist.watchlist_manager import WatchlistManager
 from core.utils.log_utils import get_logger
 
 logger = get_logger(__name__)
@@ -155,6 +156,9 @@ class IntegratedScheduler:
             logger.info("=== 일일 업데이트 시작 ===")
             print(f"📊 일일 업데이트 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             
+            # Phase 2 DailyUpdater의 WatchlistManager를 새로 초기화하여 최신 데이터 로드
+            self._v_phase2_cli._v_daily_updater._v_watchlist_manager = WatchlistManager("data/watchlist/watchlist.json")
+            
             # Phase 2 일일 업데이트 실행
             _v_success = self._v_phase2_cli._v_daily_updater.run_daily_update(p_force_run=True)
             
@@ -202,17 +206,18 @@ class IntegratedScheduler:
             _v_latest_selection = self._v_phase2_cli._v_daily_updater.get_latest_selection()
             
             if _v_latest_selection:
-                _v_selected_stocks = _v_latest_selection.selected_stocks
+                _v_selected_stocks = _v_latest_selection.get("data", {}).get("selected_stocks", [])
+                _v_metadata = _v_latest_selection.get("metadata", {})
                 
                 print(f"\n📋 일일 선정 결과 요약")
                 print(f"├─ 선정 종목: {len(_v_selected_stocks)}개")
-                print(f"├─ 평균 매력도: {sum(s.price_attractiveness for s in _v_selected_stocks) / len(_v_selected_stocks):.1f}점")
-                print(f"└─ 시장 상황: {_v_latest_selection.market_condition}")
+                print(f"├─ 평균 매력도: {_v_metadata.get('avg_attractiveness', 0):.1f}점")
+                print(f"└─ 시장 상황: {_v_latest_selection.get('market_condition', 'unknown')}")
                 
                 if _v_selected_stocks:
                     print(f"\n상위 5개 종목:")
                     for i, stock in enumerate(_v_selected_stocks[:5], 1):
-                        print(f"  {i}. {stock.stock_name} ({stock.stock_code}) - {stock.price_attractiveness:.1f}점")
+                        print(f"  {i}. {stock.get('stock_name', '')} ({stock.get('stock_code', '')}) - {stock.get('price_attractiveness', 0):.1f}점")
             
         except Exception as e:
             logger.error(f"일일 요약 출력 오류: {e}")

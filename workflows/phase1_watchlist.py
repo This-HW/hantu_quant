@@ -75,6 +75,10 @@ class Phase1Workflow:
                 for i, stock in enumerate(_v_top_stocks, 1):
                     print(f"{i:2d}. {stock['stock_code']} ({stock['stock_name']}) - {stock['overall_score']:.1f}점")
                 
+                # 스크리닝 통과 종목을 감시 리스트에 자동 추가
+                _v_added_count = self._auto_add_to_watchlist(_v_passed_stocks)
+                logger.info(f"감시 리스트 자동 추가 완료: {_v_added_count}개 종목")
+                
                 return True
             else:
                 logger.error("스크리닝 결과 저장 실패")
@@ -371,6 +375,84 @@ class Phase1Workflow:
             "volume_momentum": 0.2,
             "sector_momentum": 0.05
         }
+    
+    def _auto_add_to_watchlist(self, p_passed_stocks: List[Dict]) -> int:
+        """스크리닝 통과 종목을 감시 리스트에 자동 추가
+        
+        Args:
+            p_passed_stocks: 스크리닝 통과 종목 리스트
+            
+        Returns:
+            추가된 종목 수
+        """
+        _v_added_count = 0
+        
+        try:
+            logger.info(f"감시 리스트 자동 추가 시작: {len(p_passed_stocks)}개 종목")
+            
+            for stock in p_passed_stocks:
+                _v_stock_code = stock["stock_code"]
+                _v_stock_name = stock["stock_name"]
+                _v_overall_score = stock["overall_score"]
+                
+                # 이미 감시 리스트에 있는지 확인
+                _v_existing_stocks = self.watchlist_manager.list_stocks(p_status="active")
+                _v_existing_codes = [s.stock_code for s in _v_existing_stocks]
+                
+                if _v_stock_code in _v_existing_codes:
+                    logger.info(f"이미 감시 리스트에 존재: {_v_stock_code}")
+                    continue
+                
+                # 종목 정보 조회
+                _v_stock_info = self._get_stock_info(_v_stock_code)
+                if not _v_stock_info:
+                    logger.warning(f"종목 정보 조회 실패: {_v_stock_code}")
+                    continue
+                
+                # 목표가와 손절가 계산 (현재가 기준)
+                _v_current_price = _v_stock_info.get("current_price", 50000)
+                _v_target_price = int(_v_current_price * 1.15)  # 15% 상승 목표
+                _v_stop_loss = int(_v_current_price * 0.92)     # 8% 하락 손절
+                
+                # 섹터 정보 설정
+                _v_sector_map = {
+                    "005930": "반도체",
+                    "000660": "반도체", 
+                    "035420": "인터넷",
+                    "005380": "자동차",
+                    "000270": "자동차",
+                    "068270": "바이오",
+                    "207940": "바이오",
+                    "035720": "인터넷",
+                    "051910": "화학",
+                    "006400": "배터리"
+                }
+                _v_sector = _v_sector_map.get(_v_stock_code, "기타")
+                
+                # 감시 리스트에 추가
+                _v_success = self.watchlist_manager.add_stock(
+                    p_stock_code=_v_stock_code,
+                    p_stock_name=_v_stock_name,
+                    p_added_reason="스크리닝 통과",
+                    p_target_price=_v_target_price,
+                    p_stop_loss=_v_stop_loss,
+                    p_sector=_v_sector,
+                    p_screening_score=_v_overall_score,
+                    p_notes=f"스크리닝 점수: {_v_overall_score:.1f}점"
+                )
+                
+                if _v_success:
+                    _v_added_count += 1
+                    logger.info(f"감시 리스트 추가 성공: {_v_stock_code} ({_v_stock_name}) - {_v_overall_score:.1f}점")
+                else:
+                    logger.error(f"감시 리스트 추가 실패: {_v_stock_code}")
+            
+            logger.info(f"감시 리스트 자동 추가 완료: {_v_added_count}/{len(p_passed_stocks)}개 종목")
+            return _v_added_count
+            
+        except Exception as e:
+            logger.error(f"감시 리스트 자동 추가 오류: {e}")
+            return _v_added_count
 
 def main():
     """메인 함수"""
