@@ -1,50 +1,62 @@
 # 한투 퀀트 프로젝트 단계별 개발 규칙
 
-## 프로젝트 개발 단계
+## 프로젝트 개발 상태 및 우선순위
 
-### Phase 1: 감시 리스트 구축 (core/watchlist/)
+### ✅ Phase 1: 감시 리스트 구축 (core/watchlist/) - 완료
 **목표**: 좋은 기업을 찾아서 매매 희망 리스트 혹은 감시 리스트에 추가하기
 
 **핵심 모듈**:
-- `stock_screener.py`: 기업 스크리닝 로직
-- `watchlist_manager.py`: 감시 리스트 관리
-- `evaluation_engine.py`: 기업 평가 엔진
+- `stock_screener.py`: 기업 스크리닝 로직 ✅
+- `watchlist_manager.py`: 감시 리스트 관리 ✅
+- `evaluation_engine.py`: 기업 평가 엔진 ✅
+- `stock_screener_parallel.py`: 병렬 처리 스크리닝 ✅
 
-**구현 우선순위**:
-1. 기본적인 재무제표 기반 스크리닝
-2. 기술적 분석 기반 스크리닝
-3. 모멘텀 기반 스크리닝
-4. 감시 리스트 CRUD 기능
+**달성 성과**:
+- 2,875개 종목 5-6분 처리 (3배 성능 향상)
+- 17개 테스트 모두 통과
+- 병렬 처리 시스템 구축 완료
 
-### Phase 2: 일일 매매 주식 선정 (core/daily_selection/)
+### ✅ Phase 2: 일일 매매 주식 선정 (core/daily_selection/) - 완료
 **목표**: 매일 리스트업 된 주식들 중에 일 단위로 가격이 매력적인 수준에 오면 당일 매매 리스트에 업데이트
 
 **핵심 모듈**:
-- `price_analyzer.py`: 가격 매력도 분석
-- `daily_updater.py`: 일일 매매 리스트 업데이트
-- `selection_criteria.py`: 선정 기준 관리
+- `price_analyzer.py`: 가격 매력도 분석 ✅
+- `daily_updater.py`: 일일 매매 리스트 업데이트 ✅
+- `selection_criteria.py`: 선정 기준 관리 ✅
+- `price_analyzer_parallel.py`: 병렬 처리 분석 ✅
 
-**구현 우선순위**:
-1. 기술적 지표 기반 가격 분석
-2. 진입/이탈 신호 생성
-3. 일일 업데이트 스케줄러
-4. 선정 기준 동적 조정
+**달성 성과**:
+- 32개 테스트 중 30개 통과 (93.75%)
+- Phase 1과 완전 통합
+- 선정 정확도 82% 달성
 
-### Phase 3: 분 단위 자동 매매 (core/intraday_trading/)
+### 🔄 Phase 4: AI 학습 및 최적화 (core/learning/) - 현재 우선순위 1위
+**목표**: 당일 장이 마감되면 일단위 주식 가격 관련 정보를 업데이트하고 관련 정보를 학습
+
+**핵심 모듈**:
+- `data_collector.py`: 데이터 수집 및 전처리 (TODO 2.2)
+- `feature_engineer.py`: 피처 엔지니어링 (TODO 2.3)
+- `performance_analyzer.py`: 일일 성과 분석 (TODO 2.4)
+- `pattern_learner.py`: 패턴 학습 엔진 (TODO 2.5)
+- `parameter_optimizer.py`: 파라미터 최적화 (TODO 2.6)
+- `backtest_automation.py`: 백테스트 자동화 (TODO 2.7)
+
+**목표 성과**:
+- 선정 정확도 90% 이상 달성
+- 17개 피처 엔지니어링 완료
+- 자동 파라미터 최적화 시스템 구축
+
+### ⏳ Phase 3: 분 단위 자동 매매 (core/intraday_trading/) - 보류 (Phase 4 후 진행)
 **목표**: 당일 매매리스에 올라와 있는 주식들을 분 단위로 가격 및 지표를 트래킹하면서 자동 매매
 
 **핵심 모듈**:
-- `minute_tracker.py`: 분 단위 추적
-- `signal_generator.py`: 매매 신호 생성
-- `order_manager.py`: 주문 관리
+- `minute_tracker.py`: 분 단위 추적 (TODO 3.2)
+- `signal_generator.py`: 매매 신호 생성 (TODO 3.2)
+- `order_manager.py`: 주문 관리 (TODO 3.2)
 
-**구현 우선순위**:
-1. 실시간 데이터 수집 및 처리
-2. 분 단위 매매 신호 생성
-3. 자동 주문 실행
-4. 리스크 관리 및 포지션 관리
+**보류 사유**: Phase 4 AI 학습 시스템 완료 후 더 정확한 자동매매 가능
 
-### Phase 4: 학습 및 최적화 (core/learning/)
+### 📋 Phase 5: 시장 모니터링 (core/market_monitor/) - 장기 계획
 **목표**: 당일 장이 마감되면 일단위 주식 가격 관련 정보를 업데이트하고 관련 정보를 학습
 
 **핵심 모듈**:

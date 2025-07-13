@@ -26,8 +26,15 @@ Phase 1 → Phase 2 → **Phase 4** → Phase 3 → Phase 5
 - **1.7** Phase 4 AI 학습 시스템 설계 문서 작성 완료
 - **1.8** 종목 정보 매핑 문제 해결 완료
 
-### 🔄 현재 진행 예정 (2.x 시리즈 - Phase 4 AI 학습 시스템)
-- **2.1** Phase 4 기본 구조 설정 (대기 중)
+### 🔄 현재 진행 예정 (1.9-1.13 시리즈 - 모듈 아키텍처 개선)
+- **1.9** 모듈 아키텍처 개선: 인터페이스 기반 설계 구조 설정 (대기 중)
+- **1.10** 플러그인 아키텍처 시스템 구현: 동적 모듈 로딩 및 언로딩 (대기 중)
+- **1.11** 모듈 레지스트리 시스템 구현: 의존성 관리 및 영향 분석 (대기 중)
+- **1.12** 패키지 관리 시스템 구현: 모듈 재사용성 및 배포 자동화 (대기 중)
+- **1.13** 기존 Phase 1,2 모듈을 새로운 아키텍처로 리팩토링 (대기 중)
+
+### 🔄 다음 단계 (2.x 시리즈 - Phase 4 AI 학습 시스템)
+- **2.1** Phase 4 AI 학습 시스템: 기본 구조 설정 (새로운 아키텍처 적용) (대기 중)
 - **2.2** 데이터 수집 및 전처리 시스템 구현 (대기 중)
 - **2.3** 피처 엔지니어링 시스템 구현 (17개 피처) (대기 중)
 - **2.4** 일일 성과 분석 시스템 구현 (대기 중)
@@ -125,6 +132,26 @@ Phase 1 → Phase 2 → **Phase 4** → Phase 3 → Phase 5
 ```
 hantu_quant/
 ├── core/                   # 핵심 기능
+│   ├── interfaces/         # 🔄 모듈 인터페이스 정의 (TODO 1.9)
+│   │   ├── __init__.py
+│   │   ├── i_module.py      # 기본 모듈 인터페이스
+│   │   ├── i_screening.py   # 스크리닝 모듈 인터페이스
+│   │   ├── i_analysis.py    # 분석 모듈 인터페이스
+│   │   ├── i_learning.py    # 학습 모듈 인터페이스
+│   │   └── i_trading.py     # 트레이딩 모듈 인터페이스
+│   ├── framework/          # 🔄 프레임워크 핵심 구조 (TODO 1.10-1.12)
+│   │   ├── __init__.py
+│   │   ├── plugin_loader.py # 플러그인 로더
+│   │   ├── module_registry.py # 모듈 레지스트리
+│   │   ├── package_manager.py # 패키지 관리자
+│   │   ├── event_bus.py     # 이벤트 버스
+│   │   └── system_manager.py # 시스템 관리자
+│   ├── modules/            # 🔄 기본 모듈들 (TODO 1.13)
+│   │   ├── __init__.py
+│   │   ├── screening/       # 스크리닝 모듈
+│   │   ├── analysis/        # 분석 모듈
+│   │   ├── learning/        # 학습 모듈
+│   │   └── trading/         # 트레이딩 모듈
 │   ├── api/               # API 관련 모듈
 │   ├── config/           # 설정 관련 모듈
 │   ├── database/         # 데이터베이스 관련
@@ -145,6 +172,17 @@ hantu_quant/
 │   ├── strategy/        # 전략 구현
 │   ├── trading/         # 트레이딩 모듈
 │   └── utils/           # 유틸리티
+├── plugins/             # 🔄 플러그인 모듈들 (TODO 1.10)
+│   ├── __init__.py
+│   ├── fundamental_screener.py
+│   ├── technical_screener.py
+│   ├── price_analyzer.py
+│   ├── momentum_analyzer.py
+│   └── ai_learning_engine.py
+├── packages/            # 🔄 패키지 저장소 (TODO 1.12)
+│   ├── screening-1.0.0/
+│   ├── analysis-1.0.0/
+│   └── learning-1.0.0/
 ├── hantu_backtest/      # 백테스팅 엔진
 ├── hantu_common/        # 공통 라이브러리
 │   └── indicators/      # 기술 지표 (TODO 1.5-1.6)
@@ -157,6 +195,10 @@ hantu_quant/
 │   ├── phase4_learning.py            # Phase 4 워크플로우 (TODO 2.1-2.8)
 │   ├── phase3_intraday_trading.py    # Phase 3 워크플로우 (TODO 3.2)
 │   └── phase5_monitoring.py          # Phase 5 워크플로우 (TODO 3.1)
+├── configs/             # 🔄 모듈별 설정 (TODO 1.9)
+│   ├── module_configs.json
+│   ├── plugin_configs.json
+│   └── system_config.json
 ├── data/              # 데이터 저장소
 │   ├── watchlist/    # ✅ 감시 리스트 데이터
 │   ├── daily_selection/ # ✅ 일일 선정 데이터
@@ -170,6 +212,8 @@ hantu_quant/
     ├── phase1_completion_report.md
     ├── phase2_completion_report.md
     ├── phase4_ai_learning_design.md    # TODO 1.7
+    ├── module_architecture_design.md   # 🔄 모듈 아키텍처 설계 (TODO 1.9)
+    ├── plugin_development_guide.md     # 🔄 플러그인 개발 가이드 (TODO 1.10)
     └── integrated_scheduler_guide.md
 ```
 
