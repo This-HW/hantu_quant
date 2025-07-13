@@ -16,6 +16,7 @@ from typing import List, Dict, Optional
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.watchlist.stock_screener import StockScreener
+from core.watchlist.stock_screener_parallel import ParallelStockScreener
 from core.watchlist.watchlist_manager import WatchlistManager
 from core.watchlist.evaluation_engine import EvaluationEngine
 from core.utils.log_utils import get_logger
@@ -25,16 +26,22 @@ logger = get_logger(__name__)
 class Phase1Workflow:
     """Phase 1 워크플로우 클래스"""
     
-    def __init__(self):
-        """초기화 메서드"""
+    def __init__(self, p_parallel_workers: int = 4):
+        """초기화 메서드
+        
+        Args:
+            p_parallel_workers: 병렬 처리 워커 수 (기본값: 4)
+        """
         self.screener = StockScreener()
+        self.parallel_screener = ParallelStockScreener(p_max_workers=p_parallel_workers)
         self.watchlist_manager = WatchlistManager()
         self.evaluation_engine = EvaluationEngine()
+        self._v_parallel_workers = p_parallel_workers
         
-        logger.info("Phase 1 워크플로우 초기화 완료")
+        logger.info(f"Phase 1 워크플로우 초기화 완료 (병렬 워커: {p_parallel_workers}개)")
     
     def run_full_screening(self, p_stock_list: Optional[List[str]] = None) -> bool:
-        """전체 스크리닝 실행
+        """전체 스크리닝 실행 (배치 처리 최적화)
         
         Args:
             p_stock_list: 스크리닝할 종목 리스트 (None이면 전체 시장)
@@ -43,7 +50,7 @@ class Phase1Workflow:
             실행 성공 여부
         """
         try:
-            logger.info("=== 전체 스크리닝 시작 ===")
+            logger.info("=== 전체 스크리닝 시작 (배치 처리) ===")
             
             # 종목 리스트 준비
             if not p_stock_list:
@@ -51,29 +58,47 @@ class Phase1Workflow:
             
             logger.info(f"스크리닝 대상 종목 수: {len(p_stock_list)}개")
             
-            # 스크리닝 실행
-            _v_screening_results = self.screener.comprehensive_screening(p_stock_list)
+            # 병렬 처리 설정
+            _v_batch_size = self._v_parallel_workers * 10  # 워커 수의 10배로 배치 크기 설정
             
-            if not _v_screening_results:
-                logger.error("스크리닝 결과가 없습니다.")
+            logger.info(f"🚀 병렬 스크리닝 시작 - 워커: {self._v_parallel_workers}개, 배치크기: {_v_batch_size}")
+            print(f"🚀 병렬 스크리닝 시작 - 워커: {self._v_parallel_workers}개")
+            
+            # 병렬 종합 스크리닝 실행
+            _v_all_results = self.parallel_screener.parallel_comprehensive_screening(
+                p_stock_list, p_batch_size=_v_batch_size
+            )
+            
+            if not _v_all_results:
+                logger.error("전체 스크리닝 결과가 없습니다.")
                 return False
             
+            logger.info(f"전체 스크리닝 완료 - 총 {len(_v_all_results)}개 종목 처리")
+            
             # 결과 저장
-            _v_save_success = self.screener.save_screening_results(_v_screening_results)
+            _v_save_success = self.screener.save_screening_results(_v_all_results)
             
             if _v_save_success:
-                logger.info(f"스크리닝 완료 - 총 {len(_v_screening_results)}개 종목 처리")
-                
                 # 통과한 종목 통계
-                _v_passed_stocks = [r for r in _v_screening_results if r["overall_passed"]]
+                _v_passed_stocks = [r for r in _v_all_results if r["overall_passed"]]
                 logger.info(f"스크리닝 통과 종목: {len(_v_passed_stocks)}개")
                 
                 # 상위 10개 종목 출력
-                _v_top_stocks = sorted(_v_screening_results, key=lambda x: x["overall_score"], reverse=True)[:10]
+                _v_top_stocks = sorted(_v_all_results, key=lambda x: x["overall_score"], reverse=True)[:10]
                 
                 print("\n=== 상위 10개 종목 ===")
                 for i, stock in enumerate(_v_top_stocks, 1):
                     print(f"{i:2d}. {stock['stock_code']} ({stock['stock_name']}) - {stock['overall_score']:.1f}점")
+                
+                # 시장별 통계 출력
+                _v_market_stats = {}
+                for stock in _v_passed_stocks:
+                    market = stock.get('market', '미분류')
+                    _v_market_stats[market] = _v_market_stats.get(market, 0) + 1
+                
+                print(f"\n=== 시장별 통과 종목 통계 ===")
+                for market, count in _v_market_stats.items():
+                    print(f"{market}: {count}개")
                 
                 # 스크리닝 통과 종목을 감시 리스트에 자동 추가
                 _v_added_count = self._auto_add_to_watchlist(_v_passed_stocks)
@@ -293,37 +318,75 @@ class Phase1Workflow:
             return False
     
     def _get_all_stock_codes(self) -> List[str]:
-        """전체 종목 코드 조회
+        """전체 종목 코드 조회 (저장된 종목 리스트 파일 사용)
         
         Returns:
             종목 코드 리스트
         """
-        # 더미 데이터 (실제로는 KRX API 등에서 조회)
-        return [
-            "005930",  # 삼성전자
-            "000660",  # SK하이닉스
-            "035420",  # NAVER
-            "005380",  # 현대차
-            "000270",  # 기아
-            "068270",  # 셀트리온
-            "207940",  # 삼성바이오로직스
-            "035720",  # 카카오
-            "051910",  # LG화학
-            "006400",  # 삼성SDI
-            "003670",  # 포스코홀딩스
-            "096770",  # SK이노베이션
-            "034730",  # SK
-            "015760",  # 한국전력
-            "017670",  # SK텔레콤
-            "030200",  # KT
-            "032830",  # 삼성생명
-            "066570",  # LG전자
-            "028260",  # 삼성물산
-            "009150"   # 삼성전기
-        ]
+        try:
+            # 저장된 종목 리스트 파일 사용 (데이터 일관성 보장)
+            from pathlib import Path
+            import json
+            
+            # 프로젝트 루트 경로 기준으로 절대 경로 생성
+            _v_project_root = Path(__file__).parent.parent
+            _v_stock_dir = _v_project_root / "data" / "stock"
+            
+            # 가장 최신 종목 리스트 파일 찾기
+            _v_stock_list_files = list(_v_stock_dir.glob("krx_stock_list_*.json"))
+            if not _v_stock_list_files:
+                logger.warning(f"종목 리스트 파일을 찾을 수 없음: {_v_stock_dir}")
+                raise FileNotFoundError("종목 리스트 파일 없음")
+            
+            _v_stock_list_file = max(_v_stock_list_files, key=lambda x: x.name)
+            logger.info(f"종목 리스트 파일 사용: {_v_stock_list_file}")
+            
+            # JSON 파일 로드
+            with open(_v_stock_list_file, 'r', encoding='utf-8') as f:
+                _v_stock_list = json.load(f)
+            
+            # 종목 코드 리스트 추출
+            stock_codes = [stock['ticker'] for stock in _v_stock_list]
+            
+            logger.info(f"전체 상장 종목 수: {len(stock_codes)}개")
+            
+            # 시장별 통계 출력
+            market_stats = {}
+            for stock in _v_stock_list:
+                market = stock.get('market', '미분류')
+                # 시장 명칭 통일
+                if market == "코스닥":
+                    market = "KOSDAQ"
+                elif market != "KOSPI":
+                    market = "기타"
+                    
+                market_stats[market] = market_stats.get(market, 0) + 1
+            
+            for market, count in market_stats.items():
+                logger.info(f"{market}: {count}개 종목")
+            
+            return stock_codes
+            
+        except Exception as e:
+            logger.error(f"전체 종목 조회 오류: {e}")
+            logger.warning("종목 리스트 파일 오류로 인해 샘플 종목으로 대체합니다")
+            
+            # 파일 오류 시 대표 종목들로 대체 (임시)
+            return [
+                "005930",  # 삼성전자
+                "000660",  # SK하이닉스
+                "035420",  # NAVER
+                "005380",  # 현대차
+                "000270",  # 기아
+                "068270",  # 셀트리온
+                "207940",  # 삼성바이오로직스
+                "035720",  # 카카오
+                "051910",  # LG화학
+                "006400",  # 삼성SDI
+            ]
     
     def _get_stock_info(self, p_stock_code: str) -> Optional[Dict]:
-        """종목 정보 조회
+        """종목 정보 조회 (전체 종목 리스트 파일 사용)
         
         Args:
             p_stock_code: 종목 코드
@@ -331,60 +394,106 @@ class Phase1Workflow:
         Returns:
             종목 정보 딕셔너리
         """
-        # 더미 데이터 (실제로는 API에서 조회)
-        _v_stock_names = {
-            "005930": "삼성전자",
-            "000660": "SK하이닉스",
-            "035420": "NAVER",
-            "005380": "현대차",
-            "000270": "기아",
-            "068270": "셀트리온",
-            "207940": "삼성바이오로직스",
-            "035720": "카카오",
-            "051910": "LG화학",
-            "006400": "삼성SDI",
-            "003670": "포스코홀딩스",
-            "096770": "SK이노베이션",
-            "034730": "SK",
-            "015760": "한국전력",
-            "017670": "SK텔레콤",
-            "030200": "KT",
-            "032830": "삼성생명",
-            "066570": "LG전자",
-            "028260": "삼성물산",
-            "009150": "삼성전기"
-        }
-        
-        _v_stock_name = _v_stock_names.get(p_stock_code, f"종목{p_stock_code}")
-        
-        return {
-            "stock_code": p_stock_code,
-            "stock_name": _v_stock_name,
-            "sector": "기타",
-            "market_cap": 1000000000000,
-            "current_price": 50000,
-            # 재무 데이터
-            "roe": 12.5,
-            "per": 15.2,
-            "pbr": 1.1,
-            "debt_ratio": 45.2,
-            "revenue_growth": 8.5,
-            "operating_margin": 12.3,
-            # 기술적 데이터
-            "ma_20": 49000,
-            "ma_60": 48000,
-            "ma_120": 47000,
-            "rsi": 45.2,
-            "volume_ratio": 1.8,
-            "price_momentum_1m": 5.2,
-            "volatility": 0.25,
-            # 모멘텀 데이터
-            "relative_strength": 0.1,
-            "price_momentum_3m": 8.3,
-            "price_momentum_6m": 15.7,
-            "volume_momentum": 0.2,
-            "sector_momentum": 0.05
-        }
+        try:
+            # 전체 종목 리스트 파일 로드
+            _v_stock_name = None
+            _v_market = None
+            _v_sector = "기타"
+            
+            from pathlib import Path
+            import json
+            import glob
+            
+            # 프로젝트 루트 경로 기준으로 절대 경로 생성
+            _v_project_root = Path(__file__).parent.parent
+            _v_stock_dir = _v_project_root / "data" / "stock"
+            
+            # 가장 최신 종목 리스트 파일 찾기
+            _v_stock_list_files = list(_v_stock_dir.glob("krx_stock_list_*.json"))
+            if _v_stock_list_files:
+                _v_stock_list_file = max(_v_stock_list_files, key=lambda x: x.name)  # 가장 최신 파일
+                
+                try:
+                    with open(_v_stock_list_file, 'r', encoding='utf-8') as f:
+                        _v_stock_list = json.load(f)
+            
+                    # 종목 코드로 검색
+                    for stock in _v_stock_list:
+                        if stock.get("ticker") == p_stock_code:
+                            _v_stock_name = stock.get("name", f"종목{p_stock_code}")
+                            _v_market = stock.get("market", "기타")
+                            
+                            # 시장 명칭 통일
+                            if _v_market == "코스닥":
+                                _v_market = "KOSDAQ"
+                            elif _v_market == "KOSPI":
+                                _v_market = "KOSPI"
+                            else:
+                                _v_market = "기타"
+                            
+                            break
+                            
+                    logger.debug(f"종목 정보 로드 성공: {p_stock_code} → {_v_stock_name} ({_v_market})")
+                            
+                except Exception as e:
+                    logger.warning(f"종목 리스트 파일 로드 실패: {e}")
+            else:
+                logger.warning(f"종목 리스트 파일을 찾을 수 없음: {_v_stock_dir}")
+            
+            # 종목 정보가 없으면 기본값 사용
+            if not _v_stock_name:
+                _v_stock_name = f"종목{p_stock_code}"
+                _v_market = "KOSPI" if p_stock_code.startswith(('0', '1', '2', '3')) else "KOSDAQ"
+                logger.warning(f"종목 정보 없음, 기본값 사용: {p_stock_code} → {_v_stock_name} ({_v_market})")
+            
+            # 섹터 추정 (기본 매핑 사용)
+            _v_sector_map = {
+                "005930": "반도체", "000660": "반도체", 
+                "035420": "인터넷", "035720": "인터넷",
+                "005380": "자동차", "000270": "자동차",
+                "068270": "바이오", "207940": "바이오",
+                "051910": "화학", "006400": "배터리",
+                "003670": "철강", "096770": "에너지",
+                "034730": "통신", "015760": "전력",
+                "017670": "통신", "030200": "통신",
+                "032830": "금융", "066570": "전자",
+                "028260": "건설", "009150": "전자"
+            }
+            _v_sector = _v_sector_map.get(p_stock_code, "기타")
+            
+            return {
+                "stock_code": p_stock_code,
+                "stock_name": _v_stock_name,
+                "sector": _v_sector,
+                "market": _v_market,
+                "market_cap": 1000000000000,  # 임시값 (추후 실제 데이터로 교체)
+                "current_price": 50000,       # 임시값 (추후 실제 데이터로 교체)
+                # 재무 데이터 (임시값, 추후 실제 데이터로 교체)
+                "roe": 12.5,
+                "per": 15.2,
+                "pbr": 1.1,
+                "debt_ratio": 45.2,
+                "revenue_growth": 8.5,
+                "operating_margin": 12.3,
+                # 기술적 데이터 (임시값, 추후 실제 데이터로 교체)
+                "ma_20": 49000,
+                "ma_60": 48000,
+                "ma_120": 47000,
+                "rsi": 45.2,
+                "volume_ratio": 1.8,
+                "price_momentum_1m": 5.2,
+                "volatility": 0.25,
+                # 모멘텀 데이터 (임시값, 추후 실제 데이터로 교체)
+                "relative_strength": 0.1,
+                "price_momentum_3m": 8.3,
+                "price_momentum_6m": 15.7,
+                "volume_momentum": 0.2,
+                "sector_momentum": 0.05
+            }
+            
+        except Exception as e:
+            logger.error(f"종목 정보 조회 오류 - {p_stock_code}: {e}")
+            return None
     
     def _auto_add_to_watchlist(self, p_passed_stocks: List[Dict]) -> int:
         """스크리닝 통과 종목을 감시 리스트에 자동 추가
@@ -512,8 +621,8 @@ def main():
         parser.print_help()
         return
     
-    # 워크플로우 실행
-    workflow = Phase1Workflow()
+    # 워크플로우 실행 (병렬 워커 수 설정)
+    workflow = Phase1Workflow(p_parallel_workers=4)
     
     try:
         if args.command == 'screen':

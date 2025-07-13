@@ -20,6 +20,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from core.config.api_config import APIConfig
 from core.utils.log_utils import get_logger
+from hantu_common.indicators.trend import SlopeIndicator
+from hantu_common.indicators.volume import VolumePriceAnalyzer, RelativeVolumeStrength, VolumeClusterAnalyzer
 
 logger = get_logger(__name__)
 
@@ -339,11 +341,11 @@ class PatternRecognition:
         return _v_prev_bearish and _v_current_bullish and _v_engulfing
 
 class VolumeAnalysis:
-    """거래량 분석 클래스"""
+    """거래량 분석 클래스 (향상된 버전)"""
     
     @staticmethod
     def analyze_volume_pattern(p_volumes: List[float], p_prices: List[float]) -> Dict[str, float]:
-        """거래량 패턴 분석
+        """거래량 패턴 분석 (기본 버전)
         
         Args:
             p_volumes: 거래량 리스트
@@ -383,8 +385,146 @@ class VolumeAnalysis:
         }
     
     @staticmethod
+    def analyze_enhanced_volume_pattern(p_ohlcv_data: pd.DataFrame) -> Dict[str, Any]:
+        """향상된 거래량 패턴 분석
+        
+        Args:
+            p_ohlcv_data: OHLCV 데이터
+            
+        Returns:
+            향상된 거래량 분석 결과
+        """
+        try:
+            if p_ohlcv_data is None or len(p_ohlcv_data) < 20:
+                return {"enhanced_analysis": False, "basic_score": 50.0}
+            
+            # 1. 거래량-가격 조합 분석
+            _v_volume_price_analyzer = VolumePriceAnalyzer(p_ohlcv_data)
+            _v_volume_price_analysis = _v_volume_price_analyzer.calculate("comprehensive")
+            
+            # 2. 상대적 거래량 강도 분석
+            _v_relative_volume_analyzer = RelativeVolumeStrength(p_ohlcv_data)
+            _v_relative_volume_analysis = _v_relative_volume_analyzer.calculate("comprehensive")
+            
+            # 3. 거래량 클러스터 분석
+            _v_cluster_analyzer = VolumeClusterAnalyzer(p_ohlcv_data)
+            _v_cluster_analysis = _v_cluster_analyzer.calculate("comprehensive")
+            
+            # 4. 종합 점수 계산
+            _v_combined_score = VolumeAnalysis._calculate_enhanced_volume_score(
+                _v_volume_price_analysis,
+                _v_relative_volume_analysis,
+                _v_cluster_analysis
+            )
+            
+            return {
+                "enhanced_analysis": True,
+                "combined_score": _v_combined_score,
+                "volume_price_analysis": _v_volume_price_analysis,
+                "relative_volume_analysis": _v_relative_volume_analysis,
+                "cluster_analysis": _v_cluster_analysis
+            }
+            
+        except Exception as e:
+            logger.error(f"향상된 거래량 분석 중 오류 발생: {e}")
+            return {"enhanced_analysis": False, "basic_score": 50.0}
+    
+    @staticmethod
+    def _calculate_enhanced_volume_score(p_volume_price_analysis: Dict, 
+                                      p_relative_volume_analysis: Dict, 
+                                      p_cluster_analysis: Dict) -> float:
+        """향상된 거래량 점수 계산
+        
+        Args:
+            p_volume_price_analysis: 거래량-가격 분석 결과
+            p_relative_volume_analysis: 상대적 거래량 분석 결과
+            p_cluster_analysis: 클러스터 분석 결과
+            
+        Returns:
+            향상된 거래량 점수 (0-100)
+        """
+        _v_score = 0.0
+        
+        # 1. 거래량-가격 조합 점수 (40점)
+        _v_correlation = p_volume_price_analysis.get("correlation", 0.0)
+        _v_divergence = p_volume_price_analysis.get("divergence", {})
+        _v_momentum = p_volume_price_analysis.get("momentum", {})
+        
+        # 상관관계 점수 (15점)
+        _v_correlation_score = min(abs(_v_correlation) * 15, 15)
+        
+        # 다이버전스 점수 (15점)
+        _v_divergence_signal = _v_divergence.get("signal", "neutral")
+        if _v_divergence_signal == "bullish_divergence":
+            _v_divergence_score = 15
+        elif _v_divergence_signal == "neutral":
+            _v_divergence_score = 8
+        else:
+            _v_divergence_score = 3
+        
+        # 모멘텀 점수 (10점)
+        _v_momentum_strength = _v_momentum.get("strength", "neutral")
+        if _v_momentum_strength == "strong_bullish":
+            _v_momentum_score = 10
+        elif _v_momentum_strength == "moderate_bullish":
+            _v_momentum_score = 7
+        elif _v_momentum_strength == "neutral":
+            _v_momentum_score = 5
+        else:
+            _v_momentum_score = 2
+        
+        _v_score += _v_correlation_score + _v_divergence_score + _v_momentum_score
+        
+        # 2. 상대적 거래량 강도 점수 (35점)
+        _v_relative_ratio = p_relative_volume_analysis.get("relative_ratio", {})
+        _v_rank = p_relative_volume_analysis.get("rank", {})
+        _v_intensity = p_relative_volume_analysis.get("intensity", {})
+        
+        # 상대적 비율 점수 (15점)
+        _v_vs_own_avg = _v_relative_ratio.get("vs_own_avg", 1.0)
+        if _v_vs_own_avg >= 2.0:
+            _v_ratio_score = 15
+        elif _v_vs_own_avg >= 1.5:
+            _v_ratio_score = 10
+        elif _v_vs_own_avg >= 1.2:
+            _v_ratio_score = 7
+        else:
+            _v_ratio_score = 3
+        
+        # 순위 점수 (10점)
+        _v_percentile = _v_rank.get("percentile", 50.0)
+        _v_rank_score = min(_v_percentile / 10, 10)
+        
+        # 강도 점수 (10점)
+        _v_intensity_value = _v_intensity.get("intensity", 0.0)
+        _v_intensity_score = min(_v_intensity_value * 2, 10)
+        
+        _v_score += _v_ratio_score + _v_rank_score + _v_intensity_score
+        
+        # 3. 클러스터 분석 점수 (25점)
+        _v_clusters = p_cluster_analysis.get("clusters", [])
+        _v_distribution = p_cluster_analysis.get("distribution", {})
+        _v_anomalies = p_cluster_analysis.get("anomalies", [])
+        
+        # 클러스터 점수 (10점)
+        _v_cluster_count = len(_v_clusters)
+        _v_cluster_score = min(_v_cluster_count * 2, 10)
+        
+        # 분포 점수 (10점)
+        _v_skewness = abs(_v_distribution.get("skewness", 0.0))
+        _v_distribution_score = min(_v_skewness * 5, 10)
+        
+        # 이상치 점수 (5점)
+        _v_high_anomalies = [a for a in _v_anomalies if a.get("anomaly_type") == "high"]
+        _v_anomaly_score = min(len(_v_high_anomalies), 5)
+        
+        _v_score += _v_cluster_score + _v_distribution_score + _v_anomaly_score
+        
+        return min(_v_score, 100.0)
+    
+    @staticmethod
     def calculate_volume_score(p_volume_data: Dict[str, float]) -> float:
-        """거래량 점수 계산
+        """거래량 점수 계산 (기본 버전)
         
         Args:
             p_volume_data: 거래량 분석 데이터
@@ -397,6 +537,35 @@ class VolumeAnalysis:
         _v_trend_score = max(0, p_volume_data.get("volume_trend", 0.0) * 1000000) * 30
         
         return min(_v_surge_score + _v_correlation_score + _v_trend_score, 100.0)
+    
+    @staticmethod
+    def calculate_enhanced_volume_score(p_stock_data: Dict, p_ohlcv_data: pd.DataFrame = None) -> float:
+        """향상된 거래량 점수 계산
+        
+        Args:
+            p_stock_data: 주식 데이터
+            p_ohlcv_data: OHLCV 데이터 (선택적)
+            
+        Returns:
+            향상된 거래량 점수 (0-100)
+        """
+        try:
+            # 향상된 분석이 가능한 경우
+            if p_ohlcv_data is not None and len(p_ohlcv_data) >= 20:
+                _v_enhanced_analysis = VolumeAnalysis.analyze_enhanced_volume_pattern(p_ohlcv_data)
+                if _v_enhanced_analysis.get("enhanced_analysis", False):
+                    return _v_enhanced_analysis.get("combined_score", 50.0)
+            
+            # 기본 분석 사용
+            _v_volumes = [1000000 + i * 50000 for i in range(20)]
+            _v_prices = [p_stock_data.get("current_price", 50000) * (1 + i * 0.01) for i in range(20)]
+            
+            _v_volume_data = VolumeAnalysis.analyze_volume_pattern(_v_volumes, _v_prices)
+            return VolumeAnalysis.calculate_volume_score(_v_volume_data)
+            
+        except Exception as e:
+            logger.error(f"향상된 거래량 점수 계산 중 오류 발생: {e}")
+            return 50.0
 
 class PriceAnalyzer:
     """가격 매력도 분석 메인 클래스"""
@@ -412,11 +581,12 @@ class PriceAnalyzer:
         self._v_patterns = PatternRecognition()
         self._v_volume_analysis = VolumeAnalysis()
         
-        # 분석 가중치 설정
+        # 분석 가중치 설정 (기울기 분석 추가)
         self._v_weights = {
-            "technical": 0.4,    # 기술적 지표
-            "volume": 0.3,       # 거래량 분석
-            "pattern": 0.3       # 패턴 분석
+            "technical": 0.3,    # 기술적 지표
+            "volume": 0.25,      # 거래량 분석
+            "pattern": 0.25,     # 패턴 분석
+            "slope": 0.2         # 기울기 분석 (NEW)
         }
         
         logger.info("가격 매력도 분석기 초기화 완료")
@@ -445,12 +615,19 @@ class PriceAnalyzer:
             # 패턴 분석
             _v_pattern_score = self._analyze_patterns(p_stock_data)
             
+            # 기울기 분석 (NEW)
+            _v_slope_score, _v_slope_signals = self._analyze_slope_indicators(p_stock_data)
+            
             # 종합 점수 계산
             _v_total_score = (
                 _v_technical_score * self._v_weights["technical"] +
                 _v_volume_score * self._v_weights["volume"] +
-                _v_pattern_score * self._v_weights["pattern"]
+                _v_pattern_score * self._v_weights["pattern"] +
+                _v_slope_score * self._v_weights["slope"]
             )
+            
+            # 기울기 신호를 기술적 신호에 통합
+            _v_technical_signals.extend(_v_slope_signals)
             
             # 진입가, 목표가, 손절가 계산
             _v_entry_price = p_stock_data.get("current_price", 0.0)
@@ -466,7 +643,11 @@ class PriceAnalyzer:
             # 선정 이유 생성
             _v_selection_reason = self._generate_selection_reason(_v_technical_signals, _v_total_score)
             
-            # 결과 객체 생성
+            # 시장 상황 및 섹터 모멘텀
+            _v_market_condition = self._get_market_condition()
+            _v_sector_momentum = p_stock_data.get("sector_momentum", 0.0)
+            
+            # 결과 생성
             _v_result = PriceAttractiveness(
                 stock_code=_v_stock_code,
                 stock_name=_v_stock_name,
@@ -484,16 +665,17 @@ class PriceAnalyzer:
                 risk_score=_v_risk_score,
                 confidence=_v_confidence,
                 selection_reason=_v_selection_reason,
-                market_condition=self._get_market_condition(),
-                sector_momentum=p_stock_data.get("sector_momentum", 0.0),
-                sector=p_stock_data.get("sector", "")
+                market_condition=_v_market_condition,
+                sector_momentum=_v_sector_momentum,
+                sector=p_stock_data.get("sector", "기타")
             )
             
-            logger.info(f"분석 완료: {_v_stock_code} - 점수: {_v_total_score:.1f}")
+            logger.info(f"가격 매력도 분석 완료: {_v_stock_code} - 점수: {_v_total_score:.1f}")
+            
             return _v_result
             
         except Exception as e:
-            logger.error(f"가격 매력도 분석 오류 ({p_stock_data.get('stock_code', 'Unknown')}): {e}")
+            logger.error(f"가격 매력도 분석 중 오류 발생: {e}")
             return self._create_default_result(p_stock_data)
     
     def _analyze_technical_indicators(self, p_stock_data: Dict) -> Tuple[float, List[TechnicalSignal]]:
@@ -600,7 +782,7 @@ class PriceAnalyzer:
         return _v_technical_score, _v_signals
     
     def _analyze_volume(self, p_stock_data: Dict) -> float:
-        """거래량 분석
+        """거래량 분석 (향상된 버전)
         
         Args:
             p_stock_data: 종목 데이터
@@ -608,14 +790,30 @@ class PriceAnalyzer:
         Returns:
             거래량 점수
         """
-        # 더미 거래량 데이터 생성
-        _v_volumes = [1000000 + i * 50000 for i in range(20)]
-        _v_prices = self._generate_dummy_price_data(p_stock_data.get("current_price", 50000))
-        
-        _v_volume_data = self._v_volume_analysis.analyze_volume_pattern(_v_volumes, _v_prices)
-        _v_volume_score = self._v_volume_analysis.calculate_volume_score(_v_volume_data)
-        
-        return _v_volume_score
+        try:
+            # OHLCV 데이터 생성
+            _v_ohlcv_data = self._generate_ohlcv_data(p_stock_data)
+            
+            # 향상된 거래량 분석 시도
+            _v_enhanced_score = self._v_volume_analysis.calculate_enhanced_volume_score(
+                p_stock_data, _v_ohlcv_data
+            )
+            
+            logger.debug(f"향상된 거래량 분석 점수: {_v_enhanced_score:.1f}")
+            
+            return _v_enhanced_score
+            
+        except Exception as e:
+            logger.error(f"거래량 분석 중 오류 발생: {e}")
+            
+            # 기본 거래량 분석으로 폴백
+            _v_volumes = [1000000 + i * 50000 for i in range(20)]
+            _v_prices = [p_stock_data.get("current_price", 50000) * (1 + i * 0.01) for i in range(20)]
+            
+            _v_volume_data = self._v_volume_analysis.analyze_volume_pattern(_v_volumes, _v_prices)
+            _v_volume_score = self._v_volume_analysis.calculate_volume_score(_v_volume_data)
+            
+            return _v_volume_score
     
     def _analyze_patterns(self, p_stock_data: Dict) -> float:
         """패턴 분석
@@ -659,6 +857,189 @@ class PriceAnalyzer:
             _v_pattern_score += 15.0
         
         return min(_v_pattern_score, 100.0)
+    
+    def _analyze_slope_indicators(self, p_stock_data: Dict) -> Tuple[float, List[TechnicalSignal]]:
+        """기울기 지표 분석
+        
+        Args:
+            p_stock_data: 종목 데이터
+            
+        Returns:
+            (기울기 점수, 기울기 신호 리스트)
+        """
+        _v_signals = []
+        _v_score = 0.0
+        
+        try:
+            # OHLCV 데이터 생성
+            _v_ohlcv_data = self._generate_ohlcv_data(p_stock_data)
+            
+            if _v_ohlcv_data is None or len(_v_ohlcv_data) < 60:
+                logger.warning("기울기 분석을 위한 데이터 부족")
+                return 50.0, []
+            
+            _v_slope_indicator = SlopeIndicator(_v_ohlcv_data)
+            
+            # 1. 가격 기울기 분석 (30점)
+            _v_price_slope_5d = _v_slope_indicator.calculate_price_slope(5)
+            _v_price_slope_20d = _v_slope_indicator.calculate_price_slope(20)
+            
+            if _v_price_slope_5d > 0.5:
+                _v_signals.append(TechnicalSignal(
+                    signal_type="slope",
+                    signal_name="strong_price_uptrend",
+                    strength=80.0,
+                    confidence=0.8,
+                    description=f"강한 가격 상승 기울기 (5일: {_v_price_slope_5d:.2f}%)",
+                    timestamp=datetime.now().isoformat()
+                ))
+                _v_score += 30.0
+            elif _v_price_slope_5d > 0.2:
+                _v_signals.append(TechnicalSignal(
+                    signal_type="slope",
+                    signal_name="moderate_price_uptrend",
+                    strength=60.0,
+                    confidence=0.6,
+                    description=f"보통 가격 상승 기울기 (5일: {_v_price_slope_5d:.2f}%)",
+                    timestamp=datetime.now().isoformat()
+                ))
+                _v_score += 20.0
+            elif _v_price_slope_5d > 0:
+                _v_score += 10.0
+            
+            # 2. 이동평균 기울기 분석 (25점)
+            _v_ma5_slope = _v_slope_indicator.calculate_ma_slope(5, 3)
+            _v_ma20_slope = _v_slope_indicator.calculate_ma_slope(20, 5)
+            _v_ma60_slope = _v_slope_indicator.calculate_ma_slope(60, 10)
+            
+            if _v_ma20_slope > 0.3:
+                _v_signals.append(TechnicalSignal(
+                    signal_type="slope",
+                    signal_name="strong_ma_uptrend",
+                    strength=75.0,
+                    confidence=0.7,
+                    description=f"강한 이동평균 상승 기울기 (20일: {_v_ma20_slope:.2f}%)",
+                    timestamp=datetime.now().isoformat()
+                ))
+                _v_score += 25.0
+            elif _v_ma20_slope > 0.1:
+                _v_score += 15.0
+            elif _v_ma20_slope > 0:
+                _v_score += 8.0
+            
+            # 3. 추세 일관성 분석 (20점)
+            _v_trend_consistency = _v_slope_indicator.check_trend_consistency()
+            
+            if _v_trend_consistency:
+                _v_signals.append(TechnicalSignal(
+                    signal_type="slope",
+                    signal_name="trend_consistency",
+                    strength=85.0,
+                    confidence=0.8,
+                    description="단기-중기-장기 추세 일관성 확인",
+                    timestamp=datetime.now().isoformat()
+                ))
+                _v_score += 20.0
+            
+            # 4. 기울기 가속도 분석 (15점)
+            _v_acceleration = _v_slope_indicator.calculate_slope_acceleration()
+            
+            if _v_acceleration > 0.3:
+                _v_signals.append(TechnicalSignal(
+                    signal_type="slope",
+                    signal_name="strong_acceleration",
+                    strength=90.0,
+                    confidence=0.9,
+                    description=f"강한 기울기 가속 ({_v_acceleration:.2f}%)",
+                    timestamp=datetime.now().isoformat()
+                ))
+                _v_score += 15.0
+            elif _v_acceleration > 0.1:
+                _v_score += 10.0
+            elif _v_acceleration > 0:
+                _v_score += 5.0
+            
+            # 5. 기울기 강도 분석 (10점)
+            _v_slope_strength = _v_slope_indicator.get_slope_strength()
+            
+            if _v_slope_strength == 'strong_up':
+                _v_signals.append(TechnicalSignal(
+                    signal_type="slope",
+                    signal_name="strong_slope_strength",
+                    strength=95.0,
+                    confidence=0.9,
+                    description="매우 강한 상승 기울기 강도",
+                    timestamp=datetime.now().isoformat()
+                ))
+                _v_score += 10.0
+            elif _v_slope_strength == 'weak_up':
+                _v_score += 6.0
+            
+            # 최종 점수 정규화 (0-100점)
+            _v_normalized_score = min(_v_score, 100.0)
+            
+            return _v_normalized_score, _v_signals
+            
+        except Exception as e:
+            logger.error(f"기울기 분석 중 오류 발생: {e}")
+            return 50.0, []
+    
+    def _generate_ohlcv_data(self, p_stock_data: Dict) -> Optional[pd.DataFrame]:
+        """주식 데이터로부터 OHLCV DataFrame 생성 (기울기 분석용)
+        
+        Args:
+            p_stock_data: 주식 데이터
+            
+        Returns:
+            OHLCV DataFrame 또는 None
+        """
+        try:
+            _v_current_price = p_stock_data.get("current_price", 0.0)
+            _v_volume_ratio = p_stock_data.get("volume_ratio", 1.0)
+            
+            if _v_current_price <= 0:
+                return None
+                
+            # 더미 OHLCV 데이터 생성 (실제로는 API에서 가져와야 함)
+            # 60일간의 임시 데이터 생성
+            _v_dates = pd.date_range(end=datetime.now().date(), periods=60, freq='D')
+            _v_prices = []
+            _v_volumes = []
+            
+            # 현재가 기준으로 과거 60일간 가격 시뮬레이션
+            _v_base_price = _v_current_price * 0.92  # 시작가는 현재가의 92%
+            _v_price = _v_base_price
+            _v_base_volume = 1500000  # 기본 거래량
+            
+            for i in range(60):
+                # 가격 변화 시뮬레이션 (상승 추세)
+                _v_change = np.random.normal(0.003, 0.018)  # 평균 0.3% 상승, 표준편차 1.8%
+                _v_price *= (1 + _v_change)
+                _v_prices.append(_v_price)
+                
+                # 거래량 시뮬레이션 (거래량 비율 반영)
+                _v_volume_multiplier = 1.0 + (_v_volume_ratio - 1.0) * 0.1  # 점진적 증가
+                _v_volume = _v_base_volume * _v_volume_multiplier * np.random.uniform(0.6, 1.8)
+                _v_volumes.append(_v_volume)
+            
+            # 마지막 가격을 현재가로 조정
+            _v_prices[-1] = _v_current_price
+            
+            # DataFrame 생성
+            _v_ohlcv_data = pd.DataFrame({
+                'date': _v_dates,
+                'open': [p * 0.997 for p in _v_prices],
+                'high': [p * 1.008 for p in _v_prices],
+                'low': [p * 0.992 for p in _v_prices],
+                'close': _v_prices,
+                'volume': _v_volumes
+            })
+            
+            return _v_ohlcv_data
+            
+        except Exception as e:
+            logger.error(f"OHLCV 데이터 생성 오류: {e}")
+            return None
     
     def _calculate_target_stop(self, p_entry_price: float, p_score: float) -> Tuple[float, float]:
         """목표가와 손절가 계산

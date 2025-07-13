@@ -60,3 +60,8 @@ data/*
 .idea/
 .cursorignore
 .cursorrules
+
+# Node.js (for AI development tools)
+node_modules/
+package.json
+package-lock.json

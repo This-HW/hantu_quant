@@ -8,10 +8,9 @@ from typing import Optional
 
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Index, Date, Numeric, Text, Enum
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.ext.declarative import declarative_base
 
-class Base(DeclarativeBase):
-    pass
+Base = declarative_base()
 
 class Stock(Base):
     """주식 종목 정보"""

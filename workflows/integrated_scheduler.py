@@ -29,10 +29,15 @@ logger = get_logger(__name__)
 class IntegratedScheduler:
     """통합 스케줄러 클래스"""
     
-    def __init__(self):
-        """초기화"""
-        self._v_phase1_workflow = Phase1Workflow()
-        self._v_phase2_cli = Phase2CLI()
+    def __init__(self, p_parallel_workers: int = 4):
+        """초기화
+        
+        Args:
+            p_parallel_workers: 병렬 처리 워커 수 (기본값: 4)
+        """
+        self._v_phase1_workflow = Phase1Workflow(p_parallel_workers=p_parallel_workers)
+        self._v_phase2_cli = Phase2CLI(p_parallel_workers=p_parallel_workers)
+        self._v_parallel_workers = p_parallel_workers
         
         # 스케줄러 상태
         self._v_scheduler_running = False
@@ -45,7 +50,7 @@ class IntegratedScheduler:
         # Phase 1 완료 후 Phase 2 자동 실행을 위한 플래그
         self._v_phase1_completed = False
         
-        logger.info("통합 스케줄러 초기화 완료")
+        logger.info(f"통합 스케줄러 초기화 완료 (병렬 워커: {p_parallel_workers}개)")
     
     def start_scheduler(self):
         """통합 스케줄러 시작"""
@@ -123,7 +128,7 @@ class IntegratedScheduler:
             logger.info("=== 일간 스크리닝 시작 ===")
             print(f"🔍 일간 스크리닝 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             
-            # 전체 시장 스크리닝 실행
+            # 전체 시장 스크리닝 실행 (코스피 + 코스닥 전체 2875개 종목)
             _v_success = self._v_phase1_workflow.run_full_screening()
             
             if _v_success:
@@ -263,8 +268,8 @@ def main():
         parser.print_help()
         return
     
-    # 스케줄러 생성
-    scheduler = IntegratedScheduler()
+    # 스케줄러 생성 (병렬 워커 수 설정)
+    scheduler = IntegratedScheduler(p_parallel_workers=4)
     
     try:
         if args.command == 'start':

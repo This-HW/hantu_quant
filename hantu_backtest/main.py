@@ -7,8 +7,8 @@ import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from core.backtest import Backtest
-from strategies.momentum import MomentumStrategy
+from hantu_backtest.core.backtest import Backtest
+from hantu_backtest.strategies.momentum import MomentumStrategy
 
 # 로깅 설정
 logging.basicConfig(
@@ -28,12 +28,10 @@ def run_backtest(args):
         # 전략 초기화
         strategy = MomentumStrategy(
             rsi_period=args.rsi_period,
-            rsi_buy_threshold=args.rsi_buy_threshold,
-            rsi_sell_threshold=args.rsi_sell_threshold,
+            rsi_lower=args.rsi_buy_threshold,
+            rsi_upper=args.rsi_sell_threshold,
             ma_short=args.ma_short,
-            ma_medium=args.ma_medium,
-            min_volume=args.min_volume,
-            volume_surge_ratio=args.volume_surge_ratio
+            ma_long=args.ma_medium
         )
         
         # 백테스터 초기화
@@ -54,13 +52,27 @@ def run_backtest(args):
         print(f"전략: {strategy.name}")
         print(f"기간: {args.start_date} ~ {args.end_date}")
         print(f"초기자본: {args.initial_capital:,.0f}원")
-        print(f"최종자본: {results['equity_curve'].iloc[-1]:,.0f}원")
-        print(f"총수익률: {results['metrics']['total_return']:.2f}%")
-        print(f"연간수익률: {results['metrics']['annual_return']:.2f}%")
-        print(f"최대낙폭: {results['metrics']['max_drawdown']:.2f}%")
-        print(f"샤프비율: {results['metrics']['sharpe_ratio']:.2f}")
-        print(f"총거래횟수: {results['metrics']['total_trades']}회")
-        print(f"승률: {results['metrics']['win_rate']:.2f}%")
+        
+        # 안전하게 결과 출력
+        returns_info = results.get('returns', {})
+        total_return = returns_info.get('total_return', 0.0)
+        annual_return = returns_info.get('annual_return', 0.0)
+        sharpe_ratio = returns_info.get('sharpe_ratio', 0.0)
+        
+        trades = results.get('trades', [])
+        positions = results.get('positions', {})
+        
+        print(f"총수익률: {total_return:.2f}%")
+        print(f"연간수익률: {annual_return:.2f}%")
+        print(f"샤프비율: {sharpe_ratio:.2f}")
+        print(f"총거래횟수: {len(trades)}회")
+        print(f"포지션 수: {len(positions)}개")
+        
+        if trades:
+            buy_trades = [t for t in trades if t.get('type') == 'buy']
+            sell_trades = [t for t in trades if t.get('type') == 'sell']
+            print(f"매수 거래: {len(buy_trades)}회")
+            print(f"매도 거래: {len(sell_trades)}회")
         
     except Exception as e:
         logger.error(f"백테스트 실행 중 오류 발생: {str(e)}")

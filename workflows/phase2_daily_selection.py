@@ -16,6 +16,7 @@ import logging
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.daily_selection.price_analyzer import PriceAnalyzer, PriceAttractiveness
+from core.daily_selection.price_analyzer_parallel import ParallelPriceAnalyzer
 from core.daily_selection.daily_updater import DailyUpdater, FilteringCriteria
 from core.daily_selection.selection_criteria import SelectionCriteriaManager, MarketCondition, SelectionCriteria
 from core.watchlist.watchlist_manager import WatchlistManager
@@ -26,14 +27,20 @@ logger = get_logger(__name__)
 class Phase2CLI:
     """Phase 2 CLI 메인 클래스"""
     
-    def __init__(self):
-        """초기화"""
+    def __init__(self, p_parallel_workers: int = 4):
+        """초기화
+        
+        Args:
+            p_parallel_workers: 병렬 처리 워커 수 (기본값: 4)
+        """
         self._v_price_analyzer = PriceAnalyzer()
+        self._v_parallel_price_analyzer = ParallelPriceAnalyzer(p_max_workers=p_parallel_workers)
         self._v_daily_updater = DailyUpdater()
         self._v_criteria_manager = SelectionCriteriaManager()
         self._v_watchlist_manager = WatchlistManager()
+        self._v_parallel_workers = p_parallel_workers
         
-        logger.info("Phase 2 CLI 초기화 완료")
+        logger.info(f"Phase 2 CLI 초기화 완료 (병렬 워커: {p_parallel_workers}개)")
     
     def run(self):
         """CLI 실행"""
@@ -368,8 +375,12 @@ class Phase2CLI:
                 }
                 stock_data_list.append(stock_data)
             
-            # 일괄 분석 실행
-            results = self._v_price_analyzer.analyze_multiple_stocks(stock_data_list)
+            # 병렬 일괄 분석 실행
+            logger.info(f"🚀 병렬 가격 분석 시작 - 워커: {self._v_parallel_workers}개, 종목: {len(stock_data_list)}개")
+            print(f"🚀 병렬 가격 분석 시작 - 워커: {self._v_parallel_workers}개, 종목: {len(stock_data_list)}개")
+            
+            # 데이터 크기에 따른 적응형 분석 사용
+            results = self._v_parallel_price_analyzer.adaptive_analysis(stock_data_list)
             return results
             
         except Exception as e:
@@ -639,7 +650,7 @@ class Phase2CLI:
 
 def main():
     """메인 함수"""
-    cli = Phase2CLI()
+    cli = Phase2CLI(p_parallel_workers=4)
     cli.run()
 
 if __name__ == "__main__":
