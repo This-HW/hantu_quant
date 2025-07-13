@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# 한투 퀀트 프로젝트 문서 동기화 pre-commit hook
+
+echo "🔄 문서 동기화 확인 중..."
+
+# TODO 상태 변경이 있는지 확인
+if git diff --cached --name-only | grep -E "(todos\.json|PROJECT_SUMMARY\.md|ROADMAP\.md)" > /dev/null; then
+    echo "📋 TODO 또는 프로젝트 문서 변경 감지됨"
+    
+    # Python 문서 동기화 스크립트 실행
+    if [ -f "scripts/doc_sync_automation.py" ]; then
+        echo "🚀 문서 동기화 자동화 실행 중..."
+        python3 scripts/doc_sync_automation.py
+        
+        # 변경된 파일들을 스테이징 영역에 추가
+        git add .cursor/rules/project-status.mdc
+        git add .cursor/rules/implementation_checklist.md
+        git add PROJECT_SUMMARY.md
+        git add ROADMAP.md
+        git add STATUS_REPORT.md
+        git add .ai/history/
+        
+        echo "✅ 문서 동기화 완료 및 스테이징됨"
+    else
+        echo "⚠️ 문서 동기화 스크립트를 찾을 수 없습니다."
+    fi
+else
+    echo "📄 문서 동기화가 필요한 변경사항 없음"
+fi
+
+echo "✨ pre-commit 확인 완료"
+exit 0 
