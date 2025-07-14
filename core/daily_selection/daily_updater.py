@@ -19,8 +19,30 @@ import logging
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from core.watchlist.watchlist_manager import WatchlistManager
-from core.daily_selection.price_analyzer import PriceAnalyzer, PriceAttractiveness
+from core.daily_selection.price_analyzer import PriceAnalyzer, PriceAttractivenessLegacy
 from core.utils.log_utils import get_logger
+from core.interfaces.trading import IDailyUpdater, PriceAttractiveness, DailySelection
+
+# 새로운 아키텍처 imports - 사용 가능할 때만 import
+try:
+    from core.plugins.decorators import plugin
+    from core.di.container import inject
+    from core.interfaces.base import ILogger, IConfiguration
+    ARCHITECTURE_AVAILABLE = True
+except ImportError:
+    # 새 아키텍처가 아직 완전히 구축되지 않은 경우 임시 대안
+    ARCHITECTURE_AVAILABLE = False
+    
+    def plugin(**kwargs):
+        """임시 플러그인 데코레이터"""
+        def decorator(cls):
+            cls._plugin_metadata = kwargs
+            return cls
+        return decorator
+    
+    def inject(cls):
+        """임시 DI 데코레이터"""
+        return cls
 
 logger = get_logger(__name__)
 
@@ -38,8 +60,8 @@ class FilteringCriteria:
     confidence_min: float = 0.5             # 최소 신뢰도
 
 @dataclass
-class DailySelection:
-    """일일 선정 종목 데이터 클래스"""
+class DailySelectionLegacy:
+    """일일 선정 종목 데이터 클래스 (기존 호환성용)"""
     stock_code: str
     stock_name: str
     selection_date: str
@@ -48,7 +70,6 @@ class DailySelection:
     entry_price: float
     target_price: float
     stop_loss: float
-    expected_return: float
     risk_score: float
     volume_score: float
     technical_signals: List[str]
@@ -61,6 +82,27 @@ class DailySelection:
     def to_dict(self) -> Dict:
         """딕셔너리로 변환"""
         return asdict(self)
+    
+    def to_daily_selection(self) -> DailySelection:
+        """새로운 DailySelection으로 변환"""
+        return DailySelection(
+            stock_code=self.stock_code,
+            stock_name=self.stock_name,
+            selection_date=datetime.fromisoformat(self.selection_date) if isinstance(self.selection_date, str) else self.selection_date,
+            selection_reason=self.selection_reason,
+            price_attractiveness=self.price_attractiveness,
+            entry_price=self.entry_price,
+            target_price=self.target_price,
+            stop_loss=self.stop_loss,
+            risk_score=self.risk_score,
+            volume_score=self.volume_score,
+            technical_signals=self.technical_signals,
+            sector=self.sector,
+            market_cap=self.market_cap,
+            priority=self.priority,
+            position_size=self.position_size,
+            confidence=self.confidence
+        )
 
 @dataclass
 class MarketIndicators:
@@ -80,188 +122,228 @@ class MarketConditionAnalyzer:
     """시장 상황 분석 클래스"""
     
     def __init__(self):
-        """초기화"""
-        self._v_indicators = MarketIndicators()
+        self._market_indicators = MarketIndicators()
     
     def analyze_market_condition(self) -> str:
-        """시장 상황 분석
-        
-        Returns:
-            시장 상황 ('bull_market', 'bear_market', 'sideways')
-        """
+        """시장 상황 분석"""
         try:
-            # 실제로는 API를 통해 시장 지표 수집
             self._update_market_indicators()
             
-            # 간단한 시장 상황 판단 로직
-            # 실제로는 더 복잡한 알고리즘 사용
-            _v_kospi_trend = self._calculate_trend_strength(self._v_indicators.kospi)
-            _v_volatility = self._v_indicators.vix
+            # 임시로 중립 시장 반환 (실제로는 지수 분석 필요)
+            return "neutral"
             
-            if _v_kospi_trend > 0.02 and _v_volatility < 20:
-                return "bull_market"
-            elif _v_kospi_trend < -0.02 or _v_volatility > 30:
-                return "bear_market"
-            else:
-                return "sideways"
-                
         except Exception as e:
             logger.error(f"시장 상황 분석 오류: {e}")
-            return "sideways"
+            return "neutral"
     
     def _update_market_indicators(self):
-        """시장 지표 업데이트 (더미 데이터)"""
-        # 실제로는 API에서 실시간 데이터 수집
-        self._v_indicators = MarketIndicators(
-            kospi=2650.5,
-            kosdaq=850.2,
-            vix=18.5,
-            usd_krw=1320.5,
-            interest_rate=3.5,
-            oil_price=75.2
-        )
-    
-    def _calculate_trend_strength(self, p_current_value: float) -> float:
-        """추세 강도 계산 (더미 구현)"""
-        # 실제로는 과거 데이터와 비교하여 추세 강도 계산
-        return 0.01  # 임시 값
+        """시장 지표 업데이트 (시뮬레이션)"""
+        # 실제로는 API에서 데이터를 가져와야 함
+        import random
+        self._market_indicators.kospi = random.uniform(2400, 2600)
+        self._market_indicators.kosdaq = random.uniform(800, 900)
+        self._market_indicators.vix = random.uniform(15, 25)
+        self._market_indicators.usd_krw = random.uniform(1300, 1350)
     
     def get_market_indicators(self) -> MarketIndicators:
-        """현재 시장 지표 반환"""
-        return self._v_indicators
+        """시장 지표 조회"""
+        return self._market_indicators
 
-class DailyUpdater:
-    """일일 업데이트 스케줄러 메인 클래스"""
+@plugin(
+    name="daily_updater",
+    version="1.0.0", 
+    description="일일 업데이트 스케줄러 플러그인",
+    author="HantuQuant",
+    dependencies=["watchlist_manager", "price_analyzer", "logger"],
+    category="daily_selection"
+)
+class DailyUpdater(IDailyUpdater):
+    """일일 업데이트 스케줄러 클래스 - 새로운 아키텍처 적용"""
     
-    def __init__(self, p_watchlist_file: str = "data/watchlist/watchlist.json",
-                 p_output_dir: str = "data/daily_selection"):
-        """초기화
+    @inject
+    def __init__(self, 
+                 p_watchlist_file: str = "data/watchlist/watchlist.json",
+                 p_output_dir: str = "data/daily_selection",
+                 watchlist_manager=None,
+                 price_analyzer=None,
+                 logger=None):
+        """초기화 메서드"""
+        self._watchlist_file = p_watchlist_file
+        self._output_dir = p_output_dir
+        self._logger = logger or get_logger(__name__)
         
-        Args:
-            p_watchlist_file: 감시 리스트 파일 경로
-            p_output_dir: 결과 저장 디렉토리
-        """
-        self._v_watchlist_manager = WatchlistManager(p_watchlist_file)
-        self._v_price_analyzer = PriceAnalyzer()
-        self._v_market_analyzer = MarketConditionAnalyzer()
-        self._v_output_dir = p_output_dir
+        # 컴포넌트 초기화 (DI 또는 직접 생성)
+        self._watchlist_manager = watchlist_manager or WatchlistManager(p_watchlist_file)
+        self._price_analyzer = price_analyzer or PriceAnalyzer()
+        self._market_analyzer = MarketConditionAnalyzer()
         
-        # 필터링 기준 설정
-        self._v_criteria = FilteringCriteria()
+        # 필터링 기준 및 상태
+        self._filtering_criteria = FilteringCriteria()
+        self._scheduler_running = False
+        self._scheduler_thread = None
         
-        # 스케줄러 상태
-        self._v_scheduler_running = False
-        self._v_scheduler_thread = None
+        # 출력 디렉토리 생성
+        os.makedirs(self._output_dir, exist_ok=True)
         
-        # 디렉토리 생성
-        os.makedirs(p_output_dir, exist_ok=True)
-        
-        logger.info("일일 업데이터 초기화 완료")
-    
-    def start_scheduler(self):
-        """스케줄러 시작"""
-        if self._v_scheduler_running:
-            logger.warning("스케줄러가 이미 실행 중입니다")
-            return
-        
-        # 매일 08:30에 실행 스케줄 설정
-        schedule.clear()
-        schedule.every().day.at("08:30").do(self.run_daily_update)
-        
-        # 테스트용: 매 5분마다 실행 (개발 중에만 사용)
-        # schedule.every(5).minutes.do(self.run_daily_update)
-        
-        self._v_scheduler_running = True
-        self._v_scheduler_thread = threading.Thread(target=self._run_scheduler_loop, daemon=True)
-        self._v_scheduler_thread.start()
-        
-        logger.info("일일 업데이트 스케줄러 시작됨")
-    
-    def stop_scheduler(self):
-        """스케줄러 중지"""
-        self._v_scheduler_running = False
-        schedule.clear()
-        
-        if self._v_scheduler_thread and self._v_scheduler_thread.is_alive():
-            self._v_scheduler_thread.join(timeout=5)
-        
-        logger.info("일일 업데이트 스케줄러 중지됨")
-    
-    def _run_scheduler_loop(self):
-        """스케줄러 루프 실행"""
-        while self._v_scheduler_running:
-            try:
-                schedule.run_pending()
-                time.sleep(60)  # 1분마다 체크
-            except Exception as e:
-                logger.error(f"스케줄러 루프 오류: {e}")
-                time.sleep(60)
-    
+        self._logger.info("DailyUpdater 초기화 완료 (새 아키텍처)")
+
     def run_daily_update(self, p_force_run: bool = False) -> bool:
-        """일일 업데이트 실행
-        
-        Args:
-            p_force_run: 강제 실행 여부 (스케줄 무시)
-            
-        Returns:
-            업데이트 성공 여부
-        """
+        """일일 업데이트 실행 (새 인터페이스 구현)"""
         try:
-            _v_start_time = datetime.now()
-            logger.info(f"일일 업데이트 시작: {_v_start_time}")
+            self._logger.info("일일 업데이트 시작")
             
             # 1. 시장 상황 분석
-            _v_market_condition = self._v_market_analyzer.analyze_market_condition()
-            _v_market_indicators = self._v_market_analyzer.get_market_indicators()
+            _v_market_condition = self.analyze_market_condition()
             
-            logger.info(f"시장 상황: {_v_market_condition}")
-            
-            # 2. 시장 상황에 따른 필터링 기준 조정
+            # 2. 시장 상황에 따른 기준 조정
             self._adjust_criteria_by_market(_v_market_condition)
             
-            # 3. 감시 리스트 로드
-            _v_watchlist_stocks = self._v_watchlist_manager.list_stocks(p_status="active")
-            
-            if not _v_watchlist_stocks:
-                logger.warning("활성 감시 리스트가 비어있습니다")
-                return False
-            
-            logger.info(f"감시 리스트 종목 수: {len(_v_watchlist_stocks)}")
+            # 3. 감시 리스트에서 종목 데이터 준비
+            _v_watchlist_stocks = self._watchlist_manager.list_stocks(p_status="active")
+            _v_stock_data_list = self._prepare_stock_data(_v_watchlist_stocks)
             
             # 4. 가격 매력도 분석
-            _v_stock_data_list = self._prepare_stock_data(_v_watchlist_stocks)
-            _v_analysis_results = self._v_price_analyzer.analyze_multiple_stocks(_v_stock_data_list)
-            
-            logger.info(f"분석 완료 종목 수: {len(_v_analysis_results)}")
+            _v_analysis_results = []
+            for _v_stock_data in _v_stock_data_list:
+                try:
+                    _v_result = self._price_analyzer.analyze_price_attractiveness(_v_stock_data)
+                    # 기존 형식으로 변환 (호환성)
+                    if hasattr(_v_result, 'to_dict'):
+                        _v_legacy_result = PriceAttractivenessLegacy(**_v_result.to_dict())
+                        _v_analysis_results.append(_v_legacy_result)
+                except Exception as e:
+                    self._logger.error(f"종목 {_v_stock_data.get('stock_code')} 분석 오류: {e}")
+                    continue
             
             # 5. 필터링 및 선정
             _v_selected_stocks = self._filter_and_select_stocks(_v_analysis_results)
             
-            logger.info(f"선정된 종목 수: {len(_v_selected_stocks)}")
-            
             # 6. 일일 매매 리스트 생성
-            _v_daily_list = self._create_daily_trading_list(
-                _v_selected_stocks, _v_market_condition, _v_market_indicators
-            )
+            _v_market_indicators = self._market_analyzer.get_market_indicators()
+            _v_daily_list = self._create_daily_trading_list(_v_selected_stocks, _v_market_condition, _v_market_indicators)
             
             # 7. 결과 저장
             _v_save_success = self._save_daily_list(_v_daily_list)
             
-            _v_end_time = datetime.now()
-            _v_duration = (_v_end_time - _v_start_time).total_seconds()
-            
-            logger.info(f"일일 업데이트 완료: {_v_duration:.1f}초 소요")
-            
-            # 8. 알림 발송 (선택사항)
             if _v_save_success:
-                self._send_notification(_v_daily_list)
+                self._logger.info(f"일일 업데이트 완료 - 선정 종목: {len(_v_selected_stocks)}개")
+                return True
+            else:
+                self._logger.error("일일 리스트 저장 실패")
+                return False
+                
+        except Exception as e:
+            self._logger.error(f"일일 업데이트 오류: {e}")
+            return False
+
+    def analyze_market_condition(self) -> str:
+        """시장 상황 분석 (새 인터페이스 구현)"""
+        return self._market_analyzer.analyze_market_condition()
+
+    def filter_and_select_stocks(self, p_analysis_results: List[PriceAttractiveness]) -> List[PriceAttractiveness]:
+        """종목 필터링 및 선정 (새 인터페이스 구현)"""
+        # PriceAttractiveness를 기존 형식으로 변환
+        _v_legacy_results = []
+        for result in p_analysis_results:
+            _v_legacy_result = PriceAttractivenessLegacy(
+                stock_code=result.stock_code,
+                stock_name=result.stock_name,
+                analysis_date=result.analysis_date.isoformat() if isinstance(result.analysis_date, datetime) else str(result.analysis_date),
+                current_price=result.current_price,
+                total_score=result.total_score,
+                technical_score=result.technical_score,
+                volume_score=result.volume_score,
+                pattern_score=result.pattern_score,
+                technical_signals=[],  # 간소화
+                entry_price=result.entry_price,
+                target_price=result.target_price,
+                stop_loss=result.stop_loss,
+                expected_return=result.expected_return,
+                risk_score=result.risk_score,
+                confidence=result.confidence,
+                selection_reason=result.selection_reason,
+                market_condition=result.market_condition,
+                sector_momentum=result.sector_momentum,
+                sector=result.sector
+            )
+            _v_legacy_results.append(_v_legacy_result)
+        
+        # 기존 필터링 로직 사용
+        _v_filtered = self._filter_and_select_stocks(_v_legacy_results)
+        
+        # 결과를 새로운 형식으로 변환
+        _v_new_results = []
+        for legacy_result in _v_filtered:
+            _v_new_result = legacy_result.to_price_attractiveness()
+            _v_new_results.append(_v_new_result)
+        
+        return _v_new_results
+
+    def create_daily_trading_list(self, p_selected_stocks: List[PriceAttractiveness]) -> Dict:
+        """일일 매매 리스트 생성 (새 인터페이스 구현)"""
+        _v_market_condition = self.analyze_market_condition()
+        _v_market_indicators = self._market_analyzer.get_market_indicators()
+        
+        # PriceAttractiveness를 기존 형식으로 변환
+        _v_legacy_stocks = []
+        for stock in p_selected_stocks:
+            _v_legacy_stock = PriceAttractivenessLegacy(
+                stock_code=stock.stock_code,
+                stock_name=stock.stock_name,
+                analysis_date=stock.analysis_date.isoformat() if isinstance(stock.analysis_date, datetime) else str(stock.analysis_date),
+                current_price=stock.current_price,
+                total_score=stock.total_score,
+                technical_score=stock.technical_score,
+                volume_score=stock.volume_score,
+                pattern_score=stock.pattern_score,
+                technical_signals=[],  # 간소화
+                entry_price=stock.entry_price,
+                target_price=stock.target_price,
+                stop_loss=stock.stop_loss,
+                expected_return=stock.expected_return,
+                risk_score=stock.risk_score,
+                confidence=stock.confidence,
+                selection_reason=stock.selection_reason,
+                market_condition=stock.market_condition,
+                sector_momentum=stock.sector_momentum,
+                sector=stock.sector
+            )
+            _v_legacy_stocks.append(_v_legacy_stock)
+        
+        return self._create_daily_trading_list(_v_legacy_stocks, _v_market_condition, _v_market_indicators)
+
+    def start_scheduler(self) -> None:
+        """스케줄러 시작 (새 인터페이스 구현)"""
+        if self._scheduler_running:
+            self._logger.warning("스케줄러가 이미 실행 중입니다")
+            return
+        
+        try:
+            # 스케줄 설정
+            schedule.clear()
+            schedule.every().day.at("08:30").do(self.run_daily_update)
             
-            return _v_save_success
+            self._scheduler_running = True
+            self._scheduler_thread = threading.Thread(target=self._run_scheduler_loop, daemon=True)
+            self._scheduler_thread.start()
+            
+            self._logger.info("일일 업데이트 스케줄러 시작")
             
         except Exception as e:
-            logger.error(f"일일 업데이트 실행 오류: {e}")
-            return False
-    
+            self._logger.error(f"스케줄러 시작 오류: {e}")
+
+    def stop_scheduler(self) -> None:
+        """스케줄러 중지 (새 인터페이스 구현)"""
+        self._scheduler_running = False
+        schedule.clear()
+        self._logger.info("일일 업데이트 스케줄러 중지")
+
+    def _run_scheduler_loop(self):
+        """스케줄러 루프 실행"""
+        while self._scheduler_running:
+            schedule.run_pending()
+            time.sleep(60)  # 1분마다 체크
+
     def _adjust_criteria_by_market(self, p_market_condition: str):
         """시장 상황에 따른 필터링 기준 조정
         
@@ -270,23 +352,23 @@ class DailyUpdater:
         """
         if p_market_condition == "bull_market":
             # 상승장: 기준 완화
-            self._v_criteria.price_attractiveness = 65.0
-            self._v_criteria.volume_threshold = 1.3
-            self._v_criteria.risk_score_max = 50.0
-            self._v_criteria.total_limit = 20
+            self._filtering_criteria.price_attractiveness = 65.0
+            self._filtering_criteria.volume_threshold = 1.3
+            self._filtering_criteria.risk_score_max = 50.0
+            self._filtering_criteria.total_limit = 20
             
         elif p_market_condition == "bear_market":
             # 하락장: 기준 강화
-            self._v_criteria.price_attractiveness = 80.0
-            self._v_criteria.volume_threshold = 2.0
-            self._v_criteria.risk_score_max = 30.0
-            self._v_criteria.total_limit = 10
+            self._filtering_criteria.price_attractiveness = 80.0
+            self._filtering_criteria.volume_threshold = 2.0
+            self._filtering_criteria.risk_score_max = 30.0
+            self._filtering_criteria.total_limit = 10
             
         else:  # sideways
             # 횡보장: 기본 기준 유지
-            self._v_criteria = FilteringCriteria()
+            self._filtering_criteria = FilteringCriteria()
         
-        logger.info(f"필터링 기준 조정 완료 - 시장상황: {p_market_condition}")
+        self._logger.info(f"필터링 기준 조정 완료 - 시장상황: {p_market_condition}")
     
     def _prepare_stock_data(self, p_watchlist_stocks: List) -> List[Dict]:
         """감시 리스트 종목을 분석용 데이터로 변환
@@ -334,7 +416,7 @@ class DailyUpdater:
         # 실제로는 섹터 지수 분석
         return (hash(p_sector) % 200 - 100) / 1000  # -10% ~ +10% 범위
     
-    def _filter_and_select_stocks(self, p_analysis_results: List[PriceAttractiveness]) -> List[PriceAttractiveness]:
+    def _filter_and_select_stocks(self, p_analysis_results: List[PriceAttractivenessLegacy]) -> List[PriceAttractivenessLegacy]:
         """분석 결과를 필터링하여 매매 대상 선정
         
         Args:
@@ -356,20 +438,20 @@ class DailyUpdater:
             
             # 섹터별 제한 확인
             _v_sector_count[result.sector] = _v_sector_count.get(result.sector, 0)
-            if _v_sector_count[result.sector] >= self._v_criteria.sector_limit:
+            if _v_sector_count[result.sector] >= self._filtering_criteria.sector_limit:
                 continue
             
             # 전체 제한 확인
-            if len(_v_filtered_stocks) >= self._v_criteria.total_limit:
+            if len(_v_filtered_stocks) >= self._filtering_criteria.total_limit:
                 break
             
             _v_filtered_stocks.append(result)
             _v_sector_count[result.sector] += 1
         
-        logger.info(f"필터링 완료: {len(_v_filtered_stocks)}개 종목 선정")
+        self._logger.info(f"필터링 완료: {len(_v_filtered_stocks)}개 종목 선정")
         return _v_filtered_stocks
     
-    def _passes_basic_filters(self, p_result: PriceAttractiveness) -> bool:
+    def _passes_basic_filters(self, p_result: PriceAttractivenessLegacy) -> bool:
         """기본 필터링 조건 확인
         
         Args:
@@ -379,24 +461,24 @@ class DailyUpdater:
             필터링 통과 여부
         """
         # 가격 매력도 점수
-        if p_result.total_score < self._v_criteria.price_attractiveness:
+        if p_result.total_score < self._filtering_criteria.price_attractiveness:
             return False
         
         # 리스크 점수
-        if p_result.risk_score > self._v_criteria.risk_score_max:
+        if p_result.risk_score > self._filtering_criteria.risk_score_max:
             return False
         
         # 신뢰도
-        if p_result.confidence < self._v_criteria.confidence_min:
+        if p_result.confidence < self._filtering_criteria.confidence_min:
             return False
         
         # 거래량 점수 (임시로 volume_score 사용)
-        if p_result.volume_score < self._v_criteria.liquidity_score:
+        if p_result.volume_score < self._filtering_criteria.liquidity_score:
             return False
         
         return True
     
-    def _create_daily_trading_list(self, p_selected_stocks: List[PriceAttractiveness],
+    def _create_daily_trading_list(self, p_selected_stocks: List[PriceAttractivenessLegacy],
                                  p_market_condition: str, p_market_indicators: MarketIndicators) -> Dict:
         """일일 매매 리스트 생성
         
@@ -452,12 +534,12 @@ class DailyUpdater:
         # 메타데이터 생성
         _v_metadata = {
             "total_selected": len(_v_daily_selections),
-            "watchlist_count": len(self._v_watchlist_manager.list_stocks(p_status="active")),
-            "selection_rate": len(_v_daily_selections) / max(len(self._v_watchlist_manager.list_stocks(p_status="active")), 1),
+            "watchlist_count": len(self._watchlist_manager.list_stocks(p_status="active")),
+            "selection_rate": len(_v_daily_selections) / max(len(self._watchlist_manager.list_stocks(p_status="active")), 1),
             "avg_attractiveness": sum(s.price_attractiveness for s in _v_daily_selections) / max(len(_v_daily_selections), 1),
             "sector_distribution": _v_sector_distribution,
             "market_indicators": p_market_indicators.to_dict(),
-            "filtering_criteria": asdict(self._v_criteria)
+            "filtering_criteria": asdict(self._filtering_criteria)
         }
         
         # 최종 일일 매매 리스트 구성
@@ -474,7 +556,7 @@ class DailyUpdater:
         
         return _v_daily_list
     
-    def _calculate_position_size(self, p_stock: PriceAttractiveness, p_total_stocks: int) -> float:
+    def _calculate_position_size(self, p_stock: PriceAttractivenessLegacy, p_total_stocks: int) -> float:
         """포지션 사이즈 계산
         
         Args:
@@ -507,21 +589,21 @@ class DailyUpdater:
         """
         try:
             _v_date = datetime.now().strftime("%Y%m%d")
-            _v_file_path = os.path.join(self._v_output_dir, f"daily_selection_{_v_date}.json")
+            _v_file_path = os.path.join(self._output_dir, f"daily_selection_{_v_date}.json")
             
             with open(_v_file_path, 'w', encoding='utf-8') as f:
                 json.dump(p_daily_list, f, ensure_ascii=False, indent=2)
             
             # 최신 파일 링크 생성
-            _v_latest_path = os.path.join(self._v_output_dir, "latest_selection.json")
+            _v_latest_path = os.path.join(self._output_dir, "latest_selection.json")
             with open(_v_latest_path, 'w', encoding='utf-8') as f:
                 json.dump(p_daily_list, f, ensure_ascii=False, indent=2)
             
-            logger.info(f"일일 매매 리스트 저장 완료: {_v_file_path}")
+            self._logger.info(f"일일 매매 리스트 저장 완료: {_v_file_path}")
             return True
             
         except Exception as e:
-            logger.error(f"일일 매매 리스트 저장 실패: {e}")
+            self._logger.error(f"일일 매매 리스트 저장 실패: {e}")
             return False
     
     def _send_notification(self, p_daily_list: Dict):
@@ -543,11 +625,11 @@ class DailyUpdater:
 🌊 시장 상황: {_v_market_condition}
             """.strip()
             
-            logger.info(f"알림 발송: {_v_message}")
+            self._logger.info(f"알림 발송: {_v_message}")
             # 실제로는 슬랙, 이메일, SMS 등으로 알림 발송
             
         except Exception as e:
-            logger.error(f"알림 발송 실패: {e}")
+            self._logger.error(f"알림 발송 실패: {e}")
     
     def get_latest_selection(self) -> Optional[Dict]:
         """최신 일일 선정 결과 조회
@@ -556,7 +638,7 @@ class DailyUpdater:
             최신 일일 매매 리스트 (없으면 None)
         """
         try:
-            _v_latest_path = os.path.join(self._v_output_dir, "latest_selection.json")
+            _v_latest_path = os.path.join(self._output_dir, "latest_selection.json")
             
             if not os.path.exists(_v_latest_path):
                 return None
@@ -565,7 +647,7 @@ class DailyUpdater:
                 return json.load(f)
                 
         except Exception as e:
-            logger.error(f"최신 선정 결과 조회 실패: {e}")
+            self._logger.error(f"최신 선정 결과 조회 실패: {e}")
             return None
     
     def get_selection_history(self, p_days: int = 7) -> List[Dict]:
@@ -582,7 +664,7 @@ class DailyUpdater:
         try:
             for i in range(p_days):
                 _v_date = (datetime.now() - timedelta(days=i)).strftime("%Y%m%d")
-                _v_file_path = os.path.join(self._v_output_dir, f"daily_selection_{_v_date}.json")
+                _v_file_path = os.path.join(self._output_dir, f"daily_selection_{_v_date}.json")
                 
                 if os.path.exists(_v_file_path):
                     with open(_v_file_path, 'r', encoding='utf-8') as f:
@@ -592,7 +674,7 @@ class DailyUpdater:
             return _v_history
             
         except Exception as e:
-            logger.error(f"선정 이력 조회 실패: {e}")
+            self._logger.error(f"선정 이력 조회 실패: {e}")
             return []
     
     def update_filtering_criteria(self, p_criteria: FilteringCriteria):
@@ -601,8 +683,8 @@ class DailyUpdater:
         Args:
             p_criteria: 새로운 필터링 기준
         """
-        self._v_criteria = p_criteria
-        logger.info("필터링 기준 업데이트 완료")
+        self._filtering_criteria = p_criteria
+        self._logger.info("필터링 기준 업데이트 완료")
 
 if __name__ == "__main__":
     # 테스트 실행

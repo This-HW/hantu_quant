@@ -13,6 +13,15 @@ from .config import IConfigProvider, IAPIConfig, ITradingConfig
 from .events import IEventBus, IEventHandler, IEvent
 from .data import IDataRepository, StockInfo, PriceData
 
+# Phase 4: AI 학습 시스템 인터페이스 (새로운 아키텍처)
+from .learning import (
+    ILearningDataCollector, IFeatureEngineer, IModelTrainer, 
+    IPerformanceAnalyzer, IPatternLearner, IParameterOptimizer,
+    IBacktestAutomation, ILearningEngine,
+    LearningData, FeatureSet, ModelPrediction, PerformanceMetrics,
+    PatternResult, OptimizationResult, ModelType, LearningPhase
+)
+
 __all__ = [
     # API interfaces
     'IAPIClient',
@@ -43,4 +52,24 @@ __all__ = [
     'IDataRepository',
     'StockInfo',
     'PriceData',
+    
+    # Learning interfaces (Phase 4)
+    'ILearningDataCollector',
+    'IFeatureEngineer',
+    'IModelTrainer',
+    'IPerformanceAnalyzer',
+    'IPatternLearner',
+    'IParameterOptimizer',
+    'IBacktestAutomation',
+    'ILearningEngine',
+    
+    # Learning data classes
+    'LearningData',
+    'FeatureSet',
+    'ModelPrediction',
+    'PerformanceMetrics',
+    'PatternResult',
+    'OptimizationResult',
+    'ModelType',
+    'LearningPhase',
 ] 

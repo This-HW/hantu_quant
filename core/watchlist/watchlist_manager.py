@@ -9,18 +9,40 @@
 import json
 import os
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, asdict
 import threading
 from copy import deepcopy
 
 from core.utils.log_utils import get_logger
+from core.interfaces.trading import IWatchlistManager, WatchlistEntry
+
+# 새로운 아키텍처 imports - 사용 가능할 때만 import
+try:
+    from core.plugins.decorators import plugin
+    from core.di.container import inject
+    from core.interfaces.base import ILogger, IConfiguration
+    ARCHITECTURE_AVAILABLE = True
+except ImportError:
+    # 새 아키텍처가 아직 완전히 구축되지 않은 경우 임시 대안
+    ARCHITECTURE_AVAILABLE = False
+    
+    def plugin(**kwargs):
+        """임시 플러그인 데코레이터"""
+        def decorator(cls):
+            cls._plugin_metadata = kwargs
+            return cls
+        return decorator
+    
+    def inject(cls):
+        """임시 DI 데코레이터"""
+        return cls
 
 logger = get_logger(__name__)
 
 @dataclass
 class WatchlistStock:
-    """감시 리스트 종목 데이터 클래스"""
+    """감시 리스트 종목 데이터 클래스 (기존 호환성용)"""
     stock_code: str
     stock_name: str
     added_date: str
@@ -41,38 +63,105 @@ class WatchlistStock:
     def from_dict(cls, p_data: Dict) -> 'WatchlistStock':
         """딕셔너리에서 생성"""
         return cls(**p_data)
-
-class WatchlistManager:
-    """감시 리스트 관리 클래스"""
     
-    def __init__(self, p_data_file: str = "data/watchlist/watchlist.json"):
+    def to_watchlist_entry(self) -> WatchlistEntry:
+        """새로운 WatchlistEntry로 변환"""
+        return WatchlistEntry(
+            stock_code=self.stock_code,
+            stock_name=self.stock_name,
+            added_date=datetime.fromisoformat(self.added_date) if isinstance(self.added_date, str) else self.added_date,
+            added_reason=self.added_reason,
+            target_price=self.target_price,
+            stop_loss=self.stop_loss,
+            sector=self.sector,
+            screening_score=self.screening_score,
+            status=self.status,
+            notes=self.notes
+        )
+
+@plugin(
+    name="watchlist_manager",
+    version="1.0.0",
+    description="감시 리스트 관리 플러그인",
+    author="HantuQuant",
+    dependencies=["logger"],
+    category="watchlist"
+)
+class WatchlistManager(IWatchlistManager):
+    """감시 리스트 관리 클래스 - 새로운 아키텍처 적용"""
+    
+    @inject
+    def __init__(self, 
+                 p_data_file: str = "data/watchlist/watchlist.json",
+                 logger=None):
         """초기화 메서드
         
         Args:
             p_data_file: 데이터 파일 경로
+            logger: 로거 인스턴스
         """
-        self._v_data_file = p_data_file
-        self._v_watchlist = {}  # stock_code -> WatchlistStock
-        self._v_lock = threading.Lock()
-        self._v_metadata = {
-            "version": "1.0.0",
-            "created_at": datetime.now().isoformat(),
-            "last_updated": datetime.now().isoformat()
-        }
+        self._data_file = p_data_file
+        self._logger = logger or get_logger(__name__)
+        self._stocks = {}  # Dict[str, WatchlistStock]
+        self._lock = threading.RLock()  # 스레드 안전성을 위한 락
         
-        # 데이터 로드
+        # 데이터 디렉토리 생성
+        os.makedirs(os.path.dirname(self._data_file), exist_ok=True)
+        
+        # 기존 데이터 로드
         self._load_data()
-        logger.info(f"WatchlistManager 초기화 완료 - 종목 수: {len(self._v_watchlist)}")
-    
-    def add_stock(self, p_stock_code: str, p_stock_name: str, p_added_reason: str,
+        
+        self._logger.info(f"WatchlistManager 초기화 완료 (새 아키텍처) - 종목 수: {len(self._stocks)}")
+
+    def add_stock(self, entry: WatchlistEntry) -> bool:
+        """종목 추가 (새 인터페이스 구현)
+        
+        Args:
+            entry: 감시 리스트 항목
+            
+        Returns:
+            bool: 성공 여부
+        """
+        try:
+            with self._lock:
+                if entry.stock_code in self._stocks:
+                    self._logger.warning(f"이미 존재하는 종목: {entry.stock_code}")
+                    return False
+                
+                # WatchlistEntry를 WatchlistStock으로 변환 (기존 호환성)
+                _v_stock = WatchlistStock(
+                    stock_code=entry.stock_code,
+                    stock_name=entry.stock_name,
+                    added_date=entry.added_date.isoformat() if isinstance(entry.added_date, datetime) else str(entry.added_date),
+                    added_reason=entry.added_reason,
+                    target_price=entry.target_price,
+                    stop_loss=entry.stop_loss,
+                    sector=entry.sector,
+                    screening_score=entry.screening_score,
+                    last_updated=datetime.now().isoformat(),
+                    notes=entry.notes,
+                    status=entry.status
+                )
+                
+                self._stocks[entry.stock_code] = _v_stock
+                self._save_data()
+                
+                self._logger.info(f"종목 추가 완료: {entry.stock_code} ({entry.stock_name})")
+                return True
+                
+        except Exception as e:
+            self._logger.error(f"종목 추가 오류: {e}")
+            return False
+
+    def add_stock_legacy(self, p_stock_code: str, p_stock_name: str, p_added_reason: str,
                   p_target_price: float, p_stop_loss: float, p_sector: str,
                   p_screening_score: float, p_notes: str = "") -> bool:
-        """감시 리스트에 종목 추가
+        """종목 추가 (기존 호환성용)
         
         Args:
             p_stock_code: 종목 코드
             p_stock_name: 종목명
-            p_added_reason: 추가 이유
+            p_added_reason: 추가 사유
             p_target_price: 목표가
             p_stop_loss: 손절가
             p_sector: 섹터
@@ -80,250 +169,218 @@ class WatchlistManager:
             p_notes: 메모
             
         Returns:
-            추가 성공 여부
+            bool: 성공 여부
         """
-        try:
-            with self._v_lock:
-                # 중복 체크
-                if p_stock_code in self._v_watchlist:
-                    _v_existing_stock = self._v_watchlist[p_stock_code]
-                    if _v_existing_stock.status == "active":
-                        logger.warning(f"종목 {p_stock_code}은 이미 감시 리스트에 존재합니다.")
-                        return False
-                    else:
-                        # 제거된 종목을 다시 활성화
-                        _v_existing_stock.status = "active"
-                        _v_existing_stock.added_reason = p_added_reason
-                        _v_existing_stock.target_price = p_target_price
-                        _v_existing_stock.stop_loss = p_stop_loss
-                        _v_existing_stock.screening_score = p_screening_score
-                        _v_existing_stock.notes = p_notes
-                        _v_existing_stock.last_updated = datetime.now().isoformat()
-                        logger.info(f"종목 {p_stock_code} 재활성화 완료")
-                else:
-                    # 새 종목 추가
-                    _v_new_stock = WatchlistStock(
-                        stock_code=p_stock_code,
-                        stock_name=p_stock_name,
-                        added_date=datetime.now().strftime("%Y-%m-%d"),
-                        added_reason=p_added_reason,
-                        target_price=p_target_price,
-                        stop_loss=p_stop_loss,
-                        sector=p_sector,
-                        screening_score=p_screening_score,
-                        last_updated=datetime.now().isoformat(),
-                        notes=p_notes,
-                        status="active"
-                    )
-                    
-                    self._v_watchlist[p_stock_code] = _v_new_stock
-                    logger.info(f"종목 {p_stock_code} 감시 리스트 추가 완료")
-                
-                # 메타데이터 업데이트
-                self._v_metadata["last_updated"] = datetime.now().isoformat()
-                
-                # 데이터 저장
-                self._save_data()
-                
-                return True
-                
-        except Exception as e:
-            logger.error(f"종목 추가 오류: {e}")
-            return False
-    
-    def get_stock(self, p_stock_code: str) -> Optional[WatchlistStock]:
-        """특정 종목 조회
+        _v_entry = WatchlistEntry(
+            stock_code=p_stock_code,
+            stock_name=p_stock_name,
+            added_date=datetime.now(),
+            added_reason=p_added_reason,
+            target_price=p_target_price,
+            stop_loss=p_stop_loss,
+            sector=p_sector,
+            screening_score=p_screening_score,
+            status="active",
+            notes=p_notes
+        )
+        
+        return self.add_stock(_v_entry)
+
+    def get_stock(self, p_stock_code: str) -> Optional[WatchlistEntry]:
+        """종목 조회 (새 인터페이스 구현)
         
         Args:
             p_stock_code: 종목 코드
             
         Returns:
-            종목 정보 또는 None
+            Optional[WatchlistEntry]: 종목 정보 (없으면 None)
         """
         try:
-            with self._v_lock:
-                return self._v_watchlist.get(p_stock_code)
+            with self._lock:
+                _v_stock = self._stocks.get(p_stock_code)
+                if _v_stock:
+                    return _v_stock.to_watchlist_entry()
+                return None
                 
         except Exception as e:
-            logger.error(f"종목 조회 오류: {e}")
+            self._logger.error(f"종목 조회 오류: {e}")
             return None
-    
+
     def update_stock(self, p_stock_code: str, p_updates: Dict) -> bool:
-        """종목 정보 수정
+        """종목 정보 업데이트 (새 인터페이스 구현)
         
         Args:
             p_stock_code: 종목 코드
-            p_updates: 수정할 정보 딕셔너리
+            p_updates: 업데이트할 필드들
             
         Returns:
-            수정 성공 여부
+            bool: 성공 여부
         """
         try:
-            with self._v_lock:
-                if p_stock_code not in self._v_watchlist:
-                    logger.warning(f"종목 {p_stock_code}이 감시 리스트에 없습니다.")
+            with self._lock:
+                if p_stock_code not in self._stocks:
+                    self._logger.warning(f"존재하지 않는 종목: {p_stock_code}")
                     return False
                 
-                _v_stock = self._v_watchlist[p_stock_code]
-                
-                # 수정 가능한 필드만 업데이트
-                _v_updatable_fields = {
-                    "added_reason", "target_price", "stop_loss", "notes", "status"
-                }
-                
+                _v_stock = self._stocks[p_stock_code]
                 _v_updated = False
-                for field, value in p_updates.items():
-                    if field in _v_updatable_fields and hasattr(_v_stock, field):
-                        setattr(_v_stock, field, value)
-                        _v_updated = True
+                
+                # 업데이트 가능한 필드들
+                _v_updatable_fields = [
+                    "stock_name", "target_price", "stop_loss", "sector",
+                    "screening_score", "notes", "status", "added_reason"
+                ]
+                
+                for _v_field, _v_value in p_updates.items():
+                    if _v_field in _v_updatable_fields:
+                        if hasattr(_v_stock, _v_field):
+                            setattr(_v_stock, _v_field, _v_value)
+                            _v_updated = True
                 
                 if _v_updated:
                     _v_stock.last_updated = datetime.now().isoformat()
-                    self._v_metadata["last_updated"] = datetime.now().isoformat()
                     self._save_data()
-                    logger.info(f"종목 {p_stock_code} 정보 수정 완료")
+                    self._logger.info(f"종목 업데이트 완료: {p_stock_code}")
                     return True
                 else:
-                    logger.warning(f"종목 {p_stock_code} 수정할 내용이 없습니다.")
+                    self._logger.warning(f"업데이트할 필드가 없음: {p_stock_code}")
                     return False
-                
+                    
         except Exception as e:
-            logger.error(f"종목 수정 오류: {e}")
+            self._logger.error(f"종목 업데이트 오류: {e}")
             return False
-    
+
     def remove_stock(self, p_stock_code: str, p_permanent: bool = False) -> bool:
-        """종목 제거
+        """종목 제거 (새 인터페이스 구현)
         
         Args:
             p_stock_code: 종목 코드
             p_permanent: 영구 삭제 여부 (False면 상태만 변경)
             
         Returns:
-            제거 성공 여부
+            bool: 성공 여부
         """
         try:
-            with self._v_lock:
-                if p_stock_code not in self._v_watchlist:
-                    logger.warning(f"종목 {p_stock_code}이 감시 리스트에 없습니다.")
+            with self._lock:
+                if p_stock_code not in self._stocks:
+                    self._logger.warning(f"존재하지 않는 종목: {p_stock_code}")
                     return False
                 
                 if p_permanent:
                     # 영구 삭제
-                    del self._v_watchlist[p_stock_code]
-                    logger.info(f"종목 {p_stock_code} 영구 삭제 완료")
+                    _v_removed_stock = self._stocks.pop(p_stock_code)
+                    self._logger.info(f"종목 영구 삭제: {p_stock_code} ({_v_removed_stock.stock_name})")
                 else:
                     # 상태만 변경
-                    self._v_watchlist[p_stock_code].status = "removed"
-                    self._v_watchlist[p_stock_code].last_updated = datetime.now().isoformat()
-                    logger.info(f"종목 {p_stock_code} 제거 상태로 변경 완료")
+                    self._stocks[p_stock_code].status = "removed"
+                    self._stocks[p_stock_code].last_updated = datetime.now().isoformat()
+                    self._logger.info(f"종목 상태 변경 (제거): {p_stock_code}")
                 
-                # 메타데이터 업데이트
-                self._v_metadata["last_updated"] = datetime.now().isoformat()
-                
-                # 데이터 저장
                 self._save_data()
-                
                 return True
                 
         except Exception as e:
-            logger.error(f"종목 제거 오류: {e}")
+            self._logger.error(f"종목 제거 오류: {e}")
             return False
-    
-    def list_stocks(self, p_status: Optional[str] = "active", p_sector: Optional[str] = None,
-                   p_sort_by: str = "screening_score", p_ascending: bool = False) -> List[WatchlistStock]:
-        """감시 리스트 조회
+
+    def list_stocks(self, p_status: Optional[str] = None, p_sector: Optional[str] = None) -> List[WatchlistEntry]:
+        """종목 목록 조회 (새 인터페이스 구현)
         
         Args:
             p_status: 상태 필터 (None이면 모든 상태)
             p_sector: 섹터 필터 (None이면 모든 섹터)
-            p_sort_by: 정렬 기준
-            p_ascending: 오름차순 여부
             
         Returns:
-            종목 리스트
+            List[WatchlistEntry]: 필터링된 종목 목록
         """
         try:
-            with self._v_lock:
-                _v_stocks = list(self._v_watchlist.values())
+            with self._lock:
+                _v_filtered_stocks = []
                 
-                # 상태 필터링
-                if p_status:
-                    _v_stocks = [stock for stock in _v_stocks if stock.status == p_status]
+                for _v_stock in self._stocks.values():
+                    # 상태 필터링
+                    if p_status and _v_stock.status != p_status:
+                        continue
+                    
+                    # 섹터 필터링
+                    if p_sector and _v_stock.sector != p_sector:
+                        continue
+                    
+                    _v_filtered_stocks.append(_v_stock.to_watchlist_entry())
                 
-                # 섹터 필터링
-                if p_sector:
-                    _v_stocks = [stock for stock in _v_stocks if stock.sector == p_sector]
+                # 스크리닝 점수 순으로 정렬
+                _v_filtered_stocks.sort(key=lambda x: x.screening_score, reverse=True)
                 
-                # 정렬
-                if p_sort_by and _v_stocks and hasattr(_v_stocks[0], p_sort_by):
-                    _v_stocks.sort(key=lambda x: getattr(x, p_sort_by), reverse=not p_ascending)
-                
-                return _v_stocks
+                return _v_filtered_stocks
                 
         except Exception as e:
-            logger.error(f"감시 리스트 조회 오류: {e}")
+            self._logger.error(f"종목 목록 조회 오류: {e}")
             return []
-    
-    def get_statistics(self) -> Dict:
-        """통계 정보 조회
+
+    def get_statistics(self) -> Dict[str, Any]:
+        """통계 정보 조회 (새 인터페이스 구현)
         
         Returns:
-            통계 정보 딕셔너리
+            Dict[str, Any]: 통계 정보
         """
         try:
-            with self._v_lock:
-                _v_all_stocks = list(self._v_watchlist.values())
-                _v_active_stocks = [s for s in _v_all_stocks if s.status == "active"]
+            with self._lock:
+                if not self._stocks:
+                    return {
+                        "total_count": 0,
+                        "active_count": 0,
+                        "paused_count": 0,
+                        "removed_count": 0,
+                        "sectors": {},
+                        "score_distribution": {},
+                        "avg_score": 0.0,
+                        "max_score": 0.0,
+                        "min_score": 0.0
+                    }
                 
                 # 기본 통계
-                _v_stats = {
-                    "total_count": len(_v_all_stocks),
-                    "active_count": len(_v_active_stocks),
-                    "paused_count": len([s for s in _v_all_stocks if s.status == "paused"]),
-                    "removed_count": len([s for s in _v_all_stocks if s.status == "removed"]),
-                    "sector_distribution": {},
-                    "score_distribution": {
-                        "high": 0,      # 80점 이상
-                        "medium": 0,    # 60-80점
-                        "low": 0        # 60점 미만
-                    },
-                    "average_score": 0.0,
-                    "top_stocks": []
+                _v_total_count = len(self._stocks)
+                _v_active_count = sum(1 for s in self._stocks.values() if s.status == "active")
+                _v_paused_count = sum(1 for s in self._stocks.values() if s.status == "paused")
+                _v_removed_count = sum(1 for s in self._stocks.values() if s.status == "removed")
+                
+                # 섹터별 분포
+                _v_sector_count = {}
+                for _v_stock in self._stocks.values():
+                    _v_sector = _v_stock.sector
+                    _v_sector_count[_v_sector] = _v_sector_count.get(_v_sector, 0) + 1
+                
+                # 점수 분포 및 통계
+                _v_scores = [s.screening_score for s in self._stocks.values()]
+                _v_avg_score = sum(_v_scores) / len(_v_scores) if _v_scores else 0.0
+                _v_max_score = max(_v_scores) if _v_scores else 0.0
+                _v_min_score = min(_v_scores) if _v_scores else 0.0
+                
+                # 점수 구간별 분포
+                _v_score_ranges = {
+                    "90-100": sum(1 for s in _v_scores if 90 <= s <= 100),
+                    "80-89": sum(1 for s in _v_scores if 80 <= s < 90),
+                    "70-79": sum(1 for s in _v_scores if 70 <= s < 80),
+                    "60-69": sum(1 for s in _v_scores if 60 <= s < 70),
+                    "50-59": sum(1 for s in _v_scores if 50 <= s < 60),
+                    "0-49": sum(1 for s in _v_scores if 0 <= s < 50)
                 }
                 
-                if _v_active_stocks:
-                    # 섹터별 분포
-                    for stock in _v_active_stocks:
-                        _v_stats["sector_distribution"][stock.sector] = _v_stats["sector_distribution"].get(stock.sector, 0) + 1
-                    
-                    # 점수 분포
-                    _v_scores = [stock.screening_score for stock in _v_active_stocks]
-                    _v_stats["average_score"] = sum(_v_scores) / len(_v_scores)
-                    
-                    for score in _v_scores:
-                        if score >= 80:
-                            _v_stats["score_distribution"]["high"] += 1
-                        elif score >= 60:
-                            _v_stats["score_distribution"]["medium"] += 1
-                        else:
-                            _v_stats["score_distribution"]["low"] += 1
-                    
-                    # 상위 종목 (점수 기준)
-                    _v_sorted_stocks = sorted(_v_active_stocks, key=lambda x: x.screening_score, reverse=True)
-                    _v_stats["top_stocks"] = [
-                        {
-                            "stock_code": stock.stock_code,
-                            "stock_name": stock.stock_name,
-                            "score": stock.screening_score,
-                            "sector": stock.sector
-                        }
-                        for stock in _v_sorted_stocks[:10]
-                    ]
-                
-                return _v_stats
+                return {
+                    "total_count": _v_total_count,
+                    "active_count": _v_active_count,
+                    "paused_count": _v_paused_count,
+                    "removed_count": _v_removed_count,
+                    "sectors": _v_sector_count,
+                    "score_distribution": _v_score_ranges,
+                    "avg_score": round(_v_avg_score, 2),
+                    "max_score": _v_max_score,
+                    "min_score": _v_min_score,
+                    "last_updated": datetime.now().isoformat()
+                }
                 
         except Exception as e:
-            logger.error(f"통계 정보 조회 오류: {e}")
+            self._logger.error(f"통계 정보 조회 오류: {e}")
             return {}
     
     def backup_data(self, p_backup_file: Optional[str] = None) -> bool:
@@ -343,7 +400,7 @@ class WatchlistManager:
             # 백업 디렉토리 생성
             os.makedirs(os.path.dirname(p_backup_file), exist_ok=True)
             
-            with self._v_lock:
+            with self._lock:
                 _v_backup_data = {
                     "timestamp": datetime.now().isoformat(),
                     "metadata": self._v_metadata,
@@ -377,7 +434,7 @@ class WatchlistManager:
             with open(p_backup_file, 'r', encoding='utf-8') as f:
                 _v_backup_data = json.load(f)
             
-            with self._v_lock:
+            with self._lock:
                 # 현재 데이터 백업
                 self.backup_data()
                 

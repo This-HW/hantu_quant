@@ -15,19 +15,56 @@ import pandas as pd
 
 from core.config.api_config import APIConfig
 from core.utils.log_utils import get_logger
+from core.interfaces.trading import IStockScreener, ScreeningResult, TechnicalSignal
+from core.plugins.decorators import plugin
+from core.di.container import inject
+from core.interfaces.base import ILogger, IConfiguration
 from hantu_common.indicators.trend import SlopeIndicator
+
+# 새로운 아키텍처 imports - 사용 가능할 때만 import
+try:
+    from core.plugins.decorators import plugin
+    from core.di.container import inject
+    from core.interfaces.base import ILogger, IConfiguration
+    ARCHITECTURE_AVAILABLE = True
+except ImportError:
+    # 새 아키텍처가 아직 완전히 구축되지 않은 경우 임시 대안
+    ARCHITECTURE_AVAILABLE = False
+    
+    def plugin(**kwargs):
+        """임시 플러그인 데코레이터"""
+        def decorator(cls):
+            cls._plugin_metadata = kwargs
+            return cls
+        return decorator
+    
+    def inject(cls):
+        """임시 DI 데코레이터"""
+        return cls
 
 logger = get_logger(__name__)
 
-class StockScreener:
-    """기업 스크리닝을 위한 클래스"""
+@plugin(
+    name="stock_screener",
+    version="1.0.0",
+    description="주식 스크리닝 플러그인",
+    author="HantuQuant",
+    dependencies=["api_config", "logger"],
+    category="watchlist"
+)
+class StockScreener(IStockScreener):
+    """기업 스크리닝을 위한 클래스 - 새로운 아키텍처 적용"""
     
-    def __init__(self):
+    @inject
+    def __init__(self, 
+                 config: IConfiguration = None,
+                 logger: ILogger = None):
         """초기화 메서드"""
-        self.api_config = APIConfig()
+        self._config = config or APIConfig()
+        self._logger = logger or get_logger(__name__)
         self._v_screening_criteria = self._load_screening_criteria()
         self._v_sector_data = {}
-        logger.info("StockScreener 초기화 완료")
+        self._logger.info("StockScreener 초기화 완료 (새 아키텍처)")
     
     def _load_screening_criteria(self) -> Dict:
         """스크리닝 기준 로드"""
@@ -48,431 +85,541 @@ class StockScreener:
                 "momentum_1m_min": 0.0,    # 1개월 모멘텀 최소 0%
                 "volatility_max": 0.4,     # 변동성 최대 40%
                 "ma20_slope_min": 0.3,     # 20일 이동평균 기울기 최소 0.3%
-                "trend_consistency_required": True,  # 추세 일관성 필요
-                "price_slope_min": 0.2     # 가격 기울기 최소 0.2%
             },
             "momentum": {
-                "relative_strength_min": 0.0,  # 상대강도 최소값
-                "momentum_periods": [1, 3, 6],  # 모멘텀 분석 기간 (월)
-                "volume_momentum_min": 0.0,     # 거래량 모멘텀 최소값
-                "sector_momentum_min": 0.0      # 섹터 모멘텀 최소값
+                "price_momentum_1m_min": 5.0,  # 1개월 가격 모멘텀 최소 5%
+                "price_momentum_3m_min": 15.0, # 3개월 가격 모멘텀 최소 15%
+                "volume_momentum_min": 20.0,   # 거래량 모멘텀 최소 20%
+                "relative_strength_min": 60.0, # 상대강도 최소 60점
+                "ma_convergence_required": True # 이동평균 수렴 필요
             }
         }
         
+        # 설정 파일에서 기준 로드 시도
         try:
-            _v_criteria_path = "data/watchlist/screening_criteria.json"
-            if os.path.exists(_v_criteria_path):
-                with open(_v_criteria_path, 'r', encoding='utf-8') as f:
+            _v_criteria_file = "core/config/screening_criteria.json"
+            if os.path.exists(_v_criteria_file):
+                with open(_v_criteria_file, 'r', encoding='utf-8') as f:
                     _v_loaded_criteria = json.load(f)
-                    logger.info("스크리닝 기준 로드 완료")
-                    return _v_loaded_criteria.get('criteria', _v_default_criteria)
-            else:
-                logger.info("기본 스크리닝 기준 사용")
-                return _v_default_criteria
+                    _v_default_criteria.update(_v_loaded_criteria)
+                    self._logger.info(f"스크리닝 기준을 {_v_criteria_file}에서 로드했습니다")
         except Exception as e:
-            logger.error(f"스크리닝 기준 로드 실패: {e}")
-            return _v_default_criteria
-    
+            self._logger.warning(f"스크리닝 기준 파일 로드 실패: {e}, 기본 설정 사용")
+        
+        return _v_default_criteria
+
     def screen_by_fundamentals(self, p_stock_data: Dict) -> Tuple[bool, float, Dict]:
-        """재무제표 기반 스크리닝
+        """
+        기본 분석 기반 스크리닝
         
         Args:
-            p_stock_data: 주식 재무 데이터
+            p_stock_data: 종목 데이터
             
         Returns:
-            (통과 여부, 점수, 세부 결과)
+            Tuple[bool, float, Dict]: (통과여부, 점수, 세부결과)
         """
         try:
             _v_criteria = self._v_screening_criteria["fundamental"]
-            _v_results = {}
             _v_score = 0.0
-            _v_max_score = 6.0  # 총 6개 지표
-            
-            # ROE 검증
+            _v_max_score = 100.0
+            _v_details = {}
+            _v_passed_count = 0
+            _v_total_checks = 6  # 총 체크 항목 수
+
+            # 1. ROE 체크 (Return on Equity)
             _v_roe = p_stock_data.get("roe", 0.0)
             if _v_roe >= _v_criteria["roe_min"]:
-                _v_results["roe"] = {"pass": True, "value": _v_roe, "score": 1.0}
-                _v_score += 1.0
+                _v_roe_score = min(20.0, (_v_roe / _v_criteria["roe_min"]) * 10.0)
+                _v_passed_count += 1
             else:
-                _v_results["roe"] = {"pass": False, "value": _v_roe, "score": 0.0}
+                _v_roe_score = (_v_roe / _v_criteria["roe_min"]) * 10.0
             
-            # PER 검증 (업종 평균 대비)
-            _v_per = p_stock_data.get("per", 999.0)
-            _v_sector_avg_per = self._get_sector_average_per(p_stock_data.get("sector", ""))
-            _v_per_ratio = _v_per / _v_sector_avg_per if _v_sector_avg_per > 0 else 999.0
+            _v_score += _v_roe_score
+            _v_details["roe"] = {
+                "value": _v_roe,
+                "criteria": _v_criteria["roe_min"],
+                "score": _v_roe_score,
+                "passed": _v_roe >= _v_criteria["roe_min"]
+            }
+
+            # 2. PER 체크 (Price to Earnings Ratio)
+            _v_per = p_stock_data.get("per", float('inf'))
+            _v_sector = p_stock_data.get("sector", "기타")
+            _v_sector_avg_per = self._get_sector_average_per(_v_sector)
+            _v_per_threshold = _v_sector_avg_per * _v_criteria["per_max_ratio"]
             
-            if _v_per_ratio <= _v_criteria["per_max_ratio"]:
-                _v_results["per"] = {"pass": True, "value": _v_per, "ratio": _v_per_ratio, "score": 1.0}
-                _v_score += 1.0
+            if _v_per <= _v_per_threshold and _v_per > 0:
+                _v_per_score = 15.0
+                _v_passed_count += 1
             else:
-                _v_results["per"] = {"pass": False, "value": _v_per, "ratio": _v_per_ratio, "score": 0.0}
+                _v_per_score = max(0.0, 15.0 * (1.0 - (_v_per - _v_per_threshold) / _v_per_threshold))
             
-            # PBR 검증
-            _v_pbr = p_stock_data.get("pbr", 999.0)
-            if _v_pbr <= _v_criteria["pbr_max"]:
-                _v_results["pbr"] = {"pass": True, "value": _v_pbr, "score": 1.0}
-                _v_score += 1.0
+            _v_score += _v_per_score
+            _v_details["per"] = {
+                "value": _v_per,
+                "sector_avg": _v_sector_avg_per,
+                "threshold": _v_per_threshold,
+                "score": _v_per_score,
+                "passed": _v_per <= _v_per_threshold and _v_per > 0
+            }
+
+            # 3. PBR 체크 (Price to Book Ratio)
+            _v_pbr = p_stock_data.get("pbr", float('inf'))
+            if _v_pbr <= _v_criteria["pbr_max"] and _v_pbr > 0:
+                _v_pbr_score = 15.0
+                _v_passed_count += 1
             else:
-                _v_results["pbr"] = {"pass": False, "value": _v_pbr, "score": 0.0}
+                _v_pbr_score = max(0.0, 15.0 * (1.0 - (_v_pbr - _v_criteria["pbr_max"]) / _v_criteria["pbr_max"]))
             
-            # 부채비율 검증
-            _v_debt_ratio = p_stock_data.get("debt_ratio", 999.0)
+            _v_score += _v_pbr_score
+            _v_details["pbr"] = {
+                "value": _v_pbr,
+                "criteria": _v_criteria["pbr_max"],
+                "score": _v_pbr_score,
+                "passed": _v_pbr <= _v_criteria["pbr_max"] and _v_pbr > 0
+            }
+
+            # 4. 부채비율 체크
+            _v_debt_ratio = p_stock_data.get("debt_ratio", 0.0)
             if _v_debt_ratio <= _v_criteria["debt_ratio_max"]:
-                _v_results["debt_ratio"] = {"pass": True, "value": _v_debt_ratio, "score": 1.0}
-                _v_score += 1.0
+                _v_debt_score = 15.0
+                _v_passed_count += 1
             else:
-                _v_results["debt_ratio"] = {"pass": False, "value": _v_debt_ratio, "score": 0.0}
+                _v_debt_score = max(0.0, 15.0 * (1.0 - (_v_debt_ratio - _v_criteria["debt_ratio_max"]) / _v_criteria["debt_ratio_max"]))
             
-            # 매출성장률 검증
+            _v_score += _v_debt_score
+            _v_details["debt_ratio"] = {
+                "value": _v_debt_ratio,
+                "criteria": _v_criteria["debt_ratio_max"],
+                "score": _v_debt_score,
+                "passed": _v_debt_ratio <= _v_criteria["debt_ratio_max"]
+            }
+
+            # 5. 매출성장률 체크
             _v_revenue_growth = p_stock_data.get("revenue_growth", 0.0)
             if _v_revenue_growth >= _v_criteria["revenue_growth_min"]:
-                _v_results["revenue_growth"] = {"pass": True, "value": _v_revenue_growth, "score": 1.0}
-                _v_score += 1.0
+                _v_revenue_score = min(20.0, (_v_revenue_growth / _v_criteria["revenue_growth_min"]) * 10.0)
+                _v_passed_count += 1
             else:
-                _v_results["revenue_growth"] = {"pass": False, "value": _v_revenue_growth, "score": 0.0}
+                _v_revenue_score = max(0.0, (_v_revenue_growth / _v_criteria["revenue_growth_min"]) * 10.0)
             
-            # 영업이익률 검증
+            _v_score += _v_revenue_score
+            _v_details["revenue_growth"] = {
+                "value": _v_revenue_growth,
+                "criteria": _v_criteria["revenue_growth_min"],
+                "score": _v_revenue_score,
+                "passed": _v_revenue_growth >= _v_criteria["revenue_growth_min"]
+            }
+
+            # 6. 영업이익률 체크
             _v_operating_margin = p_stock_data.get("operating_margin", 0.0)
             if _v_operating_margin >= _v_criteria["operating_margin_min"]:
-                _v_results["operating_margin"] = {"pass": True, "value": _v_operating_margin, "score": 1.0}
-                _v_score += 1.0
+                _v_margin_score = min(15.0, (_v_operating_margin / _v_criteria["operating_margin_min"]) * 7.5)
+                _v_passed_count += 1
             else:
-                _v_results["operating_margin"] = {"pass": False, "value": _v_operating_margin, "score": 0.0}
+                _v_margin_score = max(0.0, (_v_operating_margin / _v_criteria["operating_margin_min"]) * 7.5)
             
-            # 정규화된 점수 계산 (0-100점)
-            _v_normalized_score = (_v_score / _v_max_score) * 100.0
+            _v_score += _v_margin_score
+            _v_details["operating_margin"] = {
+                "value": _v_operating_margin,
+                "criteria": _v_criteria["operating_margin_min"],
+                "score": _v_margin_score,
+                "passed": _v_operating_margin >= _v_criteria["operating_margin_min"]
+            }
+
+            # 통과 기준: 60점 이상 또는 4개 이상 항목 통과
+            _v_passed = _v_score >= 60.0 or _v_passed_count >= 4
             
-            # 통과 기준: 6개 지표 중 4개 이상 통과
-            _v_passed = _v_score >= 4.0
-            
-            logger.debug(f"재무제표 스크리닝 - 종목: {p_stock_data.get('stock_code')}, 점수: {_v_normalized_score:.1f}, 통과: {_v_passed}")
-            
-            return _v_passed, _v_normalized_score, _v_results
-            
+            _v_details["summary"] = {
+                "total_score": _v_score,
+                "passed_count": _v_passed_count,
+                "total_checks": _v_total_checks,
+                "passed": _v_passed
+            }
+
+            return _v_passed, _v_score, _v_details
+
         except Exception as e:
-            logger.error(f"재무제표 스크리닝 오류: {e}")
-            return False, 0.0, {}
-    
+            self._logger.error(f"기본 분석 스크리닝 오류: {e}")
+            return False, 0.0, {"error": str(e)}
+
     def screen_by_technical(self, p_stock_data: Dict) -> Tuple[bool, float, Dict]:
-        """기술적 분석 기반 스크리닝
+        """
+        기술적 분석 기반 스크리닝
         
         Args:
-            p_stock_data: 주식 기술적 데이터
+            p_stock_data: 종목 데이터
             
         Returns:
-            (통과 여부, 점수, 세부 결과)
+            Tuple[bool, float, Dict]: (통과여부, 점수, 세부결과)
         """
         try:
             _v_criteria = self._v_screening_criteria["technical"]
-            _v_results = {}
             _v_score = 0.0
-            _v_max_score = 8.0  # 총 8개 지표 (기존 5개 + 기울기 3개)
-            
-            # 이동평균 상향 배열 검증
-            _v_ma_20 = p_stock_data.get("ma_20", 0.0)
-            _v_ma_60 = p_stock_data.get("ma_60", 0.0)
-            _v_ma_120 = p_stock_data.get("ma_120", 0.0)
-            _v_current_price = p_stock_data.get("current_price", 0.0)
-            
-            _v_ma_trend = (_v_current_price > _v_ma_20 > _v_ma_60 > _v_ma_120)
-            if not _v_criteria["ma_trend_required"] or _v_ma_trend:
-                _v_results["ma_trend"] = {"pass": True, "value": _v_ma_trend, "score": 1.0}
-                _v_score += 1.0
-            else:
-                _v_results["ma_trend"] = {"pass": False, "value": _v_ma_trend, "score": 0.0}
-            
-            # RSI 검증
-            _v_rsi = p_stock_data.get("rsi", 50.0)
-            _v_rsi_valid = _v_criteria["rsi_min"] <= _v_rsi <= _v_criteria["rsi_max"]
-            if _v_rsi_valid:
-                _v_results["rsi"] = {"pass": True, "value": _v_rsi, "score": 1.0}
-                _v_score += 1.0
-            else:
-                _v_results["rsi"] = {"pass": False, "value": _v_rsi, "score": 0.0}
-            
-            # 거래량 비율 검증
-            _v_volume_ratio = p_stock_data.get("volume_ratio", 0.0)
-            if _v_volume_ratio >= _v_criteria["volume_ratio_min"]:
-                _v_results["volume_ratio"] = {"pass": True, "value": _v_volume_ratio, "score": 1.0}
-                _v_score += 1.0
-            else:
-                _v_results["volume_ratio"] = {"pass": False, "value": _v_volume_ratio, "score": 0.0}
-            
-            # 1개월 가격 모멘텀 검증
-            _v_momentum_1m = p_stock_data.get("price_momentum_1m", 0.0)
-            if _v_momentum_1m >= _v_criteria["momentum_1m_min"]:
-                _v_results["momentum_1m"] = {"pass": True, "value": _v_momentum_1m, "score": 1.0}
-                _v_score += 1.0
-            else:
-                _v_results["momentum_1m"] = {"pass": False, "value": _v_momentum_1m, "score": 0.0}
-            
-            # 변동성 검증
-            _v_volatility = p_stock_data.get("volatility", 0.0)
-            if _v_volatility <= _v_criteria["volatility_max"]:
-                _v_results["volatility"] = {"pass": True, "value": _v_volatility, "score": 1.0}
-                _v_score += 1.0
-            else:
-                _v_results["volatility"] = {"pass": False, "value": _v_volatility, "score": 0.0}
-            
-            # === 기울기 관련 지표 추가 ===
-            # 기울기 분석을 위한 OHLCV 데이터 생성
+            _v_details = {}
+            _v_passed_count = 0
+            _v_total_checks = 6
+
+            # OHLCV 데이터 생성
             _v_ohlcv_data = self._generate_ohlcv_data(p_stock_data)
-            
-            if _v_ohlcv_data is not None and len(_v_ohlcv_data) >= 60:
-                _v_slope_indicator = SlopeIndicator(_v_ohlcv_data)
-                
-                # 1. 20일 이동평균 기울기 검증
-                _v_ma20_slope = _v_slope_indicator.calculate_ma_slope(20, 5)
-                if _v_ma20_slope >= _v_criteria["ma20_slope_min"]:
-                    _v_results["ma20_slope"] = {"pass": True, "value": _v_ma20_slope, "score": 1.0}
-                    _v_score += 1.0
-                else:
-                    _v_results["ma20_slope"] = {"pass": False, "value": _v_ma20_slope, "score": 0.0}
-                
-                # 2. 추세 일관성 검증 (단기-중기-장기 기울기 방향 일치)
-                _v_trend_consistency = _v_slope_indicator.check_trend_consistency()
-                if not _v_criteria["trend_consistency_required"] or _v_trend_consistency:
-                    _v_results["trend_consistency"] = {"pass": True, "value": _v_trend_consistency, "score": 1.0}
-                    _v_score += 1.0
-                else:
-                    _v_results["trend_consistency"] = {"pass": False, "value": _v_trend_consistency, "score": 0.0}
-                
-                # 3. 가격 기울기 검증
-                _v_price_slope = _v_slope_indicator.calculate_price_slope(5)
-                if _v_price_slope >= _v_criteria["price_slope_min"]:
-                    _v_results["price_slope"] = {"pass": True, "value": _v_price_slope, "score": 1.0}
-                    _v_score += 1.0
-                else:
-                    _v_results["price_slope"] = {"pass": False, "value": _v_price_slope, "score": 0.0}
+            if _v_ohlcv_data is None:
+                return False, 0.0, {"error": "OHLCV 데이터 생성 실패"}
+
+            # 1. 이동평균 추세 체크
+            _v_ma_trend_pass = self._check_ma_trend(p_stock_data)
+            if _v_ma_trend_pass:
+                _v_ma_score = 20.0
+                _v_passed_count += 1
             else:
-                # 기울기 데이터가 부족한 경우 기본값 처리
-                _v_results["ma20_slope"] = {"pass": False, "value": 0.0, "score": 0.0}
-                _v_results["trend_consistency"] = {"pass": False, "value": False, "score": 0.0}
-                _v_results["price_slope"] = {"pass": False, "value": 0.0, "score": 0.0}
+                _v_ma_score = 0.0
             
-            # 정규화된 점수 계산 (0-100점)
-            _v_normalized_score = (_v_score / _v_max_score) * 100.0
+            _v_score += _v_ma_score
+            _v_details["ma_trend"] = {
+                "passed": _v_ma_trend_pass,
+                "score": _v_ma_score,
+                "required": _v_criteria["ma_trend_required"]
+            }
+
+            # 2. RSI 체크
+            _v_rsi = p_stock_data.get("rsi", 50.0)
+            _v_rsi_pass = _v_criteria["rsi_min"] <= _v_rsi <= _v_criteria["rsi_max"]
+            if _v_rsi_pass:
+                _v_rsi_score = 15.0
+                _v_passed_count += 1
+            else:
+                # RSI가 범위를 벗어난 정도에 따라 부분 점수
+                if _v_rsi < _v_criteria["rsi_min"]:
+                    _v_rsi_score = max(0.0, 15.0 * (_v_rsi / _v_criteria["rsi_min"]))
+                else:
+                    _v_rsi_score = max(0.0, 15.0 * ((100 - _v_rsi) / (100 - _v_criteria["rsi_max"])))
             
-            # 통과 기준: 8개 지표 중 5개 이상 통과 (기존 5개 중 3개 + 기울기 3개 중 2개 이상)
-            _v_passed = _v_score >= 5.0
-            
-            logger.debug(f"기술적 스크리닝 - 종목: {p_stock_data.get('stock_code')}, 점수: {_v_normalized_score:.1f}, 통과: {_v_passed}")
-            
-            return _v_passed, _v_normalized_score, _v_results
-            
-        except Exception as e:
-            logger.error(f"기술적 스크리닝 오류: {e}")
-            return False, 0.0, {}
-    
-    def _generate_ohlcv_data(self, p_stock_data: Dict) -> Optional[pd.DataFrame]:
-        """주식 데이터로부터 OHLCV DataFrame 생성 (기울기 분석용)
-        
-        Args:
-            p_stock_data: 주식 데이터
-            
-        Returns:
-            OHLCV DataFrame 또는 None
-        """
-        try:
-            _v_current_price = p_stock_data.get("current_price", 0.0)
+            _v_score += _v_rsi_score
+            _v_details["rsi"] = {
+                "value": _v_rsi,
+                "min_criteria": _v_criteria["rsi_min"],
+                "max_criteria": _v_criteria["rsi_max"],
+                "score": _v_rsi_score,
+                "passed": _v_rsi_pass
+            }
+
+            # 3. 거래량 비율 체크
             _v_volume_ratio = p_stock_data.get("volume_ratio", 1.0)
+            _v_volume_pass = _v_volume_ratio >= _v_criteria["volume_ratio_min"]
+            if _v_volume_pass:
+                _v_volume_score = min(20.0, (_v_volume_ratio / _v_criteria["volume_ratio_min"]) * 10.0)
+                _v_passed_count += 1
+            else:
+                _v_volume_score = (_v_volume_ratio / _v_criteria["volume_ratio_min"]) * 10.0
             
-            if _v_current_price <= 0:
-                return None
-                
-            # 더미 OHLCV 데이터 생성 (실제로는 API에서 가져와야 함)
-            # 60일간의 임시 데이터 생성
-            _v_dates = pd.date_range(end=datetime.now().date(), periods=60, freq='D')
-            _v_prices = []
-            _v_volumes = []
+            _v_score += _v_volume_score
+            _v_details["volume_ratio"] = {
+                "value": _v_volume_ratio,
+                "criteria": _v_criteria["volume_ratio_min"],
+                "score": _v_volume_score,
+                "passed": _v_volume_pass
+            }
+
+            # 4. 1개월 모멘텀 체크
+            _v_momentum_1m = p_stock_data.get("momentum_1m", 0.0)
+            _v_momentum_pass = _v_momentum_1m >= _v_criteria["momentum_1m_min"]
+            if _v_momentum_pass:
+                _v_momentum_score = min(15.0, (_v_momentum_1m / max(1.0, _v_criteria["momentum_1m_min"])) * 7.5)
+                _v_passed_count += 1
+            else:
+                _v_momentum_score = max(0.0, (_v_momentum_1m / max(1.0, abs(_v_criteria["momentum_1m_min"]))) * 7.5)
             
-            # 현재가 기준으로 과거 60일간 가격 시뮬레이션
-            _v_base_price = _v_current_price * 0.9  # 시작가는 현재가의 90%
-            _v_price = _v_base_price
-            _v_base_volume = 1000000  # 기본 거래량
+            _v_score += _v_momentum_score
+            _v_details["momentum_1m"] = {
+                "value": _v_momentum_1m,
+                "criteria": _v_criteria["momentum_1m_min"],
+                "score": _v_momentum_score,
+                "passed": _v_momentum_pass
+            }
+
+            # 5. 변동성 체크
+            _v_volatility = p_stock_data.get("volatility", 0.2)
+            _v_volatility_pass = _v_volatility <= _v_criteria["volatility_max"]
+            if _v_volatility_pass:
+                _v_volatility_score = 15.0
+                _v_passed_count += 1
+            else:
+                _v_volatility_score = max(0.0, 15.0 * (1.0 - (_v_volatility - _v_criteria["volatility_max"]) / _v_criteria["volatility_max"]))
             
-            for i in range(60):
-                # 가격 변화 시뮬레이션 (상승 추세)
-                _v_change = np.random.normal(0.002, 0.015)  # 평균 0.2% 상승, 표준편차 1.5%
-                _v_price *= (1 + _v_change)
-                _v_prices.append(_v_price)
-                
-                # 거래량 시뮬레이션
-                _v_volume = _v_base_volume * np.random.uniform(0.5, 2.0)
-                _v_volumes.append(_v_volume)
+            _v_score += _v_volatility_score
+            _v_details["volatility"] = {
+                "value": _v_volatility,
+                "criteria": _v_criteria["volatility_max"],
+                "score": _v_volatility_score,
+                "passed": _v_volatility_pass
+            }
+
+            # 6. 20일 이동평균 기울기 체크
+            _v_ma20_slope = self._calculate_ma_slope(p_stock_data)
+            _v_slope_pass = _v_ma20_slope >= _v_criteria["ma20_slope_min"]
+            if _v_slope_pass:
+                _v_slope_score = min(15.0, (_v_ma20_slope / _v_criteria["ma20_slope_min"]) * 7.5)
+                _v_passed_count += 1
+            else:
+                _v_slope_score = max(0.0, (_v_ma20_slope / _v_criteria["ma20_slope_min"]) * 7.5)
             
-            # 마지막 가격을 현재가로 조정
-            _v_prices[-1] = _v_current_price
+            _v_score += _v_slope_score
+            _v_details["ma20_slope"] = {
+                "value": _v_ma20_slope,
+                "criteria": _v_criteria["ma20_slope_min"],
+                "score": _v_slope_score,
+                "passed": _v_slope_pass
+            }
+
+            # 통과 기준: 65점 이상 또는 4개 이상 항목 통과
+            _v_passed = _v_score >= 65.0 or _v_passed_count >= 4
             
-            # DataFrame 생성
+            _v_details["summary"] = {
+                "total_score": _v_score,
+                "passed_count": _v_passed_count,
+                "total_checks": _v_total_checks,
+                "passed": _v_passed
+            }
+
+            return _v_passed, _v_score, _v_details
+
+        except Exception as e:
+            self._logger.error(f"기술적 분석 스크리닝 오류: {e}")
+            return False, 0.0, {"error": str(e)}
+
+    def _generate_ohlcv_data(self, p_stock_data: Dict) -> Optional[pd.DataFrame]:
+        """OHLCV 데이터 생성 (실제 데이터 또는 시뮬레이션)"""
+        try:
+            # 실제 OHLCV 데이터가 있는 경우
+            if "ohlcv" in p_stock_data and p_stock_data["ohlcv"]:
+                return pd.DataFrame(p_stock_data["ohlcv"])
+            
+            # 시뮬레이션 데이터 생성
+            _v_current_price = p_stock_data.get("current_price", 10000)
+            _v_dates = pd.date_range(end=datetime.now(), periods=30, freq='D')
+            
+            # 간단한 가격 시뮬레이션
+            np.random.seed(42)  # 재현 가능한 결과를 위해
+            _v_returns = np.random.normal(0.001, 0.02, 30)  # 일일 수익률
+            _v_prices = [_v_current_price]
+            
+            for _v_return in _v_returns[1:]:
+                _v_prices.append(_v_prices[-1] * (1 + _v_return))
+            
             _v_ohlcv_data = pd.DataFrame({
                 'date': _v_dates,
-                'open': [p * 0.998 for p in _v_prices],
-                'high': [p * 1.005 for p in _v_prices],
-                'low': [p * 0.995 for p in _v_prices],
+                'open': _v_prices,
+                'high': [p * 1.02 for p in _v_prices],
+                'low': [p * 0.98 for p in _v_prices],
                 'close': _v_prices,
-                'volume': _v_volumes
+                'volume': np.random.randint(100000, 1000000, 30)
             })
             
             return _v_ohlcv_data
             
         except Exception as e:
-            logger.error(f"OHLCV 데이터 생성 오류: {e}")
+            self._logger.error(f"OHLCV 데이터 생성 오류: {e}")
             return None
-    
+
     def screen_by_momentum(self, p_stock_data: Dict) -> Tuple[bool, float, Dict]:
-        """모멘텀 기반 스크리닝
+        """
+        모멘텀 분석 기반 스크리닝
         
         Args:
-            p_stock_data: 주식 모멘텀 데이터
+            p_stock_data: 종목 데이터
             
         Returns:
-            (통과 여부, 점수, 세부 결과)
+            Tuple[bool, float, Dict]: (통과여부, 점수, 세부결과)
         """
         try:
             _v_criteria = self._v_screening_criteria["momentum"]
-            _v_results = {}
             _v_score = 0.0
-            _v_max_score = 4.0  # 총 4개 지표
-            
-            # 상대강도 검증
-            _v_relative_strength = p_stock_data.get("relative_strength", 0.0)
-            if _v_relative_strength >= _v_criteria["relative_strength_min"]:
-                _v_results["relative_strength"] = {"pass": True, "value": _v_relative_strength, "score": 1.0}
-                _v_score += 1.0
+            _v_details = {}
+            _v_passed_count = 0
+            _v_total_checks = 5
+
+            # 1. 1개월 가격 모멘텀 체크
+            _v_price_momentum_1m = p_stock_data.get("price_momentum_1m", 0.0)
+            _v_1m_pass = _v_price_momentum_1m >= _v_criteria["price_momentum_1m_min"]
+            if _v_1m_pass:
+                _v_1m_score = min(25.0, (_v_price_momentum_1m / _v_criteria["price_momentum_1m_min"]) * 12.5)
+                _v_passed_count += 1
             else:
-                _v_results["relative_strength"] = {"pass": False, "value": _v_relative_strength, "score": 0.0}
+                _v_1m_score = max(0.0, (_v_price_momentum_1m / _v_criteria["price_momentum_1m_min"]) * 12.5)
             
-            # 다기간 가격 모멘텀 검증
-            _v_momentum_scores = []
-            for period in _v_criteria["momentum_periods"]:
-                _v_momentum_key = f"price_momentum_{period}m"
-                _v_momentum_value = p_stock_data.get(_v_momentum_key, 0.0)
-                _v_momentum_scores.append(_v_momentum_value)
-            
-            _v_avg_momentum = np.mean(_v_momentum_scores) if _v_momentum_scores else 0.0
-            if _v_avg_momentum > 0.0:
-                _v_results["price_momentum"] = {"pass": True, "value": _v_avg_momentum, "score": 1.0}
-                _v_score += 1.0
+            _v_score += _v_1m_score
+            _v_details["price_momentum_1m"] = {
+                "value": _v_price_momentum_1m,
+                "criteria": _v_criteria["price_momentum_1m_min"],
+                "score": _v_1m_score,
+                "passed": _v_1m_pass
+            }
+
+            # 2. 3개월 가격 모멘텀 체크
+            _v_price_momentum_3m = p_stock_data.get("price_momentum_3m", 0.0)
+            _v_3m_pass = _v_price_momentum_3m >= _v_criteria["price_momentum_3m_min"]
+            if _v_3m_pass:
+                _v_3m_score = min(25.0, (_v_price_momentum_3m / _v_criteria["price_momentum_3m_min"]) * 12.5)
+                _v_passed_count += 1
             else:
-                _v_results["price_momentum"] = {"pass": False, "value": _v_avg_momentum, "score": 0.0}
+                _v_3m_score = max(0.0, (_v_price_momentum_3m / _v_criteria["price_momentum_3m_min"]) * 12.5)
             
-            # 거래량 모멘텀 검증
+            _v_score += _v_3m_score
+            _v_details["price_momentum_3m"] = {
+                "value": _v_price_momentum_3m,
+                "criteria": _v_criteria["price_momentum_3m_min"],
+                "score": _v_3m_score,
+                "passed": _v_3m_pass
+            }
+
+            # 3. 거래량 모멘텀 체크
             _v_volume_momentum = p_stock_data.get("volume_momentum", 0.0)
-            if _v_volume_momentum >= _v_criteria["volume_momentum_min"]:
-                _v_results["volume_momentum"] = {"pass": True, "value": _v_volume_momentum, "score": 1.0}
-                _v_score += 1.0
+            _v_vol_pass = _v_volume_momentum >= _v_criteria["volume_momentum_min"]
+            if _v_vol_pass:
+                _v_vol_score = min(20.0, (_v_volume_momentum / _v_criteria["volume_momentum_min"]) * 10.0)
+                _v_passed_count += 1
             else:
-                _v_results["volume_momentum"] = {"pass": False, "value": _v_volume_momentum, "score": 0.0}
+                _v_vol_score = max(0.0, (_v_volume_momentum / _v_criteria["volume_momentum_min"]) * 10.0)
             
-            # 섹터 모멘텀 검증
-            _v_sector_momentum = p_stock_data.get("sector_momentum", 0.0)
-            if _v_sector_momentum >= _v_criteria["sector_momentum_min"]:
-                _v_results["sector_momentum"] = {"pass": True, "value": _v_sector_momentum, "score": 1.0}
-                _v_score += 1.0
+            _v_score += _v_vol_score
+            _v_details["volume_momentum"] = {
+                "value": _v_volume_momentum,
+                "criteria": _v_criteria["volume_momentum_min"],
+                "score": _v_vol_score,
+                "passed": _v_vol_pass
+            }
+
+            # 4. 상대강도 체크
+            _v_relative_strength = p_stock_data.get("relative_strength", 50.0)
+            _v_rs_pass = _v_relative_strength >= _v_criteria["relative_strength_min"]
+            if _v_rs_pass:
+                _v_rs_score = min(20.0, (_v_relative_strength / _v_criteria["relative_strength_min"]) * 10.0)
+                _v_passed_count += 1
             else:
-                _v_results["sector_momentum"] = {"pass": False, "value": _v_sector_momentum, "score": 0.0}
+                _v_rs_score = (_v_relative_strength / _v_criteria["relative_strength_min"]) * 10.0
             
-            # 정규화된 점수 계산 (0-100점)
-            _v_normalized_score = (_v_score / _v_max_score) * 100.0
+            _v_score += _v_rs_score
+            _v_details["relative_strength"] = {
+                "value": _v_relative_strength,
+                "criteria": _v_criteria["relative_strength_min"],
+                "score": _v_rs_score,
+                "passed": _v_rs_pass
+            }
+
+            # 5. 이동평균 수렴 체크
+            _v_ma_convergence = self._check_ma_convergence(p_stock_data)
+            if _v_ma_convergence:
+                _v_conv_score = 10.0
+                _v_passed_count += 1
+            else:
+                _v_conv_score = 0.0
             
-            # 통과 기준: 4개 지표 중 2개 이상 통과
-            _v_passed = _v_score >= 2.0
+            _v_score += _v_conv_score
+            _v_details["ma_convergence"] = {
+                "value": _v_ma_convergence,
+                "required": _v_criteria["ma_convergence_required"],
+                "score": _v_conv_score,
+                "passed": _v_ma_convergence
+            }
+
+            # 통과 기준: 70점 이상 또는 3개 이상 항목 통과
+            _v_passed = _v_score >= 70.0 or _v_passed_count >= 3
             
-            logger.debug(f"모멘텀 스크리닝 - 종목: {p_stock_data.get('stock_code')}, 점수: {_v_normalized_score:.1f}, 통과: {_v_passed}")
-            
-            return _v_passed, _v_normalized_score, _v_results
-            
+            _v_details["summary"] = {
+                "total_score": _v_score,
+                "passed_count": _v_passed_count,
+                "total_checks": _v_total_checks,
+                "passed": _v_passed
+            }
+
+            return _v_passed, _v_score, _v_details
+
         except Exception as e:
-            logger.error(f"모멘텀 스크리닝 오류: {e}")
-            return False, 0.0, {}
-    
-    def comprehensive_screening(self, p_stock_list: List[str]) -> List[Dict]:
-        """종합 스크리닝 실행
+            self._logger.error(f"모멘텀 분석 스크리닝 오류: {e}")
+            return False, 0.0, {"error": str(e)}
+
+    def comprehensive_screening(self, p_stock_list: List[str]) -> List[ScreeningResult]:
+        """
+        종합 스크리닝 실행 (새 인터페이스 구현)
         
         Args:
-            p_stock_list: 스크리닝할 종목 코드 리스트
+            p_stock_list: 스크리닝할 종목 리스트
             
         Returns:
-            스크리닝 결과 리스트
+            List[ScreeningResult]: 스크리닝 결과 리스트
         """
-        try:
-            logger.info(f"종합 스크리닝 시작 - 대상 종목: {len(p_stock_list)}개")
-            
-            _v_results = []
-            _v_processed_count = 0
-            
-            for stock_code in p_stock_list:
-                try:
-                    # 주식 데이터 수집
-                    _v_stock_data = self._fetch_stock_data(stock_code)
-                    if not _v_stock_data:
-                        continue
-                    
-                    # 종목 정보가 제대로 매핑되지 않은 종목 제외
-                    _v_stock_name = _v_stock_data.get("stock_name", "")
-                    if _v_stock_name.startswith("종목"):
-                        logger.debug(f"종목 정보 없음으로 제외: {stock_code} → {_v_stock_name}")
-                        continue
-                    
-                    # 각 스크리닝 실행
-                    _v_fundamental_passed, _v_fundamental_score, _v_fundamental_details = self.screen_by_fundamentals(_v_stock_data)
-                    _v_technical_passed, _v_technical_score, _v_technical_details = self.screen_by_technical(_v_stock_data)
-                    _v_momentum_passed, _v_momentum_score, _v_momentum_details = self.screen_by_momentum(_v_stock_data)
-                    
-                    # 종합 결과 계산
-                    _v_overall_passed = _v_fundamental_passed and _v_technical_passed and _v_momentum_passed
-                    _v_overall_score = (_v_fundamental_score + _v_technical_score + _v_momentum_score) / 3.0
-                    
-                    _v_result = {
-                        "stock_code": stock_code,
-                        "stock_name": _v_stock_data.get("stock_name", ""),
-                        "sector": _v_stock_data.get("sector", ""),
-                        "screening_timestamp": datetime.now().isoformat(),
-                        "overall_passed": _v_overall_passed,
-                        "overall_score": round(_v_overall_score, 2),
-                        "fundamental": {
-                            "passed": _v_fundamental_passed,
-                            "score": round(_v_fundamental_score, 2),
-                            "details": _v_fundamental_details
-                        },
-                        "technical": {
-                            "passed": _v_technical_passed,
-                            "score": round(_v_technical_score, 2),
-                            "details": _v_technical_details
-                        },
-                        "momentum": {
-                            "passed": _v_momentum_passed,
-                            "score": round(_v_momentum_score, 2),
-                            "details": _v_momentum_details
-                        }
-                    }
-                    
-                    _v_results.append(_v_result)
-                    _v_processed_count += 1
-                    
-                    # 진행 상황 로그
-                    if _v_processed_count % 100 == 0:
-                        logger.info(f"스크리닝 진행 상황: {_v_processed_count}/{len(p_stock_list)}")
-                    
-                    # API 호출 제한 고려
-                    self.api_config.apply_rate_limit()
-                    
-                except Exception as e:
-                    logger.error(f"종목 {stock_code} 스크리닝 오류: {e}")
+        _v_results = []
+        
+        for _v_stock_code in p_stock_list:
+            try:
+                # 종목 데이터 가져오기
+                _v_stock_data = self._fetch_stock_data(_v_stock_code)
+                if not _v_stock_data:
                     continue
-            
-            # 결과 정렬 (점수 높은 순)
-            _v_results.sort(key=lambda x: x["overall_score"], reverse=True)
-            
-            logger.info(f"종합 스크리닝 완료 - 처리된 종목: {_v_processed_count}개, 통과 종목: {len([r for r in _v_results if r['overall_passed']])}개")
-            
-            return _v_results
-            
-        except Exception as e:
-            logger.error(f"종합 스크리닝 오류: {e}")
-            return []
-    
+                
+                # 각 분석 실행
+                _v_fundamental_passed, _v_fundamental_score, _v_fundamental_details = self.screen_by_fundamentals(_v_stock_data)
+                _v_technical_passed, _v_technical_score, _v_technical_details = self.screen_by_technical(_v_stock_data)
+                _v_momentum_passed, _v_momentum_score, _v_momentum_details = self.screen_by_momentum(_v_stock_data)
+                
+                # 종합 점수 계산 (가중평균)
+                _v_total_score = (
+                    _v_fundamental_score * 0.4 +  # 기본 분석 40%
+                    _v_technical_score * 0.35 +   # 기술적 분석 35%
+                    _v_momentum_score * 0.25      # 모멘텀 분석 25%
+                )
+                
+                # 전체 통과 여부 (모든 분야에서 최소 점수 확보)
+                _v_overall_passed = (
+                    _v_fundamental_score >= 50.0 and
+                    _v_technical_score >= 50.0 and
+                    _v_momentum_score >= 50.0 and
+                    _v_total_score >= 65.0
+                )
+                
+                # 신호 생성
+                _v_signals = []
+                if _v_fundamental_passed:
+                    _v_signals.append("기본분석_통과")
+                if _v_technical_passed:
+                    _v_signals.append("기술분석_통과")
+                if _v_momentum_passed:
+                    _v_signals.append("모멘텀_통과")
+                if _v_overall_passed:
+                    _v_signals.append("종합_통과")
+                
+                # 결과 객체 생성
+                _v_result = ScreeningResult(
+                    stock_code=_v_stock_code,
+                    stock_name=_v_stock_data.get("name", ""),
+                    passed=_v_overall_passed,
+                    score=_v_total_score,
+                    details={
+                        "fundamental": _v_fundamental_details,
+                        "technical": _v_technical_details,
+                        "momentum": _v_momentum_details,
+                        "scores": {
+                            "fundamental": _v_fundamental_score,
+                            "technical": _v_technical_score,
+                            "momentum": _v_momentum_score,
+                            "total": _v_total_score
+                        }
+                    },
+                    signals=_v_signals,
+                    timestamp=datetime.now()
+                )
+                
+                _v_results.append(_v_result)
+                
+            except Exception as e:
+                self._logger.error(f"종목 {_v_stock_code} 스크리닝 오류: {e}")
+                continue
+        
+        # 점수 순으로 정렬
+        _v_results.sort(key=lambda x: x.score, reverse=True)
+        
+        self._logger.info(f"스크리닝 완료: {len(_v_results)}개 종목 처리")
+        return _v_results
+
     def _fetch_stock_data(self, p_stock_code: str) -> Optional[Dict]:
         """주식 데이터 수집 (전체 종목 리스트 파일 사용)
         
@@ -521,18 +668,18 @@ class StockScreener:
                             
                             break
                             
-                    logger.debug(f"종목 정보 로드 성공: {p_stock_code} → {_v_stock_name} ({_v_market})")
+                    self._logger.debug(f"종목 정보 로드 성공: {p_stock_code} → {_v_stock_name} ({_v_market})")
                             
                 except Exception as e:
-                    logger.warning(f"종목 리스트 파일 로드 실패: {e}")
+                    self._logger.warning(f"종목 리스트 파일 로드 실패: {e}")
             else:
-                logger.warning(f"종목 리스트 파일을 찾을 수 없음: {_v_stock_dir}")
+                self._logger.warning(f"종목 리스트 파일을 찾을 수 없음: {_v_stock_dir}")
             
             # 종목 정보가 없으면 기본값 사용
             if not _v_stock_name:
                 _v_stock_name = f"종목{p_stock_code}"
                 _v_market = "KOSPI" if p_stock_code.startswith(('0', '1', '2', '3')) else "KOSDAQ"
-                logger.warning(f"종목 정보 없음, 기본값 사용: {p_stock_code} → {_v_stock_name} ({_v_market})")
+                self._logger.warning(f"종목 정보 없음, 기본값 사용: {p_stock_code} → {_v_stock_name} ({_v_market})")
             
             # 섹터 추정 (기본 매핑 사용)
             _v_sector_map = {
@@ -573,10 +720,10 @@ class StockScreener:
                 _v_price_momentum_6m = random.uniform(-15, 35)
                 _v_volatility = random.uniform(0.15, 0.35)
                 
-                logger.debug(f"기본값 사용 - {p_stock_code} ({_v_stock_name}): 가격={_v_current_price:,}, 거래량={_v_volume:,}")
+                self._logger.debug(f"기본값 사용 - {p_stock_code} ({_v_stock_name}): 가격={_v_current_price:,}, 거래량={_v_volume:,}")
                 
             except Exception as e:
-                logger.warning(f"기본값 생성 실패 - {p_stock_code}: {e}")
+                self._logger.warning(f"기본값 생성 실패 - {p_stock_code}: {e}")
                 # 최종 기본값
                 _v_current_price = 50000
                 _v_volume = 1000000
@@ -629,7 +776,7 @@ class StockScreener:
             return _v_stock_data
             
         except Exception as e:
-            logger.error(f"주식 데이터 수집 오류 - {p_stock_code}: {e}")
+            self._logger.error(f"주식 데이터 수집 오류 - {p_stock_code}: {e}")
             return None
     
     def _get_sector_average_per(self, p_sector: str) -> float:
@@ -655,7 +802,7 @@ class StockScreener:
             return _v_sector_per.get(p_sector, 15.0)
             
         except Exception as e:
-            logger.error(f"섹터 평균 PER 조회 오류: {e}")
+            self._logger.error(f"섹터 평균 PER 조회 오류: {e}")
             return 15.0
     
     def save_screening_results(self, p_results: List[Dict], p_filename: Optional[str] = None) -> bool:
@@ -693,9 +840,68 @@ class StockScreener:
             with open(_v_filepath, 'w', encoding='utf-8') as f:
                 json.dump(_v_save_data, f, ensure_ascii=False, indent=2)
             
-            logger.info(f"스크리닝 결과 저장 완료: {_v_filepath}")
+            self._logger.info(f"스크리닝 결과 저장 완료: {_v_filepath}")
             return True
             
         except Exception as e:
-            logger.error(f"스크리닝 결과 저장 오류: {e}")
+            self._logger.error(f"스크리닝 결과 저장 오류: {e}")
+            return False 
+
+    def _check_ma_trend(self, p_stock_data: Dict) -> bool:
+        """이동평균 추세 체크"""
+        try:
+            _v_ma_20 = p_stock_data.get("ma_20", 0.0)
+            _v_ma_60 = p_stock_data.get("ma_60", 0.0)
+            _v_ma_120 = p_stock_data.get("ma_120", 0.0)
+            _v_current_price = p_stock_data.get("current_price", 0.0)
+            
+            # 상향 배열 체크: 현재가 > 20일선 > 60일선 > 120일선
+            return (_v_current_price > _v_ma_20 > _v_ma_60 > _v_ma_120)
+        except Exception:
+            return False
+    
+    def _calculate_ma_slope(self, p_stock_data: Dict) -> float:
+        """20일 이동평균 기울기 계산"""
+        try:
+            _v_ohlcv_data = self._generate_ohlcv_data(p_stock_data)
+            if _v_ohlcv_data is None or len(_v_ohlcv_data) < 20:
+                return 0.0
+            
+            # 20일 이동평균 계산
+            _v_ohlcv_data['ma_20'] = _v_ohlcv_data['close'].rolling(window=20).mean()
+            
+            # 최근 5일간의 기울기 계산
+            _v_ma_values = _v_ohlcv_data['ma_20'].dropna().tail(5)
+            if len(_v_ma_values) < 2:
+                return 0.0
+            
+            # 선형 회귀로 기울기 계산
+            _v_x = np.arange(len(_v_ma_values))
+            _v_y = np.array(_v_ma_values.values, dtype=float)  # 명시적 numpy array 변환
+            _v_slope = np.polyfit(_v_x, _v_y, 1)[0]
+            
+            # 비율로 변환 (일일 변화율 %)
+            _v_slope_pct = (_v_slope / _v_y[-1]) * 100 if _v_y[-1] != 0 else 0.0
+            
+            return _v_slope_pct
+        except Exception:
+            return 0.0
+    
+    def _check_ma_convergence(self, p_stock_data: Dict) -> bool:
+        """이동평균 수렴 체크"""
+        try:
+            _v_ma_5 = p_stock_data.get("ma_5", 0.0)
+            _v_ma_20 = p_stock_data.get("ma_20", 0.0)
+            _v_ma_60 = p_stock_data.get("ma_60", 0.0)
+            
+            if _v_ma_20 == 0:
+                return False
+            
+            # 이동평균 간 거리 계산 (비율)
+            _v_gap_5_20 = abs(_v_ma_5 - _v_ma_20) / _v_ma_20
+            _v_gap_20_60 = abs(_v_ma_20 - _v_ma_60) / _v_ma_20
+            
+            # 수렴 조건: 각 갭이 2% 이내
+            return _v_gap_5_20 <= 0.02 and _v_gap_20_60 <= 0.02
+        except Exception:
             return False 

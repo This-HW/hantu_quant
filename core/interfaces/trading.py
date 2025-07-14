@@ -1,7 +1,5 @@
 """
-거래 관련 인터페이스 정의
-
-이 모듈은 거래 시스템을 위한 인터페이스들을 정의합니다.
+거래 관련 인터페이스들
 """
 
 from abc import ABC, abstractmethod
@@ -317,4 +315,229 @@ class IOrderManager(ABC):
     def handle_order_fill(self, order_id: str, filled_quantity: int, 
                          filled_price: float) -> bool:
         """주문 체결 처리"""
+        pass 
+
+# ===== Phase 1: 감시 리스트 인터페이스 =====
+
+@dataclass
+class ScreeningResult:
+    """스크리닝 결과 데이터 클래스"""
+    stock_code: str
+    stock_name: str
+    passed: bool
+    score: float
+    details: Dict[str, Any]
+    signals: List[str]
+    timestamp: datetime
+
+@dataclass
+class WatchlistEntry:
+    """감시 리스트 항목 데이터 클래스"""
+    stock_code: str
+    stock_name: str
+    added_date: datetime
+    added_reason: str
+    target_price: float
+    stop_loss: float
+    sector: str
+    screening_score: float
+    status: str = "active"
+    notes: str = ""
+
+class IStockScreener(ABC):
+    """주식 스크리닝 인터페이스"""
+    
+    @abstractmethod
+    def screen_by_fundamentals(self, stock_data: Dict) -> Tuple[bool, float, Dict]:
+        """기본 분석 기반 스크리닝"""
+        pass
+    
+    @abstractmethod
+    def screen_by_technical(self, stock_data: Dict) -> Tuple[bool, float, Dict]:
+        """기술적 분석 기반 스크리닝"""
+        pass
+    
+    @abstractmethod
+    def screen_by_momentum(self, stock_data: Dict) -> Tuple[bool, float, Dict]:
+        """모멘텀 분석 기반 스크리닝"""
+        pass
+    
+    @abstractmethod
+    def comprehensive_screening(self, stock_list: List[str]) -> List[ScreeningResult]:
+        """종합 스크리닝 실행"""
+        pass
+
+class IWatchlistManager(ABC):
+    """감시 리스트 관리 인터페이스"""
+    
+    @abstractmethod
+    def add_stock(self, entry: WatchlistEntry) -> bool:
+        """종목 추가"""
+        pass
+    
+    @abstractmethod
+    def remove_stock(self, stock_code: str, permanent: bool = False) -> bool:
+        """종목 제거"""
+        pass
+    
+    @abstractmethod
+    def update_stock(self, stock_code: str, updates: Dict) -> bool:
+        """종목 정보 업데이트"""
+        pass
+    
+    @abstractmethod
+    def get_stock(self, stock_code: str) -> Optional[WatchlistEntry]:
+        """종목 조회"""
+        pass
+    
+    @abstractmethod
+    def list_stocks(self, status: Optional[str] = None, sector: Optional[str] = None) -> List[WatchlistEntry]:
+        """종목 목록 조회"""
+        pass
+    
+    @abstractmethod
+    def get_statistics(self) -> Dict[str, Any]:
+        """통계 정보 조회"""
+        pass
+
+# ===== Phase 2: 일일 선정 인터페이스 =====
+
+@dataclass
+class TechnicalSignal:
+    """기술적 신호 데이터 클래스"""
+    signal_type: str
+    signal_name: str
+    strength: float
+    confidence: float
+    description: str
+    timestamp: datetime
+
+@dataclass
+class PriceAttractiveness:
+    """가격 매력도 분석 결과"""
+    stock_code: str
+    stock_name: str
+    analysis_date: datetime
+    current_price: float
+    
+    # 종합 점수
+    total_score: float
+    technical_score: float
+    volume_score: float
+    pattern_score: float
+    
+    # 세부 분석 결과
+    technical_signals: List[TechnicalSignal]
+    entry_price: float
+    target_price: float
+    stop_loss: float
+    expected_return: float
+    risk_score: float
+    confidence: float
+    
+    # 추가 정보
+    selection_reason: str
+    market_condition: str
+    sector_momentum: float
+    sector: str = ""
+
+@dataclass
+class DailySelection:
+    """일일 선정 종목 데이터 클래스"""
+    stock_code: str
+    stock_name: str
+    selection_date: datetime
+    selection_reason: str
+    price_attractiveness: float
+    entry_price: float
+    target_price: float
+    stop_loss: float
+    risk_score: float
+    volume_score: float
+    technical_signals: List[str]
+    sector: str
+    market_cap: float
+    priority: int
+    position_size: float
+    confidence: float
+
+class IPriceAnalyzer(ABC):
+    """가격 분석 인터페이스"""
+    
+    @abstractmethod
+    def analyze_price_attractiveness(self, stock_data: Dict) -> PriceAttractiveness:
+        """단일 종목 가격 매력도 분석"""
+        pass
+    
+    @abstractmethod
+    def analyze_multiple_stocks(self, stock_list: List[Dict]) -> List[PriceAttractiveness]:
+        """다중 종목 가격 매력도 분석"""
+        pass
+    
+    @abstractmethod
+    def analyze_technical_indicators(self, stock_data: Dict) -> Tuple[float, List[TechnicalSignal]]:
+        """기술적 지표 분석"""
+        pass
+    
+    @abstractmethod
+    def analyze_volume_pattern(self, stock_data: Dict) -> float:
+        """거래량 패턴 분석"""
+        pass
+    
+    @abstractmethod
+    def detect_patterns(self, stock_data: Dict) -> float:
+        """가격 패턴 감지"""
+        pass
+
+class IDailyUpdater(ABC):
+    """일일 업데이트 인터페이스"""
+    
+    @abstractmethod
+    def run_daily_update(self, force_run: bool = False) -> bool:
+        """일일 업데이트 실행"""
+        pass
+    
+    @abstractmethod
+    def analyze_market_condition(self) -> str:
+        """시장 상황 분석"""
+        pass
+    
+    @abstractmethod
+    def filter_and_select_stocks(self, analysis_results: List[PriceAttractiveness]) -> List[PriceAttractiveness]:
+        """종목 필터링 및 선정"""
+        pass
+    
+    @abstractmethod
+    def create_daily_trading_list(self, selected_stocks: List[PriceAttractiveness]) -> Dict:
+        """일일 매매 리스트 생성"""
+        pass
+    
+    @abstractmethod
+    def start_scheduler(self) -> None:
+        """스케줄러 시작"""
+        pass
+    
+    @abstractmethod
+    def stop_scheduler(self) -> None:
+        """스케줄러 중지"""
+        pass
+
+# ===== 공통 유틸리티 인터페이스 =====
+
+class IMarketDataProvider(ABC):
+    """시장 데이터 제공 인터페이스"""
+    
+    @abstractmethod
+    def get_stock_data(self, stock_code: str) -> Optional[Dict]:
+        """종목 데이터 조회"""
+        pass
+    
+    @abstractmethod
+    def get_market_indicators(self) -> Dict[str, float]:
+        """시장 지표 조회"""
+        pass
+    
+    @abstractmethod
+    def get_sector_data(self, sector: str) -> Dict[str, Any]:
+        """섹터 데이터 조회"""
         pass 
