@@ -1,0 +1,44 @@
+{
+  "telegram": {
+    "bot_token": "8213012990:AAER0GG2CszvDSFw5LWnhVoA1aQ8w41UT4c",
+    "default_chat_ids": [
+      "-1002702335108"
+    ],
+    "channel_mapping": {
+      "auto_trade": "-1002702335108"
+    },
+    "notification_settings": {
+      "emergency": {
+        "enabled": true,
+        "sound": true,
+        "vibrate": true
+      },
+      "high": {
+        "enabled": true,
+        "sound": true,
+        "vibrate": false
+      },
+      "normal": {
+        "enabled": true,
+        "sound": false,
+        "vibrate": false
+      },
+      "low": {
+        "enabled": true,
+        "sound": false,
+        "vibrate": false
+      }
+    },
+    "message_format": {
+      "use_markdown": true,
+      "include_timestamp": true,
+      "include_charts": false,
+      "max_stocks_shown": 5
+    },
+    "rate_limiting": {
+      "max_messages_per_hour": 20,
+      "max_messages_per_day": 100,
+      "cooldown_seconds": 60
+    }
+  }
+} 
