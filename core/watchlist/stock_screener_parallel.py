@@ -8,7 +8,7 @@
 import logging
 import multiprocessing as mp
 import concurrent.futures
-from typing import Dict, List, Optional, Tuple
+from typing import List, Dict, Optional, Union, Any
 from datetime import datetime
 import json
 import os
@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 class ParallelStockScreener(StockScreener):
     """병렬처리 기업 스크리닝 클래스"""
     
-    def __init__(self, p_max_workers: int = None):
+    def __init__(self, p_max_workers: Optional[int] = None):
         """초기화
         
         Args:
@@ -236,55 +236,9 @@ class ParallelStockScreener(StockScreener):
         }
 
 # StockScreener 클래스에 static 메서드 추가 (프로세스 풀 워커용)
-def _screen_single_stock_static(self, p_stock_code: str) -> Optional[Dict]:
-    """정적 단일 종목 스크리닝 메서드"""
-    try:
-        # 주식 데이터 수집
-        _v_stock_data = self._fetch_stock_data(p_stock_code)
-        if not _v_stock_data:
-            return None
-        
-        # 각 스크리닝 실행
-        _v_fundamental_passed, _v_fundamental_score, _v_fundamental_details = self.screen_by_fundamentals(_v_stock_data)
-        _v_technical_passed, _v_technical_score, _v_technical_details = self.screen_by_technical(_v_stock_data)
-        _v_momentum_passed, _v_momentum_score, _v_momentum_details = self.screen_by_momentum(_v_stock_data)
-        
-        # 종합 결과 계산
-        _v_overall_passed = _v_fundamental_passed and _v_technical_passed and _v_momentum_passed
-        _v_overall_score = (_v_fundamental_score + _v_technical_score + _v_momentum_score) / 3.0
-        
-        _v_result = {
-            "stock_code": p_stock_code,
-            "stock_name": _v_stock_data.get("stock_name", ""),
-            "sector": _v_stock_data.get("sector", ""),
-            "screening_timestamp": datetime.now().isoformat(),
-            "overall_passed": _v_overall_passed,
-            "overall_score": round(_v_overall_score, 2),
-            "fundamental": {
-                "passed": _v_fundamental_passed,
-                "score": round(_v_fundamental_score, 2),
-                "details": _v_fundamental_details
-            },
-            "technical": {
-                "passed": _v_technical_passed,
-                "score": round(_v_technical_score, 2),
-                "details": _v_technical_details
-            },
-            "momentum": {
-                "passed": _v_momentum_passed,
-                "score": round(_v_momentum_score, 2),
-                "details": _v_momentum_details
-            }
-        }
-        
-        return _v_result
-        
-    except Exception as e:
-        logger.error(f"정적 종목 스크리닝 오류 ({p_stock_code}): {e}")
-        return None
-
-# 기존 StockScreener 클래스에 메서드 추가
-StockScreener._screen_single_stock_static = _screen_single_stock_static
+# def _screen_single_stock_static(self, p_stock_code: str) -> Optional[Dict]:
+#     """정적 단일 종목 스크리닝 메서드"""
+#     이 메서드는 StockScreener 클래스로 이동됨
 
 if __name__ == "__main__":
     # 테스트 실행

@@ -20,7 +20,7 @@ from core.interfaces.trading import IWatchlistManager, WatchlistEntry
 # 새로운 아키텍처 imports - 사용 가능할 때만 import
 try:
     from core.plugins.decorators import plugin
-    from core.di.container import inject
+    from core.di.injector import inject
     from core.interfaces.base import ILogger, IConfiguration
     ARCHITECTURE_AVAILABLE = True
 except ImportError:
@@ -283,12 +283,18 @@ class WatchlistManager(IWatchlistManager):
             self._logger.error(f"종목 제거 오류: {e}")
             return False
 
-    def list_stocks(self, p_status: Optional[str] = None, p_sector: Optional[str] = None) -> List[WatchlistEntry]:
+    def list_stocks(self, 
+                   p_status: Optional[str] = None, 
+                   p_sector: Optional[str] = None,
+                   p_sort_by: str = "screening_score",
+                   p_ascending: bool = False) -> List[WatchlistEntry]:
         """종목 목록 조회 (새 인터페이스 구현)
         
         Args:
             p_status: 상태 필터 (None이면 모든 상태)
             p_sector: 섹터 필터 (None이면 모든 섹터)
+            p_sort_by: 정렬 기준 (screening_score, stock_code, stock_name, added_date)
+            p_ascending: 오름차순 정렬 여부 (False이면 내림차순)
             
         Returns:
             List[WatchlistEntry]: 필터링된 종목 목록
@@ -308,8 +314,18 @@ class WatchlistManager(IWatchlistManager):
                     
                     _v_filtered_stocks.append(_v_stock.to_watchlist_entry())
                 
-                # 스크리닝 점수 순으로 정렬
-                _v_filtered_stocks.sort(key=lambda x: x.screening_score, reverse=True)
+                # 정렬 기준에 따른 정렬
+                if p_sort_by == "screening_score":
+                    _v_filtered_stocks.sort(key=lambda x: x.screening_score, reverse=not p_ascending)
+                elif p_sort_by == "stock_code":
+                    _v_filtered_stocks.sort(key=lambda x: x.stock_code, reverse=not p_ascending)
+                elif p_sort_by == "stock_name":
+                    _v_filtered_stocks.sort(key=lambda x: x.stock_name, reverse=not p_ascending)
+                elif p_sort_by == "added_date":
+                    _v_filtered_stocks.sort(key=lambda x: x.added_date, reverse=not p_ascending)
+                else:
+                    # 기본값: 스크리닝 점수 내림차순
+                    _v_filtered_stocks.sort(key=lambda x: x.screening_score, reverse=True)
                 
                 return _v_filtered_stocks
                 
@@ -403,18 +419,18 @@ class WatchlistManager(IWatchlistManager):
             with self._lock:
                 _v_backup_data = {
                     "timestamp": datetime.now().isoformat(),
-                    "metadata": self._v_metadata,
-                    "watchlist": {code: stock.to_dict() for code, stock in self._v_watchlist.items()}
+                    "metadata": self._stocks, # 메타데이터는 현재 데이터를 사용
+                    "watchlist": {code: stock.to_dict() for code, stock in self._stocks.items()}
                 }
                 
                 with open(p_backup_file, 'w', encoding='utf-8') as f:
                     json.dump(_v_backup_data, f, ensure_ascii=False, indent=2)
                 
-                logger.info(f"감시 리스트 백업 완료: {p_backup_file}")
+                self._logger.info(f"감시 리스트 백업 완료: {p_backup_file}")
                 return True
                 
         except Exception as e:
-            logger.error(f"백업 오류: {e}")
+            self._logger.error(f"백업 오류: {e}")
             return False
     
     def restore_data(self, p_backup_file: str) -> bool:
@@ -428,7 +444,7 @@ class WatchlistManager(IWatchlistManager):
         """
         try:
             if not os.path.exists(p_backup_file):
-                logger.error(f"백업 파일이 존재하지 않습니다: {p_backup_file}")
+                self._logger.error(f"백업 파일이 존재하지 않습니다: {p_backup_file}")
                 return False
             
             with open(p_backup_file, 'r', encoding='utf-8') as f:
@@ -439,72 +455,72 @@ class WatchlistManager(IWatchlistManager):
                 self.backup_data()
                 
                 # 데이터 복원
-                self._v_metadata = _v_backup_data.get("metadata", self._v_metadata)
                 _v_watchlist_data = _v_backup_data.get("watchlist", {})
                 
-                self._v_watchlist = {}
+                self._stocks = {}
                 for code, stock_data in _v_watchlist_data.items():
-                    self._v_watchlist[code] = WatchlistStock.from_dict(stock_data)
+                    self._stocks[code] = WatchlistStock.from_dict(stock_data)
                 
                 # 데이터 저장
                 self._save_data()
                 
-                logger.info(f"감시 리스트 복원 완료: {p_backup_file}")
+                self._logger.info(f"감시 리스트 복원 완료: {p_backup_file}")
                 return True
                 
         except Exception as e:
-            logger.error(f"복원 오류: {e}")
+            self._logger.error(f"복원 오류: {e}")
             return False
     
     def _load_data(self) -> None:
         """데이터 로드"""
         try:
-            if os.path.exists(self._v_data_file):
-                with open(self._v_data_file, 'r', encoding='utf-8') as f:
+            if os.path.exists(self._data_file):
+                with open(self._data_file, 'r', encoding='utf-8') as f:
                     _v_data = json.load(f)
                 
-                # 메타데이터 로드
-                self._v_metadata = _v_data.get("metadata", self._v_metadata)
+                # 감시 리스트 로드 (새로운 형식과 기존 형식 모두 지원)
+                if "data" in _v_data and "stocks" in _v_data["data"]:
+                    # 새로운 형식
+                    _v_watchlist_data = _v_data["data"]["stocks"]
+                else:
+                    # 기존 형식 (직접 stocks 리스트)
+                    _v_watchlist_data = _v_data.get("stocks", [])
                 
-                # 감시 리스트 로드
-                _v_watchlist_data = _v_data.get("data", {}).get("stocks", [])
-                
-                self._v_watchlist = {}
+                self._stocks = {}
                 for stock_data in _v_watchlist_data:
                     _v_stock = WatchlistStock.from_dict(stock_data)
-                    self._v_watchlist[_v_stock.stock_code] = _v_stock
+                    self._stocks[_v_stock.stock_code] = _v_stock
                 
-                logger.info(f"감시 리스트 데이터 로드 완료: {len(self._v_watchlist)}개 종목")
+                self._logger.info(f"감시 리스트 데이터 로드 완료: {len(self._stocks)}개 종목")
             else:
-                logger.info("감시 리스트 데이터 파일이 없습니다. 새로 생성합니다.")
+                self._logger.info("감시 리스트 데이터 파일이 없습니다. 새로 생성합니다.")
                 self._save_data()
                 
         except Exception as e:
-            logger.error(f"데이터 로드 오류: {e}")
-            self._v_watchlist = {}
+            self._logger.error(f"데이터 로드 오류: {e}")
+            self._stocks = {}
     
     def _save_data(self) -> None:
         """데이터 저장"""
         try:
             # 디렉토리 생성
-            os.makedirs(os.path.dirname(self._v_data_file), exist_ok=True)
+            os.makedirs(os.path.dirname(self._data_file), exist_ok=True)
             
             _v_save_data = {
                 "timestamp": datetime.now().isoformat(),
                 "version": "1.0.0",
-                "metadata": self._v_metadata,
                 "data": {
-                    "stocks": [stock.to_dict() for stock in self._v_watchlist.values()]
+                    "stocks": [stock.to_dict() for stock in self._stocks.values()]
                 }
             }
             
-            with open(self._v_data_file, 'w', encoding='utf-8') as f:
+            with open(self._data_file, 'w', encoding='utf-8') as f:
                 json.dump(_v_save_data, f, ensure_ascii=False, indent=2)
             
-            logger.debug("감시 리스트 데이터 저장 완료")
+            self._logger.debug("감시 리스트 데이터 저장 완료")
             
         except Exception as e:
-            logger.error(f"데이터 저장 오류: {e}")
+            self._logger.error(f"데이터 저장 오류: {e}")
     
     def validate_data(self) -> Tuple[bool, List[str]]:
         """데이터 무결성 검증
@@ -515,8 +531,8 @@ class WatchlistManager(IWatchlistManager):
         _v_errors = []
         
         try:
-            with self._v_lock:
-                for code, stock in self._v_watchlist.items():
+            with self._lock:
+                for code, stock in self._stocks.items():
                     # 필수 필드 검증
                     if not stock.stock_code:
                         _v_errors.append(f"종목 코드가 비어있습니다: {code}")
@@ -539,12 +555,12 @@ class WatchlistManager(IWatchlistManager):
             _v_is_valid = len(_v_errors) == 0
             
             if _v_is_valid:
-                logger.info("데이터 무결성 검증 통과")
+                self._logger.info("데이터 무결성 검증 통과")
             else:
-                logger.warning(f"데이터 무결성 검증 실패: {len(_v_errors)}개 오류")
+                self._logger.warning(f"데이터 무결성 검증 실패: {len(_v_errors)}개 오류")
             
             return _v_is_valid, _v_errors
             
         except Exception as e:
-            logger.error(f"데이터 검증 오류: {e}")
+            self._logger.error(f"데이터 검증 오류: {e}")
             return False, [str(e)] 

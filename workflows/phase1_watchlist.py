@@ -9,6 +9,7 @@ Phase 1: 감시 리스트 구축 워크플로우
 import argparse
 import sys
 import os
+import json
 from datetime import datetime
 from typing import List, Dict, Optional
 
@@ -139,7 +140,7 @@ class Phase1Workflow:
             _v_score, _v_details = self.evaluation_engine.calculate_comprehensive_score(_v_stock_info)
             
             # 감시 리스트에 추가
-            _v_success = self.watchlist_manager.add_stock(
+            _v_success = self.watchlist_manager.add_stock_legacy(
                 p_stock_code=p_stock_code,
                 p_stock_name=_v_stock_info.get("stock_name", f"종목{p_stock_code}"),
                 p_added_reason="수동 추가",
@@ -195,11 +196,11 @@ class Phase1Workflow:
             print(f"\n=== 통계 정보 ===")
             print(f"총 종목 수: {_v_stats['total_count']}개")
             print(f"활성 종목: {_v_stats['active_count']}개")
-            print(f"평균 점수: {_v_stats['average_score']:.1f}점")
+            print(f"평균 점수: {_v_stats.get('avg_score', 0.0):.1f}점")
             
-            if _v_stats['sector_distribution']:
+            if _v_stats['sectors']:
                 print(f"섹터별 분포:")
-                for sector, count in _v_stats['sector_distribution'].items():
+                for sector, count in _v_stats['sectors'].items():
                     print(f"  - {sector}: {count}개")
                     
         except Exception as e:
@@ -256,13 +257,13 @@ class Phase1Workflow:
             _v_report_lines.append(f"생성일시: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             _v_report_lines.append(f"총 종목 수: {_v_stats['total_count']}개")
             _v_report_lines.append(f"활성 종목: {_v_stats['active_count']}개")
-            _v_report_lines.append(f"평균 점수: {_v_stats['average_score']:.1f}점")
+            _v_report_lines.append(f"평균 점수: {_v_stats.get('avg_score', 0.0):.1f}점")
             _v_report_lines.append("")
             
             # 섹터별 분포
-            if _v_stats['sector_distribution']:
+            if _v_stats['sectors']:
                 _v_report_lines.append("=== 섹터별 분포 ===")
-                for sector, count in _v_stats['sector_distribution'].items():
+                for sector, count in _v_stats['sectors'].items():
                     _v_report_lines.append(f"{sector}: {count}개")
                 _v_report_lines.append("")
             
@@ -326,7 +327,6 @@ class Phase1Workflow:
         try:
             # 저장된 종목 리스트 파일 사용 (데이터 일관성 보장)
             from pathlib import Path
-            import json
             
             # 프로젝트 루트 경로 기준으로 절대 경로 생성
             _v_project_root = Path(__file__).parent.parent
@@ -401,7 +401,6 @@ class Phase1Workflow:
             _v_sector = "기타"
             
             from pathlib import Path
-            import json
             import glob
             
             # 프로젝트 루트 경로 기준으로 절대 경로 생성
@@ -507,19 +506,44 @@ class Phase1Workflow:
         _v_added_count = 0
         
         try:
+            # 통과 종목이 없으면 상위 점수 종목들을 선택
+            if not p_passed_stocks:
+                logger.info("통과 종목이 없으므로 상위 점수 종목들을 감시 리스트에 추가합니다.")
+                
+                # 최신 스크리닝 결과에서 상위 종목들 가져오기
+                _v_screening_files = [f for f in os.listdir("data/watchlist/") if f.startswith("screening_results_")]
+                if not _v_screening_files:
+                    logger.warning("스크리닝 결과 파일이 없습니다.")
+                    return 0
+                
+                _v_latest_file = sorted(_v_screening_files)[-1]
+                _v_filepath = os.path.join("data/watchlist", _v_latest_file)
+                
+                with open(_v_filepath, 'r', encoding='utf-8') as f:
+                    _v_data = json.load(f)
+                
+                _v_all_results = _v_data.get('results', [])
+                
+                # 상위 500개 종목 선택 (점수 순)
+                _v_top_stocks = sorted(_v_all_results, key=lambda x: x.get('overall_score', 0), reverse=True)[:500]
+                
+                logger.info(f"상위 {len(_v_top_stocks)}개 종목을 감시 리스트 후보로 선정")
+                p_passed_stocks = _v_top_stocks
+            
             logger.info(f"감시 리스트 자동 추가 시작: {len(p_passed_stocks)}개 종목")
             
             for stock in p_passed_stocks:
                 _v_stock_code = stock["stock_code"]
                 _v_stock_name = stock["stock_name"]
                 _v_overall_score = stock["overall_score"]
+                _v_sector = stock.get("sector", "기타")  # 스크리닝 결과에서 섹터 정보 직접 사용
                 
                 # 이미 감시 리스트에 있는지 확인
                 _v_existing_stocks = self.watchlist_manager.list_stocks(p_status="active")
                 _v_existing_codes = [s.stock_code for s in _v_existing_stocks]
                 
                 if _v_stock_code in _v_existing_codes:
-                    logger.info(f"이미 감시 리스트에 존재: {_v_stock_code}")
+                    logger.debug(f"이미 감시 리스트에 존재: {_v_stock_code}")
                     continue
                 
                 # 종목 정보 조회
@@ -533,46 +557,21 @@ class Phase1Workflow:
                 _v_target_price = int(_v_current_price * 1.15)  # 15% 상승 목표
                 _v_stop_loss = int(_v_current_price * 0.92)     # 8% 하락 손절
                 
-                # 섹터 정보 설정
-                _v_sector_map = {
-                    "005930": "반도체",
-                    "000660": "반도체", 
-                    "035420": "인터넷",
-                    "005380": "자동차",
-                    "000270": "자동차",
-                    "068270": "바이오",
-                    "207940": "바이오",
-                    "035720": "인터넷",
-                    "051910": "화학",
-                    "006400": "배터리",
-                    "003670": "철강",
-                    "096770": "에너지",
-                    "034730": "통신",
-                    "015760": "전력",
-                    "017670": "통신",
-                    "030200": "통신",
-                    "032830": "금융",
-                    "066570": "전자",
-                    "028260": "건설",
-                    "009150": "전자"
-                }
-                _v_sector = _v_sector_map.get(_v_stock_code, "기타")
-                
                 # 감시 리스트에 추가
-                _v_success = self.watchlist_manager.add_stock(
+                _v_success = self.watchlist_manager.add_stock_legacy(
                     p_stock_code=_v_stock_code,
                     p_stock_name=_v_stock_name,
-                    p_added_reason="스크리닝 통과",
+                    p_added_reason="스크리닝 상위 종목" if not stock.get('overall_passed', False) else "스크리닝 통과",
                     p_target_price=_v_target_price,
                     p_stop_loss=_v_stop_loss,
-                    p_sector=_v_sector,
+                    p_sector=_v_sector,  # 개선된 섹터 정보 사용
                     p_screening_score=_v_overall_score,
                     p_notes=f"스크리닝 점수: {_v_overall_score:.1f}점"
                 )
                 
                 if _v_success:
                     _v_added_count += 1
-                    logger.info(f"감시 리스트 추가 성공: {_v_stock_code} ({_v_stock_name}) - {_v_overall_score:.1f}점")
+                    logger.info(f"감시 리스트 추가 성공: {_v_stock_code} ({_v_stock_name}) - {_v_overall_score:.1f}점 ({_v_sector})")
                 else:
                     logger.error(f"감시 리스트 추가 실패: {_v_stock_code}")
             

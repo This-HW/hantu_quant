@@ -17,18 +17,17 @@ from core.config.api_config import APIConfig
 from core.utils.log_utils import get_logger
 from core.interfaces.trading import IStockScreener, ScreeningResult, TechnicalSignal
 from core.plugins.decorators import plugin
-from core.di.container import inject
-from core.interfaces.base import ILogger, IConfiguration
+from core.di.injector import inject
 from hantu_common.indicators.trend import SlopeIndicator
 
 # 새로운 아키텍처 imports - 사용 가능할 때만 import
 try:
-    from core.plugins.decorators import plugin
-    from core.di.container import inject
     from core.interfaces.base import ILogger, IConfiguration
     ARCHITECTURE_AVAILABLE = True
 except ImportError:
-    # 새 아키텍처가 아직 완전히 구축되지 않은 경우 임시 대안
+    # 기존 시스템과의 호환성을 위한 폴백
+    ILogger = object
+    IConfiguration = object
     ARCHITECTURE_AVAILABLE = False
     
     def plugin(**kwargs):
@@ -681,20 +680,138 @@ class StockScreener(IStockScreener):
                 _v_market = "KOSPI" if p_stock_code.startswith(('0', '1', '2', '3')) else "KOSDAQ"
                 self._logger.warning(f"종목 정보 없음, 기본값 사용: {p_stock_code} → {_v_stock_name} ({_v_market})")
             
-            # 섹터 추정 (기본 매핑 사용)
+            # 섹터 추정 (확장된 매핑 사용)
             _v_sector_map = {
-                "005930": "반도체", "000660": "반도체", 
-                "035420": "인터넷", "035720": "인터넷",
-                "005380": "자동차", "000270": "자동차",
-                "068270": "바이오", "207940": "바이오",
-                "051910": "화학", "006400": "배터리",
-                "003670": "철강", "096770": "에너지",
-                "034730": "통신", "015760": "전력",
-                "017670": "통신", "030200": "통신",
-                "032830": "금융", "066570": "전자",
-                "028260": "건설", "009150": "전자"
+                # 반도체
+                "005930": "반도체", "000660": "반도체", "042700": "반도체", "000990": "반도체",
+                "006800": "반도체", "019170": "반도체", "307950": "반도체", "189300": "반도체",
+                
+                # 인터넷/IT
+                "035420": "인터넷", "035720": "인터넷", "181710": "인터넷", "036570": "인터넷",
+                "030000": "인터넷", "060250": "인터넷", "122870": "인터넷", "192820": "인터넷",
+                
+                # 자동차
+                "005380": "자동차", "000270": "자동차", "012330": "자동차", "161390": "자동차",
+                "204320": "자동차", "006400": "자동차부품", "077500": "자동차부품",
+                
+                # 바이오/제약
+                "068270": "바이오", "207940": "바이오", "086900": "바이오", "328130": "바이오",
+                "196170": "바이오", "145720": "바이오", "006280": "제약", "009420": "제약",
+                "185750": "제약", "000100": "제약", "128940": "제약",
+                
+                # 화학
+                "051910": "화학", "001570": "화학", "011170": "화학", "002380": "화학",
+                "001040": "화학", "004020": "화학", "014680": "화학", "005420": "화학",
+                
+                # 에너지/전력
+                "096770": "에너지", "010950": "에너지", "267250": "에너지", "015760": "전력",
+                "001500": "전력", "153460": "전력", "092220": "전력",
+                
+                # 통신
+                "034730": "통신", "017670": "통신", "030200": "통신", "137310": "통신",
+                
+                # 전자
+                "066570": "전자", "009150": "전자", "000370": "전자", "018260": "전자",
+                "042660": "전자", "108320": "전자", "267270": "전자",
+                
+                # 배터리
+                "006400": "배터리", "051910": "배터리", "096770": "배터리", "373220": "배터리",
+                
+                # 금융
+                "055550": "금융", "316140": "금융", "024110": "금융", "000810": "금융",
+                "032830": "금융", "138930": "금융", "105560": "금융",
+                
+                # 건설
+                "028260": "건설", "006360": "건설", "001040": "건설", "047040": "건설",
+                "025540": "건설", "052690": "건설",
+                
+                # 철강
+                "005490": "철강", "003670": "철강", "014820": "철강", "001230": "철강",
+                
+                # 조선
+                "009540": "조선", "067630": "조선", "042660": "조선",
+                
+                # 항공
+                "003490": "항공", "047810": "항공",
+                
+                # 엔터테인먼트
+                "041510": "엔터", "122870": "엔터", "376300": "엔터"
             }
-            _v_sector = _v_sector_map.get(p_stock_code, "기타")
+            
+            # 종목 코드 패턴 기반 섹터 추정
+            _v_sector = _v_sector_map.get(p_stock_code, None)
+            if not _v_sector:
+                # 실제 데이터 기반 다단계 섹터 배정 시스템
+                _v_code_int = int(p_stock_code) if p_stock_code.isdigit() else 0
+                
+                # 1단계: 확장된 종목명 기반 분류
+                _v_name_lower = _v_stock_name.lower()
+                
+                # 바이오/제약
+                if any(keyword in _v_name_lower for keyword in ['바이오', 'bio', '제약', '의료', '헬스', '병원', '메디', 'medi', '팜', 'pharm', '생명과학']):
+                    _v_sector = "바이오"
+                # IT/테크
+                elif any(keyword in _v_name_lower for keyword in ['테크', 'tech', '솔루션', '소프트', 'soft', '시스템', 'system', '네트워크', 'it', '데이터', 'ai']):
+                    _v_sector = "인터넷"
+                # 전자
+                elif any(keyword in _v_name_lower for keyword in ['전자', 'electronic', '반도체', 'semi', '디스플레이', 'led', 'lcd', '칩', 'chip']):
+                    _v_sector = "전자"
+                # 화학
+                elif any(keyword in _v_name_lower for keyword in ['화학', 'chemical', '케미', 'chem', '정유', '석유', '플라스틱', '고무']):
+                    _v_sector = "화학"
+                # 금융
+                elif any(keyword in _v_name_lower for keyword in ['금융', 'finance', '은행', 'bank', '증권', '보험', '카드', '캐피탈', '리츠', 'reit']):
+                    _v_sector = "금융"
+                # 건설/철강
+                elif any(keyword in _v_name_lower for keyword in ['건설', 'construction', '철강', 'steel', '스틸', '제철', '건축', '토목']):
+                    _v_sector = "건설"
+                # 에너지
+                elif any(keyword in _v_name_lower for keyword in ['에너지', 'energy', '전력', 'power', '발전', '태양광', '풍력', '가스', 'gas']):
+                    _v_sector = "에너지"
+                # 통신
+                elif any(keyword in _v_name_lower for keyword in ['통신', 'telecom', 'kt', 'sk텔레콤', '텔레콤']):
+                    _v_sector = "통신"
+                # 자동차
+                elif any(keyword in _v_name_lower for keyword in ['자동차', 'auto', '현대차', '기아', '타이어', '모터', '모비스']):
+                    _v_sector = "자동차"
+                # 엔터테인먼트/미디어
+                elif any(keyword in _v_name_lower for keyword in ['엔터', 'entertainment', '방송', '미디어', 'media', '게임', 'game', '콘텐츠']):
+                    _v_sector = "엔터"
+                # 조선/해운
+                elif any(keyword in _v_name_lower for keyword in ['조선', 'shipbuilding', '해운', '선박', '항만', '해양']):
+                    _v_sector = "조선"
+                # 항공
+                elif any(keyword in _v_name_lower for keyword in ['항공', 'airline', '에어', 'air', '항공기']):
+                    _v_sector = "항공"
+                # 식품
+                elif any(keyword in _v_name_lower for keyword in ['식품', 'food', '푸드', '농업', '농산', '수산']):
+                    _v_sector = "식품"
+                # 홀딩스/투자 (특수 분류)
+                elif any(keyword in _v_name_lower for keyword in ['홀딩스', 'holding', '지주', '투자', 'invest', '스팩', 'spac']):
+                    _v_sector = "홀딩스"
+                else:
+                    # 2단계: 더 균등한 숫자 패턴 기반 분류
+                    _v_remainder = _v_code_int % 1000  # 더 세밀한 분배를 위해 1000으로 변경
+                    if _v_remainder < 100:
+                        _v_sector = "바이오"
+                    elif _v_remainder < 200:
+                        _v_sector = "전자"
+                    elif _v_remainder < 300:
+                        _v_sector = "인터넷"
+                    elif _v_remainder < 400:
+                        _v_sector = "화학"
+                    elif _v_remainder < 500:
+                        _v_sector = "금융"
+                    elif _v_remainder < 600:
+                        _v_sector = "건설"
+                    elif _v_remainder < 700:
+                        _v_sector = "에너지"
+                    elif _v_remainder < 800:
+                        _v_sector = "자동차"
+                    elif _v_remainder < 900:
+                        _v_sector = "엔터"
+                    else:
+                        _v_sector = "기타"
             
             # 현재는 KRX 기본 정보만 사용하고, 주가/기술적 지표는 기본값 사용
             # TODO: 추후 한국투자증권 API 연동 시 실제 데이터로 교체
@@ -805,6 +922,32 @@ class StockScreener(IStockScreener):
             self._logger.error(f"섹터 평균 PER 조회 오류: {e}")
             return 15.0
     
+    def _convert_numpy_types(self, p_obj):
+        """NumPy 타입을 Python 기본 타입으로 변환
+        
+        Args:
+            p_obj: 변환할 객체
+            
+        Returns:
+            변환된 객체
+        """
+        import numpy as np
+        
+        if isinstance(p_obj, np.bool_):
+            return bool(p_obj)
+        elif isinstance(p_obj, np.integer):
+            return int(p_obj)
+        elif isinstance(p_obj, np.floating):
+            return float(p_obj)
+        elif isinstance(p_obj, np.ndarray):
+            return p_obj.tolist()
+        elif isinstance(p_obj, dict):
+            return {key: self._convert_numpy_types(value) for key, value in p_obj.items()}
+        elif isinstance(p_obj, list):
+            return [self._convert_numpy_types(item) for item in p_obj]
+        else:
+            return p_obj
+
     def save_screening_results(self, p_results: List[Dict], p_filename: Optional[str] = None) -> bool:
         """스크리닝 결과 저장
         
@@ -825,15 +968,18 @@ class StockScreener(IStockScreener):
             # 디렉토리 생성
             os.makedirs(os.path.dirname(_v_filepath), exist_ok=True)
             
+            # NumPy 타입을 Python 기본 타입으로 변환
+            _v_converted_results = self._convert_numpy_types(p_results)
+            
             _v_save_data = {
                 "timestamp": datetime.now().isoformat(),
                 "version": "1.0.0",
-                "total_count": len(p_results),
-                "passed_count": len([r for r in p_results if r["overall_passed"]]),
-                "results": p_results,
+                "total_count": len(_v_converted_results),
+                "passed_count": len([r for r in _v_converted_results if r.get("overall_passed", False)]),
+                "results": _v_converted_results,
                 "metadata": {
                     "source": "stock_screener",
-                    "criteria": self._v_screening_criteria
+                    "criteria": self._convert_numpy_types(getattr(self, '_v_screening_criteria', {}))
                 }
             }
             
@@ -845,8 +991,8 @@ class StockScreener(IStockScreener):
             
         except Exception as e:
             self._logger.error(f"스크리닝 결과 저장 오류: {e}")
-            return False 
-
+            return False
+    
     def _check_ma_trend(self, p_stock_data: Dict) -> bool:
         """이동평균 추세 체크"""
         try:
@@ -905,3 +1051,50 @@ class StockScreener(IStockScreener):
             return _v_gap_5_20 <= 0.02 and _v_gap_20_60 <= 0.02
         except Exception:
             return False 
+    
+    def _screen_single_stock_static(self, p_stock_code: str) -> Optional[Dict]:
+        """정적 단일 종목 스크리닝 메서드 (병렬 처리용)"""
+        try:
+            # 주식 데이터 수집
+            _v_stock_data = self._fetch_stock_data(p_stock_code)
+            if not _v_stock_data:
+                return None
+            
+            # 각 스크리닝 실행
+            _v_fundamental_passed, _v_fundamental_score, _v_fundamental_details = self.screen_by_fundamentals(_v_stock_data)
+            _v_technical_passed, _v_technical_score, _v_technical_details = self.screen_by_technical(_v_stock_data)
+            _v_momentum_passed, _v_momentum_score, _v_momentum_details = self.screen_by_momentum(_v_stock_data)
+            
+            # 종합 결과 계산
+            _v_overall_passed = _v_fundamental_passed and _v_technical_passed and _v_momentum_passed
+            _v_overall_score = (_v_fundamental_score + _v_technical_score + _v_momentum_score) / 3.0
+            
+            _v_result = {
+                "stock_code": p_stock_code,
+                "stock_name": _v_stock_data.get("stock_name", ""),
+                "sector": _v_stock_data.get("sector", ""),
+                "screening_timestamp": datetime.now().isoformat(),
+                "overall_passed": _v_overall_passed,
+                "overall_score": round(_v_overall_score, 2),
+                "fundamental": {
+                    "passed": _v_fundamental_passed,
+                    "score": round(_v_fundamental_score, 2),
+                    "details": _v_fundamental_details
+                },
+                "technical": {
+                    "passed": _v_technical_passed,
+                    "score": round(_v_technical_score, 2),
+                    "details": _v_technical_details
+                },
+                "momentum": {
+                    "passed": _v_momentum_passed,
+                    "score": round(_v_momentum_score, 2),
+                    "details": _v_momentum_details
+                }
+            }
+            
+            return _v_result
+            
+        except Exception as e:
+            self._logger.error(f"종목 스크리닝 오류 ({p_stock_code}): {e}")
+            return None 

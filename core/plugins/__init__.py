@@ -10,6 +10,7 @@
 - PluginRegistry: 플러그인 등록 및 관리
 - PluginLifecycleManager: 플러그인 라이프사이클 관리
 - PluginManager: 통합 플러그인 관리자
+- plugin: 플러그인 데코레이터
 """
 
 from core.interfaces.plugins import (
@@ -28,6 +29,7 @@ from core.plugins.base import BasePlugin
 from core.plugins.loader import PluginLoader
 from core.plugins.registry import PluginRegistry
 from core.plugins.lifecycle import PluginLifecycleManager
+from core.plugins.decorators import plugin, register, get_registered_plugins, get_plugin_by_name
 from core.plugins.exceptions import (
     PluginException,
     PluginLoadError,
@@ -334,5 +336,11 @@ __all__ = [
     "PLUGIN_CONFIG_FILE",
     "PLUGIN_CATEGORIES",
     "PLUGIN_PERMISSIONS",
-    "PluginSystemStatus"
+    "PluginSystemStatus",
+    
+    # 데코레이터 및 유틸리티
+    "plugin",
+    "register", 
+    "get_registered_plugins",
+    "get_plugin_by_name"
 ] 

@@ -26,7 +26,7 @@ from core.interfaces.trading import IDailyUpdater, PriceAttractiveness, DailySel
 # 새로운 아키텍처 imports - 사용 가능할 때만 import
 try:
     from core.plugins.decorators import plugin
-    from core.di.container import inject
+    from core.di.injector import inject
     from core.interfaces.base import ILogger, IConfiguration
     ARCHITECTURE_AVAILABLE = True
 except ImportError:
@@ -49,15 +49,15 @@ logger = get_logger(__name__)
 @dataclass
 class FilteringCriteria:
     """필터링 기준 데이터 클래스"""
-    price_attractiveness: float = 70.0      # 가격 매력도 점수 기준
+    price_attractiveness: float = 30.0      # 가격 매력도 점수 기준 (60.0 → 30.0)
     volume_threshold: float = 1.5           # 평균 거래량 대비 배수
     volatility_range: tuple = (0.1, 0.4)    # 변동성 범위 (10-40%)
-    market_cap_min: float = 1000000000000   # 최소 시가총액 (1조원)
-    liquidity_score: float = 60.0           # 유동성 점수 기준
-    risk_score_max: float = 40.0            # 최대 리스크 점수
-    sector_limit: int = 3                   # 섹터별 최대 종목 수
-    total_limit: int = 15                   # 전체 최대 종목 수
-    confidence_min: float = 0.5             # 최소 신뢰도
+    market_cap_min: float = 10000000000     # 최소 시가총액 (100억원, 1000억원 → 100억원)
+    liquidity_score: float = 10.0           # 유동성 점수 기준 (30.0 → 10.0)
+    risk_score_max: float = 90.0            # 최대 리스크 점수 (80.0 → 90.0)
+    sector_limit: int = 10                  # 섹터별 최대 종목 수 (5 → 10)
+    total_limit: int = 50                   # 전체 최대 종목 수 (20 → 50)
+    confidence_min: float = 0.05            # 최소 신뢰도 (0.1 → 0.05)
 
 @dataclass
 class DailySelectionLegacy:
@@ -70,6 +70,7 @@ class DailySelectionLegacy:
     entry_price: float
     target_price: float
     stop_loss: float
+    expected_return: float      # 기대 수익률 필드 추가
     risk_score: float
     volume_score: float
     technical_signals: List[str]
@@ -202,20 +203,17 @@ class DailyUpdater(IDailyUpdater):
             _v_watchlist_stocks = self._watchlist_manager.list_stocks(p_status="active")
             _v_stock_data_list = self._prepare_stock_data(_v_watchlist_stocks)
             
-            # 4. 가격 매력도 분석
+            # 4. 가격 매력도 분석 (PriceAttractiveness 직접 사용)
             _v_analysis_results = []
             for _v_stock_data in _v_stock_data_list:
                 try:
                     _v_result = self._price_analyzer.analyze_price_attractiveness(_v_stock_data)
-                    # 기존 형식으로 변환 (호환성)
-                    if hasattr(_v_result, 'to_dict'):
-                        _v_legacy_result = PriceAttractivenessLegacy(**_v_result.to_dict())
-                        _v_analysis_results.append(_v_legacy_result)
+                    _v_analysis_results.append(_v_result)
                 except Exception as e:
                     self._logger.error(f"종목 {_v_stock_data.get('stock_code')} 분석 오류: {e}")
                     continue
             
-            # 5. 필터링 및 선정
+            # 5. 필터링 및 선정 (PriceAttractiveness 직접 사용)
             _v_selected_stocks = self._filter_and_select_stocks(_v_analysis_results)
             
             # 6. 일일 매매 리스트 생성
@@ -233,7 +231,9 @@ class DailyUpdater(IDailyUpdater):
                 return False
                 
         except Exception as e:
+            import traceback
             self._logger.error(f"일일 업데이트 오류: {e}")
+            self._logger.error(f"상세 에러: {traceback.format_exc()}")
             return False
 
     def analyze_market_condition(self) -> str:
@@ -399,22 +399,29 @@ class DailyUpdater(IDailyUpdater):
     def _get_current_price(self, p_stock_code: str) -> float:
         """현재가 조회 (더미 구현)"""
         # 실제로는 API에서 현재가 조회
-        return 50000.0 + hash(p_stock_code) % 20000  # 임시 가격
+        base_price = 10000 + hash(p_stock_code) % 90000  # 10,000 ~ 100,000원 범위
+        return float(base_price)
     
     def _get_market_cap(self, p_stock_code: str) -> float:
         """시가총액 조회 (더미 구현)"""
         # 실제로는 API에서 시가총액 조회
-        return 1000000000000 + hash(p_stock_code) % 500000000000  # 임시 시총
+        # 더 다양한 시총 (100억 ~ 10조)
+        base_cap = 10000000000 + hash(p_stock_code) % 9990000000000
+        return float(base_cap)
     
     def _get_volatility(self, p_stock_code: str) -> float:
         """변동성 조회 (더미 구현)"""
         # 실제로는 과거 데이터로부터 변동성 계산
-        return 0.15 + (hash(p_stock_code) % 100) / 1000  # 15-25% 범위
+        # 5% ~ 50% 범위로 다양화
+        volatility = 0.05 + (hash(p_stock_code) % 450) / 1000
+        return volatility
     
     def _get_sector_momentum(self, p_sector: str) -> float:
         """섹터 모멘텀 조회 (더미 구현)"""
-        # 실제로는 섹터 지수 분석
-        return (hash(p_sector) % 200 - 100) / 1000  # -10% ~ +10% 범위
+        # 실제로는 섹터 지수 분석  
+        # -20% ~ +20% 범위로 확장
+        momentum = (hash(p_sector) % 400 - 200) / 1000
+        return momentum
     
     def _filter_and_select_stocks(self, p_analysis_results: List[PriceAttractivenessLegacy]) -> List[PriceAttractivenessLegacy]:
         """분석 결과를 필터링하여 매매 대상 선정
@@ -460,22 +467,34 @@ class DailyUpdater(IDailyUpdater):
         Returns:
             필터링 통과 여부
         """
+        # 디버깅 로그 추가
+        self._logger.info(f"필터링 검사: {p_result.stock_code} - "
+                         f"total_score={p_result.total_score}, "
+                         f"risk_score={p_result.risk_score}, "
+                         f"confidence={p_result.confidence}, "
+                         f"volume_score={p_result.volume_score}")
+        
         # 가격 매력도 점수
         if p_result.total_score < self._filtering_criteria.price_attractiveness:
+            self._logger.info(f"❌ {p_result.stock_code} 가격매력도 필터링 실패: {p_result.total_score} < {self._filtering_criteria.price_attractiveness}")
             return False
         
         # 리스크 점수
         if p_result.risk_score > self._filtering_criteria.risk_score_max:
+            self._logger.info(f"❌ {p_result.stock_code} 리스크 필터링 실패: {p_result.risk_score} > {self._filtering_criteria.risk_score_max}")
             return False
         
         # 신뢰도
         if p_result.confidence < self._filtering_criteria.confidence_min:
+            self._logger.info(f"❌ {p_result.stock_code} 신뢰도 필터링 실패: {p_result.confidence} < {self._filtering_criteria.confidence_min}")
             return False
         
         # 거래량 점수 (임시로 volume_score 사용)
         if p_result.volume_score < self._filtering_criteria.liquidity_score:
+            self._logger.info(f"❌ {p_result.stock_code} 거래량 필터링 실패: {p_result.volume_score} < {self._filtering_criteria.liquidity_score}")
             return False
         
+        self._logger.info(f"✅ {p_result.stock_code} 모든 필터링 통과!")
         return True
     
     def _create_daily_trading_list(self, p_selected_stocks: List[PriceAttractivenessLegacy],

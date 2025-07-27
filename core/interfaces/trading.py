@@ -5,7 +5,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Tuple, Any
 import pandas as pd
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from datetime import datetime
 from enum import Enum
 
@@ -441,6 +441,9 @@ class PriceAttractiveness:
     sector_momentum: float
     sector: str = ""
 
+    def to_dict(self) -> Dict:
+        return asdict(self)
+
 @dataclass
 class DailySelection:
     """일일 선정 종목 데이터 클래스"""
@@ -452,6 +455,7 @@ class DailySelection:
     entry_price: float
     target_price: float
     stop_loss: float
+    expected_return: float      # 기대 수익률 필드 추가
     risk_score: float
     volume_score: float
     technical_signals: List[str]
@@ -460,6 +464,9 @@ class DailySelection:
     priority: int
     position_size: float
     confidence: float
+
+    def to_dict(self) -> Dict:
+        return asdict(self)
 
 class IPriceAnalyzer(ABC):
     """가격 분석 인터페이스"""
