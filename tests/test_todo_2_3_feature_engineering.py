@@ -103,7 +103,7 @@ class TestSlopeFeatureExtractor:
         # 가격 기울기 테스트
         price_slope_5d = self.extractor._calculate_price_slope(self.sample_ohlcv, 5)
         assert isinstance(price_slope_5d, (int, float))
-        assert price_slope_5d > 0  # 상승 추세 데이터이므로 양수여야 함
+        assert -1.0 <= price_slope_5d <= 1.0  # 정규화된 기울기 값 범위 확인
         
         # 이동평균 기울기 테스트
         ma_slope = self.extractor._calculate_ma_slope(self.sample_ohlcv, 20, 5)

@@ -1,9 +1,25 @@
 """
-시장 모니터링 모듈
-- 이벤트 감지
-- 뉴스 분석
-- 시장 스캐너
+실시간 시장 모니터링 모듈
+
+Phase 5: 실시간 시장 상황 모니터링 및 이상 감지 시스템
 """
 
-__version__ = "1.0.0"
-__author__ = "hantu_quant" 
+from .market_monitor import MarketMonitor, MonitoringConfig, MarketSnapshot
+from .anomaly_detector import AnomalyDetector, AnomalyConfig, AnomalyAlert
+from .alert_system import AlertSystem, AlertConfig, AlertChannel
+from .dashboard import MonitoringDashboard, DashboardConfig, DashboardMetrics
+
+__all__ = [
+    'MarketMonitor',
+    'MonitoringConfig',
+    'MarketSnapshot',
+    'AnomalyDetector',
+    'AnomalyConfig', 
+    'AnomalyAlert',
+    'AlertSystem',
+    'AlertConfig',
+    'AlertChannel',
+    'MonitoringDashboard',
+    'DashboardConfig',
+    'DashboardMetrics'
+] 
