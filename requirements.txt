@@ -1,0 +1,16 @@
+requests==2.31.0
+websockets==12.0
+pandas==2.2.0
+numpy==1.26.3
+sqlalchemy==2.0.25
+python-dotenv==1.0.0
+schedule==1.2.1
+ta==0.11.0  # Technical Analysis library
+pytest==7.4.4
+black==24.1.1
+pylint==3.0.3
+matplotlib==3.8.2
+seaborn==0.13.2
+plotly==5.18.0
+scipy==1.12.0
+pyarrow==15.0.0  # pandas 3.0 대비 

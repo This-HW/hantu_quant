@@ -1,0 +1,86 @@
+79df8e8 📊 프로젝트 전체 검증 완료 요약 보고서
+2b29b1d 🔒 전체 코드 보안 및 일관성 개선
+6d8fb38 ✅ 3단계 통합 검증 테스트 추가
+6666880 🎯 예측 정확도 개선 3단계 시스템 통합 완료
+1c65562 📖 예측 정확도 개선 프로젝트 완료 - 종합 문서화
+39b7707 🚀 방안 C: 멀티 전략 시스템 - 시장 적응형 앙상블
+b382325 📊 방안 B: 백테스트 시스템 구축 - 전략 검증 프레임워크
+f3d1c9c 🎯 방안 A: 보수적 투자 전략 적용 - 예측 정확도 개선
+98705fc 🔧 매매 로직 및 모니터링 시스템 버그 수정
+9d33885 🐛 가상계좌 잔고 조회 API 응답 파싱 수정
+86f98da 🚀 고급 기술적 지표 및 향상된 스크리닝 시스템 구현
+90ff574 🔧 자동 매매 시스템 버그 수정 및 디버깅 도구 추가
+d3ca764 🤖 자율적 학습 및 유지보수 시스템 구축 완성
+90603b7 🧠 Replace mock learning with real performance-based adaptive learning system
+14d7945 💰 계좌 기반 동적 포지션 사이징 시스템 구현
+cd98a6d 🚀 가상계좌 자동 매매 시스템 완성
+83e7e55 ✨ 실제 성과 기반 알림 시스템 구현
+274ab17 🧹 프로젝트 정리 및 문서 최신화
+adcaba9 📈 Labeler wired to pykrx + algorithms overview doc\n- DailyPerformanceAnalyzer: pykrx-based future-return labeling\n- Added docs/ALGORITHMS_OVERVIEW.md\n\n@project_default_rule_doc_git_sync.md
+cae3358 🗂 Partitioned selection flow + weekend guard\n- Phase1: persist daily partition + selection history\n- Phase2: use only today-screened codes for daily selection\n- Scheduler: weekdays-only jobs (no Sat/Sun)\n- Performance: placeholder labelers for future-return tracking\n- Scripts: start_production/start_scheduler hardened\n\n@project_default_rule_doc_git_sync.md
+a741430 ✅ Align semantics: Phase1 == Screening; Daily list no hard cap\n- Keep screening alert single-source (Phase1)\n- DailyUpdater: total_limit=0 means no cap; only sector_limit applies\n- Tests: adaptive selection reflects no-cap behavior\n\n@project_default_rule_doc_git_sync.md
+ab5a264 🔔 Fix: prevent duplicate screening notifications; Daily limit adaptive to watchlist size\n- Phase1: optional notification flag\n- Scheduler: call Phase1 with notify=True (single source)\n- DailyUpdater: adapt total_limit based on active watchlist size (min 10, max 50)\n\n@project_default_rule_doc_git_sync.md
+9850766 🏹 SellEngine: ATR-trailing, partial-take-profit ratio, market condition ex (imbalance/investor)\n\n@project_default_rule_doc_git_sync.md
+d9924d2 📈 Analyzer/Trader/WS increments + Journal polishing\n- Analyzer: VWAP deviation, orderbook/tick features\n- Trader: pre-entry guards and richer signal meta\n- WS: heartbeat/ensure_connection\n- Journal: summary scaffold for further balance merge\n\n@project_default_rule_doc_git_sync.md
+16a82ef 🩺 WS client: add heartbeat/ensure_connection stubs\n\n@project_default_rule_doc_git_sync.md
+63e5916 🧩 Trading params: add fine-grained thresholds (spread/imbalance/uptick/vwap) for entry/exit logic\n\n@project_default_rule_doc_git_sync.md
+6bfcdd0 🤝 Integrate new KIS data into analysis/trader\n- PriceAnalyzer: optional orderbook/tick-derived features (spread, uptick ratio)\n- AutoTrader: fetch orderbook/ticks for buy signal context\n\n@project_default_rule_doc_git_sync.md
+b2f9270 ✨ Add KIS wrappers for orderbook/ticks/minute bars/investor/member flows\n- REST endpoints aligned to CSV docs (FHKST01010200/01010300/03010200/01010900/01010600)\n- Example scripts added for quick smoke\n\n@project_default_rule_doc_git_sync.md
+e58a463 🔧 KIS REST alignment with official examples\n- Ensure token before headers; unify FID_* params; TR ID configurable via env (KIS_TR_ID_*)\n- Add minimal examples (examples_llm style): chk_inquire_price/daily_price/balance\n\nRef: https://github.com/koreainvestment/open-trading-api\n@project_default_rule_doc_git_sync.md
+d81e886 📚 Docs: add KIS official GitHub reference and examples paths; fix logging import\n\nRef: https://github.com/koreainvestment/open-trading-api
+a98f19e ✅ Phase2 CLI: replace placeholder fields with real KIS data (current price, recent OHLCV, market cap if available)\n- Use KIS get_current_price & get_stock_history\n- PriceAnalyzer consumes recent_close_prices/recent_volumes when provided\n- Keep conservative defaults if data missing\n\n@project_default_rule_doc_git_sync.md
+759cea7 🔥 Remove deprecated files: pykrx api server and duplicate logging/quality monitor modules\n\n- api-server/main_real_pykrx_deprecated.py\n- core/utils/logging_deprecated.py\n- core/api/quality_monitor_deprecated.py\n\n@project_default_rule_doc_git_sync.md
+e23f407 ♻️ Rename deprecated modules before removal
+1e55bed ♻️ Rename deprecated file: api-server/main_real_pykrx.py -> main_real_pykrx_deprecated.py for safety before removal
+2c2914d 🪦 Deprecate api-server/main_real_pykrx.py (refer to api-server/main.py) 🔧 Logging unification: expose log_utils via core.utils to remove duplicate logging module paths
+72eda87 📦 .gitignore: ignore logs/, data/, egg-info/, web build artifacts
+97ae2cb 🗑️ Remove stray build artifacts (web-interface/--force, tsconfig.app.tsbuildinfo)
+e8a04ae 🧹 Repo hygiene (no code path breaks)
+c4c3556 🔒 Trading safety & correctness
+1a0ac68 ♻️ KIS 주문 매핑/시장가 구분 정정
+175ed14 🌐 웹 스케줄러 API 통일 및 부분 실행 상태 시스템 완성
+9fdb55d 🎯 AI 학습 시스템 개선 + 완전한 매도 로직 구축 완료
+35fb4c9 🎯 스크리닝 기준 최적화: 통과율 0% → 3-5% 개선으로 정상 플로우 구현
+e4462e3 feat: 텔레그램 알림 시스템 완전 구축 완료
+04df04b 📊 프로젝트 문서 최신화 및 SystemMonitorPage 완전 수정 반영
+988b0f9 🔧 SystemMonitorPage API 404 에러 수정 완료
+27a782e 📄 프로젝트 컨텍스트 파일 지속학습 시스템 반영
+5af1a4d 📄 PROJECT_SUMMARY.md 지속학습 시스템 상세 내용 추가
+eb8d717 🧹 임시 테스트 파일 정리
+0b8efba 🧠 지속학습 시스템 완전 구축 완료 (2025-07-31)
+01e7974 🔄 한국투자증권 API 환경 설정 변경: prod → virtual
+019f189 🛠️ 시스템 모니터링 페이지 404 오류 해결
+cf7da23 📚 대대적 문서 정리 및 CLI/웹 상태 동기화 완료
+014bc0c 🌐 완성: Phase 6 웹 인터페이스 시스템 구축 완료
+757c8bc feat: 한투 퀀트 시스템 완전 완성 - Phase 4,5 및 시스템 통합 완료
+57b0c31 🎯 섹터 분류 시스템 완전 개선 및 감시 리스트 문제 해결
+7bc03ce feat: Phase 4-5 AI 학습 및 모니터링 시스템 완전 구축
+c59a234 feat: 텔레그램 알림 시스템 완전 설정 완료
+37a0699 TODO 2.3 피처 엔지니어링 시스템 94.4% 완성
+7bb5ac7 feat: Phase 4 AI 학습 시스템 전체 구조 완료 (TODO 2.1-2.2)
+d5b5b31 feat: TODO 2.2 데이터 수집 및 전처리 시스템 구현 완료
+54f1955 feat: 모듈 아키텍처 시스템 완료 (TODO 1.11-1.12)
+304a7b6 feat: .cursor/rules 전면 개선 및 Phase 4 AI 학습 시스템 설계 완료
+7e55a42 Fix: Restore YAML front matter for project-status.mdc to ensure always applied
+be2ea2c Add document synchronization rules for TODO/Phase completion
+c1acd81 feat: Phase 1-2 완료 및 Phase 4 AI 학습 시스템 설계
+b15a434 fix: 종목명 정보 정상 출력 및 섹터 분류 개선
+ae289fe feat: Phase 1-2 완전 통합 및 자동 감시 리스트 업데이트 구현
+9f9e47d refactor: Phase 1을 주간 스크리닝에서 일간 스크리닝으로 변경
+3fdc286 feat: Phase 1 + Phase 2 통합 스케줄러 구현
+10179ab feat: Phase 2 일일 선정 시스템 완료
+aaafcfc feat: Phase 1 감시 리스트 구축 완료
+ae213e8 디버그 로깅 추가 및 민감 정보 테스트 파일 제외
+d792573 Merge remote changes
+83d08fc Initial commit
+339b0cd 테스트코드 에러픽스
+13911dc AI 협업 명령어 체계 추가: 간결한 명령어로 작업 효율성 향상
+57da0b7 AI 협업 명령어 체계 추가: 간결한 명령어로 작업 효율성 향상
+4a8661e Cursor IDE 규칙 파일 추가: AI 협업 규칙 및 가이드라인
+8f89444 Cursor IDE 규칙 파일 추가: AI 협업 규칙 및 가이드라인
+15c02ea AI 협업 체계 구축: 프로젝트 컨텍스트, 워크플로우, 템플릿 추가
+2a29b58 보안 강화: API 키 및 민감 정보 보호 기능 추가
+467bf1a 프로젝트 상태 보고서 추가
+a4a9b3a 프로젝트 문서화 및 관리 도구 추가
+775479f feat: 프로젝트 구조 개선 및 기능 추가 (hantu_common/backtest 추가, API 설정 개선, 토큰 관리 분리, 문서화)
+e7b5c89 Initial commit: Project structure setup & Default Code

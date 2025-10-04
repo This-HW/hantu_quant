@@ -1,0 +1,3342 @@
+API 목록: 표 1
+순번,API 통신방식,메뉴 위치,API 명,API ID,실전 TR_ID,모의 TR_ID,HTTP Method,URL 명,실전 Domain,모의 Domain
+1,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간체결가 (KRX),실시간-003,H0STCNT0,H0STCNT0,POST,/tryitout/H0STCNT0, ws://ops.koreainvestment.com:21000, ws://ops.koreainvestment.com:31000
+2,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간호가 (KRX),실시간-004,H0STASP0,H0STASP0,POST,/tryitout/H0STASP0,ws://ops.koreainvestment.com:21000, ws://ops.koreainvestment.com:31000
+3,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간체결통보,실시간-005,H0STCNI0,H0STCNI9,POST,/tryitout/H0STCNI0, ws://ops.koreainvestment.com:21000, ws://ops.koreainvestment.com:31000
+4,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간예상체결 (KRX),실시간-041,H0STANC0,모의투자 미지원,POST,/tryitout/H0STANC0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+5,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간회원사 (KRX),실시간-047,H0STMBC0,모의투자 미지원,POST,/tryitout/H0STMBC0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+6,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간프로그램매매 (KRX),실시간-048,H0STPGM0,모의투자 미지원,POST,/tryitout/H0STPGM0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+7,WEBSOCKET,[국내주식] 실시간시세,국내주식 장운영정보 (KRX),실시간-049,H0STMKO0,모의투자 미지원,POST,/tryitout/H0STMKO0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+8,WEBSOCKET,[국내주식] 실시간시세,국내주식 시간외 실시간호가 (KRX),실시간-025,H0STOAA0,모의투자 미지원,POST,/tryitout/H0STOAA0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+9,WEBSOCKET,[국내주식] 실시간시세,국내주식 시간외 실시간체결가 (KRX),실시간-042,H0STOUP0,모의투자 미지원,POST,/tryitout/H0STOUP0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+10,WEBSOCKET,[국내주식] 실시간시세,국내주식 시간외 실시간예상체결 (KRX),실시간-024,H0STOAC0,모의투자 미지원,POST,/tryitout/H0STOAC0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+11,WEBSOCKET,[국내주식] 실시간시세,국내지수 실시간체결,실시간-026,H0UPCNT0,모의투자 미지원,POST,/tryitout/H0UPCNT0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+12,WEBSOCKET,[국내주식] 실시간시세,국내지수 실시간예상체결,실시간-027,H0UPANC0,모의투자 미지원,POST,/tryitout/H0UPANC0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+13,WEBSOCKET,[국내주식] 실시간시세,국내지수 실시간프로그램매매,실시간-028,H0UPPGM0,모의투자 미지원,POST,/tryitout/H0UPPGM0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+14,WEBSOCKET,[국내주식] 실시간시세,ELW 실시간호가,실시간-062,H0EWASP0,모의투자 미지원,POST,/tryitout/H0EWASP0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+15,WEBSOCKET,[국내주식] 실시간시세,ELW 실시간체결가,실시간-061,H0EWCNT0,모의투자 미지원,POST,/tryitout/H0EWCNT0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+16,WEBSOCKET,[국내주식] 실시간시세,ELW 실시간예상체결,실시간-063,H0EWANC0,모의투자 미지원,POST,/tryitout/H0EWANC0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+17,WEBSOCKET,[국내주식] 실시간시세,국내ETF NAV추이,실시간-051,H0STNAV0,모의투자 미지원,POST,/tryitout/H0STNAV0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+18,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간체결가 (통합),국내주식 실시간체결가 (통합),H0UNCNT0,모의투자 미지원,POST,/tryitout/H0UNCNT0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+19,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간호가 (통합),국내주식 실시간호가 (통합),H0UNASP0,모의투자 미지원,POST,/tryitout/H0UNASP0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+20,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간예상체결 (통합),국내주식 실시간예상체결 (통합),H0UNANC0,모의투자 미지원,POST,/tryitout/H0UNANC0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+21,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간회원사 (통합),국내주식 실시간회원사 (통합),H0UNMBC0,모의투자 미지원,POST,/tryitout/H0UNMBC0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+22,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간프로그램매매 (통합),국내주식 실시간프로그램매매 (통합),H0UNPGM0,모의투자 미지원,POST,/tryitout/H0UNPGM0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+23,REST,[국내주식] 실시간시세,국내주식 장운영정보 (통합),국내주식 장운영정보 (통합),H0UNMKO0,모의투자 미지원,POST,/tryitout/H0UNMKO0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+24,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간체결가 (NXT),국내주식 실시간체결가 (NXT),H0NXCNT0,모의투자 미지원,POST,/tryitout/H0NXCNT0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+25,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간호가 (NXT),국내주식 실시간호가 (NXT),H0NXASP0,모의투자 미지원,POST,/tryitout/H0NXASP0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+26,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간예상체결 (NXT),국내주식 실시간예상체결 (NXT),H0NXANC0,모의투자 미지원,POST,/tryitout/H0NXANC0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+27,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간회원사 (NXT),국내주식 실시간회원사 (NXT),H0NXMBC0,모의투자 미지원,POST,/tryitout/H0NXMBC0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+28,WEBSOCKET,[국내주식] 실시간시세,국내주식 실시간프로그램매매 (NXT),국내주식 실시간프로그램매매 (NXT),H0NXPGM0,모의투자 미지원,POST,/tryitout/H0NXPGM0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+29,REST,[국내주식] 실시간시세,국내주식 장운영정보 (NXT),국내주식 장운영정보 (NXT),H0NXMKO0,모의투자 미지원,POST,/tryitout/H0NXMKO0,ws://ops.koreainvestment.com:21000,모의투자 미지원
+
+국내주식 실시간체결가 (KRX): 표 1
+국내주식 실시간체결가 (KRX),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간체결가 (KRX),,,,,
+API ID,실시간-003,,,,,
+실전 TR_ID,H0STCNT0,,,,,
+모의 TR_ID,H0STCNT0,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain, ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain, ws://ops.koreainvestment.com:31000,,,,,
+URL 명,/tryitout/H0STCNT0,,,,,
+개요,,,,,,
+개요,"[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+종목코드 마스터파일 파이썬 정제코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+ex) 0|H0STCNT0|004|005930^123929^73100^5^...
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id (ex. H0STCNT0)
+- 데이터 건수 : (ex. 001 인 경우 데이터 건수 1건, 004인 경우 데이터 건수 4건)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)
+
+※ 데이터가 많은 경우 여러 건을 페이징 처리해서 데이터를 보내는 점 참고 부탁드립니다.
+ex) 0|H0STCNT0|004|... 인 경우 004가 데이터 개수를 의미하여, 뒤에 체결데이터가 4건 들어옴
+→ 0|H0STCNT0|004|005930^123929...(체결데이터1)...^005930^123929...(체결데이터2)...^005930^123929...(체결데이터3)...^005930^123929...(체결데이터4)...",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,286,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객타입,string,Y,1,"B : 법인
+P : 개인"
+,tr_type,거래타입,string,Y,1,"1 : 등록
+2 : 해제"
+,content-type,컨텐츠타입,string,Y,1,utf-8
+Request Body,tr_id,거래ID,string,Y,1,"[실전/모의투자]
+H0STCNT0 : 실시간 주식 체결가"
+,tr_key,구분값,string,Y,1,"종목번호 (6자리)
+ETN의 경우, Q로 시작 (EX. Q500001)"
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권 단축 종목코드,string,Y,9,
+,STCK_CNTG_HOUR,주식 체결 시간,string,Y,6,
+,STCK_PRPR,주식 현재가,number,Y,4,체결가격
+,PRDY_VRSS_SIGN,전일 대비 부호,string,Y,1,"1 : 상한
+2 : 상승
+3 : 보합
+4 : 하한
+5 : 하락"
+,PRDY_VRSS,전일 대비,number,Y,4,
+,PRDY_CTRT,전일 대비율,number,Y,8,
+,WGHN_AVRG_STCK_PRC,가중 평균 주식 가격,number,Y,8,
+,STCK_OPRC,주식 시가,number,Y,4,
+,STCK_HGPR,주식 최고가,number,Y,4,
+,STCK_LWPR,주식 최저가,number,Y,4,
+,ASKP1,매도호가1,number,Y,4,
+,BIDP1,매수호가1,number,Y,4,
+,CNTG_VOL,체결 거래량,number,Y,8,
+,ACML_VOL,누적 거래량,number,Y,8,
+,ACML_TR_PBMN,누적 거래 대금,number,Y,8,
+,SELN_CNTG_CSNU,매도 체결 건수,number,Y,4,
+,SHNU_CNTG_CSNU,매수 체결 건수,number,Y,4,
+,NTBY_CNTG_CSNU,순매수 체결 건수,number,Y,4,
+,CTTR,체결강도,number,Y,8,
+,SELN_CNTG_SMTN,총 매도 수량,number,Y,8,
+,SHNU_CNTG_SMTN,총 매수 수량,number,Y,8,
+,CCLD_DVSN,체결구분,string,Y,1,"1:매수(+) 
+3:장전 
+5:매도(-)"
+,SHNU_RATE,매수비율,number,Y,8,
+,PRDY_VOL_VRSS_ACML_VOL_RATE,전일 거래량 대비 등락율,number,Y,8,
+,OPRC_HOUR,시가 시간,string,Y,6,
+,OPRC_VRSS_PRPR_SIGN,시가대비구분,string,Y,1,"1 : 상한
+2 : 상승
+3 : 보합
+4 : 하한
+5 : 하락"
+,OPRC_VRSS_PRPR,시가대비,number,Y,4,
+,HGPR_HOUR,최고가 시간,string,Y,6,
+,HGPR_VRSS_PRPR_SIGN,고가대비구분,string,Y,1,"1 : 상한
+2 : 상승
+3 : 보합
+4 : 하한
+5 : 하락"
+,HGPR_VRSS_PRPR,고가대비,number,Y,4,
+,LWPR_HOUR,최저가 시간,string,Y,6,
+,LWPR_VRSS_PRPR_SIGN,저가대비구분,string,Y,1,"1 : 상한
+2 : 상승
+3 : 보합
+4 : 하한
+5 : 하락"
+,LWPR_VRSS_PRPR,저가대비,number,Y,4,
+,BSOP_DATE,영업 일자,string,Y,8,
+,NEW_MKOP_CLS_CODE,신 장운영 구분 코드,string,Y,2,"	(1) 첫 번째 비트
+1 : 장개시전
+2 : 장중
+3 : 장종료후
+4 : 시간외단일가
+7 : 일반Buy-in
+8 : 당일Buy-in
+
+(2) 두 번째 비트
+0 : 보통
+1 : 종가
+2 : 대량
+3 : 바스켓
+7 : 정리매매
+8 : Buy-in"
+,TRHT_YN,거래정지 여부,string,Y,1,"Y : 정지
+N : 정상거래"
+,ASKP_RSQN1,매도호가 잔량1,number,Y,8,
+,BIDP_RSQN1,매수호가 잔량1,number,Y,8,
+,TOTAL_ASKP_RSQN,총 매도호가 잔량,number,Y,8,
+,TOTAL_BIDP_RSQN,총 매수호가 잔량,number,Y,8,
+,VOL_TNRT,거래량 회전율,number,Y,8,
+,PRDY_SMNS_HOUR_ACML_VOL,전일 동시간 누적 거래량,number,Y,8,
+,PRDY_SMNS_HOUR_ACML_VOL_RATE,전일 동시간 누적 거래량 비율,number,Y,8,
+,HOUR_CLS_CODE,시간 구분 코드,string,Y,1,"0 : 장중
+A : 장후예상
+B : 장전예상
+C : 9시이후의 예상가, VI발동
+D : 시간외 단일가 예상"
+,MRKT_TRTM_CLS_CODE,임의종료구분코드,string,Y,1,
+,VI_STND_PRC,정적VI발동기준가,number,Y,4,
+Example,,,,,,
+Request Example (Python),"{
+         ""header"":
+         {
+                  ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+                  ""custtype"":""P"",
+                  ""tr_type"":""1"",
+                  ""content-type"":""utf-8""
+         },
+         ""body"":
+         {
+                  ""input"":
+                  {
+                           ""tr_id"":""H0STCNT0"",
+                           ""tr_key"":""005930""
+                  }
+         }
+}",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0STCNT0"", 
+        ""tr_key"": ""005930"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output
+005930^093354^71900^5^-100^-0.14^72023.83^72100^72400^71700^71900^71800^1^3052
+507^219853241700^5105^6937^1832^84.90^1366314^1159996^1^0.39^20.28^090020^5^-2
+00^090820^5^-500^092619^2^200^20230612^20^N^65945^216924^1118750^2199206^0.05^
+2424142^125.92^0^^72100",,,,,
+
+국내주식 실시간호가 (KRX): 표 1
+국내주식 실시간호가 (KRX),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간호가 (KRX),,,,,
+API ID,실시간-004,,,,,
+실전 TR_ID,H0STASP0,,,,,
+모의 TR_ID,H0STASP0,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain, ws://ops.koreainvestment.com:31000,,,,,
+URL 명,/tryitout/H0STASP0,,,,,
+개요,,,,,,
+개요,"[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id
+- 데이터 건수 : (ex. 001 데이터 건수를 참조하여 활용)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,286,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객타입,string,Y,1,"B : 법인
+P : 개인"
+,tr_type,거래타입,string,Y,1,"1 : 등록
+2 : 해제"
+,content-type,컨텐츠타입,string,Y,1,utf-8
+Request Body,tr_id,거래ID,string,Y,1,"[실전/모의투자]
+H0STASP0 : 주식호가"
+,tr_key,구분값,string,Y,1,"종목번호 (6자리)
+ETN의 경우, Q로 시작 (EX. Q500001)"
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권 단축 종목코드,string,Y,9,
+,BSOP_HOUR,영업 시간,string,Y,6,
+,HOUR_CLS_CODE,시간 구분 코드,string,Y,1,"0 : 장중
+A : 장후예상
+B : 장전예상
+C : 9시이후의 예상가, VI발동
+D : 시간외 단일가 예상"
+,ASKP1,매도호가1,number,Y,4,
+,ASKP2,매도호가2,number,Y,4,
+,ASKP3,매도호가3,number,Y,4,
+,ASKP4,매도호가4,number,Y,4,
+,ASKP5,매도호가5,number,Y,4,
+,ASKP6,매도호가6,number,Y,4,
+,ASKP7,매도호가7,number,Y,4,
+,ASKP8,매도호가8,number,Y,4,
+,ASKP9,매도호가9,number,Y,4,
+,ASKP10,매도호가10,number,Y,4,
+,BIDP1,매수호가1,number,Y,4,
+,BIDP2,매수호가2,number,Y,4,
+,BIDP3,매수호가3,number,Y,4,
+,BIDP4,매수호가4,number,Y,4,
+,BIDP5,매수호가5,number,Y,4,
+,BIDP6,매수호가6,number,Y,4,
+,BIDP7,매수호가7,number,Y,4,
+,BIDP8,매수호가8,number,Y,4,
+,BIDP9,매수호가9,number,Y,4,
+,BIDP10,매수호가10,number,Y,4,
+,ASKP_RSQN1,매도호가 잔량1,number,Y,8,
+,ASKP_RSQN2,매도호가 잔량2,number,Y,8,
+,ASKP_RSQN3,매도호가 잔량3,number,Y,8,
+,ASKP_RSQN4,매도호가 잔량4,number,Y,8,
+,ASKP_RSQN5,매도호가 잔량5,number,Y,8,
+,ASKP_RSQN6,매도호가 잔량6,number,Y,8,
+,ASKP_RSQN7,매도호가 잔량7,number,Y,8,
+,ASKP_RSQN8,매도호가 잔량8,number,Y,8,
+,ASKP_RSQN9,매도호가 잔량9,number,Y,8,
+,ASKP_RSQN10,매도호가 잔량10,number,Y,8,
+,BIDP_RSQN1,매수호가 잔량1,number,Y,8,
+,BIDP_RSQN2,매수호가 잔량2,number,Y,8,
+,BIDP_RSQN3,매수호가 잔량3,number,Y,8,
+,BIDP_RSQN4,매수호가 잔량4,number,Y,8,
+,BIDP_RSQN5,매수호가 잔량5,number,Y,8,
+,BIDP_RSQN6,매수호가 잔량6,number,Y,8,
+,BIDP_RSQN7,매수호가 잔량7,number,Y,8,
+,BIDP_RSQN8,매수호가 잔량8,number,Y,8,
+,BIDP_RSQN9,매수호가 잔량9,number,Y,8,
+,BIDP_RSQN10,매수호가 잔량10,number,Y,8,
+,TOTAL_ASKP_RSQN,총 매도호가 잔량,number,Y,8,
+,TOTAL_BIDP_RSQN,총 매수호가 잔량,number,Y,8,
+,OVTM_TOTAL_ASKP_RSQN,시간외 총 매도호가 잔량,number,Y,8,
+,OVTM_TOTAL_BIDP_RSQN,시간외 총 매수호가 잔량,number,Y,8,
+,ANTC_CNPR,예상 체결가,number,Y,4,동시호가 등 특정 조건하에서만 발생
+,ANTC_CNQN,예상 체결량,number,Y,8,동시호가 등 특정 조건하에서만 발생
+,ANTC_VOL,예상 거래량,number,Y,8,동시호가 등 특정 조건하에서만 발생
+,ANTC_CNTG_VRSS,예상 체결 대비,number,Y,4,동시호가 등 특정 조건하에서만 발생
+,ANTC_CNTG_VRSS_SIGN,예상 체결 대비 부호,string,Y,1,"동시호가 등 특정 조건하에서만 발생
+
+1 : 상한
+2 : 상승
+3 : 보합
+4 : 하한
+5 : 하락"
+,ANTC_CNTG_PRDY_CTRT,예상 체결 전일 대비율,number,Y,8,
+,ACML_VOL,누적 거래량,number,Y,8,
+,TOTAL_ASKP_RSQN_ICDC,총 매도호가 잔량 증감,number,Y,4,
+,TOTAL_BIDP_RSQN_ICDC,총 매수호가 잔량 증감,number,Y,4,
+,OVTM_TOTAL_ASKP_ICDC,시간외 총 매도호가 증감,number,Y,4,
+,OVTM_TOTAL_BIDP_ICDC,시간외 총 매수호가 증감,number,Y,4,
+,STCK_DEAL_CLS_CODE,주식 매매 구분 코드,string,Y,2,사용 X (삭제된 값)
+Example,,,,,,
+Request Example (Python),"{
+         ""header"":
+         {
+                  ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+                  ""custtype"":""P"",
+                  ""tr_type"":""1"",
+                  ""content-type"":""utf-8""
+         },
+         ""body"":
+         {
+                  ""input"":
+                  {
+                           ""tr_id"":""H0STASP0"",
+                           ""tr_key"":""005930""
+                  }
+         }
+}",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0STASP0"", 
+        ""tr_key"": ""005930"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output
+005930^093730^0^71900^72000^72100^72200^72300^72400^72500^72600^72700^72800^71
+800^71700^71600^71500^71400^71300^71200^71100^71000^70900^91918^117942^92673^7
+9708^106729^141988^176192^113906^134077^104229^95221^159371^220746^284657^2127
+42^195370^182710^209747^376432^158171^1159362^2095167^0^0^0^0^525579^-72000^5^
+-100.00^3159115^0^8^0^0^0",,,,,
+
+국내주식 실시간체결통보: 표 1
+국내주식 실시간체결통보,,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간체결통보,,,,,
+API ID,실시간-005,,,,,
+실전 TR_ID,H0STCNI0,,,,,
+모의 TR_ID,H0STCNI9,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain, ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain, ws://ops.koreainvestment.com:31000,,,,,
+URL 명,/tryitout/H0STCNI0,,,,,
+개요,,,,,,
+개요,"국내주식 실시간 체결통보 수신 시에 (1) 주문·정정·취소·거부 접수 통보 와 (2) 체결 통보 가 모두 수신됩니다.
+(14번째 값(CNTG_YN;체결여부)가 2이면 체결통보, 1이면 주문·정정·취소·거부 접수 통보입니다.)
+
+※ 모의투자는 H0STCNI9 로 변경하여 사용합니다.
+
+[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id
+- 데이터 건수 : (ex. 001 데이터 건수를 참조하여 활용)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)
+
+체결 통보 응답 결과는 암호화되어 출력됩니다. AES256 KEY IV를 활용해 복호화하여 활용하세요. 자세한 예제는 [도구&gt;wikidocs]에 준비되어 있습니다.",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,N,286,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,"B : 법인 
+P : 개인"
+,tr_type,거래타입,string,N,1,1: 등록 2 : 해제
+,content-type,컨텐츠타입,string,N,1,utf-8
+Request Body,tr_id,거래ID,string,Y,2,"'[실전/모의투자]
+H0STCNI0 : 국내주식 실시간체결통보
+H0STCNI9 : 모의투자 실시간 체결통보"
+,tr_key,구분값,string,Y,12,HTS ID
+Response Header,,,,,,
+Response Body,CUST_ID,고객 ID,string,Y,8, 
+,ACNT_NO,계좌번호,string,Y,10, 
+,ODER_NO,주문번호,string,Y,10, 
+,OODER_NO,원주문번호,string,Y,10, 
+,SELN_BYOV_CLS,매도매수구분,string,Y,2,"01 : 매도 
+02 : 매수"
+,RCTF_CLS,정정구분,string,Y,1," 0:정상 
+1:정정 
+2:취소"
+,ODER_KIND,주문종류,string,Y,2,"[KRX]
+00 : 지정가
+01 : 시장가
+02 : 조건부지정가
+03 : 최유리지정가
+04 : 최우선지정가
+05 : 장전 시간외
+06 : 장후 시간외
+07 : 시간외 단일가
+11 : IOC지정가 (즉시체결,잔량취소)
+12 : FOK지정가 (즉시체결,전량취소)
+13 : IOC시장가 (즉시체결,잔량취소)
+14 : FOK시장가 (즉시체결,전량취소)
+15 : IOC최유리 (즉시체결,잔량취소)
+16 : FOK최유리 (즉시체결,전량취소)
+21 : 중간가
+22 : 스톱지정가
+23 : 중간가IOC
+24 : 중간가FOK
+
+[NXT]
+00 : 지정가
+03 : 최유리지정가
+04 : 최우선지정가
+11 : IOC지정가 (즉시체결,잔량취소)
+12 : FOK지정가 (즉시체결,전량취소)
+13 : IOC시장가 (즉시체결,잔량취소)
+14 : FOK시장가 (즉시체결,전량취소)
+15 : IOC최유리 (즉시체결,잔량취소)
+16 : FOK최유리 (즉시체결,전량취소)
+21 : 중간가
+22 : 스톱지정가
+23 : 중간가IOC
+24 : 중간가FOK
+
+[SOR]
+00 : 지정가
+01 : 시장가
+03 : 최유리지정가
+04 : 최우선지정가
+11 : IOC지정가 (즉시체결,잔량취소)
+12 : FOK지정가 (즉시체결,전량취소)
+13 : IOC시장가 (즉시체결,잔량취소)
+14 : FOK시장가 (즉시체결,전량취소)
+15 : IOC최유리 (즉시체결,잔량취소)
+16 : FOK최유리 (즉시체결,전량취소)
+"
+,ODER_COND,주문조건,string,Y,1,"0:없음
+1:IOC 
+2:FOK"
+,STCK_SHRN_ISCD,주식 단축 종목코드,string,Y,9, 
+,CNTG_QTY,체결 수량,string,Y,10, 
+,CNTG_UNPR,체결단가,string,Y,9, 
+,STCK_CNTG_HOUR,주식 체결 시간,string,Y,6, 
+,RFUS_YN,거부여부,string,Y,1,"0 : 승인 
+1 : 거부"
+,CNTG_YN,체결여부,string,Y,1," 1 : 주문,정정,취소,거부
+2 : 체결"
+,ACPT_YN,접수여부,string,Y,1," 1 : 주문접수
+2 : 확인
+3 : 취소(FOK/IOC)"
+,BRNC_NO,지점번호,string,Y,5, 
+,ODER_QTY,주문수량,string,Y,9, 
+,ACNT_NAME,계좌명,string,Y,12, 
+,ORD_COND_PRC,호가조건가격,string,Y,9,스톱지정가 시 표시
+,ORD_EXG_GB,주문거래소 구분,string,Y,1,"1:KRX, 2:NXT, 3:SOR-KRX, 4:SOR-NXT"
+,POPUP_YN,실시간체결창 표시여부,string,Y,1,Y/N
+,FILLER,필러,string,Y,3, 
+,CRDT_CLS,신용구분,string,Y,2, 
+,CRDT_LOAN_DATE,신용대출일자,string,Y,8, 
+,CNTG_ISNM40,체결종목명,string,Y,40, 
+,ODER_PRC,주문가격,string,Y,9,
+Example,,,,,,
+Request Example (Python),"{
+         ""header"":
+         {
+                  ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+                  ""custtype"":""P"",
+                  ""tr_type"":""1"",
+                  ""content-type"":""utf-8""
+         },
+         ""body"":
+         {
+                  ""input"":
+                  {
+                           ""tr_id"":""H0STCNI0"",
+                           ""tr_key"":""HTS ID""
+                  }
+         }
+}",,,,,
+Response Example,"{
+    ""header"": {
+        ""tr_id"": ""H0STCNI0"", 
+        ""tr_key"": ""HTS ID"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output - 주문·정정·취소·거부 접수 통보
+HTS ID^1234567801^0000002891^^02^0^01^0^136480^0000000001^000000000^094941^0
+^1^1^06010^000000001^김한투^하림^10^^하림^
+
+# output - 체결 통보
+HTS ID^1234567801^0000002891^^02^0^00^0^136480^0000000001^000003190^094941^0
+^2^2^06010^000000001^김한투^하림^10^^하림^000000000",,,,,
+
+국내주식 실시간예상체결 (KRX): 표 1
+국내주식 실시간예상체결 (KRX),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간예상체결 (KRX),,,,,
+API ID,실시간-041,,,,,
+실전 TR_ID,H0STANC0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0STANC0,,,,,
+개요,,,,,,
+개요,"국내주식 실시간예상체결 API입니다.
+
+[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+종목코드 마스터파일 파이썬 정제코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
+
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+ex) 0|H0STCNT0|004|005930^123929^73100^5^...
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id (ex. H0STCNT0)
+- 데이터 건수 : (ex. 001 인 경우 데이터 건수 1건, 004인 경우 데이터 건수 4건)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,36,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,B : 법인 / P : 개인
+,tr_type,등록/해제,string,Y,1,"1: 등록, 2:해제"
+,content-type,컨텐츠타입,string,Y,20,utf-8
+Request Body,tr_id,거래ID,string,Y,2,H0STANC0
+,tr_key,구분값,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권단축종목코드,string,Y,9, 
+,STCK_CNTG_HOUR,주식체결시간,string,Y,6, 
+,STCK_PRPR,주식현재가,string,Y,4, 
+,PRDY_VRSS_SIGN,전일대비구분,string,Y,1, 
+,PRDY_VRSS,전일대비,string,Y,4, 
+,PRDY_CTRT,등락율,string,Y,8, 
+,WGHN_AVRG_STCK_PRC,가중평균주식가격,string,Y,8, 
+,STCK_OPRC,시가,string,Y,4, 
+,STCK_HGPR,고가,string,Y,4, 
+,STCK_LWPR,저가,string,Y,4, 
+,ASKP1,매도호가,string,Y,4, 
+,BIDP1,매수호가,string,Y,4, 
+,CNTG_VOL,거래량,string,Y,8, 
+,ACML_VOL,누적거래량,string,Y,8, 
+,ACML_TR_PBMN,누적거래대금,string,Y,8, 
+,SELN_CNTG_CSNU,매도체결건수,string,Y,4, 
+,SHNU_CNTG_CSNU,매수체결건수,string,Y,4, 
+,NTBY_CNTG_CSNU,순매수체결건수,string,Y,4, 
+,CTTR,체결강도,string,Y,8, 
+,SELN_CNTG_SMTN,총매도수량,string,Y,8, 
+,SHNU_CNTG_SMTN,총매수수량,string,Y,8, 
+,CNTG_CLS_CODE,체결구분,string,Y,1, 
+,SHNU_RATE,매수비율,string,Y,8, 
+,PRDY_VOL_VRSS_ACML_VOL_RATE,전일거래량대비등락율,string,Y,8, 
+,OPRC_HOUR,시가시간,string,Y,6, 
+,OPRC_VRSS_PRPR_SIGN,시가대비구분,string,Y,1, 
+,OPRC_VRSS_PRPR,시가대비,string,Y,4, 
+,HGPR_HOUR,최고가시간,string,Y,6, 
+,HGPR_VRSS_PRPR_SIGN,고가대비구분,string,Y,1, 
+,HGPR_VRSS_PRPR,고가대비,string,Y,4, 
+,LWPR_HOUR,최저가시간,string,Y,6, 
+,LWPR_VRSS_PRPR_SIGN,저가대비구분,string,Y,1, 
+,LWPR_VRSS_PRPR,저가대비,string,Y,4, 
+,BSOP_DATE,영업일자,string,Y,8, 
+,NEW_MKOP_CLS_CODE,신장운영구분코드,string,Y,2, 
+,TRHT_YN,거래정지여부,string,Y,1, 
+,ASKP_RSQN1,매도호가잔량1,string,Y,8, 
+,BIDP_RSQN1,매수호가잔량1,string,Y,8, 
+,TOTAL_ASKP_RSQN,총매도호가잔량,string,Y,8, 
+,TOTAL_BIDP_RSQN,총매수호가잔량,string,Y,8, 
+,VOL_TNRT,거래량회전율,string,Y,8, 
+,PRDY_SMNS_HOUR_ACML_VOL,전일동시간누적거래량,string,Y,8, 
+,PRDY_SMNS_HOUR_ACML_VOL_RATE,전일동시간누적거래량비율,string,Y,8, 
+,HOUR_CLS_CODE,시간구분코드,string,Y,1, 
+,MRKT_TRTM_CLS_CODE,임의종료구분코드,string,Y,1, 
+Example,,,,,,
+Request Example (Python),"{
+         ""header"":
+         {
+                  ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+                  ""custtype"":""P"",
+                  ""tr_type"":""1"",
+                  ""content-type"":""utf-8""
+         },
+         ""body"":
+         {
+                  ""input"":
+                  {
+                           ""tr_id"":""H0STANC0"",
+                           ""tr_key"":""005930""
+                  }
+         }
+}",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0STANC0"", 
+        ""tr_key"": ""005930"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output
+0|H0STANC0|001|005930^084945^77600^2^1300^1.70^0.00^0^0^0^77600^77
+500^64^221986^17226113600^0^0^0^0.00^0^0^1^0.01^0.00^000000^3^0^000000^3^0^000000^3^
+0^20240426^00^N^11591^2878^41034^6265^0.00^0^0.00^B^",,,,,
+
+국내주식 실시간회원사 (KRX): 표 1
+국내주식 실시간회원사 (KRX),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간회원사 (KRX),,,,,
+API ID,실시간-047,,,,,
+실전 TR_ID,H0STMBC0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0STMBC0,,,,,
+개요,,,,,,
+개요,"[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+종목코드 마스터파일 파이썬 정제코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+ex) 0|H0STCNT0|004|005930^123929^73100^5^...
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id (ex. H0STCNT0)
+- 데이터 건수 : (ex. 001 인 경우 데이터 건수 1건, 004인 경우 데이터 건수 4건)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,36,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,B : 법인 / P : 개인
+,tr_type,등록/해제,string,Y,1,"""1: 등록, 2:해제"""
+,content-type,컨텐츠타입,string,Y,20,utf-8
+Request Body,tr_id,거래ID,string,Y,7,H0STMBC0
+,tr_key,종목코드,string,Y,6,종목코드
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권단축종목코드,object,Y,9,"'각 항목사이에는 구분자로 ^ 사용,
+모든 데이터타입은 String으로 변환되어 push 처리됨'"
+,SELN2_MBCR_NAME1,매도2회원사명1,string,Y,16,  
+,SELN2_MBCR_NAME2,매도2회원사명2,string,Y,16,  
+,SELN2_MBCR_NAME3,매도2회원사명3,string,Y,16,  
+,SELN2_MBCR_NAME4,매도2회원사명4,string,Y,16,  
+,SELN2_MBCR_NAME5,매도2회원사명5,string,Y,16,  
+,BYOV_MBCR_NAME1,매수회원사명1,string,Y,16,  
+,BYOV_MBCR_NAME2,매수회원사명2,string,Y,16,  
+,BYOV_MBCR_NAME3,매수회원사명3,string,Y,16,  
+,BYOV_MBCR_NAME4,매수회원사명4,string,Y,16,  
+,BYOV_MBCR_NAME5,매수회원사명5,string,Y,16,  
+,TOTAL_SELN_QTY1,총매도수량1,string,Y,8,  
+,TOTAL_SELN_QTY2,총매도수량2,string,Y,8,  
+,TOTAL_SELN_QTY3,총매도수량3,string,Y,8,  
+,TOTAL_SELN_QTY4,총매도수량4,string,Y,8,  
+,TOTAL_SELN_QTY5,총매도수량5,string,Y,8,  
+,TOTAL_SHNU_QTY1,총매수2수량1,string,Y,8,  
+,TOTAL_SHNU_QTY2,총매수2수량2,string,Y,8,  
+,TOTAL_SHNU_QTY3,총매수2수량3,string,Y,8,  
+,TOTAL_SHNU_QTY4,총매수2수량4,string,Y,8,  
+,TOTAL_SHNU_QTY5,총매수2수량5,string,Y,8,  
+,SELN_MBCR_GLOB_YN_1,매도거래원구분1,string,Y,1,  
+,SELN_MBCR_GLOB_YN_2,매도거래원구분2,string,Y,1,  
+,SELN_MBCR_GLOB_YN_3,매도거래원구분3,string,Y,1,  
+,SELN_MBCR_GLOB_YN_4,매도거래원구분4,string,Y,1,  
+,SELN_MBCR_GLOB_YN_5,매도거래원구분5,string,Y,1,  
+,SHNU_MBCR_GLOB_YN_1,매수거래원구분1,string,Y,1,  
+,SHNU_MBCR_GLOB_YN_2,매수거래원구분2,string,Y,1,  
+,SHNU_MBCR_GLOB_YN_3,매수거래원구분3,string,Y,1,  
+,SHNU_MBCR_GLOB_YN_4,매수거래원구분4,string,Y,1,  
+,SHNU_MBCR_GLOB_YN_5,매수거래원구분5,string,Y,1,  
+,SELN_MBCR_NO1,매도거래원코드1,string,Y,5,  
+,SELN_MBCR_NO2,매도거래원코드2,string,Y,5,  
+,SELN_MBCR_NO3,매도거래원코드3,string,Y,5,  
+,SELN_MBCR_NO4,매도거래원코드4,string,Y,5,  
+,SELN_MBCR_NO5,매도거래원코드5,string,Y,5,  
+,SHNU_MBCR_NO1,매수거래원코드1,string,Y,5,  
+,SHNU_MBCR_NO2,매수거래원코드2,string,Y,5,  
+,SHNU_MBCR_NO3,매수거래원코드3,string,Y,5,  
+,SHNU_MBCR_NO4,매수거래원코드4,string,Y,5,  
+,SHNU_MBCR_NO5,매수거래원코드5,string,Y,5,  
+,SELN_MBCR_RLIM1,매도회원사비중1,string,Y,8,  
+,SELN_MBCR_RLIM2,매도회원사비중2,string,Y,8,  
+,SELN_MBCR_RLIM3,매도회원사비중3,string,Y,8,  
+,SELN_MBCR_RLIM4,매도회원사비중4,string,Y,8,  
+,SELN_MBCR_RLIM5,매도회원사비중5,string,Y,8,  
+,SHNU_MBCR_RLIM1,매수2회원사비중1,string,Y,8,  
+,SHNU_MBCR_RLIM2,매수2회원사비중2,string,Y,8,  
+,SHNU_MBCR_RLIM3,매수2회원사비중3,string,Y,8,  
+,SHNU_MBCR_RLIM4,매수2회원사비중4,string,Y,8,  
+,SHNU_MBCR_RLIM5,매수2회원사비중5,string,Y,8,  
+,SELN_QTY_ICDC1,매도수량증감1,string,Y,4,  
+,SELN_QTY_ICDC2,매도수량증감2,string,Y,4,  
+,SELN_QTY_ICDC3,매도수량증감3,string,Y,4,  
+,SELN_QTY_ICDC4,매도수량증감4,string,Y,4,  
+,SELN_QTY_ICDC5,매도수량증감5,string,Y,4,  
+,SHNU_QTY_ICDC1,매수2수량증감1,string,Y,4,  
+,SHNU_QTY_ICDC2,매수2수량증감2,string,Y,4,  
+,SHNU_QTY_ICDC3,매수2수량증감3,string,Y,4,  
+,SHNU_QTY_ICDC4,매수2수량증감4,string,Y,4,  
+,SHNU_QTY_ICDC5,매수2수량증감5,string,Y,4,  
+,GLOB_TOTAL_SELN_QTY,외국계총매도수량,string,Y,8,  
+,GLOB_TOTAL_SHNU_QTY,외국계총매수2수량,string,Y,8,  
+,GLOB_TOTAL_SELN_QTY_ICDC,외국계총매도수량증감,string,Y,4,  
+,GLOB_TOTAL_SHNU_QTY_ICDC,외국계총매수2수량증감,string,Y,4,  
+,GLOB_NTBY_QTY,외국계순매수수량,string,Y,8,  
+,GLOB_SELN_RLIM,외국계매도비중,string,Y,8,  
+,GLOB_SHNU_RLIM,외국계매수2비중,string,Y,8,  
+,SELN2_MBCR_ENG_NAME1,매도2영문회원사명1,string,Y,20,  
+,SELN2_MBCR_ENG_NAME2,매도2영문회원사명2,string,Y,20,  
+,SELN2_MBCR_ENG_NAME3,매도2영문회원사명3,string,Y,20,  
+,SELN2_MBCR_ENG_NAME4,매도2영문회원사명4,string,Y,20,  
+,SELN2_MBCR_ENG_NAME5,매도2영문회원사명5,string,Y,20,  
+,BYOV_MBCR_ENG_NAME1,매수영문회원사명1,string,Y,20,  
+,BYOV_MBCR_ENG_NAME2,매수영문회원사명2,string,Y,20,  
+,BYOV_MBCR_ENG_NAME3,매수영문회원사명3,string,Y,20,  
+,BYOV_MBCR_ENG_NAME4,매수영문회원사명4,string,Y,20,  
+,BYOV_MBCR_ENG_NAME5,매수영문회원사명5,string,Y,20,  
+Example,,,,,,
+Request Example (Python),"{
+    ""header"": {
+        ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+        ""custtype"": ""P"",
+        ""tr_type"": ""1"",
+        ""content-type"": ""utf-8""
+    },
+    ""body"": {
+        ""input"": {
+            ""tr_id"": ""H0STMBC0"",
+            ""tr_key"": ""005930""
+        }
+    }
+}",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0STMBC0"", 
+        ""tr_key"": ""005930"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output
+0|H0STMBC0|001|005930^씨티그룹^미래에셋증권^모간서울^BNK증권^키움증권^미래
+에셋증권^BNK증권^맥쿼리^NH투자증권^한국증권^903482^703873^484082^471203^246578^946273^571760^
+343109^313536^311982^Y^N^Y^N^N^N^N^Y^N^N^00037^00005^00036^00086^00050^00005^00086^00035^0001
+2^00003^19.06^14.85^10.21^9.94^5.20^19.96^12.06^7.24^6.61^6.58^14913^5054^7240^80000^3532^280
+24^42986^0^5612^3043^1387564^681749^22153^0^-705815^29.27^14.38^^^^^^^^^^",,,,,
+
+국내주식 실시간프로그램매매 (KRX): 표 1
+국내주식 실시간프로그램매매 (KRX),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간프로그램매매 (KRX),,,,,
+API ID,실시간-048,,,,,
+실전 TR_ID,H0STPGM0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0STPGM0,,,,,
+개요,,,,,,
+개요,"[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+종목코드 마스터파일 파이썬 정제코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+ex) 0|H0STCNT0|004|005930^123929^73100^5^...
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id (ex. H0STCNT0)
+- 데이터 건수 : (ex. 001 인 경우 데이터 건수 1건, 004인 경우 데이터 건수 4건)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,36,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,B : 법인 / P : 개인
+,tr_type,등록/해제,string,Y,1,"""1: 등록, 2:해제"""
+,content-type,컨텐츠타입,string,Y,20,utf-8
+Request Body,tr_id,거래ID,string,Y,7,H0STPGM0
+,tr_key,종목코드,string,Y,6,종목코드
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권단축종목코드,object,Y,9,"'각 항목사이에는 구분자로 ^ 사용,
+모든 데이터타입은 String으로 변환되어 push 처리됨'"
+,STCK_CNTG_HOUR,주식체결시간,string,Y,6,  
+,SELN_CNQN,매도체결량,string,Y,1,  
+,SELN_TR_PBMN,매도거래대금,string,Y,1,  
+,SHNU_CNQN,매수2체결량,string,Y,1,  
+,SHNU_TR_PBMN,매수2거래대금,string,Y,1,  
+,NTBY_CNQN,순매수체결량,string,Y,1,  
+,NTBY_TR_PBMN,순매수거래대금,string,Y,1,  
+,SELN_RSQN,매도호가잔량,string,Y,1,  
+,SHNU_RSQN,매수호가잔량,string,Y,1,  
+,WHOL_NTBY_QTY,전체순매수호가잔량,string,Y,1,  
+Example,,,,,,
+Request Example (Python),"{
+    ""header"": {
+        ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+        ""custtype"": ""P"",
+        ""tr_type"": ""1"",
+        ""content-type"": ""utf-8""
+    },
+    ""body"": {
+        ""input"": {
+            ""tr_id"": ""H0STPGM0"",
+            ""tr_key"": ""005930""
+        }
+    }
+}",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0STPGM0"", 
+        ""tr_key"": ""005930"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output
+0|H0STPGM0|001|005930^092237^1413444^109159646900^1189408^91931710200^-2240
+36^-17227936700^65033^15475^-49558",,,,,
+
+국내주식 장운영정보 (KRX): 표 1
+국내주식 장운영정보 (KRX),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 장운영정보 (KRX),,,,,
+API ID,실시간-049,,,,,
+실전 TR_ID,H0STMKO0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0STMKO0,,,,,
+개요,,,,,,
+개요,"국내주식 장운영정보 연결 시, 연결종목의 VI 발동 시와 VI 해제 시에 데이터 수신됩니다. 
+
+[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+종목코드 마스터파일 파이썬 정제코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+ex) 0|H0STCNT0|004|005930^123929^73100^5^...
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id (ex. H0STCNT0)
+- 데이터 건수 : (ex. 001 인 경우 데이터 건수 1건, 004인 경우 데이터 건수 4건)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,36,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,B : 법인 / P : 개인
+,tr_type,등록/해제,string,Y,1,"""1: 등록, 2:해제"""
+,content-type,컨텐츠타입,string,Y,20,utf-8
+Request Body,tr_id,거래ID,string,Y,7,H0STMKO0
+,tr_key,종목코드,string,Y,6,종목코드
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권단축종목코드,object,Y,9,"'각 항목사이에는 구분자로 ^ 사용,
+모든 데이터타입은 String으로 변환되어 push 처리됨'"
+,TRHT_YN,거래정지여부,string,Y,1,  
+,TR_SUSP_REAS_CNTT,거래정지사유내용,string,Y,100,  
+,MKOP_CLS_CODE,장운영구분코드,string,Y,3,"110        장전 동시호가 개시                      
+112        장개시                                  
+121        장후 동시호가 개시                      
+129        장마감                                  
+130        장개시전시간외개시                      
+139        장개시전시간외종료                      
+140        시간외 종가 매매 개시                   
+146        장종료후시간외 체결지시                 
+149        시간외 종가 매매 종료                   
+150        시간외 단일가 매매 개시                 
+156        시간외단일가 체결지시                   
+159        시간외 단일가 매매 종료                 
+164        시장임시정지                            
+174        서킷브레이크 발동                       
+175        서킷브레이크 해제                       
+182        서킷브레이크 장중동시마감               
+184        서킷브레이크 개시                       
+185        서킷브레이크 해제                       
+387        사이드카 매도발동                       
+388        사이드카 매도발동해제                   
+397        사이드카 매수발동                       
+398        사이드카 매수발동해제                   
+???        단일가개시                              
+???        서킷브레이크 단일가접수                 
+F01        장개시 10초전                           
+F06        장개시 1분전                            
+F07        장개시 5분전                            
+F08        장개시 10분전                           
+F09        장개시 3분전                            
+F11        장마감 10초전                           
+F16        장마감 1분전                            
+F17        장마감 5분전                            
+F18        장마감 3분전                            
+P01        장개시 10초전                           
+P06        장개시 1분전                            
+P07        장개시 5분전                            
+P08        장개시 10분전                           
+P09        장개시 30분전                           
+P11        장마감 10초전                           
+P16        장마감 1분전                            
+P17        장마감 5분전                            
+P18        장마감 3분전"
+,ANTC_MKOP_CLS_CODE,예상장운영구분코드,string,Y,3,"112    장전예상종료 
+121   장후예상시작
+129   장후예상종료
+311  장전예상시작"
+,MRKT_TRTM_CLS_CODE,임의연장구분코드,string,Y,1,"  1  시초동시 임의종료 지정
+2  시초동시 임의종료 해제 
+3  마감동시 임의종료 지정 
+4  마감동시 임의종료 해제  
+5  시간외단일가임의종료 지정 
+6  시간외단일가임의종료 해제"
+,DIVI_APP_CLS_CODE,동시호가배분처리구분코드,string,Y,2,"divi_app_cls_code[0]  1: 배분개시 2: 배분해제
+divi_app_cls_code[1] 1: 매수상한 2: 매수하한 3: 매도상한 4: 매도하한"
+,ISCD_STAT_CLS_CODE,종목상태구분코드,string,Y,2,"51  관리종목 지정 종목
+52  시장경고 구분이 '투자위험'인 종목
+53  시장경고 구분이 '투자경고'인 종목
+54  시장경고 구분이 '투자주의'인 종목
+55  당사 신용가능 종목
+57  당사 증거금률이 100인 종목
+58  거래정지 지정된 종목  
+59  단기과열종목으로 지정되거나 지정 연장된 종목
+00 그 외 종목"
+,VI_CLS_CODE,VI적용구분코드,string,Y,1,"Y  VI적용된 종목
+N  VI적용되지 않은 종목"
+,OVTM_VI_CLS_CODE,시간외단일가VI적용구분코드,string,Y,1,"Y 시간외단일가VI 적용된 종목
+N 시간외단일가VI 적용되지 않은 종목"
+,EXCH_CLS_CODE,거래소구분코드,string,Y,1,
+Example,,,,,,
+Request Example (Python),"{
+    ""header"": {
+        ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+        ""custtype"": ""P"",
+        ""tr_type"": ""1"",
+        ""content-type"": ""utf-8""
+    },
+    ""body"": {
+        ""input"": {
+            ""tr_id"": ""H0STMKO0"",
+            ""tr_key"": ""396300""
+        }
+    }
+}",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0STMKO0"", 
+        ""tr_key"": ""396300"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output
+0|H0STMKO0|001|396300^N^(null)^^311^^^55^N^N",,,,,
+
+국내주식 시간외 실시간호가 (KRX): 표 1
+국내주식 시간외 실시간호가 (KRX),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 시간외 실시간호가 (KRX),,,,,
+API ID,실시간-025,,,,,
+실전 TR_ID,H0STOAA0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0STOAA0,,,,,
+개요,,,,,,
+개요,"국내주식 시간외 실시간호가 API입니다.
+국내주식 시간외 단일가(16:00~18:00) 시간대에 실시간호가 데이터 확인 가능합니다.
+
+[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+종목코드 마스터파일 파이썬 정제코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
+
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+ex) 0|H0STCNT0|004|005930^123929^73100^5^...
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id (ex. H0STCNT0)
+- 데이터 건수 : (ex. 001 인 경우 데이터 건수 1건, 004인 경우 데이터 건수 4건)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,36,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,B : 법인 / P : 개인
+,tr_type,등록/해제,string,Y,1,"1: 등록, 2:해제"
+,content-type,컨텐츠타입,string,Y,20,utf-8
+Request Body,tr_id,거래ID,string,Y,2,H0STOAA0
+,tr_key,구분값,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권단축종목코드,string,Y,9, 
+,BSOP_HOUR,영업시간,string,Y,6, 
+,HOUR_CLS_CODE,시간구분코드,string,Y,1, 
+,ASKP1,매도호가1,string,Y,1, 
+,ASKP2,매도호가2,string,Y,1, 
+,ASKP3,매도호가3,string,Y,1, 
+,ASKP4,매도호가4,string,Y,1, 
+,ASKP5,매도호가5,string,Y,1, 
+,ASKP6,매도호가6,string,Y,1, 
+,ASKP7,매도호가7,string,Y,1, 
+,ASKP8,매도호가8,string,Y,1, 
+,ASKP9,매도호가9,string,Y,1, 
+,BIDP1,매수호가1,string,Y,1, 
+,BIDP2,매수호가2,string,Y,1, 
+,BIDP3,매수호가3,string,Y,1, 
+,BIDP4,매수호가4,string,Y,1, 
+,BIDP5,매수호가5,string,Y,1, 
+,BIDP6,매수호가6,string,Y,1, 
+,BIDP7,매수호가7,string,Y,1, 
+,BIDP8,매수호가8,string,Y,1, 
+,BIDP9,매수호가9,string,Y,1, 
+,ASKP_RSQN1,매도호가잔량1,string,Y,1, 
+,ASKP_RSQN2,매도호가잔량2,string,Y,1, 
+,ASKP_RSQN3,매도호가잔량3,string,Y,1, 
+,ASKP_RSQN4,매도호가잔량4,string,Y,1, 
+,ASKP_RSQN5,매도호가잔량5,string,Y,1, 
+,ASKP_RSQN6,매도호가잔량6,string,Y,1, 
+,ASKP_RSQN7,매도호가잔량7,string,Y,1, 
+,ASKP_RSQN8,매도호가잔량8,string,Y,1, 
+,ASKP_RSQN9,매도호가잔량9,string,Y,1, 
+,BIDP_RSQN1,매수호가잔량1,string,Y,1, 
+,BIDP_RSQN2,매수호가잔량2,string,Y,1, 
+,BIDP_RSQN3,매수호가잔량3,string,Y,1, 
+,BIDP_RSQN4,매수호가잔량4,string,Y,1, 
+,BIDP_RSQN5,매수호가잔량5,string,Y,1, 
+,BIDP_RSQN6,매수호가잔량6,string,Y,1, 
+,BIDP_RSQN7,매수호가잔량7,string,Y,1, 
+,BIDP_RSQN8,매수호가잔량8,string,Y,1, 
+,BIDP_RSQN9,매수호가잔량9,string,Y,1, 
+,TOTAL_ASKP_RSQN,총매도호가잔량,string,Y,1, 
+,TOTAL_BIDP_RSQN,총매수호가잔량,string,Y,1, 
+,OVTM_TOTAL_ASKP_RSQN,시간외총매도호가잔량,string,Y,1, 
+,OVTM_TOTAL_BIDP_RSQN,시간외총매수호가잔량,string,Y,1, 
+,ANTC_CNPR,예상체결가,string,Y,1, 
+,ANTC_CNQN,예상체결량,string,Y,1, 
+,ANTC_VOL,예상거래량,string,Y,1, 
+,ANTC_CNTG_VRSS,예상체결대비,string,Y,1, 
+,ANTC_CNTG_VRSS_SIGN,예상체결대비부호,string,Y,1, 
+,ANTC_CNTG_PRDY_CTRT,예상체결전일대비율,string,Y,1, 
+,ACML_VOL,누적거래량,string,Y,1, 
+,TOTAL_ASKP_RSQN_ICDC,총매도호가잔량증감,string,Y,1, 
+,TOTAL_BIDP_RSQN_ICDC,총매수호가잔량증감,string,Y,1, 
+,OVTM_TOTAL_ASKP_ICDC,시간외총매도호가증감,string,Y,1, 
+,OVTM_TOTAL_BIDP_ICDC,시간외총매수호가증감,string,Y,1, 
+Example,,,,,,
+Request Example (Python),"{
+         ""header"":
+         {
+                  ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+                  ""custtype"":""P"",
+                  ""tr_type"":""1"",
+                  ""content-type"":""utf-8""
+         },
+         ""body"":
+         {
+                  ""input"":
+                  {
+                           ""tr_id"":""H0STOAA0"",
+                           ""tr_key"":""005930""
+                  }
+         }
+}
+",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0STOAA0"", 
+        ""tr_key"": ""005930"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output
+0|H0STOAA0|001|005930^164128^B^77800^77900^78000^0^0^0^0^0^0^0^77700^
+77600^77500^0^0^0^0^0^0^0^8005^7355^9284^0^0^0^0^0^0^0^4^16654^14297^0^0^0^0^0^0^0^2464
+4^30955^0^37426^77700^82^82^100^2^0.13^13069425^-1^0^0^0",,,,,
+
+국내주식 시간외 실시간체결가 (KRX): 표 1
+국내주식 시간외 실시간체결가 (KRX),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 시간외 실시간체결가 (KRX),,,,,
+API ID,실시간-042,,,,,
+실전 TR_ID,H0STOUP0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0STOUP0,,,,,
+개요,,,,,,
+개요,"국내주식 시간외 실시간체결가 API입니다.
+국내주식 시간외 단일가(16:00~18:00) 시간대에 실시간체결가 데이터 확인 가능합니다.
+
+[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+종목코드 마스터파일 파이썬 정제코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
+
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+ex) 0|H0STCNT0|004|005930^123929^73100^5^...
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id (ex. H0STCNT0)
+- 데이터 건수 : (ex. 001 인 경우 데이터 건수 1건, 004인 경우 데이터 건수 4건)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,36,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,B : 법인 / P : 개인
+,tr_type,등록/해제,string,Y,1,"1: 등록, 2:해제"
+,content-type,컨텐츠타입,string,Y,20,utf-8
+Request Body,tr_id,거래ID,string,Y,2,H0STOUP0
+,tr_key,구분값	,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권단축종목코드,string,Y,9, 
+,STCK_CNTG_HOUR,주식체결시간,string,Y,6, 
+,STCK_PRPR,주식현재가,string,Y,1, 
+,PRDY_VRSS_SIGN,전일대비구분,string,Y,1, 
+,PRDY_VRSS,전일대비,string,Y,1, 
+,PRDY_CTRT,등락율,string,Y,1, 
+,WGHN_AVRG_STCK_PRC,가중평균주식가격,string,Y,1, 
+,STCK_OPRC,시가,string,Y,1, 
+,STCK_HGPR,고가,string,Y,1, 
+,STCK_LWPR,저가,string,Y,1, 
+,ASKP1,매도호가,string,Y,1, 
+,BIDP1,매수호가,string,Y,1, 
+,CNTG_VOL,거래량,string,Y,1, 
+,ACML_VOL,누적거래량,string,Y,1, 
+,ACML_TR_PBMN,누적거래대금,string,Y,1, 
+,SELN_CNTG_CSNU,매도체결건수,string,Y,1, 
+,SHNU_CNTG_CSNU,매수체결건수,string,Y,1, 
+,NTBY_CNTG_CSNU,순매수체결건수,string,Y,1, 
+,CTTR,체결강도,string,Y,1, 
+,SELN_CNTG_SMTN,총매도수량,string,Y,1, 
+,SHNU_CNTG_SMTN,총매수수량,string,Y,1, 
+,CNTG_CLS_CODE,체결구분,string,Y,1, 
+,SHNU_RATE,매수비율,string,Y,1, 
+,PRDY_VOL_VRSS_ACML_VOL_RATE,전일거래량대비등락율,string,Y,1, 
+,OPRC_HOUR,시가시간,string,Y,6, 
+,OPRC_VRSS_PRPR_SIGN,시가대비구분,string,Y,1, 
+,OPRC_VRSS_PRPR,시가대비,string,Y,1, 
+,HGPR_HOUR,최고가시간,string,Y,6, 
+,HGPR_VRSS_PRPR_SIGN,고가대비구분,string,Y,1, 
+,HGPR_VRSS_PRPR,고가대비,string,Y,1, 
+,LWPR_HOUR,최저가시간,string,Y,6, 
+,LWPR_VRSS_PRPR_SIGN,저가대비구분,string,Y,1, 
+,LWPR_VRSS_PRPR,저가대비,string,Y,1, 
+,BSOP_DATE,영업일자,string,Y,8, 
+,NEW_MKOP_CLS_CODE,신장운영구분코드,string,Y,2, 
+,TRHT_YN,거래정지여부,string,Y,1, 
+,ASKP_RSQN1,매도호가잔량1,string,Y,1, 
+,BIDP_RSQN1,매수호가잔량1,string,Y,1, 
+,TOTAL_ASKP_RSQN,총매도호가잔량,string,Y,1, 
+,TOTAL_BIDP_RSQN,총매수호가잔량,string,Y,1, 
+,VOL_TNRT,거래량회전율,string,Y,1, 
+,PRDY_SMNS_HOUR_ACML_VOL,전일동시간누적거래량,string,Y,1, 
+,PRDY_SMNS_HOUR_ACML_VOL_RATE,전일동시간누적거래량비율,string,Y,1, 
+Example,,,,,,
+Request Example (Python),"{
+         ""header"":
+         {
+                  ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+                  ""custtype"":""P"",
+                  ""tr_type"":""1"",
+                  ""content-type"":""utf-8""
+         },
+         ""body"":
+         {
+                  ""input"":
+                  {
+                           ""tr_id"":""H0STOUP0"",
+                           ""tr_key"":""005930""
+                  }
+         }
+}",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0STOUP0"", 
+        ""tr_key"": ""005930"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output
+0|H0STOUP0|001|005930^165020^77700^2^100^0.13^78209.85^77600^77800^77
+600^77800^77700^1034^13540^1052379900^3^2^-1^71.12^8029^5511^5^0.37^69.15^161015^3^100^
+162004^5^-100^161015^3^100^20240503^40^N^7898^6461^24577^38548^0.00^18636724^0.07",,,,,
+
+국내주식 시간외 실시간예상체결 (KRX): 표 1
+국내주식 시간외 실시간예상체결 (KRX),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 시간외 실시간예상체결 (KRX),,,,,
+API ID,실시간-024,,,,,
+실전 TR_ID,H0STOAC0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0STOAC0,,,,,
+개요,,,,,,
+개요,"국내주식 시간외 실시간예상체결 API입니다.
+국내주식 시간외 단일가(16:00~18:00) 시간대에 실시간예상체결 데이터 확인 가능합니다.
+
+[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+종목코드 마스터파일 파이썬 정제코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
+
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+ex) 0|H0STCNT0|004|005930^123929^73100^5^...
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id (ex. H0STCNT0)
+- 데이터 건수 : (ex. 001 인 경우 데이터 건수 1건, 004인 경우 데이터 건수 4건)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,36,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,B : 법인 / P : 개인
+,tr_type,등록/해제,string,Y,1,"1: 등록, 2:해제"
+,content-type,컨텐츠타입,string,Y,20,utf-8
+Request Body,tr_id,거래ID,string,Y,2,H0STOAC0
+,tr_key,구분값,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권단축종목코드,string,Y,9, 
+,STCK_CNTG_HOUR,주식체결시간,string,Y,6, 
+,STCK_PRPR,주식현재가,string,Y,1, 
+,PRDY_VRSS_SIGN,전일대비구분,string,Y,1, 
+,PRDY_VRSS,전일대비,string,Y,1, 
+,PRDY_CTRT,등락율,string,Y,1, 
+,WGHN_AVRG_STCK_PRC,가중평균주식가격,string,Y,1, 
+,STCK_OPRC,시가,string,Y,1, 
+,STCK_HGPR,고가,string,Y,1, 
+,STCK_LWPR,저가,string,Y,1, 
+,ASKP1,매도호가,string,Y,1, 
+,BIDP1,매수호가,string,Y,1, 
+,CNTG_VOL,거래량,string,Y,1, 
+,ACML_VOL,누적거래량,string,Y,1, 
+,ACML_TR_PBMN,누적거래대금,string,Y,1, 
+,SELN_CNTG_CSNU,매도체결건수,string,Y,1, 
+,SHNU_CNTG_CSNU,매수체결건수,string,Y,1, 
+,NTBY_CNTG_CSNU,순매수체결건수,string,Y,1, 
+,CTTR,체결강도,string,Y,1, 
+,SELN_CNTG_SMTN,총매도수량,string,Y,1, 
+,SHNU_CNTG_SMTN,총매수수량,string,Y,1, 
+,CNTG_CLS_CODE,체결구분,string,Y,1, 
+,SHNU_RATE,매수비율,string,Y,1, 
+,PRDY_VOL_VRSS_ACML_VOL_RATE,전일거래량대비등락율,string,Y,1, 
+,OPRC_HOUR,시가시간,string,Y,6, 
+,OPRC_VRSS_PRPR_SIGN,시가대비구분,string,Y,1, 
+,OPRC_VRSS_PRPR,시가대비,string,Y,1, 
+,HGPR_HOUR,최고가시간,string,Y,6, 
+,HGPR_VRSS_PRPR_SIGN,고가대비구분,string,Y,1, 
+,HGPR_VRSS_PRPR,고가대비,string,Y,1, 
+,LWPR_HOUR,최저가시간,string,Y,6, 
+,LWPR_VRSS_PRPR_SIGN,저가대비구분,string,Y,1, 
+,LWPR_VRSS_PRPR,저가대비,string,Y,1, 
+,BSOP_DATE,영업일자,string,Y,8, 
+,NEW_MKOP_CLS_CODE,신장운영구분코드,string,Y,2, 
+,TRHT_YN,거래정지여부,string,Y,1, 
+,ASKP_RSQN1,매도호가잔량1,string,Y,1, 
+,BIDP_RSQN1,매수호가잔량1,string,Y,1, 
+,TOTAL_ASKP_RSQN,총매도호가잔량,string,Y,1, 
+,TOTAL_BIDP_RSQN,총매수호가잔량,string,Y,1, 
+,VOL_TNRT,거래량회전율,string,Y,1, 
+,PRDY_SMNS_HOUR_ACML_VOL,전일동시간누적거래량,string,Y,1, 
+,PRDY_SMNS_HOUR_ACML_VOL_RATE,전일동시간누적거래량비율,string,Y,1, 
+Example,,,,,,
+Request Example (Python),"{
+         ""header"":
+         {
+                  ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+                  ""custtype"":""P"",
+                  ""tr_type"":""1"",
+                  ""content-type"":""utf-8""
+         },
+         ""body"":
+         {
+                  ""input"":
+                  {
+                           ""tr_id"":""H0STOAC0"",
+                           ""tr_key"":""005930""
+                  }
+         }
+}",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0STOAC0"", 
+        ""tr_key"": ""005930"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output
+0|H0STOAC0|001|005930^164128^77700^2^100^0.13^78209.85^77600^77800^77
+600^77800^77700^82^82^6371400^2^2^0^71.12^6995^5511^1^0.38^69.15^161015^3^100^162004^5^
+-100^161015^3^100^20240503^49^N^71160^6882^24644^30955^0.00^0^0.00",,,,,
+
+국내지수 실시간체결: 표 1
+국내지수 실시간체결,,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내지수 실시간체결,,,,,
+API ID,실시간-026,,,,,
+실전 TR_ID,H0UPCNT0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0UPCNT0,,,,,
+개요,,,,,,
+개요,"[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+종목코드 마스터파일 파이썬 정제코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+ex) 0|H0STCNT0|004|005930^123929^73100^5^...
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id (ex. H0STCNT0)
+- 데이터 건수 : (ex. 001 인 경우 데이터 건수 1건, 004인 경우 데이터 건수 4건)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,36,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,B : 법인 / P : 개인
+,tr_type,등록/해제,string,Y,1,"""1: 등록, 2:해제"""
+,content-type,컨텐츠타입,string,Y,20,utf-8
+Request Body,tr_id,거래ID,string,Y,7,H0UPCNT0
+,tr_key,종목코드,string,Y,6,업종구분코드
+Response Header,,,,,,
+Response Body,bstp_cls_code,업종 구분 코드,object,Y,4,"'각 항목사이에는 구분자로 ^ 사용,
+모든 데이터타입은 String으로 변환되어 push 처리됨'"
+,bsop_hour,영업 시간,string,Y,6,  
+,prpr_nmix,현재가 지수,string,Y,1,  
+,prdy_vrss_sign,전일 대비 부호,string,Y,1,  
+,bstp_nmix_prdy_vrss,업종 지수 전일 대비,string,Y,1,  
+,acml_vol,누적 거래량,string,Y,1,  
+,acml_tr_pbmn,누적 거래 대금,string,Y,1,  
+,pcas_vol,건별 거래량,string,Y,1,  
+,pcas_tr_pbmn,건별 거래 대금,string,Y,1,  
+,prdy_ctrt,전일 대비율,string,Y,1,  
+,oprc_nmix,시가 지수,string,Y,1,  
+,nmix_hgpr,지수 최고가,string,Y,1,  
+,nmix_lwpr,지수 최저가,string,Y,1,  
+,oprc_vrss_nmix_prpr,시가 대비 지수 현재가,string,Y,1,  
+,oprc_vrss_nmix_sign,시가 대비 지수 부호,string,Y,1,  
+,hgpr_vrss_nmix_prpr,최고가 대비 지수 현재가,string,Y,1,  
+,hgpr_vrss_nmix_sign,최고가 대비 지수 부호,string,Y,1,  
+,lwpr_vrss_nmix_prpr,최저가 대비 지수 현재가,string,Y,1,  
+,lwpr_vrss_nmix_sign,최저가 대비 지수 부호,string,Y,1,  
+,prdy_clpr_vrss_oprc_rate,전일 종가 대비 시가2 비율,string,Y,1,  
+,prdy_clpr_vrss_hgpr_rate,전일 종가 대비 최고가 비율,string,Y,1,  
+,prdy_clpr_vrss_lwpr_rate,전일 종가 대비 최저가 비율,string,Y,1,  
+,uplm_issu_cnt,상한 종목 수,string,Y,1,  
+,ascn_issu_cnt,상승 종목 수,string,Y,1,  
+,stnr_issu_cnt,  보합 종목 수,string,Y,1,  
+,down_issu_cnt,하락 종목 수,string,Y,1,  
+,lslm_issu_cnt,  하한 종목 수,string,Y,1,  
+,qtqt_ascn_issu_cnt,기세 상승 종목수,string,Y,1,  
+,qtqt_down_issu_cnt,기세 하락 종목수,string,Y,1,  
+,tick_vrss,TICK대비,string,Y,1,  
+Example,,,,,,
+Request Example (Python),"{
+    ""header"": {
+        ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+        ""custtype"": ""P"",
+        ""tr_type"": ""1"",
+        ""content-type"": ""utf-8""
+    },
+    ""body"": {
+        ""input"": {
+            ""tr_id"": ""H0UPCNT0"",
+            ""tr_key"": ""0001""
+        }
+    }
+}",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0UPCNT0"", 
+        ""tr_key"": ""0001"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output
+0|H0UPCNT0|001|0001^091240^2624.54^2^32.68^63952^1650684^439^10335^1.26^2615
+.72^2624.82^2610.00^23.86^2^32.96^2^18.14^2^0.92^1.27^0.70^0^670^72^177^0^0^0^19",,,,,
+
+국내지수 실시간예상체결: 표 1
+국내지수 실시간예상체결,,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내지수 실시간예상체결,,,,,
+API ID,실시간-027,,,,,
+실전 TR_ID,H0UPANC0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0UPANC0,,,,,
+개요,,,,,,
+개요,"[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+종목코드 마스터파일 파이썬 정제코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+ex) 0|H0STCNT0|004|005930^123929^73100^5^...
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id (ex. H0STCNT0)
+- 데이터 건수 : (ex. 001 인 경우 데이터 건수 1건, 004인 경우 데이터 건수 4건)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,36,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,B : 법인 / P : 개인
+,tr_type,등록/해제,string,Y,1,"""1: 등록, 2:해제"""
+,content-type,컨텐츠타입,string,Y,20,utf-8
+Request Body,tr_id,거래ID,string,Y,7,H0UPANC0
+,tr_key,종목코드,string,Y,6,업종구분코드
+Response Header,,,,,,
+Response Body,BSTP_CLS_CODE,업종 구분 코드,object,Y,4,"'각 항목사이에는 구분자로 ^ 사용,
+모든 데이터타입은 String으로 변환되어 push 처리됨'"
+,BSOP_HOUR,영업 시간,string,Y,6,  
+,PRPR_NMIX,현재가 지수,string,Y,1,  
+,PRDY_VRSS_SIGN,전일 대비 부호,string,Y,1,  
+,BSTP_NMIX_PRDY_VRSS,업종 지수 전일 대비,string,Y,1,  
+,ACML_VOL,누적 거래량,string,Y,1,  
+,ACML_TR_PBMN,누적 거래 대금,string,Y,1,  
+,PCAS_VOL,건별 거래량,string,Y,1,  
+,PCAS_TR_PBMN,건별 거래 대금,string,Y,1,  
+,PRDY_CTRT,전일 대비율,string,Y,1,  
+,OPRC_NMIX,시가 지수,string,Y,1,  
+,NMIX_HGPR,지수 최고가,string,Y,1,  
+,NMIX_LWPR,지수 최저가,string,Y,1,  
+,OPRC_VRSS_NMIX_PRPR,시가 대비 지수 현재가,string,Y,1,  
+,OPRC_VRSS_NMIX_SIGN,시가 대비 지수 부호,string,Y,1,  
+,HGPR_VRSS_NMIX_PRPR,최고가 대비 지수 현재가,string,Y,1,  
+,HGPR_VRSS_NMIX_SIGN,최고가 대비 지수 부호,string,Y,1,  
+,LWPR_VRSS_NMIX_PRPR,최저가 대비 지수 현재가,string,Y,1,  
+,LWPR_VRSS_NMIX_SIGN,최저가 대비 지수 부호,string,Y,1,  
+,PRDY_CLPR_VRSS_OPRC_RATE,전일 종가 대비 시가2 비율,string,Y,1,  
+,PRDY_CLPR_VRSS_HGPR_RATE,전일 종가 대비 최고가 비율,string,Y,1,  
+,PRDY_CLPR_VRSS_LWPR_RATE,전일 종가 대비 최저가 비율,string,Y,1,  
+,UPLM_ISSU_CNT,상한 종목 수,string,Y,1,  
+,ASCN_ISSU_CNT,상승 종목 수,string,Y,1,  
+,STNR_ISSU_CNT,보합 종목 수,string,Y,1,  
+,DOWN_ISSU_CNT,하락 종목 수,string,Y,1,  
+,LSLM_ISSU_CNT,하한 종목 수,string,Y,1,  
+,QTQT_ASCN_ISSU_CNT,기세 상승 종목수,string,Y,1,  
+,QTQT_DOWN_ISSU_CNT,기세 하락 종목수,string,Y,1,  
+,TICK_VRSS,TICK대비,string,Y,1,  
+Example,,,,,,
+Request Example (Python),"{
+    ""header"": {
+        ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+        ""custtype"": ""P"",
+        ""tr_type"": ""1"",
+        ""content-type"": ""utf-8""
+    },
+    ""body"": {
+        ""input"": {
+            ""tr_id"": ""H0UPANC0"",
+            ""tr_key"": ""0001""
+        }
+    }
+}",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0UPANC0"", 
+        ""tr_key"": ""0001"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output
+0|H0UPANC0|001|0001^085910^2607.71^2^15.85^5424^192338^5424^192338^0.61^0^43
+9^201^251^201",,,,,
+
+국내지수 실시간프로그램매매: 표 1
+국내지수 실시간프로그램매매,,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내지수 실시간프로그램매매,,,,,
+API ID,실시간-028,,,,,
+실전 TR_ID,H0UPPGM0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0UPPGM0,,,,,
+개요,,,,,,
+개요,"[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+종목코드 마스터파일 파이썬 정제코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+ex) 0|H0STCNT0|004|005930^123929^73100^5^...
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id (ex. H0STCNT0)
+- 데이터 건수 : (ex. 001 인 경우 데이터 건수 1건, 004인 경우 데이터 건수 4건)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,36,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,B : 법인 / P : 개인
+,tr_type,등록/해제,string,Y,1,"""1: 등록, 2:해제"""
+,content-type,컨텐츠타입,string,Y,20,utf-8
+Request Body,tr_id,거래ID,string,Y,7,H0UPPGM0
+,tr_key,종목코드,string,Y,6,업종구분코드
+Response Header,,,,,,
+Response Body,BSTP_CLS_CODE,업종 구분 코드,object,Y,4,"'각 항목사이에는 구분자로 ^ 사용,
+모든 데이터타입은 String으로 변환되어 push 처리됨'"
+,BSOP_HOUR,영업 시간,string,Y,6,  
+,ARBT_SELN_ENTM_CNQN,차익 매도 위탁 체결량,string,Y,1,  
+,ARBT_SELN_ONSL_CNQN,차익 매도 자기 체결량,string,Y,1,  
+,ARBT_SHNU_ENTM_CNQN,차익 매수2 위탁 체결량,string,Y,1,  
+,ARBT_SHNU_ONSL_CNQN,차익 매수2 자기 체결량,string,Y,1,  
+,NABT_SELN_ENTM_CNQN,비차익 매도 위탁 체결량,string,Y,1,  
+,NABT_SELN_ONSL_CNQN,비차익 매도 자기 체결량,string,Y,1,  
+,NABT_SHNU_ENTM_CNQN,비차익 매수2 위탁 체결량,string,Y,1,  
+,NABT_SHNU_ONSL_CNQN,비차익 매수2 자기 체결량,string,Y,1,  
+,ARBT_SELN_ENTM_CNTG_AMT,차익 매도 위탁 체결 금액,string,Y,1,  
+,ARBT_SELN_ONSL_CNTG_AMT,차익 매도 자기 체결 금액,string,Y,1,  
+,ARBT_SHNU_ENTM_CNTG_AMT,차익 매수2 위탁 체결 금액,string,Y,1,  
+,ARBT_SHNU_ONSL_CNTG_AMT,차익 매수2 자기 체결 금액,string,Y,1,  
+,NABT_SELN_ENTM_CNTG_AMT,비차익 매도 위탁 체결 금액,string,Y,1,  
+,NABT_SELN_ONSL_CNTG_AMT,비차익 매도 자기 체결 금액,string,Y,1,  
+,NABT_SHNU_ENTM_CNTG_AMT,비차익 매수2 위탁 체결 금액,string,Y,1,  
+,NABT_SHNU_ONSL_CNTG_AMT,비차익 매수2 자기 체결 금액,string,Y,1,  
+,ARBT_SMTN_SELN_VOL,차익 합계 매도 거래량,string,Y,1,  
+,ARBT_SMTM_SELN_VOL_RATE,차익 합계 매도 거래량 비율,string,Y,1,  
+,ARBT_SMTN_SELN_TR_PBMN,차익 합계 매도 거래 대금,string,Y,1,  
+,ARBT_SMTM_SELN_TR_PBMN_RATE,차익 합계 매도 거래대금 비율,string,Y,1,  
+,ARBT_SMTN_SHNU_VOL,차익 합계 매수2 거래량,string,Y,1,  
+,ARBT_SMTM_SHNU_VOL_RATE,차익 합계 매수 거래량 비율,string,Y,1,  
+,ARBT_SMTN_SHNU_TR_PBMN,차익 합계 매수2 거래 대금,string,Y,1,  
+,ARBT_SMTM_SHNU_TR_PBMN_RATE,차익 합계 매수 거래대금 비율,string,Y,1,  
+,ARBT_SMTN_NTBY_QTY,차익 합계 순매수 수량,string,Y,1,  
+,ARBT_SMTM_NTBY_QTY_RATE,차익 합계 순매수 수량 비율,string,Y,1,  
+,ARBT_SMTN_NTBY_TR_PBMN,차익 합계 순매수 거래 대금,string,Y,1,  
+,ARBT_SMTM_NTBY_TR_PBMN_RATE,차익 합계 순매수 거래대금 비율,string,Y,1,  
+,NABT_SMTN_SELN_VOL,비차익 합계 매도 거래량,string,Y,1,  
+,NABT_SMTM_SELN_VOL_RATE,비차익 합계 매도 거래량 비율,string,Y,1,  
+,NABT_SMTN_SELN_TR_PBMN,비차익 합계 매도 거래 대금,string,Y,1,  
+,NABT_SMTM_SELN_TR_PBMN_RATE,비차익 합계 매도 거래대금 비율,string,Y,1,  
+,NABT_SMTN_SHNU_VOL,비차익 합계 매수2 거래량,string,Y,1,  
+,NABT_SMTM_SHNU_VOL_RATE,비차익 합계 매수 거래량 비율,string,Y,1,  
+,NABT_SMTN_SHNU_TR_PBMN,비차익 합계 매수2 거래 대금,string,Y,1,  
+,NABT_SMTM_SHNU_TR_PBMN_RATE,비차익 합계 매수 거래대금 비율,string,Y,1,  
+,NABT_SMTN_NTBY_QTY,비차익 합계 순매수 수량,string,Y,1,  
+,NABT_SMTM_NTBY_QTY_RATE,비차익 합계 순매수 수량 비율,string,Y,1,  
+,NABT_SMTN_NTBY_TR_PBMN,비차익 합계 순매수 거래 대금,string,Y,1,  
+,NABT_SMTM_NTBY_TR_PBMN_RATE,비차익 합계 순매수 거래대금 비,string,Y,1,  
+,WHOL_ENTM_SELN_VOL,전체 위탁 매도 거래량,string,Y,1,  
+,ENTM_SELN_VOL_RATE,위탁 매도 거래량 비율,string,Y,1,  
+,WHOL_ENTM_SELN_TR_PBMN,전체 위탁 매도 거래 대금,string,Y,1,  
+,ENTM_SELN_TR_PBMN_RATE,위탁 매도 거래대금 비율,string,Y,1,  
+,WHOL_ENTM_SHNU_VOL,전체 위탁 매수2 거래량,string,Y,1,  
+,ENTM_SHNU_VOL_RATE,위탁 매수 거래량 비율,string,Y,1,  
+,WHOL_ENTM_SHNU_TR_PBMN,전체 위탁 매수2 거래 대금,string,Y,1,  
+,ENTM_SHNU_TR_PBMN_RATE,위탁 매수 거래대금 비율,string,Y,1,  
+,WHOL_ENTM_NTBY_QT,전체 위탁 순매수 수량,string,Y,1,  
+,ENTM_NTBY_QTY_RAT,위탁 순매수 수량 비율,string,Y,1,  
+,WHOL_ENTM_NTBY_TR_PBMN,전체 위탁 순매수 거래 대금,string,Y,1,  
+,ENTM_NTBY_TR_PBMN_RATE,위탁 순매수 금액 비율,string,Y,1,  
+,WHOL_ONSL_SELN_VOL,전체 자기 매도 거래량,string,Y,1,  
+,ONSL_SELN_VOL_RATE,자기 매도 거래량 비율,string,Y,1,  
+,WHOL_ONSL_SELN_TR_PBMN,전체 자기 매도 거래 대금,string,Y,1,  
+,ONSL_SELN_TR_PBMN_RATE,자기 매도 거래대금 비율,string,Y,1,  
+,WHOL_ONSL_SHNU_VOL,전체 자기 매수2 거래량,string,Y,1,  
+,ONSL_SHNU_VOL_RATE,자기 매수 거래량 비율,string,Y,1,  
+,WHOL_ONSL_SHNU_TR_PBMN,전체 자기 매수2 거래 대금,string,Y,1,  
+,ONSL_SHNU_TR_PBMN_RATE,자기 매수 거래대금 비율,string,Y,1,  
+,WHOL_ONSL_NTBY_QTY,전체 자기 순매수 수량,string,Y,1,  
+,ONSL_NTBY_QTY_RATE,자기 순매수량 비율,string,Y,1,  
+,WHOL_ONSL_NTBY_TR_PBMN,전체 자기 순매수 거래 대금,string,Y,1,  
+,ONSL_NTBY_TR_PBMN_RATE,자기 순매수 대금 비율,string,Y,1,  
+,TOTAL_SELN_QTY,총 매도 수량,string,Y,1,  
+,WHOL_SELN_VOL_RATE,전체 매도 거래량 비율,string,Y,1,  
+,TOTAL_SELN_TR_PBMN,총 매도 거래 대금,string,Y,1,  
+,WHOL_SELN_TR_PBMN_RATE,전체 매도 거래대금 비율,string,Y,1,  
+,SHNU_CNTG_SMTN,총 매수 수량,string,Y,1,  
+,WHOL_SHUN_VOL_RATE,전체 매수 거래량 비율,string,Y,1,  
+,TOTAL_SHNU_TR_PBMN,총 매수2 거래 대금,string,Y,1,  
+,WHOL_SHUN_TR_PBMN_RATE,전체 매수 거래대금 비율,string,Y,1,  
+,WHOL_NTBY_QTY,전체 순매수 수량,string,Y,1,  
+,WHOL_SMTM_NTBY_QTY_RATE,전체 합계 순매수 수량 비율,string,Y,1,  
+,WHOL_NTBY_TR_PBMN,전체 순매수 거래 대금,string,Y,1,  
+,WHOL_NTBY_TR_PBMN_RATE,전체 순매수 거래대금 비율,string,Y,1,  
+,ARBT_ENTM_NTBY_QTY,차익 위탁 순매수 수량,string,Y,1,  
+,ARBT_ENTM_NTBY_TR_PBMN,차익 위탁 순매수 거래 대금,string,Y,1,  
+,ARBT_ONSL_NTBY_QTY,차익 자기 순매수 수량,string,Y,1,  
+,ARBT_ONSL_NTBY_TR_PBMN,차익 자기 순매수 거래 대금,string,Y,1,  
+,NABT_ENTM_NTBY_QTY,비차익 위탁 순매수 수량,string,Y,1,  
+,NABT_ENTM_NTBY_TR_PBMN,비차익 위탁 순매수 거래 대금,string,Y,1,  
+,NABT_ONSL_NTBY_QTY,비차익 자기 순매수 수량,string,Y,1,  
+,NABT_ONSL_NTBY_TR_PBMN,비차익 자기 순매수 거래 대금,string,Y,1,  
+,ACML_VOL,누적 거래량,string,Y,1,  
+,ACML_TR_PBMN,누적 거래 대금,string,Y,1,  
+Example,,,,,,
+Request Example (Python),"{
+    ""header"": {
+        ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+        ""custtype"": ""P"",
+        ""tr_type"": ""1"",
+        ""content-type"": ""utf-8""
+    },
+    ""body"": {
+        ""input"": {
+            ""tr_id"": ""H0UPPGM0"",
+            ""tr_key"": ""0001""
+        }
+    }
+}",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0UPPGM0"", 
+        ""tr_key"": ""0001"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output
+0|H0UPPGM0|001|0001^085913^0^0^0^0^0^0^1^0^0^0^0^0^1^0^10^0^0^0.00^0^0.00^0^
+0.00^0^0.00^0^0.00^0^0.00^0^0.00^1^0.00^1^0.00^10^0.00^1^0.00^9^0.00^0^0.00^1^0.00^1^0.00^10^0
+.00^1^0.00^9^0.00^0^0.00^0^0.00^0^0.00^0^0.00^0^0.00^0^0.00^0^0.00^1^0.00^1^0.00^10^0.00^1^0.0
+0^9^0.00^0^0^0^0^1^9^0^0^0^0",,,,,
+
+ELW 실시간호가: 표 1
+ELW 실시간호가,,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,ELW 실시간호가,,,,,
+API ID,실시간-062,,,,,
+실전 TR_ID,H0EWASP0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0EWASP0,,,,,
+개요,,,,,,
+개요,"ELW 실시간호가 API입니다.
+
+[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+종목코드 마스터파일 파이썬 정제코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
+
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+ex) 0|H0STCNT0|004|005930^123929^73100^5^...
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id (ex. H0STCNT0)
+- 데이터 건수 : (ex. 001 인 경우 데이터 건수 1건, 004인 경우 데이터 건수 4건)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,36,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,B : 법인 / P : 개인
+,tr_type,등록/해제,string,Y,1,"1: 등록, 2:해제"
+,content-type,컨텐츠타입,string,Y,20,utf-8
+Request Body,tr_id,거래ID,string,Y,2,H0EWASP0
+,tr_key,구분값,string,Y,12,ELW 종목코드(ex. 57LA24)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권단축종목코드,string,Y,9, 
+,BSOP_HOUR,영업시간,string,Y,6, 
+,HOUR_CLS_CODE,시간구분코드,string,Y,1, 
+,ASKP1,매도호가1,string,Y,1, 
+,ASKP2,매도호가2,string,Y,1, 
+,ASKP3,매도호가3,string,Y,1, 
+,ASKP4,매도호가4,string,Y,1, 
+,ASKP5,매도호가5,string,Y,1, 
+,ASKP6,매도호가6,string,Y,1, 
+,ASKP7,매도호가7,string,Y,1, 
+,ASKP8,매도호가8,string,Y,1, 
+,ASKP9,매도호가9,string,Y,1, 
+,ASKP10,매도호가10,string,Y,1, 
+,BIDP1,매수호가1,string,Y,1, 
+,BIDP2,매수호가2,string,Y,1, 
+,BIDP3,매수호가3,string,Y,1, 
+,BIDP4,매수호가4,string,Y,1, 
+,BIDP5,매수호가5,string,Y,1, 
+,BIDP6,매수호가6,string,Y,1, 
+,BIDP7,매수호가7,string,Y,1, 
+,BIDP8,매수호가8,string,Y,1, 
+,BIDP9,매수호가9,string,Y,1, 
+,BIDP10,매수호가10,string,Y,1, 
+,ASKP_RSQN1,매도호가잔량1,string,Y,1, 
+,ASKP_RSQN2,매도호가잔량2,string,Y,1, 
+,ASKP_RSQN3,매도호가잔량3,string,Y,1, 
+,ASKP_RSQN4,매도호가잔량4,string,Y,1, 
+,ASKP_RSQN5,매도호가잔량5,string,Y,1, 
+,ASKP_RSQN6,매도호가잔량6,string,Y,1, 
+,ASKP_RSQN7,매도호가잔량7,string,Y,1, 
+,ASKP_RSQN8,매도호가잔량8,string,Y,1, 
+,ASKP_RSQN9,매도호가잔량9,string,Y,1, 
+,ASKP_RSQN10,매도호가잔량10,string,Y,1, 
+,BIDP_RSQN1,매수호가잔량1,string,Y,1, 
+,BIDP_RSQN2,매수호가잔량2,string,Y,1, 
+,BIDP_RSQN3,매수호가잔량3,string,Y,1, 
+,BIDP_RSQN4,매수호가잔량4,string,Y,1, 
+,BIDP_RSQN5,매수호가잔량5,string,Y,1, 
+,BIDP_RSQN6,매수호가잔량6,string,Y,1, 
+,BIDP_RSQN7,매수호가잔량7,string,Y,1, 
+,BIDP_RSQN8,매수호가잔량8,string,Y,1, 
+,BIDP_RSQN9,매수호가잔량9,string,Y,1, 
+,BIDP_RSQN10,매수호가잔량10,string,Y,1, 
+,TOTAL_ASKP_RSQN,총매도호가잔량,string,Y,1, 
+,TOTAL_BIDP_RSQN,총매수호가잔량,string,Y,1, 
+,ANTC_CNPR,예상체결가,string,Y,1, 
+,ANTC_CNQN,예상체결량,string,Y,1, 
+,ANTC_CNTG_VRSS_SIGN,예상체결대비부호,string,Y,1, 
+,ANTC_CNTG_VRSS,예상체결대비,string,Y,1, 
+,ANTC_CNTG_PRDY_CTRT,예상체결전일대비율,string,Y,1, 
+,LP_ASKP_RSQN1,LP매도호가잔량1,string,Y,1, 
+,LP_ASKP_RSQN2,LP매도호가잔량2,string,Y,1, 
+,LP_ASKP_RSQN3,LP매도호가잔량3,string,Y,1, 
+,LP_BIDP_RSQN4,LP매수호가잔량4,string,Y,1, 
+,LP_ASKP_RSQN4,LP매도호가잔량4,string,Y,1, 
+,LP_BIDP_RSQN5,LP매수호가잔량5,string,Y,1, 
+,LP_ASKP_RSQN5,LP매도호가잔량5,string,Y,1, 
+,LP_BIDP_RSQN6,LP매수호가잔량6,string,Y,1, 
+,LP_ASKP_RSQN6,LP매도호가잔량6,string,Y,1, 
+,LP_BIDP_RSQN7,LP매수호가잔량7,string,Y,1, 
+,LP_ASKP_RSQN7,LP매도호가잔량7,string,Y,1, 
+,LP_ASKP_RSQN8,LP매도호가잔량8,string,Y,1, 
+,LP_BIDP_RSQN8,LP매수호가잔량8,string,Y,1, 
+,LP_ASKP_RSQN9,LP매도호가잔량9,string,Y,1, 
+,LP_BIDP_RSQN9,LP매수호가잔량9,string,Y,1, 
+,LP_ASKP_RSQN10,LP매도호가잔량10,string,Y,1, 
+,LP_BIDP_RSQN10,LP매수호가잔량10,string,Y,1, 
+,LP_BIDP_RSQN1,LP매수호가잔량1,string,Y,1, 
+,LP_TOTAL_ASKP_RSQN,LP총매도호가잔량,string,Y,1, 
+,LP_BIDP_RSQN2,LP매수호가잔량2,string,Y,1, 
+,LP_TOTAL_BIDP_RSQN,LP총매수호가잔량,string,Y,1, 
+,LP_BIDP_RSQN3,LP매수호가잔량3,string,Y,1, 
+,ANTC_VOL,예상거래량,string,Y,1, 
+Example,,,,,,
+Request Example (Python),"{
+         ""header"":
+         {
+                  ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+                  ""custtype"":""P"",
+                  ""tr_type"":""1"",
+                  ""content-type"":""utf-8""
+         },
+         ""body"":
+         {
+                  ""input"":
+                  {
+                           ""tr_id"":""H0EWASP0"",
+                           ""tr_key"":""57JN53""
+                  }
+         }
+}",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0EWASP0"", 
+        ""tr_key"": ""57JN53"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output
+0|H0EWASP0|001|57JN53^090333^0^270^275^280^285^290^295^300^305^310
+^315^265^260^255^250^245^240^235^230^225^220^132730^144770^53560^139510^104910^16386
+0^111580^41530^66600^41040^119950^176460^142150^218620^148250^160210^154250^141660^1
+40270^160640^1000090^1562460^0^0^3^0^0.00^0^0^0^0^0^0^0^0^0^0^0^0^0^0^0^0^0^0^0^0^0^
+0^0",,,,,
+
+ELW 실시간체결가: 표 1
+ELW 실시간체결가,,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,ELW 실시간체결가,,,,,
+API ID,실시간-061,,,,,
+실전 TR_ID,H0EWCNT0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0EWCNT0,,,,,
+개요,,,,,,
+개요,"ELW 실시간체결가 API입니다.
+
+[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+종목코드 마스터파일 파이썬 정제코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
+
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+ex) 0|H0STCNT0|004|005930^123929^73100^5^...
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id (ex. H0STCNT0)
+- 데이터 건수 : (ex. 001 인 경우 데이터 건수 1건, 004인 경우 데이터 건수 4건)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,36,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,B : 법인 / P : 개인
+,tr_type,등록/해제,string,Y,1,"1: 등록, 2:해제"
+,content-type,컨텐츠타입,string,Y,20,utf-8
+Request Body,tr_id,거래ID,string,Y,2,H0EWCNT0
+,tr_key,구분값,string,Y,12,ELW 종목코드(ex. 57LA24)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권단축종목코드,string,Y,9, 
+,STCK_CNTG_HOUR,주식체결시간,string,Y,6, 
+,STCK_PRPR,주식현재가,string,Y,4, 
+,PRDY_VRSS_SIGN,전일대비부호,string,Y,1, 
+,PRDY_VRSS,전일대비,string,Y,4, 
+,PRDY_CTRT,전일대비율,string,Y,8, 
+,WGHN_AVRG_STCK_PRC,가중평균주식가격,string,Y,8, 
+,STCK_OPRC,주식시가2,string,Y,4, 
+,STCK_HGPR,주식최고가,string,Y,4, 
+,STCK_LWPR,주식최저가,string,Y,4, 
+,ASKP1,매도호가1,string,Y,4, 
+,BIDP1,매수호가1,string,Y,4, 
+,CNTG_VOL,체결거래량,string,Y,8, 
+,ACML_VOL,누적거래량,string,Y,8, 
+,ACML_TR_PBMN,누적거래대금,string,Y,8, 
+,SELN_CNTG_CSNU,매도체결건수,string,Y,4, 
+,SHNU_CNTG_CSNU,매수체결건수,string,Y,4, 
+,NTBY_CNTG_CSNU,순매수체결건수,string,Y,4, 
+,CTTR,체결강도,string,Y,8, 
+,SELN_CNTG_SMTN,총매도수량,string,Y,8, 
+,SHNU_CNTG_SMTN,총매수수량,string,Y,8, 
+,CNTG_CLS_CODE,체결구분코드,string,Y,1, 
+,SHNU_RATE,매수2비율,string,Y,8, 
+,PRDY_VOL_VRSS_ACML_VOL_RATE,전일거래량대비등락율,string,Y,8, 
+,OPRC_HOUR,시가시간,string,Y,6, 
+,OPRC_VRSS_PRPR_SIGN,시가2대비현재가부호,string,Y,1, 
+,OPRC_VRSS_PRPR,시가2대비현재가,string,Y,4, 
+,HGPR_HOUR,최고가시간,string,Y,6, 
+,HGPR_VRSS_PRPR_SIGN,최고가대비현재가부호,string,Y,1, 
+,HGPR_VRSS_PRPR,최고가대비현재가,string,Y,4, 
+,LWPR_HOUR,최저가시간,string,Y,6, 
+,LWPR_VRSS_PRPR_SIGN,최저가대비현재가부호,string,Y,1, 
+,LWPR_VRSS_PRPR,최저가대비현재가,string,Y,4, 
+,BSOP_DATE,영업일자,string,Y,8, 
+,NEW_MKOP_CLS_CODE,신장운영구분코드,string,Y,2, 
+,TRHT_YN,거래정지여부,string,Y,1, 
+,ASKP_RSQN1,매도호가잔량1,string,Y,8, 
+,BIDP_RSQN1,매수호가잔량1,string,Y,8, 
+,TOTAL_ASKP_RSQN,총매도호가잔량,string,Y,8, 
+,TOTAL_BIDP_RSQN,총매수호가잔량,string,Y,8, 
+,TMVL_VAL,시간가치값,string,Y,8, 
+,PRIT,패리티,string,Y,8, 
+,PRMM_VAL,프리미엄값,string,Y,8, 
+,GEAR,기어링,string,Y,8, 
+,PRLS_QRYR_RATE,손익분기비율,string,Y,8, 
+,INVL_VAL,내재가치값,string,Y,8, 
+,PRMM_RATE,프리미엄비율,string,Y,8, 
+,CFP,자본지지점,string,Y,8, 
+,LVRG_VAL,레버리지값,string,Y,8, 
+,DELTA,델타,string,Y,8, 
+,GAMA,감마,string,Y,8, 
+,VEGA,베가,string,Y,8, 
+,THETA,세타,string,Y,8, 
+,RHO,로우,string,Y,8, 
+,HTS_INTS_VLTL,HTS내재변동성,string,Y,8, 
+,HTS_THPR,HTS이론가,string,Y,8, 
+,VOL_TNRT,거래량회전율,string,Y,8, 
+,PRDY_SMNS_HOUR_ACML_VOL,전일동시간누적거래량,string,Y,8, 
+,PRDY_SMNS_HOUR_ACML_VOL_RATE,전일동시간누적거래량비율,string,Y,8, 
+,APPRCH_RATE,접근도,string,Y,8, 
+,LP_HVOL,LP보유량,string,Y,8, 
+,LP_HLDN_RATE,LP보유비율,string,Y,8, 
+,LP_NTBY_QTY,LP순매도량,string,Y,8, 
+Example,,,,,,
+Request Example (Python),"{
+         ""header"":
+         {
+                  ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+                  ""custtype"":""P"",
+                  ""tr_type"":""1"",
+                  ""content-type"":""utf-8""
+         },
+         ""body"":
+         {
+                  ""input"":
+                  {
+                           ""tr_id"":""H0EWCNT0"",
+                           ""tr_key"":""57JN53""
+                  }
+         }
+}",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0EWCNT0"", 
+        ""tr_key"": ""57JN53"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output
+0|H0EWCNT0|001|57JN53^090333^265^2^50^23.26^285.39^305^310^255^265
+^260^50^5071350^1447312100^560^310^-250^78.69^2650440^2085570^1^0.42^11.49^090019^5^
+-40^090019^5^-45^090316^2^10^20240426^20^N^33300^181460^992350^1655180^265.00^98.62^
+1.99^133.32^2.14^0.00^0.00^2.15^49.09^0.37^0.03^24.30^29.04^4.15^17.94^293.24^50.71^
+0^0.00^0.00^0^0.00^0",,,,,
+
+ELW 실시간예상체결: 표 1
+ELW 실시간예상체결,,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,ELW 실시간예상체결,,,,,
+API ID,실시간-063,,,,,
+실전 TR_ID,H0EWANC0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0EWANC0,,,,,
+개요,,,,,,
+개요,"ELW 실시간예상체결 API입니다.
+
+[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+종목코드 마스터파일 파이썬 정제코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info
+
+
+[호출 데이터]
+헤더와 바디 값을 합쳐 JSON 형태로 전송합니다.
+
+[응답 데이터]
+1. 정상 등록 여부 (JSON)
+- JSON[""body""][""msg1""] - 정상 응답 시, SUBSCRIBE SUCCESS
+- JSON[""body""][""output""][""iv""] - 실시간 결과 복호화에 필요한 AES256 IV (Initialize Vector)
+- JSON[""body""][""output""][""key""] - 실시간 결과 복호화에 필요한 AES256 Key
+
+2. 실시간 결과 응답 ( | 로 구분되는 값)
+ex) 0|H0STCNT0|004|005930^123929^73100^5^...
+- 암호화 유무 : 0 암호화 되지 않은 데이터 / 1 암호화된 데이터
+- TR_ID : 등록한 tr_id (ex. H0STCNT0)
+- 데이터 건수 : (ex. 001 인 경우 데이터 건수 1건, 004인 경우 데이터 건수 4건)
+- 응답 데이터 : 아래 response 데이터 참조 ( ^로 구분됨)",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,36,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,B : 법인 / P : 개인
+,tr_type,등록/해제,string,Y,1,"1: 등록, 2:해제"
+,content-type,컨텐츠타입,string,Y,20,utf-8
+Request Body,tr_id,거래ID,string,Y,2,H0EWANC0
+,tr_key,구분값,string,Y,12,ELW 종목코드(ex. 57LA24)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권단축종목코드,string,Y,9, 
+,STCK_CNTG_HOUR,주식체결시간,string,Y,6, 
+,STCK_PRPR,주식현재가,string,Y,1, 
+,PRDY_VRSS_SIGN,전일대비부호,string,Y,1, 
+,PRDY_VRSS,전일대비,string,Y,1, 
+,PRDY_CTRT,전일대비율,string,Y,1, 
+,WGHN_AVRG_STCK_PRC,가중평균주식가격,string,Y,1, 
+,STCK_OPRC,주식시가2,string,Y,1, 
+,STCK_HGPR,주식최고가,string,Y,1, 
+,STCK_LWPR,주식최저가,string,Y,1, 
+,ASKP1,매도호가1,string,Y,1, 
+,BIDP1,매수호가1,string,Y,1, 
+,CNTG_VOL,체결거래량,string,Y,1, 
+,ACML_VOL,누적거래량,string,Y,1, 
+,ACML_TR_PBMN,누적거래대금,string,Y,1, 
+,SELN_CNTG_CSNU,매도체결건수,string,Y,1, 
+,SHNU_CNTG_CSNU,매수체결건수,string,Y,1, 
+,NTBY_CNTG_CSNU,순매수체결건수,string,Y,1, 
+,CTTR,체결강도,string,Y,1, 
+,SELN_CNTG_SMTN,총매도수량,string,Y,1, 
+,SHNU_CNTG_SMTN,총매수수량,string,Y,1, 
+,CNTG_CLS_CODE,체결구분코드,string,Y,1, 
+,SHNU_RATE,매수2비율,string,Y,1, 
+,PRDY_VOL_VRSS_ACML_VOL_RATE,전일거래량대비등락율,string,Y,1, 
+,OPRC_HOUR,시가시간,string,Y,6, 
+,OPRC_VRSS_PRPR_SIGN,시가2대비현재가부호,string,Y,1, 
+,OPRC_VRSS_PRPR,시가2대비현재가,string,Y,1, 
+,HGPR_HOUR,최고가시간,string,Y,6, 
+,HGPR_VRSS_PRPR_SIGN,최고가대비현재가부호,string,Y,1, 
+,HGPR_VRSS_PRPR,최고가대비현재가,string,Y,1, 
+,LWPR_HOUR,최저가시간,string,Y,6, 
+,LWPR_VRSS_PRPR_SIGN,최저가대비현재가부호,string,Y,1, 
+,LWPR_VRSS_PRPR,최저가대비현재가,string,Y,1, 
+,BSOP_DATE,영업일자,string,Y,8, 
+,NEW_MKOP_CLS_CODE,신장운영구분코드,string,Y,2, 
+,TRHT_YN,거래정지여부,string,Y,1, 
+,ASKP_RSQN1,매도호가잔량1,string,Y,1, 
+,BIDP_RSQN1,매수호가잔량1,string,Y,1, 
+,TOTAL_ASKP_RSQN,총매도호가잔량,string,Y,1, 
+,TOTAL_BIDP_RSQN,총매수호가잔량,string,Y,1, 
+,TMVL_VAL,시간가치값,string,Y,1, 
+,PRIT,패리티,string,Y,1, 
+,PRMM_VAL,프리미엄값,string,Y,1, 
+,GEAR,기어링,string,Y,1, 
+,PRLS_QRYR_RATE,손익분기비율,string,Y,1, 
+,INVL_VAL,내재가치값,string,Y,1, 
+,PRMM_RATE,프리미엄비율,string,Y,1, 
+,CFP,자본지지점,string,Y,1, 
+,LVRG_VAL,레버리지값,string,Y,1, 
+,DELTA,델타,string,Y,1, 
+,GAMA,감마,string,Y,1, 
+,VEGA,베가,string,Y,1, 
+,THETA,세타,string,Y,1, 
+,RHO,로우,string,Y,1, 
+,HTS_INTS_VLTL,HTS내재변동성,string,Y,1, 
+,HTS_THPR,HTS이론가,string,Y,1, 
+,VOL_TNRT,거래량회전율,string,Y,1, 
+,LP_HVOL,LP보유량,string,Y,1, 
+,LP_HLDN_RATE,LP보유비율,string,Y,1, 
+Example,,,,,,
+Request Example (Python),"{
+         ""header"":
+         {
+                  ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+                  ""custtype"":""P"",
+                  ""tr_type"":""1"",
+                  ""content-type"":""utf-8""
+         },
+         ""body"":
+         {
+                  ""input"":
+                  {
+                           ""tr_id"":""H0EWANC0"",
+                           ""tr_key"":""57JN53""
+                  }
+         }
+}",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0EWANC0"", 
+        ""tr_key"": ""57JN53"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output",,,,,
+
+국내ETF NAV추이: 표 1
+국내ETF NAV추이,,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내ETF NAV추이,,,,,
+API ID,실시간-051,,,,,
+실전 TR_ID,H0STNAV0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0STNAV0,,,,,
+개요,,,,,,
+개요,"[참고자료]
+실시간시세(웹소켓) 파이썬 샘플코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/blob/main/websocket/python/ws_domestic_overseas_all.py
+
+실시간시세(웹소켓) API 사용방법에 대한 자세한 설명은 한국투자증권 Wikidocs 참고 부탁드립니다.
+https://wikidocs.net/book/7847 (국내주식 업데이트 완료, 추후 해외주식·국내선물옵션 업데이트 예정)
+
+종목코드 마스터파일 파이썬 정제코드는 한국투자증권 Github 참고 부탁드립니다.
+https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info",,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,36,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,B : 법인 / P : 개인
+,tr_type,등록/해제,string,Y,1,"1: 등록, 2:해제"
+,content-type,컨텐츠타입 ,string,Y,20,utf-8
+Request Body,tr_id,거래ID,string,Y,2,H0STNAV0
+,tr_key,구분값,string,Y,12,종목코드 (ex. 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권단축종목코드,string,Y,9, 
+,NAV,NAV,string,Y,8, 
+,NAV_PRDY_VRSS_SIGN,NAV전일대비부호,string,Y,1, 
+,NAV_PRDY_VRSS,NAV전일대비,string,Y,8, 
+,NAV_PRDY_CTRT,NAV전일대비율,string,Y,8, 
+,OPRC_NAV,NAV시가,string,Y,8, 
+,HPRC_NAV,NAV고가,string,Y,8, 
+,LPRC_NAV,NAV저가,string,Y,8, 
+Example,,,,,,
+Request Example (Python),"{
+         ""header"":
+         {
+                  ""approval_key"": ""35xxxxxa-bxxa-4xxb-87xxx-f56xxxxxxxxxx"",
+                  ""custtype"":""P"",
+                  ""tr_type"":""1"",
+                  ""content-type"":""utf-8""
+         },
+         ""body"":
+         {
+                  ""input"":
+                  {
+                           ""tr_id"":""H0STNAV0"",
+                           ""tr_key"":""069500""
+                  }
+         }
+}",,,,,
+Response Example,"# 연결 확인
+{
+    ""header"": {
+        ""tr_id"": ""H0STNAV0"", 
+        ""tr_key"": ""069500"", 
+        ""encrypt"": ""N""
+        }, 
+    ""body"": {
+        ""rt_cd"": ""0"", 
+        ""msg_cd"": ""OPSP0000"",
+        ""msg1"": ""SUBSCRIBE SUCCESS"", 
+        ""output"": {
+            ""iv"": ""0123456789abcdef"", 
+            ""key"": ""abcdefghijklmnopabcdefghijklmnop""}
+        }
+}
+
+# output
+0|H0STNAV0|001|069500^37235.46^5^-381.26^-1.01^37646.25^37646.25^37202.10",,,,,
+
+국내주식 실시간체결가 (통합): 표 1
+국내주식 실시간체결가 (통합),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간체결가 (통합),,,,,
+API ID,국내주식 실시간체결가 (통합),,,,,
+실전 TR_ID,H0UNCNT0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0UNCNT0,,,,,
+개요,,,,,,
+개요,,,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,N,286,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객타입,string,N,1,B : 법인 P : 개인
+,tr_type,거래타입,string,N,1,1 : 등록 2 : 해제
+,content-type,컨텐츠타입,string,N,1,utf-8
+Request Body,tr_id,거래ID,string,Y,2,H0UNCNT0 : 실시간 주식 체결가 통합
+,tr_key,구분값,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권 단축 종목코드,string,Y,9, 
+,STCK_CNTG_HOUR,주식 체결 시간,string,Y,6, 
+,STCK_PRPR,주식 현재가,string,Y,4, 
+,PRDY_VRSS_SIGN,전일 대비 부호,string,Y,1, 
+,PRDY_VRSS,전일 대비,string,Y,4, 
+,PRDY_CTRT,전일 대비율,string,Y,8, 
+,WGHN_AVRG_STCK_PRC,가중 평균 주식 가격,string,Y,8, 
+,STCK_OPRC,주식 시가,string,Y,4, 
+,STCK_HGPR,주식 최고가,string,Y,4, 
+,STCK_LWPR,주식 최저가,string,Y,4, 
+,ASKP1,매도호가1,string,Y,4, 
+,BIDP1,매수호가1,string,Y,4, 
+,CNTG_VOL,체결 거래량,string,Y,8, 
+,ACML_VOL,누적 거래량,string,Y,8, 
+,ACML_TR_PBMN,누적 거래 대금,string,Y,8, 
+,SELN_CNTG_CSNU,매도 체결 건수,string,Y,4, 
+,SHNU_CNTG_CSNU,매수 체결 건수,string,Y,4, 
+,NTBY_CNTG_CSNU,순매수 체결 건수,string,Y,4, 
+,CTTR,체결강도,string,Y,8, 
+,SELN_CNTG_SMTN,총 매도 수량,string,Y,8, 
+,SHNU_CNTG_SMTN,총 매수 수량,string,Y,8, 
+,CNTG_CLS_CODE,체결구분,string,Y,1, 
+,SHNU_RATE,매수비율,string,Y,8, 
+,PRDY_VOL_VRSS_ACML_VOL_RATE,전일 거래량 대비 등락율,string,Y,8, 
+,OPRC_HOUR,시가 시간,string,Y,6, 
+,OPRC_VRSS_PRPR_SIGN,시가대비구분,string,Y,1, 
+,OPRC_VRSS_PRPR,시가대비,string,Y,4, 
+,HGPR_HOUR,최고가 시간,string,Y,6, 
+,HGPR_VRSS_PRPR_SIGN,고가대비구분,string,Y,1, 
+,HGPR_VRSS_PRPR,고가대비,string,Y,4, 
+,LWPR_HOUR,최저가 시간,string,Y,6, 
+,LWPR_VRSS_PRPR_SIGN,저가대비구분,string,Y,1, 
+,LWPR_VRSS_PRPR,저가대비,string,Y,4, 
+,BSOP_DATE,영업 일자,string,Y,8, 
+,NEW_MKOP_CLS_CODE,신 장운영 구분 코드,string,Y,2, 
+,TRHT_YN,거래정지 여부,string,Y,1, 
+,ASKP_RSQN1,매도호가 잔량1,string,Y,8, 
+,BIDP_RSQN1,매수호가 잔량1,string,Y,8, 
+,TOTAL_ASKP_RSQN,총 매도호가 잔량,string,Y,8, 
+,TOTAL_BIDP_RSQN,총 매수호가 잔량,string,Y,8, 
+,VOL_TNRT,거래량 회전율,string,Y,8, 
+,PRDY_SMNS_HOUR_ACML_VOL,전일 동시간 누적 거래량,string,Y,8, 
+,PRDY_SMNS_HOUR_ACML_VOL_RATE,전일 동시간 누적 거래량 비율,string,Y,8, 
+,HOUR_CLS_CODE,시간 구분 코드,string,Y,1, 
+,MRKT_TRTM_CLS_CODE,임의종료구분코드,string,Y,1, 
+,VI_STND_PRC,정적VI발동기준가,string,Y,4, 
+Example,,,,,,
+Request Example (Python),,,,,,
+Response Example,,,,,,
+
+국내주식 실시간호가 (통합): 표 1
+국내주식 실시간호가 (통합),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간호가 (통합),,,,,
+API ID,국내주식 실시간호가 (통합),,,,,
+실전 TR_ID,H0UNASP0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0UNASP0,,,,,
+개요,,,,,,
+개요,,,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,N,286,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객타입,string,N,1,"'B : 법인
+P : 개인'"
+,tr_type,거래타입,string,N,1,"'1 : 등록
+2 : 해제'"
+,content-type,컨텐츠타입,string,N,1,'	utf-8'
+Request Body,tr_id,거래ID,string,Y,2,H0UNASP0 : 실시간 주식 체결가 통합
+,tr_key,구분값,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권 단축 종목코드,string,Y,9, 
+,BSOP_HOUR,영업 시간,string,Y,6, 
+,HOUR_CLS_CODE,시간 구분 코드,string,Y,1, 
+,ASKP1,매도호가1,string,Y,4, 
+,ASKP2,매도호가2,string,Y,4, 
+,ASKP3,매도호가3,string,Y,4, 
+,ASKP4,매도호가4,string,Y,4, 
+,ASKP5,매도호가5,string,Y,4, 
+,ASKP6,매도호가6,string,Y,4, 
+,ASKP7,매도호가7,string,Y,4, 
+,ASKP8,매도호가8,string,Y,4, 
+,ASKP9,매도호가9,string,Y,4, 
+,ASKP10,매도호가10,string,Y,4, 
+,BIDP1,매수호가1,string,Y,4, 
+,BIDP2,매수호가2,string,Y,4, 
+,BIDP3,매수호가3,string,Y,4, 
+,BIDP4,매수호가4,string,Y,4, 
+,BIDP5,매수호가5,string,Y,4, 
+,BIDP6,매수호가6,string,Y,4, 
+,BIDP7,매수호가7,string,Y,4, 
+,BIDP8,매수호가8,string,Y,4, 
+,BIDP9,매수호가9,string,Y,4, 
+,BIDP10,매수호가10,string,Y,4, 
+,ASKP_RSQN1,매도호가 잔량1,string,Y,8, 
+,ASKP_RSQN2,매도호가 잔량2,string,Y,8, 
+,ASKP_RSQN3,매도호가 잔량3,string,Y,8, 
+,ASKP_RSQN4,매도호가 잔량4,string,Y,8, 
+,ASKP_RSQN5,매도호가 잔량5,string,Y,8, 
+,ASKP_RSQN6,매도호가 잔량6,string,Y,8, 
+,ASKP_RSQN7,매도호가 잔량7,string,Y,8, 
+,ASKP_RSQN8,매도호가 잔량8,string,Y,8, 
+,ASKP_RSQN9,매도호가 잔량9,string,Y,8, 
+,ASKP_RSQN10,매도호가 잔량10,string,Y,8, 
+,BIDP_RSQN1,매수호가 잔량1,string,Y,8, 
+,BIDP_RSQN2,매수호가 잔량2,string,Y,8, 
+,BIDP_RSQN3,매수호가 잔량3,string,Y,8, 
+,BIDP_RSQN4,매수호가 잔량4,string,Y,8, 
+,BIDP_RSQN5,매수호가 잔량5,string,Y,8, 
+,BIDP_RSQN6,매수호가 잔량6,string,Y,8, 
+,BIDP_RSQN7,매수호가 잔량7,string,Y,8, 
+,BIDP_RSQN8,매수호가 잔량8,string,Y,8, 
+,BIDP_RSQN9,매수호가 잔량9,string,Y,8, 
+,BIDP_RSQN10,매수호가 잔량10,string,Y,8, 
+,TOTAL_ASKP_RSQN,총 매도호가 잔량,string,Y,8, 
+,TOTAL_BIDP_RSQN,총 매수호가 잔량,string,Y,8, 
+,OVTM_TOTAL_ASKP_RSQN,시간외 총 매도호가 잔량,string,Y,8, 
+,OVTM_TOTAL_BIDP_RSQN,시간외 총 매수호가 잔량,string,Y,8, 
+,ANTC_CNPR,예상 체결가,string,Y,4, 
+,ANTC_CNQN,예상 체결량,string,Y,8, 
+,ANTC_VOL,예상 거래량,string,Y,8, 
+,ANTC_CNTG_VRSS,예상 체결 대비,string,Y,4, 
+,ANTC_CNTG_VRSS_SIGN,예상 체결 대비 부호,string,Y,1, 
+,ANTC_CNTG_PRDY_CTRT,예상 체결 전일 대비율,string,Y,8, 
+,ACML_VOL,누적 거래량,string,Y,8, 
+,TOTAL_ASKP_RSQN_ICDC,총 매도호가 잔량 증감,string,Y,4, 
+,TOTAL_BIDP_RSQN_ICDC,총 매수호가 잔량 증감,string,Y,4, 
+,OVTM_TOTAL_ASKP_ICDC,시간외 총 매도호가 증감,string,Y,4, 
+,OVTM_TOTAL_BIDP_ICDC,시간외 총 매수호가 증감,string,Y,4, 
+,STCK_DEAL_CLS_CODE,주식 매매 구분 코드,string,Y,2, 
+,KMID_PRC,KRX 중간가,string,Y,4, 
+,KMID_TOTAL_RSQN,KRX 중간가잔량합계수량,string,Y,8, 
+,KMID_CLS_CODE,KRX 중간가 매수매도 구분,string,Y,1, 
+,NMID_PRC,NXT 중간가,string,Y,4, 
+,NMID_TOTAL_RSQN,NXT 중간가잔량합계수량,string,Y,8, 
+,NMID_CLS_CODE,NXT 중간가 매수매도 구분,string,Y,1, 
+Example,,,,,,
+Request Example (Python),,,,,,
+Response Example,,,,,,
+
+국내주식 실시간예상체결 (통합): 표 1
+국내주식 실시간예상체결 (통합),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간예상체결 (통합),,,,,
+API ID,국내주식 실시간예상체결 (통합),,,,,
+실전 TR_ID,H0UNANC0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0UNANC0,,,,,
+개요,,,,,,
+개요,,,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,286,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,"B : 법인 
+P : 개인"
+,tr_type,거래타입,string,Y,1,"1 : 등록
+2 : 해제"
+,content-type,컨텐츠타입,string,Y,1,utf-8
+Request Body,tr_id,거래ID,string,Y,2,"[실전투자]
+H0UNANC0 : 국내주식 실시간예상체결 (통합)"
+,tr_key,구분값,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권단축종목코드,string,Y,9, 
+,STCK_CNTG_HOUR,주식체결시간,string,Y,6, 
+,STCK_PRPR,주식현재가,string,Y,4, 
+,PRDY_VRSS_SIGN,전일대비구분,string,Y,1, 
+,PRDY_VRSS,전일대비,string,Y,4, 
+,PRDY_CTRT,등락율,string,Y,8, 
+,WGHN_AVRG_STCK_PRC,가중평균주식가격,string,Y,8, 
+,STCK_OPRC,시가,string,Y,4, 
+,STCK_HGPR,고가,string,Y,4, 
+,STCK_LWPR,저가,string,Y,4, 
+,ASKP1,매도호가,string,Y,4, 
+,BIDP1,매수호가,string,Y,4, 
+,CNTG_VOL,거래량,string,Y,8, 
+,ACML_VOL,누적거래량,string,Y,8, 
+,ACML_TR_PBMN,누적거래대금,string,Y,8, 
+,SELN_CNTG_CSNU,매도체결건수,string,Y,4, 
+,SHNU_CNTG_CSNU,매수체결건수,string,Y,4, 
+,NTBY_CNTG_CSNU,순매수체결건수,string,Y,4, 
+,CTTR,체결강도,string,Y,8, 
+,SELN_CNTG_SMTN,총매도수량,string,Y,8, 
+,SHNU_CNTG_SMTN,총매수수량,string,Y,8, 
+,CNTG_CLS_CODE,체결구분,string,Y,1, 
+,SHNU_RATE,매수비율,string,Y,8, 
+,PRDY_VOL_VRSS_ACML_VOL_RATE,전일거래량대비등락율,string,Y,8, 
+,OPRC_HOUR,시가시간,string,Y,6, 
+,OPRC_VRSS_PRPR_SIGN,시가대비구분,string,Y,1, 
+,OPRC_VRSS_PRPR,시가대비,string,Y,4, 
+,HGPR_HOUR,최고가시간,string,Y,6, 
+,HGPR_VRSS_PRPR_SIGN,고가대비구분,string,Y,1, 
+,HGPR_VRSS_PRPR,고가대비,string,Y,4, 
+,LWPR_HOUR,최저가시간,string,Y,6, 
+,LWPR_VRSS_PRPR_SIGN,저가대비구분,string,Y,1, 
+,LWPR_VRSS_PRPR,저가대비,string,Y,4, 
+,BSOP_DATE,영업일자,string,Y,8, 
+,NEW_MKOP_CLS_CODE,신장운영구분코드,string,Y,2, 
+,TRHT_YN,거래정지여부,string,Y,1, 
+,ASKP_RSQN1,매도호가잔량1,string,Y,8, 
+,BIDP_RSQN1,매수호가잔량1,string,Y,8, 
+,TOTAL_ASKP_RSQN,총매도호가잔량,string,Y,8, 
+,TOTAL_BIDP_RSQN,총매수호가잔량,string,Y,8, 
+,VOL_TNRT,거래량회전율,string,Y,8, 
+,PRDY_SMNS_HOUR_ACML_VOL,전일동시간누적거래량,string,Y,8, 
+,PRDY_SMNS_HOUR_ACML_VOL_RATE,전일동시간누적거래량비율,string,Y,8, 
+,HOUR_CLS_CODE,시간구분코드,string,Y,1, 
+,MRKT_TRTM_CLS_CODE,임의종료구분코드,string,Y,1, 
+,VI_STND_PRC,VI 상태값,string,Y,4, 
+Example,,,,,,
+Request Example (Python),,,,,,
+Response Example,,,,,,
+
+국내주식 실시간회원사 (통합): 표 1
+국내주식 실시간회원사 (통합),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간회원사 (통합),,,,,
+API ID,국내주식 실시간회원사 (통합),,,,,
+실전 TR_ID,H0UNMBC0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0UNMBC0,,,,,
+개요,,,,,,
+개요,,,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,N,286,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객타입,string,N,1,"'B : 법인
+P : 개인'"
+,tr_type,거래타입,string,N,1,"'1 : 등록
+2 : 해제'"
+,content-type,컨텐츠타입,string,N,1,'	utf-8'
+Request Body,tr_id,거래ID,string,Y,2,H0UNMBC0 : 국내주식 주식종목회원사 (통합)
+,tr_key,구분값,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권 단축 종목코드,string,Y,9, 
+,SELN2_MBCR_NAME1,매도2 회원사명1,string,Y,16, 
+,SELN2_MBCR_NAME2,매도2 회원사명2,string,Y,16, 
+,SELN2_MBCR_NAME3,매도2 회원사명3,string,Y,16, 
+,SELN2_MBCR_NAME4,매도2 회원사명4,string,Y,16, 
+,SELN2_MBCR_NAME5,매도2 회원사명5,string,Y,16, 
+,BYOV_MBCR_NAME1,매수 회원사명1,string,Y,16, 
+,BYOV_MBCR_NAME2,매수 회원사명2,string,Y,16, 
+,BYOV_MBCR_NAME3,매수 회원사명3,string,Y,16, 
+,BYOV_MBCR_NAME4,매수 회원사명4,string,Y,16, 
+,BYOV_MBCR_NAME5,매수 회원사명5,string,Y,16, 
+,TOTAL_SELN_QTY1,총 매도 수량1,string,Y,8, 
+,TOTAL_SELN_QTY2,총 매도 수량2,string,Y,8, 
+,TOTAL_SELN_QTY3,총 매도 수량3,string,Y,8, 
+,TOTAL_SELN_QTY4,총 매도 수량4,string,Y,8, 
+,TOTAL_SELN_QTY5,총 매도 수량5,string,Y,8, 
+,TOTAL_SHNU_QTY1,총 매수2 수량1,string,Y,8, 
+,TOTAL_SHNU_QTY2,총 매수2 수량2,string,Y,8, 
+,TOTAL_SHNU_QTY3,총 매수2 수량3,string,Y,8, 
+,TOTAL_SHNU_QTY4,총 매수2 수량4,string,Y,8, 
+,TOTAL_SHNU_QTY5,총 매수2 수량5,string,Y,8, 
+,SELN_MBCR_GLOB_YN_1,매도거래원구분1,string,Y,1, 
+,SELN_MBCR_GLOB_YN_2,매도거래원구분2,string,Y,1, 
+,SELN_MBCR_GLOB_YN_3,매도거래원구분3,string,Y,1, 
+,SELN_MBCR_GLOB_YN_4,매도거래원구분4,string,Y,1, 
+,SELN_MBCR_GLOB_YN_5,매도거래원구분5,string,Y,1, 
+,SHNU_MBCR_GLOB_YN_1,매수거래원구분1,string,Y,1, 
+,SHNU_MBCR_GLOB_YN_2,매수거래원구분2,string,Y,1, 
+,SHNU_MBCR_GLOB_YN_3,매수거래원구분3,string,Y,1, 
+,SHNU_MBCR_GLOB_YN_4,매수거래원구분4,string,Y,1, 
+,SHNU_MBCR_GLOB_YN_5,매수거래원구분5,string,Y,1, 
+,SELN_MBCR_NO1,매도거래원코드1,string,Y,5, 
+,SELN_MBCR_NO2,매도거래원코드2,string,Y,5, 
+,SELN_MBCR_NO3,매도거래원코드3,string,Y,5, 
+,SELN_MBCR_NO4,매도거래원코드4,string,Y,5, 
+,SELN_MBCR_NO5,매도거래원코드5,string,Y,5, 
+,SHNU_MBCR_NO1,매수거래원코드1,string,Y,5, 
+,SHNU_MBCR_NO2,매수거래원코드2,string,Y,5, 
+,SHNU_MBCR_NO3,매수거래원코드3,string,Y,5, 
+,SHNU_MBCR_NO4,매수거래원코드4,string,Y,5, 
+,SHNU_MBCR_NO5,매수거래원코드5,string,Y,5, 
+,SELN_MBCR_RLIM1,매도 회원사 비중1,string,Y,8, 
+,SELN_MBCR_RLIM2,매도 회원사 비중2,string,Y,8, 
+,SELN_MBCR_RLIM3,매도 회원사 비중3,string,Y,8, 
+,SELN_MBCR_RLIM4,매도 회원사 비중4,string,Y,8, 
+,SELN_MBCR_RLIM5,매도 회원사 비중5,string,Y,8, 
+,SHNU_MBCR_RLIM1,매수2 회원사 비중1,string,Y,8, 
+,SHNU_MBCR_RLIM2,매수2 회원사 비중2,string,Y,8, 
+,SHNU_MBCR_RLIM3,매수2 회원사 비중3,string,Y,8, 
+,SHNU_MBCR_RLIM4,매수2 회원사 비중4,string,Y,8, 
+,SHNU_MBCR_RLIM5,매수2 회원사 비중5,string,Y,8, 
+,SELN_QTY_ICDC1,매도 수량 증감1,string,Y,4, 
+,SELN_QTY_ICDC2,매도 수량 증감2,string,Y,4, 
+,SELN_QTY_ICDC3,매도 수량 증감3,string,Y,4, 
+,SELN_QTY_ICDC4,매도 수량 증감4,string,Y,4, 
+,SELN_QTY_ICDC5,매도 수량 증감5,string,Y,4, 
+,SHNU_QTY_ICDC1,매수2 수량 증감1,string,Y,4, 
+,SHNU_QTY_ICDC2,매수2 수량 증감2,string,Y,4, 
+,SHNU_QTY_ICDC3,매수2 수량 증감3,string,Y,4, 
+,SHNU_QTY_ICDC4,매수2 수량 증감4,string,Y,4, 
+,SHNU_QTY_ICDC5,매수2 수량 증감5,string,Y,4, 
+,GLOB_TOTAL_SELN_QTY,외국계 총 매도 수량,string,Y,8, 
+,GLOB_TOTAL_SHNU_QTY,외국계 총 매수2 수량,string,Y,8, 
+,GLOB_TOTAL_SELN_QTY_ICDC,외국계 총 매도 수량 증감,string,Y,4, 
+,GLOB_TOTAL_SHNU_QTY_ICDC,외국계 총 매수2 수량 증감,string,Y,4, 
+,GLOB_NTBY_QTY,외국계 순매수 수량,string,Y,8, 
+,GLOB_SELN_RLIM,외국계 매도 비중,string,Y,8, 
+,GLOB_SHNU_RLIM,외국계 매수2 비중,string,Y,8, 
+,SELN2_MBCR_ENG_NAME1,매도2 영문회원사명1,string,Y,20, 
+,SELN2_MBCR_ENG_NAME2,매도2 영문회원사명2,string,Y,20, 
+,SELN2_MBCR_ENG_NAME3,매도2 영문회원사명3,string,Y,20, 
+,SELN2_MBCR_ENG_NAME4,매도2 영문회원사명4,string,Y,20, 
+,SELN2_MBCR_ENG_NAME5,매도2 영문회원사명5,string,Y,20, 
+,BYOV_MBCR_ENG_NAME1,매수 영문회원사명1,string,Y,20, 
+,BYOV_MBCR_ENG_NAME2,매수 영문회원사명2,string,Y,20, 
+,BYOV_MBCR_ENG_NAME3,매수 영문회원사명3,string,Y,20, 
+,BYOV_MBCR_ENG_NAME4,매수 영문회원사명4,string,Y,20, 
+,BYOV_MBCR_ENG_NAME5,매수 영문회원사명5,string,Y,20, 
+Example,,,,,,
+Request Example (Python),,,,,,
+Response Example,,,,,,
+
+국내주식 실시간프로그램매매 (통합): 표 1
+국내주식 실시간프로그램매매 (통합),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간프로그램매매 (통합),,,,,
+API ID,국내주식 실시간프로그램매매 (통합),,,,,
+실전 TR_ID,H0UNPGM0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0UNPGM0,,,,,
+개요,,,,,,
+개요,,,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,N,286,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객타입,string,N,1,"'B : 법인
+P : 개인'"
+,tr_type,거래타입,string,N,1,"'1 : 등록
+2 : 해제'"
+,content-type,컨텐츠타입,string,N,1,'	utf-8'
+Request Body,tr_id,거래ID,string,Y,2,H0UNPGM0 : 실시간 주식종목프로그램매매 통합
+,tr_key,구분값,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권 단축 종목코드,string,Y,9, 
+,STCK_CNTG_HOUR,주식 체결 시간,string,Y,6, 
+,SELN_CNQN,매도 체결량,string,Y,8, 
+,SELN_TR_PBMN,매도 거래 대금,string,Y,8, 
+,SHNU_CNQN,매수2 체결량,string,Y,8, 
+,SHNU_TR_PBMN,매수2 거래 대금,string,Y,8, 
+,NTBY_CNQN,순매수 체결량,string,Y,8, 
+,NTBY_TR_PBMN,순매수 거래 대금,string,Y,8, 
+,SELN_RSQN,매도호가잔량,string,Y,8, 
+,SHNU_RSQN,매수호가잔량,string,Y,8, 
+,WHOL_NTBY_QTY,전체순매수호가잔량,string,Y,8, 
+Example,,,,,,
+Request Example (Python),,,,,,
+Response Example,,,,,,
+
+국내주식 장운영정보 (통합): 표 1
+국내주식 장운영정보 (통합),,,,,,
+API 통신방식,REST,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 장운영정보 (통합),,,,,
+API ID,국내주식 장운영정보 (통합),,,,,
+실전 TR_ID,H0UNMKO0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0UNMKO0,,,,,
+개요,,,,,,
+개요,,,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,N,286,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,"B : 법인 
+P : 개인"
+,tr_type,거래타입,string,N,1,"1 : 등록
+2 : 해제"
+,content-type,컨텐츠타입,string,N,1,utf-8
+Request Body,tr_id,거래ID,string,Y,2,H0UNMKO0 : 국내주식 장운영정보 (통합)
+,tr_key,구분값,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,TRHT_YN,거래정지 여부,string,Y,1, 
+,TR_SUSP_REAS_CNTT,거래 정지 사유 내용,string,Y,100, 
+,MKOP_CLS_CODE,장운영 구분 코드,string,Y,3, 
+,ANTC_MKOP_CLS_CODE,예상 장운영 구분 코드,string,Y,3, 
+,MRKT_TRTM_CLS_CODE,임의연장구분코드,string,Y,1, 
+,DIVI_APP_CLS_CODE,동시호가배분처리구분코드,string,Y,2, 
+,ISCD_STAT_CLS_CODE,종목상태구분코드,string,Y,2, 
+,VI_CLS_CODE,VI적용구분코드,string,Y,1, 
+,OVTM_VI_CLS_CODE,시간외단일가VI적용구분코드,string,Y,1, 
+,EXCH_CLS_CODE,거래소 구분코드,string,Y,1, 
+Example,,,,,,
+Request Example (Python),,,,,,
+Response Example,,,,,,
+
+국내주식 실시간체결가 (NXT): 표 1
+국내주식 실시간체결가 (NXT),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간체결가 (NXT),,,,,
+API ID,국내주식 실시간체결가 (NXT),,,,,
+실전 TR_ID,H0NXCNT0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0NXCNT0,,,,,
+개요,,,,,,
+개요,,,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,N,286,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객타입,string,N,1,"'B : 법인
+P : 개인'"
+,tr_type,거래타입,string,N,1,"'1 : 등록
+2 : 해제'"
+,content-type,컨텐츠타입,string,N,1,'	utf-8'
+Request Body,tr_id,거래ID,string,Y,2,H0NXCNT0 : 주식종목체결 (NXT)
+,tr_key,구분값,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권 단축 종목코드,string,Y,9, 
+,STCK_CNTG_HOUR,주식 체결 시간,string,Y,6, 
+,STCK_PRPR,주식 현재가,string,Y,4, 
+,PRDY_VRSS_SIGN,전일 대비 부호,string,Y,1, 
+,PRDY_VRSS,전일 대비,string,Y,4, 
+,PRDY_CTRT,전일 대비율,string,Y,8, 
+,WGHN_AVRG_STCK_PRC,가중 평균 주식 가격,string,Y,8, 
+,STCK_OPRC,주식 시가,string,Y,4, 
+,STCK_HGPR,주식 최고가,string,Y,4, 
+,STCK_LWPR,주식 최저가,string,Y,4, 
+,ASKP1,매도호가1,string,Y,4, 
+,BIDP1,매수호가1,string,Y,4, 
+,CNTG_VOL,체결 거래량,string,Y,8, 
+,ACML_VOL,누적 거래량,string,Y,8, 
+,ACML_TR_PBMN,누적 거래 대금,string,Y,8, 
+,SELN_CNTG_CSNU,매도 체결 건수,string,Y,4, 
+,SHNU_CNTG_CSNU,매수 체결 건수,string,Y,4, 
+,NTBY_CNTG_CSNU,순매수 체결 건수,string,Y,4, 
+,CTTR,체결강도,string,Y,8, 
+,SELN_CNTG_SMTN,총 매도 수량,string,Y,8, 
+,SHNU_CNTG_SMTN,총 매수 수량,string,Y,8, 
+,CNTG_CLS_CODE,체결구분,string,Y,1, 
+,SHNU_RATE,매수비율,string,Y,8, 
+,PRDY_VOL_VRSS_ACML_VOL_RATE,전일 거래량 대비 등락율,string,Y,8, 
+,OPRC_HOUR,시가 시간,string,Y,6, 
+,OPRC_VRSS_PRPR_SIGN,시가대비구분,string,Y,1, 
+,OPRC_VRSS_PRPR,시가대비,string,Y,4, 
+,HGPR_HOUR,최고가 시간,string,Y,6, 
+,HGPR_VRSS_PRPR_SIGN,고가대비구분,string,Y,1, 
+,HGPR_VRSS_PRPR,고가대비,string,Y,4, 
+,LWPR_HOUR,최저가 시간,string,Y,6, 
+,LWPR_VRSS_PRPR_SIGN,저가대비구분,string,Y,1, 
+,LWPR_VRSS_PRPR,저가대비,string,Y,4, 
+,BSOP_DATE,영업 일자,string,Y,8, 
+,NEW_MKOP_CLS_CODE,신 장운영 구분 코드,string,Y,2, 
+,TRHT_YN,거래정지 여부,string,Y,1, 
+,ASKP_RSQN1,매도호가 잔량1,string,Y,8, 
+,BIDP_RSQN1,매수호가 잔량1,string,Y,8, 
+,TOTAL_ASKP_RSQN,총 매도호가 잔량,string,Y,8, 
+,TOTAL_BIDP_RSQN,총 매수호가 잔량,string,Y,8, 
+,VOL_TNRT,거래량 회전율,string,Y,8, 
+,PRDY_SMNS_HOUR_ACML_VOL,전일 동시간 누적 거래량,string,Y,8, 
+,PRDY_SMNS_HOUR_ACML_VOL_RATE,전일 동시간 누적 거래량 비율,string,Y,8, 
+,HOUR_CLS_CODE,시간 구분 코드,string,Y,1, 
+,MRKT_TRTM_CLS_CODE,임의종료구분코드,string,Y,1, 
+,VI_STND_PRC,정적VI발동기준가,string,Y,4, 
+Example,,,,,,
+Request Example (Python),,,,,,
+Response Example,,,,,,
+
+국내주식 실시간호가 (NXT): 표 1
+국내주식 실시간호가 (NXT),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간호가 (NXT),,,,,
+API ID,국내주식 실시간호가 (NXT),,,,,
+실전 TR_ID,H0NXASP0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0NXASP0,,,,,
+개요,,,,,,
+개요,,,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,N,286,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객타입,string,N,1,"'B : 법인
+P : 개인'"
+,tr_type,거래타입,string,N,1,"'1 : 등록
+2 : 해제'"
+,content-type,컨텐츠타입,string,N,1,'	utf-8'
+Request Body,tr_id,거래ID,string,Y,2,H0NXASP0 : 실시간 주식 호가 (NXT)
+,tr_key,구분값,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권 단축 종목코드,string,Y,9, 
+,BSOP_HOUR,영업 시간,string,Y,6, 
+,HOUR_CLS_CODE,시간 구분 코드,string,Y,1, 
+,ASKP1,매도호가1,string,Y,4, 
+,ASKP2,매도호가2,string,Y,4, 
+,ASKP3,매도호가3,string,Y,4, 
+,ASKP4,매도호가4,string,Y,4, 
+,ASKP5,매도호가5,string,Y,4, 
+,ASKP6,매도호가6,string,Y,4, 
+,ASKP7,매도호가7,string,Y,4, 
+,ASKP8,매도호가8,string,Y,4, 
+,ASKP9,매도호가9,string,Y,4, 
+,ASKP10,매도호가10,string,Y,4, 
+,BIDP1,매수호가1,string,Y,4, 
+,BIDP2,매수호가2,string,Y,4, 
+,BIDP3,매수호가3,string,Y,4, 
+,BIDP4,매수호가4,string,Y,4, 
+,BIDP5,매수호가5,string,Y,4, 
+,BIDP6,매수호가6,string,Y,4, 
+,BIDP7,매수호가7,string,Y,4, 
+,BIDP8,매수호가8,string,Y,4, 
+,BIDP9,매수호가9,string,Y,4, 
+,BIDP10,매수호가10,string,Y,4, 
+,ASKP_RSQN1,매도호가 잔량1,string,Y,8, 
+,ASKP_RSQN2,매도호가 잔량2,string,Y,8, 
+,ASKP_RSQN3,매도호가 잔량3,string,Y,8, 
+,ASKP_RSQN4,매도호가 잔량4,string,Y,8, 
+,ASKP_RSQN5,매도호가 잔량5,string,Y,8, 
+,ASKP_RSQN6,매도호가 잔량6,string,Y,8, 
+,ASKP_RSQN7,매도호가 잔량7,string,Y,8, 
+,ASKP_RSQN8,매도호가 잔량8,string,Y,8, 
+,ASKP_RSQN9,매도호가 잔량9,string,Y,8, 
+,ASKP_RSQN10,매도호가 잔량10,string,Y,8, 
+,BIDP_RSQN1,매수호가 잔량1,string,Y,8, 
+,BIDP_RSQN2,매수호가 잔량2,string,Y,8, 
+,BIDP_RSQN3,매수호가 잔량3,string,Y,8, 
+,BIDP_RSQN4,매수호가 잔량4,string,Y,8, 
+,BIDP_RSQN5,매수호가 잔량5,string,Y,8, 
+,BIDP_RSQN6,매수호가 잔량6,string,Y,8, 
+,BIDP_RSQN7,매수호가 잔량7,string,Y,8, 
+,BIDP_RSQN8,매수호가 잔량8,string,Y,8, 
+,BIDP_RSQN9,매수호가 잔량9,string,Y,8, 
+,BIDP_RSQN10,매수호가 잔량10,string,Y,8, 
+,TOTAL_ASKP_RSQN,총 매도호가 잔량,string,Y,8, 
+,TOTAL_BIDP_RSQN,총 매수호가 잔량,string,Y,8, 
+,OVTM_TOTAL_ASKP_RSQN,시간외 총 매도호가 잔량,string,Y,8, 
+,OVTM_TOTAL_BIDP_RSQN,시간외 총 매수호가 잔량,string,Y,8, 
+,ANTC_CNPR,예상 체결가,string,Y,4, 
+,ANTC_CNQN,예상 체결량,string,Y,8, 
+,ANTC_VOL,예상 거래량,string,Y,8, 
+,ANTC_CNTG_VRSS,예상 체결 대비,string,Y,4, 
+,ANTC_CNTG_VRSS_SIGN,예상 체결 대비 부호,string,Y,1, 
+,ANTC_CNTG_PRDY_CTRT,예상 체결 전일 대비율,string,Y,8, 
+,ACML_VOL,누적 거래량,string,Y,8, 
+,TOTAL_ASKP_RSQN_ICDC,총 매도호가 잔량 증감,string,Y,4, 
+,TOTAL_BIDP_RSQN_ICDC,총 매수호가 잔량 증감,string,Y,4, 
+,OVTM_TOTAL_ASKP_ICDC,시간외 총 매도호가 증감,string,Y,4, 
+,OVTM_TOTAL_BIDP_ICDC,시간외 총 매수호가 증감,string,Y,4, 
+,STCK_DEAL_CLS_CODE,주식 매매 구분 코드,string,Y,2, 
+,KMID_PRC,KRX 중간가,string,Y,4, 
+,KMID_TOTAL_RSQN,KRX 중간가잔량합계수량,string,Y,8, 
+,KMID_CLS_CODE,KRX 중간가 매수매도 구분,string,Y,1, 
+,NMID_PRC,NXT 중간가,string,Y,4, 
+,NMID_TOTAL_RSQN,NXT 중간가잔량합계수량,string,Y,8, 
+,NMID_CLS_CODE,NXT 중간가 매수매도 구분,string,Y,1, 
+Example,,,,,,
+Request Example (Python),,,,,,
+Response Example,,,,,,
+
+국내주식 실시간예상체결 (NXT): 표 1
+국내주식 실시간예상체결 (NXT),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간예상체결 (NXT),,,,,
+API ID,국내주식 실시간예상체결 (NXT),,,,,
+실전 TR_ID,H0NXANC0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0NXANC0,,,,,
+개요,,,,,,
+개요,,,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,N,286,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,"B : 법인 
+P : 개인"
+,tr_type,거래타입,string,N,1,"1 : 등록
+2 : 해제"
+,content-type,컨텐츠타입,string,N,1,utf-8
+Request Body,tr_id,거래ID,string,Y,2,H0NXANC0 : 국내주식 실시간예상체결 (NXT)
+,tr_key,구분값,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권단축종목코드,string,Y,9, 
+,STCK_CNTG_HOUR,주식체결시간,string,Y,6, 
+,STCK_PRPR,주식현재가,string,Y,4, 
+,PRDY_VRSS_SIGN,전일대비구분,string,Y,1, 
+,PRDY_VRSS,전일대비,string,Y,4, 
+,PRDY_CTRT,등락율,string,Y,8, 
+,WGHN_AVRG_STCK_PRC,가중평균주식가격,string,Y,8, 
+,STCK_OPRC,시가,string,Y,4, 
+,STCK_HGPR,고가,string,Y,4, 
+,STCK_LWPR,저가,string,Y,4, 
+,ASKP1,매도호가,string,Y,4, 
+,BIDP1,매수호가,string,Y,4, 
+,CNTG_VOL,거래량,string,Y,8, 
+,ACML_VOL,누적거래량,string,Y,8, 
+,ACML_TR_PBMN,누적거래대금,string,Y,8, 
+,SELN_CNTG_CSNU,매도체결건수,string,Y,4, 
+,SHNU_CNTG_CSNU,매수체결건수,string,Y,4, 
+,NTBY_CNTG_CSNU,순매수체결건수,string,Y,4, 
+,CTTR,체결강도,string,Y,8, 
+,SELN_CNTG_SMTN,총매도수량,string,Y,8, 
+,SHNU_CNTG_SMTN,총매수수량,string,Y,8, 
+,CNTG_CLS_CODE,체결구분,string,Y,1, 
+,SHNU_RATE,매수비율,string,Y,8, 
+,PRDY_VOL_VRSS_ACML_VOL_RATE,전일거래량대비등락율,string,Y,8, 
+,OPRC_HOUR,시가시간,string,Y,6, 
+,OPRC_VRSS_PRPR_SIGN,시가대비구분,string,Y,1, 
+,OPRC_VRSS_PRPR,시가대비,string,Y,4, 
+,HGPR_HOUR,최고가시간,string,Y,6, 
+,HGPR_VRSS_PRPR_SIGN,고가대비구분,string,Y,1, 
+,HGPR_VRSS_PRPR,고가대비,string,Y,4, 
+,LWPR_HOUR,최저가시간,string,Y,6, 
+,LWPR_VRSS_PRPR_SIGN,저가대비구분,string,Y,1, 
+,LWPR_VRSS_PRPR,저가대비,string,Y,4, 
+,BSOP_DATE,영업일자,string,Y,8, 
+,NEW_MKOP_CLS_CODE,신장운영구분코드,string,Y,2, 
+,TRHT_YN,거래정지여부,string,Y,1, 
+,ASKP_RSQN1,매도호가잔량1,string,Y,8, 
+,BIDP_RSQN1,매수호가잔량1,string,Y,8, 
+,TOTAL_ASKP_RSQN,총매도호가잔량,string,Y,8, 
+,TOTAL_BIDP_RSQN,총매수호가잔량,string,Y,8, 
+,VOL_TNRT,거래량회전율,string,Y,8, 
+,PRDY_SMNS_HOUR_ACML_VOL,전일동시간누적거래량,string,Y,8, 
+,PRDY_SMNS_HOUR_ACML_VOL_RATE,전일동시간누적거래량비율,string,Y,8, 
+,HOUR_CLS_CODE,시간구분코드,string,Y,1, 
+,MRKT_TRTM_CLS_CODE,임의종료구분코드,string,Y,1, 
+,VI_STND_PRC,VI 상태값,string,Y,4, 
+Example,,,,,,
+Request Example (Python),,,,,,
+Response Example,,,,,,
+
+국내주식 실시간회원사 (NXT): 표 1
+국내주식 실시간회원사 (NXT),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간회원사 (NXT),,,,,
+API ID,국내주식 실시간회원사 (NXT),,,,,
+실전 TR_ID,H0NXMBC0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0NXMBC0,,,,,
+개요,,,,,,
+개요,,,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,N,286,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객타입,string,N,1,"'B : 법인
+P : 개인'"
+,tr_type,거래타입,string,N,1,"'1 : 등록
+2 : 해제'"
+,content-type,컨텐츠타입,string,N,1,'	utf-8'
+Request Body,tr_id,거래ID,string,Y,2,H0NXMBC0 : 국내주식 주식종목회원사 (NXT)
+,tr_key,구분값,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권 단축 종목코드,string,Y,9, 
+,SELN2_MBCR_NAME1,매도2 회원사명1,string,Y,16, 
+,SELN2_MBCR_NAME2,매도2 회원사명2,string,Y,16, 
+,SELN2_MBCR_NAME3,매도2 회원사명3,string,Y,16, 
+,SELN2_MBCR_NAME4,매도2 회원사명4,string,Y,16, 
+,SELN2_MBCR_NAME5,매도2 회원사명5,string,Y,16, 
+,BYOV_MBCR_NAME1,매수 회원사명1,string,Y,16, 
+,BYOV_MBCR_NAME2,매수 회원사명2,string,Y,16, 
+,BYOV_MBCR_NAME3,매수 회원사명3,string,Y,16, 
+,BYOV_MBCR_NAME4,매수 회원사명4,string,Y,16, 
+,BYOV_MBCR_NAME5,매수 회원사명5,string,Y,16, 
+,TOTAL_SELN_QTY1,총 매도 수량1,string,Y,8, 
+,TOTAL_SELN_QTY2,총 매도 수량2,string,Y,8, 
+,TOTAL_SELN_QTY3,총 매도 수량3,string,Y,8, 
+,TOTAL_SELN_QTY4,총 매도 수량4,string,Y,8, 
+,TOTAL_SELN_QTY5,총 매도 수량5,string,Y,8, 
+,TOTAL_SHNU_QTY1,총 매수2 수량1,string,Y,8, 
+,TOTAL_SHNU_QTY2,총 매수2 수량2,string,Y,8, 
+,TOTAL_SHNU_QTY3,총 매수2 수량3,string,Y,8, 
+,TOTAL_SHNU_QTY4,총 매수2 수량4,string,Y,8, 
+,TOTAL_SHNU_QTY5,총 매수2 수량5,string,Y,8, 
+,SELN_MBCR_GLOB_YN_1,매도거래원구분1,string,Y,1, 
+,SELN_MBCR_GLOB_YN_2,매도거래원구분2,string,Y,1, 
+,SELN_MBCR_GLOB_YN_3,매도거래원구분3,string,Y,1, 
+,SELN_MBCR_GLOB_YN_4,매도거래원구분4,string,Y,1, 
+,SELN_MBCR_GLOB_YN_5,매도거래원구분5,string,Y,1, 
+,SHNU_MBCR_GLOB_YN_1,매수거래원구분1,string,Y,1, 
+,SHNU_MBCR_GLOB_YN_2,매수거래원구분2,string,Y,1, 
+,SHNU_MBCR_GLOB_YN_3,매수거래원구분3,string,Y,1, 
+,SHNU_MBCR_GLOB_YN_4,매수거래원구분4,string,Y,1, 
+,SHNU_MBCR_GLOB_YN_5,매수거래원구분5,string,Y,1, 
+,SELN_MBCR_NO1,매도거래원코드1,string,Y,5, 
+,SELN_MBCR_NO2,매도거래원코드2,string,Y,5, 
+,SELN_MBCR_NO3,매도거래원코드3,string,Y,5, 
+,SELN_MBCR_NO4,매도거래원코드4,string,Y,5, 
+,SELN_MBCR_NO5,매도거래원코드5,string,Y,5, 
+,SHNU_MBCR_NO1,매수거래원코드1,string,Y,5, 
+,SHNU_MBCR_NO2,매수거래원코드2,string,Y,5, 
+,SHNU_MBCR_NO3,매수거래원코드3,string,Y,5, 
+,SHNU_MBCR_NO4,매수거래원코드4,string,Y,5, 
+,SHNU_MBCR_NO5,매수거래원코드5,string,Y,5, 
+,SELN_MBCR_RLIM1,매도 회원사 비중1,string,Y,8, 
+,SELN_MBCR_RLIM2,매도 회원사 비중2,string,Y,8, 
+,SELN_MBCR_RLIM3,매도 회원사 비중3,string,Y,8, 
+,SELN_MBCR_RLIM4,매도 회원사 비중4,string,Y,8, 
+,SELN_MBCR_RLIM5,매도 회원사 비중5,string,Y,8, 
+,SHNU_MBCR_RLIM1,매수2 회원사 비중1,string,Y,8, 
+,SHNU_MBCR_RLIM2,매수2 회원사 비중2,string,Y,8, 
+,SHNU_MBCR_RLIM3,매수2 회원사 비중3,string,Y,8, 
+,SHNU_MBCR_RLIM4,매수2 회원사 비중4,string,Y,8, 
+,SHNU_MBCR_RLIM5,매수2 회원사 비중5,string,Y,8, 
+,SELN_QTY_ICDC1,매도 수량 증감1,string,Y,4, 
+,SELN_QTY_ICDC2,매도 수량 증감2,string,Y,4, 
+,SELN_QTY_ICDC3,매도 수량 증감3,string,Y,4, 
+,SELN_QTY_ICDC4,매도 수량 증감4,string,Y,4, 
+,SELN_QTY_ICDC5,매도 수량 증감5,string,Y,4, 
+,SHNU_QTY_ICDC1,매수2 수량 증감1,string,Y,4, 
+,SHNU_QTY_ICDC2,매수2 수량 증감2,string,Y,4, 
+,SHNU_QTY_ICDC3,매수2 수량 증감3,string,Y,4, 
+,SHNU_QTY_ICDC4,매수2 수량 증감4,string,Y,4, 
+,SHNU_QTY_ICDC5,매수2 수량 증감5,string,Y,4, 
+,GLOB_TOTAL_SELN_QTY,외국계 총 매도 수량,string,Y,8, 
+,GLOB_TOTAL_SHNU_QTY,외국계 총 매수2 수량,string,Y,8, 
+,GLOB_TOTAL_SELN_QTY_ICDC,외국계 총 매도 수량 증감,string,Y,4, 
+,GLOB_TOTAL_SHNU_QTY_ICDC,외국계 총 매수2 수량 증감,string,Y,4, 
+,GLOB_NTBY_QTY,외국계 순매수 수량,string,Y,8, 
+,GLOB_SELN_RLIM,외국계 매도 비중,string,Y,8, 
+,GLOB_SHNU_RLIM,외국계 매수2 비중,string,Y,8, 
+,SELN2_MBCR_ENG_NAME1,매도2 영문회원사명1,string,Y,20, 
+,SELN2_MBCR_ENG_NAME2,매도2 영문회원사명2,string,Y,20, 
+,SELN2_MBCR_ENG_NAME3,매도2 영문회원사명3,string,Y,20, 
+,SELN2_MBCR_ENG_NAME4,매도2 영문회원사명4,string,Y,20, 
+,SELN2_MBCR_ENG_NAME5,매도2 영문회원사명5,string,Y,20, 
+,BYOV_MBCR_ENG_NAME1,매수 영문회원사명1,string,Y,20, 
+,BYOV_MBCR_ENG_NAME2,매수 영문회원사명2,string,Y,20, 
+,BYOV_MBCR_ENG_NAME3,매수 영문회원사명3,string,Y,20, 
+,BYOV_MBCR_ENG_NAME4,매수 영문회원사명4,string,Y,20, 
+,BYOV_MBCR_ENG_NAME5,매수 영문회원사명5,string,Y,20, 
+Example,,,,,,
+Request Example (Python),,,,,,
+Response Example,,,,,,
+
+국내주식 실시간프로그램매매 (NXT): 표 1
+국내주식 실시간프로그램매매 (NXT),,,,,,
+API 통신방식,WEBSOCKET,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 실시간프로그램매매 (NXT),,,,,
+API ID,국내주식 실시간프로그램매매 (NXT),,,,,
+실전 TR_ID,H0NXPGM0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0NXPGM0,,,,,
+개요,,,,,,
+개요,,,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,N,286,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객타입,string,N,1,"'B : 법인
+P : 개인'"
+,tr_type,거래타입,string,N,1,"'1 : 등록
+2 : 해제'"
+,content-type,컨텐츠타입,string,N,1,'	utf-8'
+Request Body,tr_id,거래ID,string,Y,2,H0NXPGM0 : 실시간 주식프로그램매매 (NXT)
+,tr_key,구분값,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,유가증권 단축 종목코드,string,Y,9, 
+,STCK_CNTG_HOUR,주식 체결 시간,string,Y,6, 
+,SELN_CNQN,매도 체결량,string,Y,8, 
+,SELN_TR_PBMN,매도 거래 대금,string,Y,8, 
+,SHNU_CNQN,매수2 체결량,string,Y,8, 
+,SHNU_TR_PBMN,매수2 거래 대금,string,Y,8, 
+,NTBY_CNQN,순매수 체결량,string,Y,8, 
+,NTBY_TR_PBMN,순매수 거래 대금,string,Y,8, 
+,SELN_RSQN,매도호가잔량,string,Y,8, 
+,SHNU_RSQN,매수호가잔량,string,Y,8, 
+,WHOL_NTBY_QTY,전체순매수호가잔량,string,Y,8, 
+Example,,,,,,
+Request Example (Python),,,,,,
+Response Example,,,,,,
+
+국내주식 장운영정보 (NXT): 표 1
+국내주식 장운영정보 (NXT),,,,,,
+API 통신방식,REST,,,,,
+메뉴 위치,[국내주식] 실시간시세,,,,,
+API 명,국내주식 장운영정보 (NXT),,,,,
+API ID,국내주식 장운영정보 (NXT),,,,,
+실전 TR_ID,H0NXMKO0,,,,,
+모의 TR_ID,모의투자 미지원,,,,,
+기본정보,,,,,,
+HTTP Method,POST,,,,,
+실전 Domain,ws://ops.koreainvestment.com:21000,,,,,
+모의 Domain,모의투자 미지원,,,,,
+URL 명,/tryitout/H0NXMKO0,,,,,
+개요,,,,,,
+개요,,,,,,
+Layout,,,,,,
+구분,Element,한글명,Type,Required,Length,Description
+Request Header,approval_key,웹소켓 접속키,string,Y,286,실시간 (웹소켓) 접속키 발급 API(/oauth2/Approval)를 사용하여 발급받은 웹소켓 접속키
+,custtype,고객 타입,string,Y,1,"B : 법인 
+P : 개인"
+,tr_type,거래타입,string,Y,1,"1 : 등록
+2 : 해제"
+,content-type,컨텐츠타입,string,Y,1,utf-8
+Request Body,tr_id,거래ID,string,Y,2,H0NXMKO0 : 국내주식 장운영정보 (NXT)
+,tr_key,구분값,string,Y,12,종목코드 (ex 005930 삼성전자)
+Response Header,,,,,,
+Response Body,MKSC_SHRN_ISCD,종목코드,string,Y,9, 
+,TRHT_YN,거래정지 여부,string,Y,1, 
+,TR_SUSP_REAS_CNTT,거래 정지 사유 내용,string,Y,100, 
+,MKOP_CLS_CODE,장운영 구분 코드,string,Y,3, 
+,ANTC_MKOP_CLS_CODE,예상 장운영 구분 코드,string,Y,3, 
+,MRKT_TRTM_CLS_CODE,임의연장구분코드,string,Y,1, 
+,DIVI_APP_CLS_CODE,동시호가배분처리구분코드,string,Y,2, 
+,ISCD_STAT_CLS_CODE,종목상태구분코드,string,Y,2, 
+,VI_CLS_CODE,VI적용구분코드,string,Y,1, 
+,OVTM_VI_CLS_CODE,시간외단일가VI적용구분코드,string,Y,1, 
+,EXCH_CLS_CODE,거래소 구분코드,string,Y,1,
+Example,,,,,,
+Request Example (Python),,,,,,
+Response Example,,,,,,

@@ -1,0 +1,86 @@
+79df8e85da952ee246b6fb6876bb28f328606a72|This-HW|Sat Oct 4 14:37:30 2025 +0900|📊 프로젝트 전체 검증 완료 요약 보고서
+2b29b1d0f95f2d0a7acf8b898e0332bda703edbe|This-HW|Sat Oct 4 14:36:02 2025 +0900|🔒 전체 코드 보안 및 일관성 개선
+6d8fb38892bc9d93ff9db51c8978dc7da31a8edc|This-HW|Sat Oct 4 14:24:23 2025 +0900|✅ 3단계 통합 검증 테스트 추가
+66668805737f35b77917b5a3c7133f44975e0510|This-HW|Sat Oct 4 14:23:29 2025 +0900|🎯 예측 정확도 개선 3단계 시스템 통합 완료
+1c65562401d1eafe19437a737702fcbba23feca0|This-HW|Sat Oct 4 14:13:14 2025 +0900|📖 예측 정확도 개선 프로젝트 완료 - 종합 문서화
+39b770756d6e5632af2073e5e36927cc151efdfa|This-HW|Sat Oct 4 14:11:44 2025 +0900|🚀 방안 C: 멀티 전략 시스템 - 시장 적응형 앙상블
+b38232511aae4ee958a7e6f363915e0b5ea20687|This-HW|Sat Oct 4 14:10:29 2025 +0900|📊 방안 B: 백테스트 시스템 구축 - 전략 검증 프레임워크
+f3d1c9cdd20a73100103b34641a3e657e7783756|This-HW|Sat Oct 4 14:08:42 2025 +0900|🎯 방안 A: 보수적 투자 전략 적용 - 예측 정확도 개선
+98705fc2d50a355bf2bf280c2666adfa6e119c41|This-HW|Sat Oct 4 14:02:13 2025 +0900|🔧 매매 로직 및 모니터링 시스템 버그 수정
+9d338853a7ea6e3db84ad9133c32aeb5185c0df6|This-HW|Sat Oct 4 13:58:50 2025 +0900|🐛 가상계좌 잔고 조회 API 응답 파싱 수정
+86f98da8cb898edcca1bf9ff168ff8a55e2070f4|This-HW|Fri Sep 19 18:44:44 2025 +0900|🚀 고급 기술적 지표 및 향상된 스크리닝 시스템 구현
+90ff574c91413806ddf87b7ebd8f6916391a8479|This-HW|Fri Sep 19 18:07:16 2025 +0900|🔧 자동 매매 시스템 버그 수정 및 디버깅 도구 추가
+d3ca764f340775b84d2b4bb64c806786e971696b|This-HW|Sat Sep 13 15:35:15 2025 +0900|🤖 자율적 학습 및 유지보수 시스템 구축 완성
+90603b72c860ea8f64334dd99e4538acd15aa4ae|This-HW|Thu Sep 11 23:45:08 2025 +0900|🧠 Replace mock learning with real performance-based adaptive learning system
+14d7945e7dab56ab45e8bca9c88e18a017b7e457|This-HW|Thu Sep 11 22:43:52 2025 +0900|💰 계좌 기반 동적 포지션 사이징 시스템 구현
+cd98a6d04136ea3c1bf6ed0f0ef6f7155139ea6e|This-HW|Thu Sep 11 22:21:29 2025 +0900|🚀 가상계좌 자동 매매 시스템 완성
+83e7e5506eba95724ecc98b8ab4e560d69beec4e|This-HW|Thu Sep 11 21:59:14 2025 +0900|✨ 실제 성과 기반 알림 시스템 구현
+274ab17258fb23cc4cc94ec057509af116f9c545|This-HW|Sun Sep 7 20:48:47 2025 +0900|🧹 프로젝트 정리 및 문서 최신화
+adcaba9b372a41f9583bdd7dd2743bfe0d55babc|This-HW|Sun Aug 10 21:49:57 2025 +0900|📈 Labeler wired to pykrx + algorithms overview doc\n- DailyPerformanceAnalyzer: pykrx-based future-return labeling\n- Added docs/ALGORITHMS_OVERVIEW.md\n\n@project_default_rule_doc_git_sync.md
+cae33581698f9f5bd92ecb09098c04fbc934ca30|This-HW|Sun Aug 10 21:42:22 2025 +0900|🗂 Partitioned selection flow + weekend guard\n- Phase1: persist daily partition + selection history\n- Phase2: use only today-screened codes for daily selection\n- Scheduler: weekdays-only jobs (no Sat/Sun)\n- Performance: placeholder labelers for future-return tracking\n- Scripts: start_production/start_scheduler hardened\n\n@project_default_rule_doc_git_sync.md
+a741430db402571d62a88d6558924e8014fd4401|This-HW|Sun Aug 10 21:08:32 2025 +0900|✅ Align semantics: Phase1 == Screening; Daily list no hard cap\n- Keep screening alert single-source (Phase1)\n- DailyUpdater: total_limit=0 means no cap; only sector_limit applies\n- Tests: adaptive selection reflects no-cap behavior\n\n@project_default_rule_doc_git_sync.md
+ab5a264d218f4329dc9870595b9543f0cac6a761|This-HW|Sun Aug 10 14:46:33 2025 +0900|🔔 Fix: prevent duplicate screening notifications; Daily limit adaptive to watchlist size\n- Phase1: optional notification flag\n- Scheduler: call Phase1 with notify=True (single source)\n- DailyUpdater: adapt total_limit based on active watchlist size (min 10, max 50)\n\n@project_default_rule_doc_git_sync.md
+9850766149331ecada791eda7c42184b02c03859|This-HW|Sun Aug 10 13:35:56 2025 +0900|🏹 SellEngine: ATR-trailing, partial-take-profit ratio, market condition ex (imbalance/investor)\n\n@project_default_rule_doc_git_sync.md
+d9924d265303ccc1f91bb80407fd13f508eb81cc|This-HW|Sun Aug 10 12:23:02 2025 +0900|📈 Analyzer/Trader/WS increments + Journal polishing\n- Analyzer: VWAP deviation, orderbook/tick features\n- Trader: pre-entry guards and richer signal meta\n- WS: heartbeat/ensure_connection\n- Journal: summary scaffold for further balance merge\n\n@project_default_rule_doc_git_sync.md
+16a82ef6c8ee6b5a0b1247b20dacc8bf2eced56f|This-HW|Sun Aug 10 06:17:25 2025 +0900|🩺 WS client: add heartbeat/ensure_connection stubs\n\n@project_default_rule_doc_git_sync.md
+63e5916ba9daf6bddb3bfdd9226850f1fc37e0a2|This-HW|Sun Aug 10 06:14:29 2025 +0900|🧩 Trading params: add fine-grained thresholds (spread/imbalance/uptick/vwap) for entry/exit logic\n\n@project_default_rule_doc_git_sync.md
+6bfcdd0552b61ffa6c1e12a0fb51c1be434e9ee6|This-HW|Sun Aug 10 06:07:54 2025 +0900|🤝 Integrate new KIS data into analysis/trader\n- PriceAnalyzer: optional orderbook/tick-derived features (spread, uptick ratio)\n- AutoTrader: fetch orderbook/ticks for buy signal context\n\n@project_default_rule_doc_git_sync.md
+b2f9270aa4be4c1e4c5ca18db9f42f90fdcc713f|This-HW|Sun Aug 10 06:05:24 2025 +0900|✨ Add KIS wrappers for orderbook/ticks/minute bars/investor/member flows\n- REST endpoints aligned to CSV docs (FHKST01010200/01010300/03010200/01010900/01010600)\n- Example scripts added for quick smoke\n\n@project_default_rule_doc_git_sync.md
+e58a463de09419c2cde51c354aa6b4d7919d739a|This-HW|Sun Aug 10 04:49:38 2025 +0900|🔧 KIS REST alignment with official examples\n- Ensure token before headers; unify FID_* params; TR ID configurable via env (KIS_TR_ID_*)\n- Add minimal examples (examples_llm style): chk_inquire_price/daily_price/balance\n\nRef: https://github.com/koreainvestment/open-trading-api\n@project_default_rule_doc_git_sync.md
+d81e886fa7ec6722fb62eb2b933bcb8a78f08777|This-HW|Sun Aug 10 04:37:32 2025 +0900|📚 Docs: add KIS official GitHub reference and examples paths; fix logging import\n\nRef: https://github.com/koreainvestment/open-trading-api
+a98f19ef7361bda0908a2855af2951285f4829ac|This-HW|Sun Aug 10 04:26:24 2025 +0900|✅ Phase2 CLI: replace placeholder fields with real KIS data (current price, recent OHLCV, market cap if available)\n- Use KIS get_current_price & get_stock_history\n- PriceAnalyzer consumes recent_close_prices/recent_volumes when provided\n- Keep conservative defaults if data missing\n\n@project_default_rule_doc_git_sync.md
+759cea7aa8d6158844f7f5898d903a0167c20226|This-HW|Sun Aug 10 03:13:34 2025 +0900|🔥 Remove deprecated files: pykrx api server and duplicate logging/quality monitor modules\n\n- api-server/main_real_pykrx_deprecated.py\n- core/utils/logging_deprecated.py\n- core/api/quality_monitor_deprecated.py\n\n@project_default_rule_doc_git_sync.md
+e23f407f79657f380254067b011c65a01e13fbf1|This-HW|Sun Aug 10 02:59:10 2025 +0900|♻️ Rename deprecated modules before removal
+1e55bed61691bee62915cff07e7f35133a07ad45|This-HW|Sun Aug 10 02:58:31 2025 +0900|♻️ Rename deprecated file: api-server/main_real_pykrx.py -> main_real_pykrx_deprecated.py for safety before removal
+2c2914d2b5e44b5e7edfe78ba8a30fa922593a63|This-HW|Sun Aug 10 02:54:59 2025 +0900|🪦 Deprecate api-server/main_real_pykrx.py (refer to api-server/main.py) 🔧 Logging unification: expose log_utils via core.utils to remove duplicate logging module paths
+72eda873b379222af371a996de05fe6fd5b2e41e|This-HW|Sun Aug 10 02:42:12 2025 +0900|📦 .gitignore: ignore logs/, data/, egg-info/, web build artifacts
+97ae2cb4c3794eca4f09e20fffe74c4a880ff277|This-HW|Sun Aug 10 02:42:02 2025 +0900|🗑️ Remove stray build artifacts (web-interface/--force, tsconfig.app.tsbuildinfo)
+e8a04ae059e659d4640ec8a044fb5d33a3f02780|This-HW|Sun Aug 10 02:41:49 2025 +0900|🧹 Repo hygiene (no code path breaks)
+c4c35560eaf3114deea2b02e0c8541985eb3a252|This-HW|Sun Aug 10 01:14:56 2025 +0900|🔒 Trading safety & correctness
+1a0ac6813de868f219d383251879ea174d323031|This-HW|Sun Aug 10 01:03:54 2025 +0900|♻️ KIS 주문 매핑/시장가 구분 정정
+175ed14dd4cfc7a4093a59caa2e7e46ccb655a23|This-HW|Fri Aug 8 07:34:43 2025 +0900|🌐 웹 스케줄러 API 통일 및 부분 실행 상태 시스템 완성
+9fdb55d4767b8eadfc6ffe5186d8d7f37901d38f|This-HW|Mon Aug 4 04:04:46 2025 +0900|🎯 AI 학습 시스템 개선 + 완전한 매도 로직 구축 완료
+35fb4c98e03ba94b3c45114404d7af64e79b0284|This-HW|Fri Aug 1 02:20:33 2025 +0900|🎯 스크리닝 기준 최적화: 통과율 0% → 3-5% 개선으로 정상 플로우 구현
+e4462e32e9fc4fcfaafee164d7078f57fef5ea9b|This-HW|Fri Aug 1 02:00:33 2025 +0900|feat: 텔레그램 알림 시스템 완전 구축 완료
+04df04b93eccf096f4eae0a51cfa35d20b738588|This-HW|Thu Jul 31 22:47:24 2025 +0900|📊 프로젝트 문서 최신화 및 SystemMonitorPage 완전 수정 반영
+988b0f9f243a8c893c413e3e9801e97f579f3495|This-HW|Thu Jul 31 21:02:39 2025 +0900|🔧 SystemMonitorPage API 404 에러 수정 완료
+27a782eb330ce5137efa760dafb14847ae9757f5|This-HW|Thu Jul 31 20:46:27 2025 +0900|📄 프로젝트 컨텍스트 파일 지속학습 시스템 반영
+5af1a4d6b5391b8f802c43bffd812b07e425903f|This-HW|Thu Jul 31 20:44:23 2025 +0900|📄 PROJECT_SUMMARY.md 지속학습 시스템 상세 내용 추가
+eb8d717192f33c3916b6ba75680a3f2cc4c9578d|This-HW|Thu Jul 31 20:38:55 2025 +0900|🧹 임시 테스트 파일 정리
+0b8efba4ffaf505ea06216f8031db26549a28a3d|This-HW|Thu Jul 31 20:38:37 2025 +0900|🧠 지속학습 시스템 완전 구축 완료 (2025-07-31)
+01e79745a9c2978cfd64cb1b43b41be2f93a8f81|This-HW|Wed Jul 30 03:01:27 2025 +0900|🔄 한국투자증권 API 환경 설정 변경: prod → virtual
+019f189c09f757d89891cdfe834e3de19e21e56c|This-HW|Wed Jul 30 02:58:11 2025 +0900|🛠️ 시스템 모니터링 페이지 404 오류 해결
+cf7da2332141f9628b17dfc9bc4b75170b3a4e77|This-HW|Tue Jul 29 02:46:51 2025 +0900|📚 대대적 문서 정리 및 CLI/웹 상태 동기화 완료
+014bc0ccbe8d9f84dc08edf4df7d9a9a5084ae7d|This-HW|Tue Jul 29 02:27:25 2025 +0900|🌐 완성: Phase 6 웹 인터페이스 시스템 구축 완료
+757c8bcfad9761a2bbb338507149b7a59caa9c9a|This-HW|Mon Jul 28 22:40:18 2025 +0900|feat: 한투 퀀트 시스템 완전 완성 - Phase 4,5 및 시스템 통합 완료
+57b0c318eddc5c18f1268d871f8e350d4ac6b32d|This-HW|Mon Jul 28 03:32:03 2025 +0900|🎯 섹터 분류 시스템 완전 개선 및 감시 리스트 문제 해결
+7bc03ce1620400e84e9f8dbc03af5f667a77651c|This-HW|Sun Jul 27 22:29:36 2025 +0900|feat: Phase 4-5 AI 학습 및 모니터링 시스템 완전 구축
+c59a23432449d9a150d8fa803904cbfffae3568d|This-HW|Sun Jul 27 21:54:24 2025 +0900|feat: 텔레그램 알림 시스템 완전 설정 완료
+37a06990b5ee01c84e13b094f7d6a92436192104|This-HW|Sat Jul 26 21:30:54 2025 +0900|TODO 2.3 피처 엔지니어링 시스템 94.4% 완성
+7bb5ac74314b5344128898404e1202a9d36096c2|This-HW|Mon Jul 14 19:31:45 2025 +0900|feat: Phase 4 AI 학습 시스템 전체 구조 완료 (TODO 2.1-2.2)
+d5b5b3139d2781178a1fb793fe1a07f9b8030912|This-HW|Mon Jul 14 08:41:19 2025 +0900|feat: TODO 2.2 데이터 수집 및 전처리 시스템 구현 완료
+54f1955f41785b18bda8278b8de3d9d61deecce9|This-HW|Sun Jul 13 17:31:48 2025 +0900|feat: 모듈 아키텍처 시스템 완료 (TODO 1.11-1.12)
+304a7b6d4f09996063fc6101bee3f1686c1e1f99|This-HW|Sun Jul 13 16:37:20 2025 +0900|feat: .cursor/rules 전면 개선 및 Phase 4 AI 학습 시스템 설계 완료
+7e55a428abd0d205d509bf09e3c5b6c31035ab07|This-HW|Sun Jul 13 16:32:23 2025 +0900|Fix: Restore YAML front matter for project-status.mdc to ensure always applied
+be2ea2c8ef8c6faae479960d2e277450034eb9bf|This-HW|Sun Jul 13 16:30:30 2025 +0900|Add document synchronization rules for TODO/Phase completion
+c1acd8159d00143597a1dde5e7a13136f8168fa0|This-HW|Sun Jul 13 15:23:13 2025 +0900|feat: Phase 1-2 완료 및 Phase 4 AI 학습 시스템 설계
+b15a43452d6849e13dfa46422b9637864d249962|This-HW|Thu Jul 10 22:00:50 2025 +0900|fix: 종목명 정보 정상 출력 및 섹터 분류 개선
+ae289fe5a40810676e7efa42df3a1160d8a4803c|This-HW|Thu Jul 10 21:25:32 2025 +0900|feat: Phase 1-2 완전 통합 및 자동 감시 리스트 업데이트 구현
+9f9e47d293a046d40d22ad0c5d3f460e1ed68d2b|This-HW|Thu Jul 10 01:34:18 2025 +0900|refactor: Phase 1을 주간 스크리닝에서 일간 스크리닝으로 변경
+3fdc2869d621383381af77743729b3a67c8c162d|This-HW|Thu Jul 10 01:26:49 2025 +0900|feat: Phase 1 + Phase 2 통합 스케줄러 구현
+10179abde337c626d0d511afeb894c94aeb26e04|This-HW|Thu Jul 10 01:24:38 2025 +0900|feat: Phase 2 일일 선정 시스템 완료
+aaafcfcdbdb02911a70bf192a95b1d83994cf1d5|This-HW|Wed Jul 9 22:33:36 2025 +0900|feat: Phase 1 감시 리스트 구축 완료
+ae213e82f3f5344a035ea260a1c65cc86d228b59|This-HW|Mon May 19 01:33:33 2025 +0900|디버그 로깅 추가 및 민감 정보 테스트 파일 제외
+d792573d51d452039ba7e3e131d5495a7264fabb|This-HW|Mon Apr 14 01:22:17 2025 +0900|Merge remote changes
+83d08fc7ca73d11b7622e35ea794e3ce1985bfee|Hyunwook Lee|Mon Apr 14 01:10:33 2025 +0900|Initial commit
+339b0cd0991c8a7599f6922c6fa684a6f3e57beb|This-HW|Mon Apr 14 00:14:03 2025 +0900|테스트코드 에러픽스
+13911dc4ffa1b56219eea9042ab535568a481e48|This-HW|Sun Apr 13 18:20:43 2025 +0900|AI 협업 명령어 체계 추가: 간결한 명령어로 작업 효율성 향상
+57da0b7203c9fab15a2beafefa8dd9325ac92b92|This-HW|Sun Apr 13 17:50:55 2025 +0900|AI 협업 명령어 체계 추가: 간결한 명령어로 작업 효율성 향상
+4a8661e3d8187c1cc7c83747921e6352e3058d38|This-HW|Sun Apr 13 17:36:48 2025 +0900|Cursor IDE 규칙 파일 추가: AI 협업 규칙 및 가이드라인
+8f8944483bb970ae4c9dc1015fafae6bb11d07df|This-HW|Sun Apr 13 17:31:23 2025 +0900|Cursor IDE 규칙 파일 추가: AI 협업 규칙 및 가이드라인
+15c02ea476cadb2bf3acb303f8e27bfcbe26b453|This-HW|Sun Apr 13 17:13:59 2025 +0900|AI 협업 체계 구축: 프로젝트 컨텍스트, 워크플로우, 템플릿 추가
+2a29b5860933e16f737adfa4572f2ba07ec8eada|This-HW|Sun Apr 13 17:02:23 2025 +0900|보안 강화: API 키 및 민감 정보 보호 기능 추가
+467bf1a848ab35580a815bc9a028b9af457d530a|This-HW|Sun Apr 13 16:51:28 2025 +0900|프로젝트 상태 보고서 추가
+a4a9b3a82ceb65bff3fe83504f0e566847cfbda6|This-HW|Sun Apr 13 16:50:23 2025 +0900|프로젝트 문서화 및 관리 도구 추가
+775479ffa84bd9c3b9979ff91580f8f1c20d3b72|This-HW|Sun Feb 9 22:31:59 2025 +0900|feat: 프로젝트 구조 개선 및 기능 추가 (hantu_common/backtest 추가, API 설정 개선, 토큰 관리 분리, 문서화)
+e7b5c89ffb72d94e285e286d783b070710f60be5|This-HW|Sun Feb 2 01:47:32 2025 +0900|Initial commit: Project structure setup & Default Code
