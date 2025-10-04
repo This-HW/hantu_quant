@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from core.monitoring.trading_health_checker import get_health_checker
 from core.monitoring.auto_recovery_system import get_recovery_system

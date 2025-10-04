@@ -58,8 +58,19 @@ hantu_quant/
 │   ├── daily_selection/   # 일일 선정 결과
 │   └── performance/       # 성과 데이터
 ├── config/                # 설정 파일
-├── scripts/               # 실행 스크립트
-└── tests/                 # 테스트 코드
+├── docs/                  # 📚 프로젝트 문서
+│   ├── guides/            # 가이드 문서
+│   ├── reports/           # 보고서
+│   ├── specs/             # 기술 스펙
+│   ├── planning/          # 계획 문서
+│   └── archive/           # 아카이브
+├── scripts/               # 🛠️ 실행 스크립트
+│   ├── deployment/        # 배포 스크립트
+│   └── setup/             # 설정 스크립트
+├── tests/                 # 🧪 테스트 코드
+│   ├── integration/       # 통합 테스트
+│   └── manual/            # 수동 테스트
+└── backups/               # 💾 백업 파일
 ```
 
 ## 📦 설치 방법
@@ -93,10 +104,10 @@ cp config/telegram_config.example.json config/telegram_config.json
 
 ```bash
 # 프로덕션 환경 전체 시작
-./scripts/start_production.sh
+./scripts/deployment/start_production.sh
 
 # 또는 Python으로 직접 실행
-python scripts/start_scheduler.py
+python workflows/integrated_scheduler.py
 ```
 
 ### 텔레그램 알림 테스트
@@ -245,9 +256,20 @@ python scripts/telegram_diagnostic.py
 
 ## 📚 추가 문서
 
-- [프로젝트 요약](PROJECT_SUMMARY.md) - 전체 시스템 상세 설명
-- [개발 로드맵](ROADMAP.md) - 개발 진행 상황
-- [알고리즘 개요](docs/ALGORITHMS_OVERVIEW.md) - 핵심 알고리즘 설명
+### 가이드
+- [보안 가이드](docs/guides/SECURITY.md) - 보안 설정 및 best practices
+- [가상계좌 설정](docs/guides/VIRTUAL_ACCOUNT_SETUP.md) - 모의투자 설정 가이드
+- [협업 규칙](docs/guides/PROJECT_COLLABORATION_RULES.md) - 프로젝트 협업 가이드
+
+### 계획 및 보고서
+- [프로젝트 요약](docs/planning/PROJECT_SUMMARY.md) - 전체 시스템 상세 설명
+- [개발 로드맵](docs/planning/ROADMAP.md) - 개발 진행 상황
+- [프로젝트 검증 보고서](docs/reports/PROJECT_VALIDATION_SUMMARY.md) - 코드 검증 결과
+
+### 기술 스펙
+- [알고리즘 업그레이드](docs/specs/ALGORITHM_UPGRADE_SUMMARY.md) - 알고리즘 개선 내역
+- [ML 자동 트리거](docs/specs/ML_AUTO_TRIGGER_SUMMARY.md) - 머신러닝 시스템
+- [정확도 향상](docs/specs/PREDICTION_ACCURACY_IMPROVEMENT.md) - 예측 정확도 개선
 
 ## 📄 라이선스
 

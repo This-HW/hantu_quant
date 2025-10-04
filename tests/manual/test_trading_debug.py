@@ -12,7 +12,7 @@ import asyncio
 from datetime import datetime
 
 # 프로젝트 루트 디렉토리를 Python 경로에 추가
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 def test_trading_engine_init():
     """매매 엔진 초기화 테스트"""

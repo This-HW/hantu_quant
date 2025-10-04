@@ -9,7 +9,7 @@ import asyncio
 from pathlib import Path
 from datetime import datetime
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from workflows.integrated_scheduler import IntegratedScheduler
 from core.utils.log_utils import setup_logging, get_logger

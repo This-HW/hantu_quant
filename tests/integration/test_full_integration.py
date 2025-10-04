@@ -15,7 +15,7 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 
 class IntegrationTestRunner:

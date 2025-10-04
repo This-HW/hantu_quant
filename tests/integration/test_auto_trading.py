@@ -12,7 +12,7 @@ from pathlib import Path
 from datetime import datetime
 
 # 프로젝트 루트 추가
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from core.trading.trading_engine import TradingEngine, TradingConfig
 from core.utils.log_utils import setup_logging, get_logger
