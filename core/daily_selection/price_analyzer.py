@@ -385,11 +385,174 @@ class TechnicalIndicators:
         _v_alpha = 2.0 / (p_period + 1)
         _v_ema = np.zeros_like(p_values)
         _v_ema[0] = p_values[0]
-        
+
         for i in range(1, len(p_values)):
             _v_ema[i] = _v_alpha * p_values[i] + (1 - _v_alpha) * _v_ema[i-1]
-        
+
         return _v_ema
+
+    @staticmethod
+    def calculate_stochastic(p_highs: List[float], p_lows: List[float], p_closes: List[float],
+                             p_k_period: int = 14, p_d_period: int = 3) -> Tuple[float, float]:
+        """
+        스토캐스틱 오실레이터 계산
+
+        %K = ((현재 종가 - N일간 최저가) / (N일간 최고가 - N일간 최저가)) × 100
+        %D = %K의 M일간 SMA
+
+        Args:
+            p_highs: 고가 리스트
+            p_lows: 저가 리스트
+            p_closes: 종가 리스트
+            p_k_period: %K 기간 (기본 14일)
+            p_d_period: %D 기간 (기본 3일)
+
+        Returns:
+            Tuple[%K, %D]
+        """
+        try:
+            if len(p_closes) < p_k_period:
+                return 50.0, 50.0
+
+            _v_highs = np.array(p_highs)
+            _v_lows = np.array(p_lows)
+            _v_closes = np.array(p_closes)
+
+            # %K 계산: 최근 p_k_period 기간 사용
+            _v_k_values = []
+            for i in range(p_k_period - 1, len(_v_closes)):
+                _v_highest_high = np.max(_v_highs[i - p_k_period + 1:i + 1])
+                _v_lowest_low = np.min(_v_lows[i - p_k_period + 1:i + 1])
+
+                if _v_highest_high == _v_lowest_low:
+                    _v_k = 50.0
+                else:
+                    _v_k = ((_v_closes[i] - _v_lowest_low) / (_v_highest_high - _v_lowest_low)) * 100
+
+                _v_k_values.append(_v_k)
+
+            if not _v_k_values:
+                return 50.0, 50.0
+
+            # 현재 %K
+            _v_current_k = _v_k_values[-1]
+
+            # %D 계산: %K의 SMA
+            if len(_v_k_values) >= p_d_period:
+                _v_current_d = np.mean(_v_k_values[-p_d_period:])
+            else:
+                _v_current_d = _v_current_k
+
+            return float(_v_current_k), float(_v_current_d)
+
+        except Exception as e:
+            logger.error(f"스토캐스틱 계산 오류: {e}")
+            return 50.0, 50.0
+
+    @staticmethod
+    def calculate_cci(p_highs: List[float], p_lows: List[float], p_closes: List[float],
+                      p_period: int = 20) -> float:
+        """
+        CCI (Commodity Channel Index) 계산
+
+        CCI = (Typical Price - SMA(TP)) / (0.015 × Mean Deviation)
+        Typical Price = (High + Low + Close) / 3
+
+        해석:
+        - CCI > +100: 과매수 구간
+        - CCI < -100: 과매도 구간 (매수 신호)
+        - CCI가 -100 이하에서 상승 반전: 강한 매수 신호
+
+        Args:
+            p_highs: 고가 리스트
+            p_lows: 저가 리스트
+            p_closes: 종가 리스트
+            p_period: CCI 기간 (기본 20일)
+
+        Returns:
+            CCI 값
+        """
+        try:
+            if len(p_closes) < p_period:
+                return 0.0
+
+            _v_highs = np.array(p_highs[-p_period:])
+            _v_lows = np.array(p_lows[-p_period:])
+            _v_closes = np.array(p_closes[-p_period:])
+
+            # Typical Price 계산
+            _v_tp = (_v_highs + _v_lows + _v_closes) / 3
+
+            # TP의 SMA
+            _v_tp_sma = np.mean(_v_tp)
+
+            # Mean Deviation 계산
+            _v_mean_deviation = np.mean(np.abs(_v_tp - _v_tp_sma))
+
+            # CCI 계산
+            if _v_mean_deviation == 0:
+                return 0.0
+
+            _v_current_tp = _v_tp[-1]
+            _v_cci = (_v_current_tp - _v_tp_sma) / (0.015 * _v_mean_deviation)
+
+            return float(_v_cci)
+
+        except Exception as e:
+            logger.error(f"CCI 계산 오류: {e}")
+            return 0.0
+
+    @staticmethod
+    def calculate_atr(p_highs: List[float], p_lows: List[float], p_closes: List[float],
+                      p_period: int = 14) -> float:
+        """
+        ATR (Average True Range) 계산 - 변동성 지표
+
+        True Range = max(H-L, |H-PC|, |L-PC|)
+        ATR = SMA(TR, period)
+
+        Args:
+            p_highs: 고가 리스트
+            p_lows: 저가 리스트
+            p_closes: 종가 리스트
+            p_period: ATR 기간 (기본 14일)
+
+        Returns:
+            ATR 값
+        """
+        try:
+            if len(p_closes) < p_period + 1:
+                return 0.0
+
+            _v_highs = np.array(p_highs)
+            _v_lows = np.array(p_lows)
+            _v_closes = np.array(p_closes)
+
+            # True Range 계산
+            _v_tr_list = []
+            for i in range(1, len(_v_closes)):
+                _v_h = _v_highs[i]
+                _v_l = _v_lows[i]
+                _v_pc = _v_closes[i - 1]  # Previous Close
+
+                _v_tr = max(
+                    _v_h - _v_l,              # High - Low
+                    abs(_v_h - _v_pc),        # |High - Previous Close|
+                    abs(_v_l - _v_pc)         # |Low - Previous Close|
+                )
+                _v_tr_list.append(_v_tr)
+
+            if len(_v_tr_list) < p_period:
+                return 0.0
+
+            # ATR = SMA of True Range
+            _v_atr = np.mean(_v_tr_list[-p_period:])
+
+            return float(_v_atr)
+
+        except Exception as e:
+            logger.error(f"ATR 계산 오류: {e}")
+            return 0.0
 
 @plugin(
     name="price_analyzer",
@@ -727,33 +890,41 @@ class PriceAnalyzer(IPriceAnalyzer):
         else:
             _v_scores.append(50.0)
         
-        # 스토캐스틱 분석 (임시 고정값)
-        _v_k, _v_d = 50.0, 50.0  # 임시 기본값
+        # 스토캐스틱 분석 (실제 계산)
+        _v_k, _v_d = TechnicalIndicators.calculate_stochastic(_v_highs, _v_lows, _v_prices)
         if _v_k <= 20 and _v_d <= 20:
             _v_signals.append(TechnicalSignalLegacy(
                 signal_type="stochastic",
                 signal_name="stochastic_oversold",
                 strength=75.0,
-                confidence=0.6,
-                description="스토캐스틱 과매도 신호",
+                confidence=0.7,
+                description=f"스토캐스틱 과매도 신호 (%K={_v_k:.1f}, %D={_v_d:.1f})",
                 timestamp=datetime.now().isoformat()
             ))
             _v_scores.append(75.0)
+        elif _v_k <= 30:
+            _v_scores.append(60.0)
+        elif _v_k >= 80:
+            _v_scores.append(25.0)  # 과매수 구간
         else:
             _v_scores.append(45.0)
-        
-        # CCI 분석 (임시 고정값)
-        _v_cci = 0.0  # 임시 기본값
+
+        # CCI 분석 (실제 계산)
+        _v_cci = TechnicalIndicators.calculate_cci(_v_highs, _v_lows, _v_prices)
         if _v_cci <= -100:
             _v_signals.append(TechnicalSignalLegacy(
                 signal_type="cci",
                 signal_name="cci_oversold",
                 strength=70.0,
-                confidence=0.6,
-                description="CCI 과매도 신호",
+                confidence=0.65,
+                description=f"CCI 과매도 신호 (CCI={_v_cci:.1f})",
                 timestamp=datetime.now().isoformat()
             ))
             _v_scores.append(70.0)
+        elif _v_cci <= -50:
+            _v_scores.append(55.0)
+        elif _v_cci >= 100:
+            _v_scores.append(25.0)  # 과매수 구간
         else:
             _v_scores.append(40.0)
         
@@ -1078,20 +1249,153 @@ class PriceAnalyzer(IPriceAnalyzer):
         
         return _v_entry_price, _v_target_price, _v_stop_loss
     
+    def _calculate_historical_volatility(self, p_prices: List[float], p_period: int = 20) -> float:
+        """
+        역사적 변동성 계산 (연율화)
+
+        변동성 = 일간 수익률의 표준편차 × √252
+
+        Args:
+            p_prices: 종가 리스트
+            p_period: 계산 기간 (기본 20일)
+
+        Returns:
+            연율화된 변동성 (예: 0.25 = 25%)
+        """
+        try:
+            if len(p_prices) < p_period + 1:
+                return 0.25  # 기본값
+
+            _v_prices = np.array(p_prices[-(p_period + 1):])
+            _v_returns = np.diff(np.log(_v_prices))  # 로그 수익률
+
+            # 일간 변동성
+            _v_daily_volatility = np.std(_v_returns)
+
+            # 연율화 (252 거래일 기준)
+            _v_annual_volatility = _v_daily_volatility * np.sqrt(252)
+
+            return float(_v_annual_volatility)
+
+        except Exception as e:
+            logger.error(f"변동성 계산 오류: {e}")
+            return 0.25
+
+    def _calculate_var(self, p_prices: List[float], p_position_value: float,
+                       p_confidence: float = 0.95, p_period: int = 20) -> float:
+        """
+        VaR (Value at Risk) 계산 - 파라메트릭 방법
+
+        VaR = 포지션 가치 × Z점수 × 변동성 × √보유기간
+
+        Args:
+            p_prices: 종가 리스트
+            p_position_value: 포지션 가치
+            p_confidence: 신뢰수준 (기본 95%)
+            p_period: 변동성 계산 기간
+
+        Returns:
+            VaR 금액 (원 단위)
+        """
+        try:
+            from scipy import stats
+
+            # 변동성 계산
+            _v_volatility = self._calculate_historical_volatility(p_prices, p_period)
+
+            # Z점수 (신뢰수준에 따른)
+            _v_z_score = stats.norm.ppf(p_confidence)
+
+            # 1일 VaR
+            _v_var = p_position_value * _v_z_score * _v_volatility / np.sqrt(252)
+
+            return float(abs(_v_var))
+
+        except ImportError:
+            # scipy 없으면 간단한 근사값 사용
+            _v_volatility = self._calculate_historical_volatility(p_prices, p_period)
+            _v_z_score = 1.645 if p_confidence == 0.95 else 2.326  # 95%, 99%
+            _v_var = p_position_value * _v_z_score * _v_volatility / np.sqrt(252)
+            return float(abs(_v_var))
+        except Exception as e:
+            logger.error(f"VaR 계산 오류: {e}")
+            return p_position_value * 0.02  # 기본 2%
+
     def _calculate_risk_score(self, p_stock_data: Dict, p_total_score: float) -> float:
-        """리스크 점수 계산"""
+        """
+        향상된 리스크 점수 계산
+
+        리스크 요소:
+        1. 기본 리스크 (매력도 역수)
+        2. 변동성 리스크 (ATR 또는 역사적 변동성)
+        3. 시가총액 리스크 (소형주일수록 높음)
+        4. 거래량 리스크 (유동성)
+        5. 섹터 리스크 (섹터 모멘텀 역수)
+        """
         _v_base_risk = 100 - p_total_score  # 매력도가 높을수록 리스크 낮음
-        
-        # 변동성 고려
-        _v_volatility = p_stock_data.get("volatility", 0.25)
-        _v_volatility_risk = _v_volatility * 100
-        
+
+        # 동적 변동성 계산 (고정값 대신)
+        _v_prices = self._safe_get_list(p_stock_data.get("recent_close_prices", []), 30)
+        _v_highs = [p * 1.02 for p in _v_prices]
+        _v_lows = [p * 0.98 for p in _v_prices]
+
+        # ATR 기반 변동성
+        _v_atr = TechnicalIndicators.calculate_atr(_v_highs, _v_lows, _v_prices)
+        _v_current_price = self._safe_get_float(p_stock_data.get("current_price", 50000))
+
+        if _v_current_price > 0 and _v_atr > 0:
+            _v_atr_pct = (_v_atr / _v_current_price) * 100
+            _v_volatility_risk = min(_v_atr_pct * 5, 50)  # ATR%의 5배, 최대 50점
+        else:
+            # 역사적 변동성 사용
+            _v_hist_vol = self._calculate_historical_volatility(_v_prices)
+            _v_volatility_risk = min(_v_hist_vol * 100, 50)
+
         # 시가총액 고려 (작을수록 위험)
         _v_market_cap = p_stock_data.get("market_cap", 1000000000000)
-        _v_size_risk = max(0, 50 - (_v_market_cap / 1000000000000) * 10)
-        
-        _v_total_risk = (_v_base_risk + _v_volatility_risk + _v_size_risk) / 3
-        
+        if _v_market_cap >= 10000000000000:  # 10조 이상 대형주
+            _v_size_risk = 5
+        elif _v_market_cap >= 1000000000000:  # 1조 이상 중형주
+            _v_size_risk = 15
+        elif _v_market_cap >= 100000000000:  # 1000억 이상 소형주
+            _v_size_risk = 30
+        else:  # 1000억 미만 초소형주
+            _v_size_risk = 50
+
+        # 거래량 리스크 (유동성)
+        _v_volume = p_stock_data.get("volume", 1000000)
+        _v_avg_volume = p_stock_data.get("avg_volume", 1000000)
+        if _v_avg_volume > 0:
+            _v_volume_ratio = _v_volume / _v_avg_volume
+            if _v_volume_ratio >= 1.5:
+                _v_liquidity_risk = 5  # 높은 유동성
+            elif _v_volume_ratio >= 0.8:
+                _v_liquidity_risk = 15
+            else:
+                _v_liquidity_risk = 30  # 낮은 유동성
+        else:
+            _v_liquidity_risk = 20
+
+        # 섹터 리스크
+        _v_sector_momentum = p_stock_data.get("sector_momentum", 0.0)
+        if _v_sector_momentum > 0.05:
+            _v_sector_risk = 5
+        elif _v_sector_momentum > 0:
+            _v_sector_risk = 15
+        elif _v_sector_momentum > -0.05:
+            _v_sector_risk = 25
+        else:
+            _v_sector_risk = 40
+
+        # 가중 평균 리스크 점수
+        _v_total_risk = (
+            _v_base_risk * 0.25 +
+            _v_volatility_risk * 0.30 +
+            _v_size_risk * 0.20 +
+            _v_liquidity_risk * 0.15 +
+            _v_sector_risk * 0.10
+        )
+
         return min(_v_total_risk, 100.0)
     
     def _calculate_confidence(self, p_signals: List[TechnicalSignal], p_score: float) -> float:

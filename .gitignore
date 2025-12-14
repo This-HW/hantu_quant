@@ -49,9 +49,16 @@ trading.log
 data/token/
 data/token/token_info_*.json
 .env
+.env.*
+!.env.example
 examples/env_test.py
 config/telegram_config.json
 config/*.json
+!config/*.example.json
+*.pem
+*.key
+*.cert
+*.crt
 
 # Data directories
 data/*

@@ -13,9 +13,10 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 import time
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 
 # 프로젝트 루트 경로 추가
@@ -46,6 +47,43 @@ app.add_middleware(
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# ========== 보안: API 키 인증 설정 ==========
+# 환경변수에서 API 키 로드 (설정 안된 경우 기본값 사용 - 프로덕션에서는 반드시 설정 필요)
+API_KEY = os.getenv('API_SERVER_KEY', '')
+API_KEY_HEADER = APIKeyHeader(name='X-API-Key', auto_error=False)
+
+async def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> bool:
+    """API 키 검증 (민감한 엔드포인트 보호용)"""
+    if not API_KEY:
+        # API_SERVER_KEY가 설정되지 않은 경우 경고 로그
+        logger.warning("⚠️  API_SERVER_KEY가 설정되지 않았습니다. 보안을 위해 설정을 권장합니다.")
+        return True  # 개발 환경에서는 통과
+
+    if not api_key:
+        raise HTTPException(
+            status_code=401,
+            detail="API 키가 필요합니다. X-API-Key 헤더를 포함해주세요."
+        )
+
+    if api_key != API_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="유효하지 않은 API 키입니다."
+        )
+
+    return True
+
+async def verify_api_key_optional(api_key: str = Security(API_KEY_HEADER)) -> bool:
+    """선택적 API 키 검증 (읽기 전용 엔드포인트용)"""
+    if not API_KEY:
+        return True  # API_SERVER_KEY 미설정시 통과
+
+    if api_key and api_key == API_KEY:
+        return True
+
+    # API 키가 없거나 틀려도 읽기 전용은 허용 (로컬 환경)
+    return True
 
 # 데이터 모델들
 class Stock(BaseModel):
@@ -166,11 +204,16 @@ async def execute_real_screening() -> Dict[str, Any]:
         
         # 프로젝트 루트로 이동하여 스크리닝 실행
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        # 명령에 'screen' 서브커맨드 추가하여 실제 스크리닝 실행
-        cmd = f"cd {project_root} && python3 workflows/phase1_watchlist.py screen"
-        
-        # 비동기 실행
-        process = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=300)
+
+        # 보안: shell=True 대신 리스트 기반 subprocess 사용 (Command Injection 방지)
+        script_path = os.path.join(project_root, 'workflows', 'phase1_watchlist.py')
+        process = subprocess.run(
+            ['python3', script_path, 'screen'],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=300
+        )
         
         if process.returncode == 0:
             # 스크리닝 성공 - 최신 데이터 로드
@@ -207,10 +250,16 @@ async def execute_real_daily_selection() -> Dict[str, Any]:
         
         # 프로젝트 루트로 이동하여 종목선정 실행
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        cmd = f"cd {project_root} && python3 workflows/phase2_daily_selection.py"
-        
-        # 비동기 실행
-        process = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=180)
+
+        # 보안: shell=True 대신 리스트 기반 subprocess 사용 (Command Injection 방지)
+        script_path = os.path.join(project_root, 'workflows', 'phase2_daily_selection.py')
+        process = subprocess.run(
+            ['python3', script_path],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=180
+        )
         
         if process.returncode == 0:
             # 종목선정 성공 - 최신 데이터 로드
@@ -361,8 +410,16 @@ async def start_integrated_scheduler() -> Dict[str, Any]:
         
         # 스케줄러 시작
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        cmd = f"cd {project_root} && python3 workflows/integrated_scheduler.py start &"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+
+        # 보안: shell=True 대신 리스트 기반 subprocess 사용 (Command Injection 방지)
+        script_path = os.path.join(project_root, 'workflows', 'integrated_scheduler.py')
+        result = subprocess.Popen(
+            ['python3', script_path, 'start'],
+            cwd=project_root,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True
+        )
         
         # 시작 확인 (3초 대기)
         import time
@@ -392,8 +449,16 @@ async def stop_integrated_scheduler() -> Dict[str, Any]:
         
         # 정상 종료 시도
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        cmd = f"cd {project_root} && python3 workflows/integrated_scheduler.py stop"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+
+        # 보안: shell=True 대신 리스트 기반 subprocess 사용 (Command Injection 방지)
+        script_path = os.path.join(project_root, 'workflows', 'integrated_scheduler.py')
+        result = subprocess.run(
+            ['python3', script_path, 'stop'],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
         
         # 강제 종료 (필요시)
         try:
@@ -893,8 +958,8 @@ async def get_enhanced_scheduler_status_endpoint():
     return get_enhanced_scheduler_status()
 
 @app.post("/api/system/services/{service_id}/start")
-async def start_service(service_id: str):
-    """서비스 시작"""
+async def start_service(service_id: str, _: bool = Depends(verify_api_key)):
+    """서비스 시작 (API 키 인증 필요)"""
     try:
         if service_id == "web_interface":
             return {"success": True, "message": "웹 인터페이스 시작을 위해 'npm run preview'를 실행하세요"}
@@ -919,8 +984,8 @@ async def start_service(service_id: str):
         raise HTTPException(status_code=500, detail=f"서비스 시작 실패: {str(e)}")
 
 @app.post("/api/system/services/{service_id}/stop")
-async def stop_service(service_id: str):
-    """서비스 정지"""
+async def stop_service(service_id: str, _: bool = Depends(verify_api_key)):
+    """서비스 정지 (API 키 인증 필요)"""
     try:
         if service_id == "scheduler":
             # 통합 스케줄러 중지
