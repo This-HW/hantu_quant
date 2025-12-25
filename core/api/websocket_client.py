@@ -1,3 +1,10 @@
+"""
+한국투자증권 WebSocket API 클라이언트
+
+보안 강화 정책에 따라 REST API 토큰 대신
+별도의 WebSocket 접속키(approval_key)를 사용
+"""
+
 import json
 import logging
 import asyncio
@@ -7,19 +14,65 @@ from core.config.settings import (
     APP_KEY, APP_SECRET, ACCOUNT_NUMBER,
     SERVER, SOCKET_VIRTUAL_URL, SOCKET_PROD_URL
 )
+from core.config.api_config import APIConfig
 
 logger = logging.getLogger(__name__)
 
+
 class KISWebSocketClient:
-    """한국투자증권 WebSocket API 클라이언트"""
-    
-    def __init__(self, access_token: str):
-        self.access_token = access_token
+    """한국투자증권 WebSocket API 클라이언트
+
+    한투 보안 강화 정책에 따라 WebSocket 연결 시
+    REST API access_token 대신 별도의 approval_key 사용
+    """
+
+    def __init__(self, approval_key: Optional[str] = None):
+        """초기화
+
+        Args:
+            approval_key: WebSocket 접속키 (None이면 자동 발급)
+        """
+        self.config = APIConfig()
+
+        # WebSocket 접속키 설정 (REST 토큰과 별도)
+        if approval_key:
+            self.approval_key = approval_key
+        else:
+            # APIConfig에서 접속키 발급/로드
+            self.approval_key = self.config.get_ws_approval_key()
+
         self.ws_url = SOCKET_PROD_URL if SERVER == 'prod' else SOCKET_VIRTUAL_URL
         self.subscribed_codes: Dict[str, List[str]] = {}  # {종목코드: [TR_ID 리스트]}
         self.callbacks: Dict[str, Callable] = {}  # {TR_ID: callback 함수}
         self.websocket = None
         self.running = False
+
+    @classmethod
+    def from_access_token(cls, access_token: str) -> 'KISWebSocketClient':
+        """기존 access_token 방식 호환용 팩토리 메서드 (deprecated)
+
+        Args:
+            access_token: REST API 토큰
+
+        Returns:
+            KISWebSocketClient 인스턴스
+
+        Note:
+            이 방식은 deprecated입니다. 새 코드에서는 approval_key 사용을 권장합니다.
+        """
+        logger.warning(
+            "[KISWebSocketClient] access_token 방식은 deprecated입니다. "
+            "approval_key 사용을 권장합니다."
+        )
+        instance = cls.__new__(cls)
+        instance.approval_key = access_token  # 호환성을 위해 access_token 사용
+        instance.config = APIConfig()
+        instance.ws_url = SOCKET_PROD_URL if SERVER == 'prod' else SOCKET_VIRTUAL_URL
+        instance.subscribed_codes = {}
+        instance.callbacks = {}
+        instance.websocket = None
+        instance.running = False
+        return instance
         
     def add_callback(self, tr_id: str, callback: Callable):
         """실시간 데이터 수신 시 호출할 콜백 함수 등록"""
@@ -62,12 +115,19 @@ class KISWebSocketClient:
         if not self.websocket:
             logger.error("WebSocket이 연결되지 않았습니다.")
             return False
-            
+
+        # 접속키 확인
+        if not self.approval_key:
+            logger.error("WebSocket 접속키가 없습니다. 접속키 발급이 필요합니다.")
+            self.approval_key = self.config.get_ws_approval_key()
+            if not self.approval_key:
+                return False
+
         try:
             for tr_id in tr_list:
                 message = {
                     "header": {
-                        "approval_key": self.access_token,
+                        "approval_key": self.approval_key,  # REST 토큰 대신 접속키 사용
                         "custtype": "P",
                         "tr_type": "1",
                         "content-type": "utf-8"
@@ -77,18 +137,18 @@ class KISWebSocketClient:
                         "tr_key": stock_code
                     }
                 }
-                
+
                 await self.websocket.send(json.dumps(message))
                 logger.info(f"구독 요청 전송: {tr_id} - {stock_code}")
-                
+
                 if stock_code not in self.subscribed_codes:
                     self.subscribed_codes[stock_code] = []
                 self.subscribed_codes[stock_code].append(tr_id)
-                
+
                 await asyncio.sleep(0.5)  # API 호출 제한 준수
-                
+
             return True
-            
+
         except Exception as e:
             logger.error(f"구독 요청 실패: {e}")
             return False
@@ -97,12 +157,12 @@ class KISWebSocketClient:
         """종목 구독 해지"""
         if not self.websocket or stock_code not in self.subscribed_codes:
             return
-            
+
         try:
             for tr_id in self.subscribed_codes[stock_code]:
                 message = {
                     "header": {
-                        "approval_key": self.access_token,
+                        "approval_key": self.approval_key,  # REST 토큰 대신 접속키 사용
                         "custtype": "P",
                         "tr_type": "2",  # 구독 해지
                         "content-type": "utf-8"
@@ -112,12 +172,12 @@ class KISWebSocketClient:
                         "tr_key": stock_code
                     }
                 }
-                
+
                 await self.websocket.send(json.dumps(message))
                 logger.info(f"구독 해지 요청: {tr_id} - {stock_code}")
-                
+
             del self.subscribed_codes[stock_code]
-            
+
         except Exception as e:
             logger.error(f"구독 해지 실패: {e}")
             
