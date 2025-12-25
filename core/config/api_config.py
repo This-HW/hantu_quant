@@ -1,20 +1,51 @@
 """
 API configuration management module.
+
+한국투자증권 KIS API 공식 규정 준수:
+- 접근 토큰: 1일 1회 발급 원칙, 1분당 1회 재발급 제한
+- WebSocket: 별도 접속키(approval_key) 발급 필요
 """
 
 import os
 import json
 import logging
+import ssl
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.ssl_ import create_urllib3_context
 from dotenv import load_dotenv
 
 from . import settings
 
+
+class TLSAdapter(HTTPAdapter):
+    """TLS 1.2+ 강제 어댑터
+
+    한국투자증권 2025년 11월 보안 강화 정책 대비:
+    TLS 1.0, 1.1 지원 중단 예정
+    """
+
+    def init_poolmanager(self, *args, **kwargs):
+        # TLS 1.2 이상만 허용
+        ctx = create_urllib3_context()
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+        kwargs['ssl_context'] = ctx
+        return super().init_poolmanager(*args, **kwargs)
+
 logger = logging.getLogger(__name__)
+
+# KIS API 에러 코드 정의
+class KISErrorCode:
+    """한국투자증권 API 에러 코드"""
+    TOKEN_EXPIRED = "EGW00123"  # 토큰 만료
+    TOKEN_INVALID = "EGW00121"  # 유효하지 않은 토큰
+    RATE_LIMIT = "EGW00201"     # 호출 제한 초과
+    SERVICE_ERROR = "EGW00500"  # 서비스 오류
+
 
 class APIConfig:
     """API 설정 관리 클래스 (싱글톤)"""
@@ -54,7 +85,12 @@ class APIConfig:
         # 토큰 관련 변수
         self.access_token = None
         self.token_expired_at = None
-        
+        self._last_token_issued_at: Optional[datetime] = None  # 마지막 토큰 발급 시간
+
+        # WebSocket 접속키 (REST 토큰과 별도)
+        self.ws_approval_key: Optional[str] = None
+        self._ws_approval_key_file = settings.TOKEN_DIR / f'ws_approval_key_{self.server}.json'
+
         # 토큰 디렉토리 생성
         self._token_file.parent.mkdir(parents=True, exist_ok=True)
         
@@ -62,10 +98,14 @@ class APIConfig:
         self.rate_limit = settings.RATE_LIMIT_PER_SEC
         self.last_request_time = 0
         self.request_times = []
-        
+
+        # TLS 1.2+ 세션 생성 (2025년 보안 정책 대비)
+        self._session = requests.Session()
+        self._session.mount('https://', TLSAdapter())
+
         # 초기화 완료
         self._initialized = True
-        
+
         # 저장된 토큰 로드
         self._load_token()
         
@@ -74,36 +114,59 @@ class APIConfig:
         try:
             token_data = {
                 'access_token': self.access_token,
-                'expired_at': self.token_expired_at.isoformat() if self.token_expired_at else None
+                'expired_at': self.token_expired_at.isoformat() if self.token_expired_at else None,
+                'issued_at': self._last_token_issued_at.isoformat() if self._last_token_issued_at else None
             }
-            
+
             with open(self._token_file, 'w') as f:
                 json.dump(token_data, f)
-                
+
             logger.debug("[_save_token] 토큰 정보 저장 완료")
-            
+
         except Exception as e:
             logger.error(f"[_save_token] 토큰 정보 저장 중 오류 발생: {str(e)}")
-            
+
     def _load_token(self) -> None:
         """저장된 토큰 정보 로드"""
         try:
             if not self._token_file.exists():
                 return
-                
+
             with open(self._token_file, 'r') as f:
                 token_data = json.load(f)
-                
+
             self.access_token = token_data.get('access_token')
             expired_at = token_data.get('expired_at')
-            
+            issued_at = token_data.get('issued_at')
+
             if expired_at:
                 self.token_expired_at = datetime.fromisoformat(expired_at)
-                
+            if issued_at:
+                self._last_token_issued_at = datetime.fromisoformat(issued_at)
+
             logger.debug("[_load_token] 토큰 정보 로드 완료")
-            
+
         except Exception as e:
             logger.error(f"[_load_token] 토큰 정보 로드 중 오류 발생: {str(e)}")
+
+    def _can_refresh_token(self) -> bool:
+        """토큰 재발급 가능 여부 확인 (1분당 1회 제한)
+
+        한국투자증권 공식 규정: 토큰 재발급은 1분당 1회 제한
+
+        Returns:
+            bool: 재발급 가능 여부
+        """
+        if self._last_token_issued_at is None:
+            return True
+
+        elapsed = datetime.now() - self._last_token_issued_at
+        if elapsed < timedelta(minutes=1):
+            remaining = 60 - elapsed.total_seconds()
+            logger.warning(f"[_can_refresh_token] 토큰 재발급 제한 중 (남은 시간: {remaining:.0f}초)")
+            return False
+
+        return True
             
     def get_headers(self, include_content_type: bool = True) -> Dict:
         """API 요청 헤더 생성
@@ -160,10 +223,14 @@ class APIConfig:
         
     def refresh_token(self, force: bool = False) -> bool:
         """토큰 갱신
-        
+
+        한국투자증권 공식 규정:
+        - 접근 토큰은 1일 1회 발급이 원칙
+        - 토큰 재발급은 1분당 1회 제한
+
         Args:
             force: 강제 갱신 여부
-            
+
         Returns:
             bool: 갱신 성공 여부
         """
@@ -171,47 +238,62 @@ class APIConfig:
             # 토큰이 유효하고 강제 갱신이 아닌 경우
             if not force and self.validate_token():
                 return True
-            
+
+            # 1분당 1회 재발급 제한 확인
+            if not self._can_refresh_token():
+                logger.warning("[refresh_token] 토큰 재발급 제한으로 기존 토큰 유지 시도")
+                # 기존 토큰이 있으면 그대로 사용
+                if self.access_token:
+                    return True
+                # 토큰이 없으면 대기 후 재시도
+                elapsed = datetime.now() - self._last_token_issued_at
+                wait_time = 60 - elapsed.total_seconds()
+                if wait_time > 0:
+                    logger.info(f"[refresh_token] {wait_time:.0f}초 대기 후 재발급 시도")
+                    time.sleep(wait_time + 1)
+
             # API 호출 제한 적용
-            self.apply_rate_limit()    
-                
+            self.apply_rate_limit()
+
             url = f"{self.base_url}/oauth2/tokenP"
-            
+
             data = {
                 "grant_type": "client_credentials",
                 "appkey": self.app_key,
                 "appsecret": self.app_secret
             }
-            
+
             # 로깅 시 민감 정보 마스킹
             safe_data = data.copy()
             safe_data["appkey"] = "***MASKED***"
             safe_data["appsecret"] = "***MASKED***"
             logger.debug(f"[refresh_token] 토큰 갱신 요청: {safe_data}")
-            
+
             headers = {"content-type": "application/json; charset=utf-8"}
-            response = requests.post(url, json=data, headers=headers, timeout=settings.REQUEST_TIMEOUT)
-            
+            # TLS 1.2+ 세션 사용
+            response = self._session.post(url, json=data, headers=headers, timeout=settings.REQUEST_TIMEOUT)
+
             if response.status_code == 200:
                 token_data = response.json()
                 self.access_token = token_data.get('access_token')
                 expires_in = int(token_data.get('expires_in', 86400))  # 기본값 24시간
                 self.token_expired_at = datetime.now() + timedelta(seconds=expires_in)
-                
+                self._last_token_issued_at = datetime.now()  # 발급 시간 기록
+
                 # 로그에 토큰 데이터 마스킹
                 safe_token_data = {k: "***MASKED***" if k == "access_token" else v for k, v in token_data.items()}
                 logger.debug(f"[refresh_token] 토큰 응답: {safe_token_data}")
-                
+
                 # 토큰 정보 저장
                 self._save_token()
-                
+
                 logger.info("[refresh_token] 토큰 갱신 성공")
                 return True
             else:
                 logger.error(f"[refresh_token] 토큰 갱신 실패 - 상태 코드: {response.status_code}")
                 logger.error(f"[refresh_token] 응답 본문: {response.text}")
                 return False
-                
+
         except Exception as e:
             logger.error(f"[refresh_token] 토큰 갱신 중 오류 발생: {str(e)}")
             return False
@@ -252,8 +334,138 @@ class APIConfig:
         """토큰 정보 초기화"""
         self.access_token = None
         self.token_expired_at = None
-        
+        self._last_token_issued_at = None
+
         if self._token_file.exists():
             self._token_file.unlink()
-            
-        logger.info("[clear_token] 토큰 정보 초기화 완료") 
+
+        logger.info("[clear_token] 토큰 정보 초기화 완료")
+
+    # ========== WebSocket 접속키 관리 ==========
+
+    def get_ws_approval_key(self, force: bool = False) -> Optional[str]:
+        """WebSocket 접속키 발급
+
+        한국투자증권 보안 강화 정책에 따라 WebSocket 연결 시
+        REST API 토큰 대신 별도의 접속키(approval_key)를 사용해야 함
+
+        Args:
+            force: 강제 재발급 여부
+
+        Returns:
+            str: WebSocket 접속키 (실패 시 None)
+        """
+        try:
+            # 캐시된 접속키 확인
+            if not force and self.ws_approval_key:
+                return self.ws_approval_key
+
+            # 저장된 접속키 로드 시도
+            if not force:
+                self._load_ws_approval_key()
+                if self.ws_approval_key:
+                    return self.ws_approval_key
+
+            # 새 접속키 발급
+            url = f"{self.base_url}/oauth2/Approval"
+
+            data = {
+                "grant_type": "client_credentials",
+                "appkey": self.app_key,
+                "secretkey": self.app_secret
+            }
+
+            headers = {"content-type": "application/json; charset=utf-8"}
+            # TLS 1.2+ 세션 사용
+            response = self._session.post(url, json=data, headers=headers, timeout=settings.REQUEST_TIMEOUT)
+
+            if response.status_code == 200:
+                result = response.json()
+                self.ws_approval_key = result.get('approval_key')
+                self._save_ws_approval_key()
+                logger.info("[get_ws_approval_key] WebSocket 접속키 발급 성공")
+                return self.ws_approval_key
+            else:
+                logger.error(f"[get_ws_approval_key] 접속키 발급 실패: {response.status_code}")
+                return None
+
+        except Exception as e:
+            logger.error(f"[get_ws_approval_key] 오류: {e}")
+            return None
+
+    def _save_ws_approval_key(self) -> None:
+        """WebSocket 접속키 저장"""
+        try:
+            data = {
+                'approval_key': self.ws_approval_key,
+                'issued_at': datetime.now().isoformat()
+            }
+            with open(self._ws_approval_key_file, 'w') as f:
+                json.dump(data, f)
+        except Exception as e:
+            logger.error(f"[_save_ws_approval_key] 저장 실패: {e}")
+
+    def _load_ws_approval_key(self) -> None:
+        """WebSocket 접속키 로드"""
+        try:
+            if not self._ws_approval_key_file.exists():
+                return
+            with open(self._ws_approval_key_file, 'r') as f:
+                data = json.load(f)
+            self.ws_approval_key = data.get('approval_key')
+        except Exception as e:
+            logger.error(f"[_load_ws_approval_key] 로드 실패: {e}")
+
+    # ========== 에러 처리 유틸리티 ==========
+
+    @staticmethod
+    def is_token_error(response: Dict) -> bool:
+        """토큰 관련 에러인지 확인
+
+        Args:
+            response: API 응답 딕셔너리
+
+        Returns:
+            bool: 토큰 에러 여부
+        """
+        if not isinstance(response, dict):
+            return False
+
+        error_code = response.get('msg_cd', '') or response.get('rt_cd', '')
+        return error_code in [KISErrorCode.TOKEN_EXPIRED, KISErrorCode.TOKEN_INVALID]
+
+    @staticmethod
+    def is_rate_limit_error(response: Dict) -> bool:
+        """Rate Limit 에러인지 확인
+
+        Args:
+            response: API 응답 딕셔너리
+
+        Returns:
+            bool: Rate Limit 에러 여부
+        """
+        if not isinstance(response, dict):
+            return False
+
+        error_code = response.get('msg_cd', '') or response.get('rt_cd', '')
+        return error_code == KISErrorCode.RATE_LIMIT
+
+    def handle_api_error(self, response: Dict) -> bool:
+        """API 에러 처리 및 복구 시도
+
+        Args:
+            response: API 응답 딕셔너리
+
+        Returns:
+            bool: 재시도 가능 여부
+        """
+        if self.is_token_error(response):
+            logger.warning("[handle_api_error] 토큰 에러 감지, 토큰 갱신 시도")
+            return self.refresh_token(force=True)
+
+        if self.is_rate_limit_error(response):
+            logger.warning("[handle_api_error] Rate Limit 에러, 1초 대기")
+            time.sleep(1)
+            return True
+
+        return False 

@@ -328,5 +328,11 @@ async def get_alerts():
 
 if __name__ == "__main__":
     import uvicorn
+    import os
     print("🌟 실제 투자 데이터 전용 API 서버 시작!")
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+
+    # 보안: 프로덕션에서는 127.0.0.1 사용 권장
+    host = os.getenv('API_HOST', '127.0.0.1')
+    port = int(os.getenv('API_PORT', '8000'))
+
+    uvicorn.run(app, host=host, port=port) 

@@ -387,10 +387,16 @@ async def websocket_endpoint(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
+    import os
     print("🚀 한투 퀀트 API 서버 (실제 데이터 모드)를 시작합니다...")
     print("📊 실제 데이터:")
     print(f"   - 일일 선정: {len(REAL_DAILY_SELECTIONS)}개")
     print(f"   - 감시 리스트: {len(REAL_WATCHLIST)}개")
-    print("📱 웹 인터페이스: http://localhost:5174")
-    print("🔗 API 문서: http://localhost:8001/docs")
-    uvicorn.run(app, host="0.0.0.0", port=8001) 
+
+    # 보안: 프로덕션에서는 127.0.0.1 사용 권장
+    host = os.getenv('API_HOST', '127.0.0.1')
+    port = int(os.getenv('API_PORT', '8001'))
+
+    print(f"📱 웹 인터페이스: http://localhost:5174")
+    print(f"🔗 API 문서: http://localhost:{port}/docs")
+    uvicorn.run(app, host=host, port=port) 

@@ -9,6 +9,8 @@ import pandas as pd
 import json
 import os
 import pickle
+import io
+import hashlib
 import threading
 import time
 from datetime import datetime, timedelta
@@ -16,6 +18,66 @@ from typing import Dict, List, Tuple, Optional, Any, Callable
 from dataclasses import dataclass, asdict
 from enum import Enum
 import warnings
+
+
+class RestrictedUnpickler(pickle.Unpickler):
+    """
+    보안 강화된 Unpickler - 허용된 모듈/클래스만 역직렬화
+    악의적인 pickle 파일로부터 보호
+    """
+    # 허용된 모듈 목록
+    ALLOWED_MODULES = {
+        'numpy', 'numpy.core.multiarray', 'numpy.core.numeric',
+        'pandas', 'pandas.core.frame', 'pandas.core.series',
+        'sklearn', 'xgboost', 'lightgbm',
+        'builtins', 'collections', 'datetime',
+    }
+
+    # 허용된 클래스 목록
+    ALLOWED_CLASSES = {
+        'dict', 'list', 'tuple', 'set', 'frozenset',
+        'int', 'float', 'str', 'bool', 'bytes',
+        'datetime', 'date', 'timedelta',
+        'ndarray', 'dtype', 'DataFrame', 'Series',
+    }
+
+    def find_class(self, module: str, name: str):
+        """허용된 모듈/클래스만 로드"""
+        # 모듈 검증
+        module_base = module.split('.')[0]
+        if module_base not in self.ALLOWED_MODULES and module not in self.ALLOWED_MODULES:
+            raise pickle.UnpicklingError(
+                f"보안: 허용되지 않은 모듈 '{module}' 로드 시도가 차단되었습니다."
+            )
+
+        return super().find_class(module, name)
+
+
+def safe_pickle_load(file_path: str, max_size_mb: int = 100) -> Any:
+    """
+    보안 강화된 pickle 로드 함수
+
+    Args:
+        file_path: 로드할 pickle 파일 경로
+        max_size_mb: 최대 허용 파일 크기 (MB)
+
+    Returns:
+        역직렬화된 객체
+
+    Raises:
+        ValueError: 파일 크기 초과 또는 검증 실패
+        pickle.UnpicklingError: 허용되지 않은 클래스 로드 시도
+    """
+    # 파일 크기 검증
+    file_size = os.path.getsize(file_path)
+    max_size_bytes = max_size_mb * 1024 * 1024
+
+    if file_size > max_size_bytes:
+        raise ValueError(f"파일 크기({file_size / 1024 / 1024:.1f}MB)가 최대 허용 크기({max_size_mb}MB)를 초과합니다.")
+
+    # 제한된 Unpickler로 로드
+    with open(file_path, 'rb') as f:
+        return RestrictedUnpickler(f).load()
 
 from ...utils.logging import get_logger
 from .parameter_manager import ParameterManager, ParameterSet
@@ -598,11 +660,10 @@ class IntegrationManager:
             if model_metadata.accuracy < 0.7:
                 return False
             
-            # 모델 로드 테스트
-            with open(model_metadata.file_path, 'rb') as f:
-                model_data = pickle.load(f)
-                if 'metadata' not in model_data:
-                    return False
+            # 모델 로드 테스트 (보안 강화된 로더 사용)
+            model_data = safe_pickle_load(model_metadata.file_path)
+            if 'metadata' not in model_data:
+                return False
             
             return True
             
