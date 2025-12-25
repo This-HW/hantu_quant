@@ -55,10 +55,19 @@ API_KEY_HEADER = APIKeyHeader(name='X-API-Key', auto_error=False)
 
 async def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> bool:
     """API 키 검증 (민감한 엔드포인트 보호용)"""
+    # 프로덕션 환경에서는 API 키 필수
+    is_production = os.getenv('SERVER', 'virtual') == 'prod'
+
     if not API_KEY:
-        # API_SERVER_KEY가 설정되지 않은 경우 경고 로그
-        logger.warning("⚠️  API_SERVER_KEY가 설정되지 않았습니다. 보안을 위해 설정을 권장합니다.")
-        return True  # 개발 환경에서는 통과
+        if is_production:
+            logger.error("❌ 프로덕션 환경에서 API_SERVER_KEY가 설정되지 않았습니다!")
+            raise HTTPException(
+                status_code=500,
+                detail="서버 설정 오류: API_SERVER_KEY가 필요합니다."
+            )
+        # 개발 환경에서만 경고 후 통과
+        logger.warning("⚠️  API_SERVER_KEY가 설정되지 않았습니다. 개발 환경에서만 허용됩니다.")
+        return True
 
     if not api_key:
         raise HTTPException(
@@ -1004,4 +1013,13 @@ async def stop_service(service_id: str, _: bool = Depends(verify_api_key)):
 if __name__ == "__main__":
     import uvicorn
     print("🌟 실제 투자 데이터 전용 API 서버 시작!")
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+
+    # 보안: 프로덕션에서는 127.0.0.1 사용 권장
+    # 외부 접근이 필요한 경우 리버스 프록시(nginx) 사용
+    host = os.getenv('API_HOST', '127.0.0.1')
+    port = int(os.getenv('API_PORT', '8000'))
+
+    if host == '0.0.0.0':
+        logger.warning("⚠️  API 서버가 모든 인터페이스(0.0.0.0)에서 수신 중입니다. 프로덕션에서는 127.0.0.1 사용을 권장합니다.")
+
+    uvicorn.run(app, host=host, port=port) 

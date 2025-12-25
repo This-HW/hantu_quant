@@ -658,17 +658,22 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             self.logger.error(f"시스템 헬스체크 실패: {e}")
             return {'overall_status': 'error', 'error': str(e)}
 
+    # 허용된 테이블 목록 (SQL 인젝션 방지용 화이트리스트)
+    ALLOWED_TABLES = frozenset(['screening_history', 'selection_history', 'performance_tracking'])
+
     def _check_database_health(self) -> Dict[str, Any]:
         """데이터베이스 헬스체크"""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
 
-                # 테이블별 레코드 수 확인
-                tables = ['screening_history', 'selection_history', 'performance_tracking']
+                # 테이블별 레코드 수 확인 (화이트리스트 검증)
                 table_counts = {}
 
-                for table in tables:
+                for table in self.ALLOWED_TABLES:
+                    # 테이블명 화이트리스트 검증 (SQL 인젝션 방지)
+                    if table not in self.ALLOWED_TABLES:
+                        continue
                     cursor.execute(f"SELECT COUNT(*) FROM {table}")
                     count = cursor.fetchone()[0]
                     table_counts[table] = count
