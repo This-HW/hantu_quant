@@ -11,10 +11,29 @@ from typing import Dict, List, Optional
 import pandas as pd
 from datetime import datetime, timedelta
 
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+    before_sleep_log,
+    RetryError
+)
+
 from core.config import settings
 from core.config.api_config import APIConfig
 
 logger = logging.getLogger(__name__)
+
+
+class RetryableAPIError(Exception):
+    """재시도 가능한 API 에러 (5xx, Timeout, ConnectionError)"""
+    pass
+
+
+class NonRetryableAPIError(Exception):
+    """재시도 불가능한 API 에러 (4xx, 인증 실패)"""
+    pass
 
 class KISRestClient:
     """REST API 기본 클라이언트"""
@@ -24,10 +43,10 @@ class KISRestClient:
         self.config = APIConfig()  # 싱글톤 인스턴스
         self.last_request_time = 0
         
-    def _request(self, method: str, url: str, headers: Dict = None, 
+    def _request(self, method: str, url: str, headers: Dict = None,
                 params: Dict = None, data: Dict = None, timeout: int = None) -> Dict:
-        """API 요청 실행
-        
+        """API 요청 실행 (재시도 로직 포함)
+
         Args:
             method: HTTP 메서드
             url: 요청 URL
@@ -35,39 +54,98 @@ class KISRestClient:
             params: URL 파라미터
             data: 요청 데이터
             timeout: 타임아웃 (초)
-            
+
         Returns:
             Dict: API 응답
+
+        Note:
+            - Timeout, ConnectionError, 5xx 에러: 최대 3회 재시도 (지수 백오프: 2초, 4초, 8초)
+            - 4xx 에러, 인증 실패: 재시도 없이 즉시 반환
         """
         try:
             # API 호출 제한 준수
             self._rate_limit()
-            
+
             # 토큰 유효성 확인 (헤더 생성 전에 보장)
             if not self.config.ensure_valid_token():
-                raise Exception("API 토큰이 유효하지 않습니다")
-                
-            # 요청 실행
-            timeout = timeout or settings.REQUEST_TIMEOUT
-            response = requests.request(
+                raise NonRetryableAPIError("API 토큰이 유효하지 않습니다")
+
+            # 재시도 로직이 적용된 내부 요청 실행
+            return self._request_with_retry(
                 method=method,
                 url=url,
-                headers=headers or {},
+                headers=headers,
                 params=params,
-                json=data,
-                timeout=timeout
+                data=data,
+                timeout=timeout or settings.REQUEST_TIMEOUT
             )
-            
-            # 응답 처리
-            if response.status_code == 200:
-                return response.json()
-            else:
-                logger.error(f"API 요청 실패: {response.status_code}, {response.text}")
-                return {"error": f"HTTP {response.status_code}", "message": response.text}
-                
+
+        except NonRetryableAPIError as e:
+            logger.error(f"API 요청 실패 (재시도 불가): {e}")
+            return {"error": str(e), "retryable": False}
+        except RetryError as e:
+            logger.error(f"API 요청 실패 (최대 재시도 횟수 초과): {e}")
+            return {"error": f"최대 재시도 횟수 초과: {e}", "retryable": True}
         except Exception as e:
             logger.error(f"API 요청 오류: {e}")
             return {"error": str(e)}
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=2, min=2, max=10),
+        retry=retry_if_exception_type((RetryableAPIError, requests.Timeout, requests.ConnectionError)),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+        reraise=True
+    )
+    def _request_with_retry(self, method: str, url: str, headers: Dict = None,
+                           params: Dict = None, data: Dict = None, timeout: int = 30) -> Dict:
+        """재시도 로직이 적용된 API 요청 실행
+
+        Args:
+            method: HTTP 메서드
+            url: 요청 URL
+            headers: 요청 헤더
+            params: URL 파라미터
+            data: 요청 데이터
+            timeout: 타임아웃 (초)
+
+        Returns:
+            Dict: API 응답
+
+        Raises:
+            RetryableAPIError: 재시도 가능한 에러 (5xx)
+            NonRetryableAPIError: 재시도 불가능한 에러 (4xx)
+            requests.Timeout: 타임아웃 에러
+            requests.ConnectionError: 연결 에러
+        """
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers or {},
+            params=params,
+            json=data,
+            timeout=timeout
+        )
+
+        status_code = response.status_code
+
+        # 성공 응답
+        if status_code == 200:
+            return response.json()
+
+        # 5xx 서버 에러 → 재시도
+        if 500 <= status_code < 600:
+            logger.warning(f"API 서버 에러 (재시도 예정): {status_code}, {response.text}")
+            raise RetryableAPIError(f"HTTP {status_code}: {response.text}")
+
+        # 4xx 클라이언트 에러 → 재시도 불가
+        if 400 <= status_code < 500:
+            logger.error(f"API 클라이언트 에러 (재시도 불가): {status_code}, {response.text}")
+            raise NonRetryableAPIError(f"HTTP {status_code}: {response.text}")
+
+        # 기타 에러
+        logger.error(f"API 요청 실패: {status_code}, {response.text}")
+        return {"error": f"HTTP {status_code}", "message": response.text}
     
     def _rate_limit(self):
         """API 호출 제한 준수"""
