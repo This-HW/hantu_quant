@@ -22,6 +22,7 @@ from core.daily_selection.selection_criteria import SelectionCriteriaManager, Ma
 from core.watchlist.watchlist_manager import WatchlistManager
 from core.utils.log_utils import get_logger
 from core.utils.telegram_notifier import get_telegram_notifier
+from core.utils.partial_result import PartialResult, save_failed_items
 
 logger = get_logger(__name__)
 
@@ -359,8 +360,8 @@ class Phase2CLI:
             return None
     
     def _analyze_all_stocks(self) -> List[PriceAttractiveness]:
-        """전체 감시 리스트 분석
-        
+        """전체 감시 리스트 분석 (부분 실패 허용)
+
         Returns:
             분석 결과 리스트
         """
@@ -371,41 +372,75 @@ class Phase2CLI:
                 print("❌ 활성 감시 리스트가 비어있습니다")
                 return []
 
+            # 부분 실패 허용 결과 추적
+            _v_partial_result = PartialResult[dict](min_success_rate=0.9)
+
             # KIS 현재가 및 최근 일봉 조회(순차; API 한도 고려). 병목이면 배치 설계
             from core.api.kis_api import KISAPI
             kis = KISAPI()
             stock_data_list = []
+
             for stock in watchlist_stocks:
-                price_info = kis.get_current_price(stock.stock_code) or {}
-                # 최근 일봉 (가격/거래량 시계열)
                 try:
-                    df = kis.get_stock_history(stock.stock_code, period="D", count=60)  # 최근 60일
-                    recent_close = df['close'].tolist() if df is not None else []
-                    recent_volume = df['volume'].tolist() if df is not None else []
-                except Exception:
-                    recent_close, recent_volume = [], []
-                stock_data = {
-                    "stock_code": stock.stock_code,
-                    "stock_name": stock.stock_name,
-                    "current_price": float(price_info.get("current_price", 0.0)),
-                    "sector": stock.sector,
-                    "market_cap": float(price_info.get("market_cap", 0.0)),
-                    "volatility": 0.25,
-                    "sector_momentum": 0.05,
-                    "volume": float(price_info.get("volume", 0.0)),
-                    "recent_close_prices": recent_close,
-                    "recent_volumes": recent_volume,
-                }
-                stock_data_list.append(stock_data)
-            
+                    price_info = kis.get_current_price(stock.stock_code) or {}
+                    # 최근 일봉 (가격/거래량 시계열)
+                    try:
+                        df = kis.get_stock_history(stock.stock_code, period="D", count=60)  # 최근 60일
+                        recent_close = df['close'].tolist() if df is not None else []
+                        recent_volume = df['volume'].tolist() if df is not None else []
+                    except Exception as hist_err:
+                        logger.warning(f"종목 {stock.stock_code} 히스토리 조회 실패: {hist_err}")
+                        recent_close, recent_volume = [], []
+
+                    stock_data = {
+                        "stock_code": stock.stock_code,
+                        "stock_name": stock.stock_name,
+                        "current_price": float(price_info.get("current_price", 0.0)),
+                        "sector": stock.sector,
+                        "market_cap": float(price_info.get("market_cap", 0.0)),
+                        "volatility": 0.25,
+                        "sector_momentum": 0.05,
+                        "volume": float(price_info.get("volume", 0.0)),
+                        "recent_close_prices": recent_close,
+                        "recent_volumes": recent_volume,
+                    }
+                    stock_data_list.append(stock_data)
+                    _v_partial_result.add_success(stock_data)
+
+                except Exception as e:
+                    _v_partial_result.add_failure(stock.stock_code, str(e))
+
+            # 부분 실패 결과 로깅
+            _v_partial_result.log_summary("가격 데이터 조회")
+
+            # 실패 항목 저장
+            if _v_partial_result.failed:
+                save_failed_items(
+                    _v_partial_result.failed,
+                    "phase2_price_data_fetch",
+                    "data/logs/failures"
+                )
+
+            # 성공률 체크 및 경고
+            if not _v_partial_result.is_acceptable:
+                logger.warning(
+                    f"⚠️ 가격 데이터 조회 성공률({_v_partial_result.success_rate:.1%})이 "
+                    f"최소 기준({_v_partial_result.min_success_rate:.0%}) 미만입니다!"
+                )
+                print(f"⚠️ 가격 데이터 조회 성공률이 낮습니다: {_v_partial_result.success_rate:.1%}")
+
+            if not stock_data_list:
+                print("❌ 분석할 수 있는 종목 데이터가 없습니다")
+                return []
+
             # 병렬 일괄 분석 실행
             logger.info(f"🚀 병렬 가격 분석 시작 - 워커: {self._v_parallel_workers}개, 종목: {len(stock_data_list)}개")
-            print(f"🚀 병렬 가격 분석 시작 - 워커: {self._v_parallel_workers}개, 종목: {len(stock_data_list)}개")
-            
+            print(f"🚀 병렬 가격 분석 시작 - 워커: {self._v_parallel_workers}개, 종목: {len(stock_data_list)}개 (데이터 조회 성공률: {_v_partial_result.success_rate:.1%})")
+
             # 데이터 크기에 따른 적응형 분석 사용
             results = self._v_parallel_price_analyzer.adaptive_analysis(stock_data_list)
             return results
-            
+
         except Exception as e:
             logger.error(f"전체 종목 분석 오류: {e}")
             return []
