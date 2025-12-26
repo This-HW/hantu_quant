@@ -775,18 +775,18 @@ async def get_system_status():
     return REAL_SYSTEM_STATUS
 
 @app.get("/api/watchlist", response_model=List[WatchlistItem])
-async def get_watchlist():
-    """실시간 감시 리스트"""
+async def get_watchlist(authenticated: bool = Depends(verify_api_key)):
+    """실시간 감시 리스트 (API 키 인증 필요)"""
     return REAL_WATCHLIST
 
 @app.get("/api/daily-selections", response_model=List[DailySelection])
-async def get_daily_selections():
-    """실시간 일일 선정"""
+async def get_daily_selections(authenticated: bool = Depends(verify_api_key)):
+    """실시간 일일 선정 (API 키 인증 필요)"""
     return REAL_DAILY_SELECTIONS
 
 @app.get("/api/alerts", response_model=List[MarketAlert])
-async def get_alerts():
-    """실시간 알림"""
+async def get_alerts(authenticated: bool = Depends(verify_api_key)):
+    """실시간 알림 (API 키 인증 필요)"""
     return REAL_ALERTS
 
 def get_enhanced_scheduler_status() -> Dict[str, Any]:
