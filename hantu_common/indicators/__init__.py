@@ -7,6 +7,15 @@ from .trend import MovingAverage, MACD, SlopeIndicator
 from .momentum import RSI, Stochastic, MomentumScore
 from .volatility import BollingerBands, ATR
 from .volume import OBV, VolumeProfile, VolumePriceAnalyzer, RelativeVolumeStrength, VolumeClusterAnalyzer
+from .volume_indicators import (
+    VolumeIndicators,
+    OBVAnalyzer,
+    OBVSignal,
+    OBVAnalysisResult,
+    calculate_obv,
+    detect_obv_divergence,
+    analyze_obv,
+)
 
 __all__ = [
     'Indicator',
@@ -22,5 +31,13 @@ __all__ = [
     'VolumeProfile',
     'VolumePriceAnalyzer',
     'RelativeVolumeStrength',
-    'VolumeClusterAnalyzer'
+    'VolumeClusterAnalyzer',
+    # Volume Indicators (P1-4)
+    'VolumeIndicators',
+    'OBVAnalyzer',
+    'OBVSignal',
+    'OBVAnalysisResult',
+    'calculate_obv',
+    'detect_obv_divergence',
+    'analyze_obv',
 ] 

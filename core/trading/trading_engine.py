@@ -16,6 +16,7 @@ import threading
 from ..api.kis_api import KISAPI
 from ..config.api_config import APIConfig
 from ..trading.trade_journal import TradeJournal
+from ..trading.dynamic_stop_loss import DynamicStopLossCalculator, StopLossResult
 from ..utils.log_utils import get_logger
 from ..utils.telegram_notifier import get_telegram_notifier
 
@@ -42,8 +43,8 @@ class TradingConfig:
     position_size_method: str = "account_pct"  # 포지션 크기 방법: "fixed", "account_pct", "risk_based", "kelly"
     position_size_value: float = 0.05  # 계좌 대비 5% (10%→5% 보수적)
     fixed_position_size: float = 1000000   # 고정 투자금액 (fixed 모드용)
-    stop_loss_pct: float = 0.03      # 손절매 비율 (5%→3% 빠른 손절)
-    take_profit_pct: float = 0.08    # 익절매 비율 (10%→8% 현실적 목표)
+    stop_loss_pct: float = 0.03      # 손절매 비율 (5%→3% 빠른 손절) - 고정 손절 시 사용
+    take_profit_pct: float = 0.08    # 익절매 비율 (10%→8% 현실적 목표) - 고정 익절 시 사용
     max_trades_per_day: int = 15     # 일일 최대 거래횟수 (20→15 제한)
     risk_per_trade: float = 0.015    # 거래당 위험비율 (2%→1.5% 보수적)
 
@@ -52,41 +53,60 @@ class TradingConfig:
     min_position_size: float = 100000  # 최소 투자금액 (10만원)
     use_kelly_criterion: bool = True   # Kelly Criterion 사용 여부
     kelly_multiplier: float = 0.20     # Kelly 결과에 곱할 보수 계수 (0.25→0.20 더 보수적)
-    
+
+    # ATR 기반 동적 손절/익절 설정 (P1-1)
+    use_dynamic_stops: bool = True     # 동적 손절/익절 사용 여부
+    atr_period: int = 14               # ATR 계산 기간
+    atr_stop_multiplier: float = 2.0   # ATR 기반 손절 배수
+    atr_profit_multiplier: float = 3.0 # ATR 기반 익절 배수
+    use_trailing_stop: bool = True     # 트레일링 스탑 사용 여부
+    trailing_activation_pct: float = 0.02  # 트레일링 활성화 수익률 (2%)
+
     # 매매 시간 설정
     market_start: str = "09:00"
     market_end: str = "15:30"
     pre_market_start: str = "08:30"  # 매매 준비 시간
-    
+
     # 매수 조건
     min_volume_ratio: float = 1.5    # 최소 거래량 비율
     max_price_change: float = 0.30   # 최대 가격 변동률 (30%)
     
 class TradingEngine:
     """자동 매매 실행 엔진"""
-    
+
     def __init__(self, config: Optional[TradingConfig] = None):
         """초기화"""
         self.config = config or TradingConfig()
         self.logger = logger
         self.api = None
         self.api_config = None
-        
+
         # 상태 관리
         self.is_running = False
         self.positions: Dict[str, Position] = {}
         self.daily_trades = 0
         self.start_time = None
-        
+
         # 매매 기록
         self.journal = TradeJournal()
         self.notifier = get_telegram_notifier()
-        
+
+        # ATR 기반 동적 손절/익절 계산기 (P1-1)
+        self.dynamic_stop_calculator = DynamicStopLossCalculator(
+            atr_period=self.config.atr_period,
+            stop_multiplier=self.config.atr_stop_multiplier,
+            profit_multiplier=self.config.atr_profit_multiplier,
+            trailing_multiplier=self.config.atr_stop_multiplier * 0.75,  # 트레일링은 손절의 75%
+        ) if self.config.use_dynamic_stops else None
+
         # 데이터 저장 경로
         self.data_dir = Path("data/trading")
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        
-        self.logger.info("자동 매매 엔진 초기화 완료")
+
+        self.logger.info(
+            f"자동 매매 엔진 초기화 완료 "
+            f"(동적손절: {'활성화' if self.config.use_dynamic_stops else '비활성화'})"
+        )
         
     def _initialize_api(self) -> bool:
         """API 초기화"""
@@ -342,7 +362,125 @@ class TradingEngine:
         except Exception as e:
             self.logger.error(f"과거 성과 조회 실패: {e}")
             return 0.6, 100000, 50000
-            
+
+    def _calculate_stop_prices(
+        self,
+        stock_code: str,
+        entry_price: int,
+        stock_data: Optional[Dict[str, Any]] = None
+    ) -> Tuple[float, float, Optional[StopLossResult]]:
+        """손절/익절가 계산 (동적 ATR 또는 고정 비율)
+
+        Args:
+            stock_code: 종목 코드
+            entry_price: 진입가
+            stock_data: 종목 데이터 (일봉 데이터 포함 시 ATR 계산 가능)
+
+        Returns:
+            (손절가, 익절가, StopLossResult 또는 None)
+        """
+        try:
+            # 동적 손절/익절 사용 시
+            if self.config.use_dynamic_stops and self.dynamic_stop_calculator:
+                # 일봉 데이터 조회 시도
+                df = self._get_ohlcv_data(stock_code)
+
+                if df is not None and len(df) >= self.config.atr_period:
+                    # ATR 기반 동적 손절/익절 계산
+                    stop_result = self.dynamic_stop_calculator.get_stops(entry_price, df)
+
+                    self.logger.info(
+                        f"📊 ATR 기반 동적 손절/익절 적용 - {stock_code}: "
+                        f"손절 {stop_result.stop_loss:,}원 ({stop_result.stop_distance_pct:.1%}), "
+                        f"익절 {stop_result.take_profit:,}원 ({stop_result.profit_distance_pct:.1%}), "
+                        f"ATR {stop_result.atr:.0f}원, 손익비 {stop_result.risk_reward_ratio:.2f}"
+                    )
+
+                    # 트레일링 스탑 초기화
+                    if self.config.use_trailing_stop:
+                        self.dynamic_stop_calculator.init_trailing_stop(
+                            stock_code=stock_code,
+                            entry_price=entry_price,
+                            df=df,
+                            activation_threshold=self.config.trailing_activation_pct
+                        )
+
+                    return float(stop_result.stop_loss), float(stop_result.take_profit), stop_result
+                else:
+                    self.logger.warning(
+                        f"일봉 데이터 부족 ({len(df) if df is not None else 0}일) - "
+                        f"고정 비율 손절/익절 사용: {stock_code}"
+                    )
+
+            # 고정 비율 손절/익절 (기본)
+            stop_loss = entry_price * (1 - self.config.stop_loss_pct)
+            take_profit = entry_price * (1 + self.config.take_profit_pct)
+
+            self.logger.info(
+                f"📊 고정 비율 손절/익절 적용 - {stock_code}: "
+                f"손절 {stop_loss:,.0f}원 ({self.config.stop_loss_pct:.1%}), "
+                f"익절 {take_profit:,.0f}원 ({self.config.take_profit_pct:.1%})"
+            )
+
+            return stop_loss, take_profit, None
+
+        except Exception as e:
+            self.logger.error(f"손절/익절가 계산 실패 {stock_code}: {e}")
+            # 폴백: 고정 비율
+            stop_loss = entry_price * (1 - self.config.stop_loss_pct)
+            take_profit = entry_price * (1 + self.config.take_profit_pct)
+            return stop_loss, take_profit, None
+
+    def _get_ohlcv_data(self, stock_code: str, days: int = 60) -> Optional['pd.DataFrame']:
+        """종목의 OHLCV 일봉 데이터 조회
+
+        Args:
+            stock_code: 종목 코드
+            days: 조회 일수 (기본 60일)
+
+        Returns:
+            OHLCV 데이터프레임 또는 None
+        """
+        try:
+            import pandas as pd
+
+            if not self.api:
+                return None
+
+            # KIS API로 일봉 데이터 조회
+            history = self.api.get_stock_history(stock_code, period="D", count=days)
+
+            if history is None or len(history) == 0:
+                return None
+
+            # 이미 DataFrame인 경우 그대로 반환
+            if isinstance(history, pd.DataFrame):
+                return history
+
+            # 리스트인 경우 DataFrame으로 변환
+            df = pd.DataFrame(history)
+
+            # 컬럼명 표준화 (KIS API 응답에 맞게)
+            column_map = {
+                'stck_oprc': 'open',
+                'stck_hgpr': 'high',
+                'stck_lwpr': 'low',
+                'stck_clpr': 'close',
+                'acml_vol': 'volume'
+            }
+            df = df.rename(columns=column_map)
+
+            # 숫자 타입 변환
+            for col in ['open', 'high', 'low', 'close', 'volume']:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+
+            return df
+
+        except Exception as e:
+            self.logger.error(f"OHLCV 데이터 조회 실패 {stock_code}: {e}")
+            return None
+
     def _should_buy(self, stock_data: Dict[str, Any]) -> Tuple[bool, str]:
         """매수 조건 확인"""
         try:
@@ -438,6 +576,11 @@ class TradingEngine:
             )
             
             if result and result.get('success'):
+                # 손절/익절가 계산 (동적 또는 고정)
+                stop_loss_price, target_price_value, stop_info = self._calculate_stop_prices(
+                    stock_code, int(current_price), stock_data
+                )
+
                 # 포지션 기록
                 position = Position(
                     stock_code=stock_code,
@@ -448,8 +591,8 @@ class TradingEngine:
                     entry_time=datetime.now().isoformat(),
                     unrealized_pnl=0.0,
                     unrealized_return=0.0,
-                    stop_loss=current_price * (1 - self.config.stop_loss_pct),
-                    target_price=current_price * (1 + self.config.take_profit_pct)
+                    stop_loss=stop_loss_price,
+                    target_price=target_price_value
                 )
                 
                 self.positions[stock_code] = position
