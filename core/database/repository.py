@@ -8,7 +8,7 @@ from decimal import Decimal
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from .models import Stock, Price, Indicator, Trade
+from .models import Stock, Price, Indicator, Trade, WatchlistStock, DailySelection, TradeHistory
 from .session import DatabaseSession
 from core.utils import get_logger
 
@@ -169,4 +169,229 @@ class StockRepository:
             return trades
         except SQLAlchemyError as e:
             logger.error(f"거래 내역 조회 중 오류 발생: {str(e)}")
-            return [] 
+            return []
+
+
+# P3-5: 추가 리포지토리들
+
+class WatchlistRepository:
+    """관심종목 리포지토리"""
+
+    def __init__(self, session: Session):
+        self.session = session
+
+    def add(self, watchlist: WatchlistStock) -> Optional[WatchlistStock]:
+        """관심종목 추가"""
+        try:
+            self.session.add(watchlist)
+            self.session.flush()
+            logger.info(f"관심종목 추가: stock_id={watchlist.stock_id}")
+            return watchlist
+        except SQLAlchemyError as e:
+            logger.error(f"관심종목 추가 실패: {e}")
+            return None
+
+    def get_active(self) -> List[WatchlistStock]:
+        """활성 관심종목 조회"""
+        try:
+            return self.session.query(WatchlistStock).filter_by(
+                status='active'
+            ).order_by(WatchlistStock.total_score.desc()).all()
+        except SQLAlchemyError as e:
+            logger.error(f"관심종목 조회 실패: {e}")
+            return []
+
+    def get_by_date(self, target_date: datetime) -> List[WatchlistStock]:
+        """날짜별 관심종목 조회"""
+        try:
+            return self.session.query(WatchlistStock).filter(
+                WatchlistStock.added_date == target_date.date()
+            ).all()
+        except SQLAlchemyError as e:
+            logger.error(f"관심종목 조회 실패: {e}")
+            return []
+
+    def remove(self, stock_id: int, reason: str = None) -> bool:
+        """관심종목 제거 (soft delete)"""
+        try:
+            watchlist = self.session.query(WatchlistStock).filter_by(
+                stock_id=stock_id, status='active'
+            ).first()
+            if watchlist:
+                watchlist.status = 'removed'
+                watchlist.removed_date = datetime.now().date()
+                watchlist.removal_reason = reason
+                logger.info(f"관심종목 제거: stock_id={stock_id}")
+                return True
+            return False
+        except SQLAlchemyError as e:
+            logger.error(f"관심종목 제거 실패: {e}")
+            return False
+
+    def get_top(self, n: int = 10) -> List[WatchlistStock]:
+        """상위 N개 관심종목"""
+        try:
+            return self.session.query(WatchlistStock).filter_by(
+                status='active'
+            ).order_by(WatchlistStock.total_score.desc()).limit(n).all()
+        except SQLAlchemyError as e:
+            logger.error(f"관심종목 조회 실패: {e}")
+            return []
+
+
+class DailySelectionRepository:
+    """일일 선정종목 리포지토리"""
+
+    def __init__(self, session: Session):
+        self.session = session
+
+    def add(self, selection: DailySelection) -> Optional[DailySelection]:
+        """선정종목 추가"""
+        try:
+            self.session.add(selection)
+            self.session.flush()
+            logger.info(f"선정종목 추가: stock_id={selection.stock_id}, date={selection.selection_date}")
+            return selection
+        except SQLAlchemyError as e:
+            logger.error(f"선정종목 추가 실패: {e}")
+            return None
+
+    def get_by_date(self, target_date: datetime) -> List[DailySelection]:
+        """날짜별 선정종목 조회"""
+        try:
+            return self.session.query(DailySelection).filter(
+                DailySelection.selection_date == target_date.date()
+            ).order_by(DailySelection.total_score.desc()).all()
+        except SQLAlchemyError as e:
+            logger.error(f"선정종목 조회 실패: {e}")
+            return []
+
+    def get_by_signal(self, signal: str, days: int = 30) -> List[DailySelection]:
+        """신호별 선정종목 조회"""
+        try:
+            from datetime import timedelta
+            start_date = datetime.now().date() - timedelta(days=days)
+            return self.session.query(DailySelection).filter(
+                DailySelection.signal == signal,
+                DailySelection.selection_date >= start_date
+            ).order_by(DailySelection.selection_date.desc()).all()
+        except SQLAlchemyError as e:
+            logger.error(f"선정종목 조회 실패: {e}")
+            return []
+
+    def update_result(self, selection_id: int, actual_return: float) -> bool:
+        """결과 업데이트"""
+        try:
+            selection = self.session.query(DailySelection).get(selection_id)
+            if selection:
+                selection.actual_return = actual_return
+                selection.result_date = datetime.now().date()
+                logger.info(f"선정종목 결과 업데이트: id={selection_id}, return={actual_return:.2%}")
+                return True
+            return False
+        except SQLAlchemyError as e:
+            logger.error(f"결과 업데이트 실패: {e}")
+            return False
+
+    def get_performance_stats(self, days: int = 30) -> Dict:
+        """성과 통계"""
+        try:
+            from datetime import timedelta
+            start_date = datetime.now().date() - timedelta(days=days)
+            selections = self.session.query(DailySelection).filter(
+                DailySelection.selection_date >= start_date,
+                DailySelection.actual_return.isnot(None)
+            ).all()
+
+            if not selections:
+                return {}
+
+            returns = [s.actual_return for s in selections]
+            wins = sum(1 for r in returns if r > 0)
+
+            return {
+                'total_count': len(returns),
+                'win_count': wins,
+                'win_rate': wins / len(returns) if returns else 0,
+                'avg_return': sum(returns) / len(returns) if returns else 0,
+                'max_return': max(returns) if returns else 0,
+                'min_return': min(returns) if returns else 0,
+            }
+        except SQLAlchemyError as e:
+            logger.error(f"성과 통계 조회 실패: {e}")
+            return {}
+
+
+class TradeHistoryRepository:
+    """거래 이력 리포지토리"""
+
+    def __init__(self, session: Session):
+        self.session = session
+
+    def add(self, trade: TradeHistory) -> Optional[TradeHistory]:
+        """거래 이력 추가"""
+        try:
+            self.session.add(trade)
+            self.session.flush()
+            logger.info(f"거래 이력 추가: order_id={trade.order_id}")
+            return trade
+        except SQLAlchemyError as e:
+            logger.error(f"거래 이력 추가 실패: {e}")
+            return None
+
+    def get_by_order_id(self, order_id: str) -> Optional[TradeHistory]:
+        """주문 ID로 조회"""
+        try:
+            return self.session.query(TradeHistory).filter_by(order_id=order_id).first()
+        except SQLAlchemyError as e:
+            logger.error(f"거래 이력 조회 실패: {e}")
+            return None
+
+    def get_by_status(self, status: str) -> List[TradeHistory]:
+        """상태별 조회"""
+        try:
+            return self.session.query(TradeHistory).filter_by(
+                status=status
+            ).order_by(TradeHistory.order_datetime.desc()).all()
+        except SQLAlchemyError as e:
+            logger.error(f"거래 이력 조회 실패: {e}")
+            return []
+
+    def get_recent(self, limit: int = 50) -> List[TradeHistory]:
+        """최근 거래 이력"""
+        try:
+            return self.session.query(TradeHistory).order_by(
+                TradeHistory.order_datetime.desc()
+            ).limit(limit).all()
+        except SQLAlchemyError as e:
+            logger.error(f"거래 이력 조회 실패: {e}")
+            return []
+
+    def update_status(self, order_id: str, status: str, filled_price: float = None) -> bool:
+        """상태 업데이트"""
+        try:
+            trade = self.session.query(TradeHistory).filter_by(order_id=order_id).first()
+            if trade:
+                trade.status = status
+                if filled_price:
+                    trade.filled_price = filled_price
+                    trade.filled_datetime = datetime.now()
+                logger.info(f"거래 상태 업데이트: order_id={order_id}, status={status}")
+                return True
+            return False
+        except SQLAlchemyError as e:
+            logger.error(f"상태 업데이트 실패: {e}")
+            return False
+
+    def get_by_strategy(self, strategy: str, days: int = 30) -> List[TradeHistory]:
+        """전략별 거래 이력"""
+        try:
+            from datetime import timedelta
+            start_date = datetime.now() - timedelta(days=days)
+            return self.session.query(TradeHistory).filter(
+                TradeHistory.strategy == strategy,
+                TradeHistory.order_datetime >= start_date
+            ).order_by(TradeHistory.order_datetime.desc()).all()
+        except SQLAlchemyError as e:
+            logger.error(f"거래 이력 조회 실패: {e}")
+            return []

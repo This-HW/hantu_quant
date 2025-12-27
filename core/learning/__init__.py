@@ -18,6 +18,7 @@ MODULE_CATEGORIES = {
     'data': '데이터 수집 및 전처리',
     'features': '피처 엔지니어링',
     'models': '머신러닝 모델',
+    'rl': '강화학습',
     'analysis': '성과 및 패턴 분석',
     'optimization': '최적화 및 백테스트',
     'config': '설정 관리',

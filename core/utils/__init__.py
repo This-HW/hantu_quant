@@ -1,4 +1,4 @@
-"""Utility facade for logging functions.
+"""Utility facade for logging and health check functions.
 
 통합 로깅 진입점은 log_utils 모듈로 일원화합니다.
 기존 from core.utils import get_logger, setup_logger 형태를 유지하기 위해
@@ -6,8 +6,50 @@
 """
 
 from .log_utils import get_logger, setup_logging as setup_logger  # backward-compat alias
+from .log_utils import (
+    JSONFormatter,
+    StructuredLogger,
+    TraceIdContext,
+    setup_json_logging,
+    get_structured_logger,
+    get_trace_id,
+    set_trace_id,
+    clear_trace_id,
+)
+from .health_check import (
+    HealthCheckResult,
+    SystemMetrics,
+    HealthStatus,
+    get_system_metrics,
+    check_database_health,
+    check_kis_api_health,
+    check_websocket_health,
+    determine_health_status,
+    perform_health_check,
+    PSUTIL_AVAILABLE,
+)
 
 __all__ = [
+    # Logging (P2-2)
     'get_logger',
     'setup_logger',
+    'JSONFormatter',
+    'StructuredLogger',
+    'TraceIdContext',
+    'setup_json_logging',
+    'get_structured_logger',
+    'get_trace_id',
+    'set_trace_id',
+    'clear_trace_id',
+    # Health Check (P2-3)
+    'HealthCheckResult',
+    'SystemMetrics',
+    'HealthStatus',
+    'get_system_metrics',
+    'check_database_health',
+    'check_kis_api_health',
+    'check_websocket_health',
+    'determine_health_status',
+    'perform_health_check',
+    'PSUTIL_AVAILABLE',
 ]
