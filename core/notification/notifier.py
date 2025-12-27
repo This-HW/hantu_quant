@@ -208,3 +208,59 @@ class BaseNotifier(ABC):
     def _record_error(self) -> None:
         """오류 기록"""
         self._error_count += 1
+
+
+class MockNotifier(BaseNotifier):
+    """
+    테스트용 모의 알림 발송기
+
+    실제 발송 없이 알림을 기록합니다.
+    """
+
+    def __init__(self, config: Optional[NotifierConfig] = None):
+        super().__init__(config)
+        self._sent_alerts: List[Alert] = []
+        self._sent_messages: List[str] = []
+
+    def send(self, alert: Alert) -> NotificationResult:
+        """모의 알림 발송"""
+        if not self.should_send(alert):
+            return NotificationResult(
+                success=False,
+                alert_id=alert.id,
+                error="Alert filtered by config"
+            )
+
+        self._sent_alerts.append(alert)
+        self._record_success()
+
+        return NotificationResult(
+            success=True,
+            alert_id=alert.id,
+        )
+
+    def send_raw(self, message: str) -> NotificationResult:
+        """모의 원시 메시지 발송"""
+        import uuid
+        self._sent_messages.append(message)
+        self._record_success()
+
+        return NotificationResult(
+            success=True,
+            alert_id=str(uuid.uuid4()),
+        )
+
+    def get_sent_alerts(self) -> List[Alert]:
+        """발송된 알림 조회"""
+        return self._sent_alerts.copy()
+
+    def get_sent_messages(self) -> List[str]:
+        """발송된 메시지 조회"""
+        return self._sent_messages.copy()
+
+    def clear(self) -> None:
+        """발송 기록 초기화"""
+        self._sent_alerts.clear()
+        self._sent_messages.clear()
+        self._sent_count = 0
+        self._error_count = 0

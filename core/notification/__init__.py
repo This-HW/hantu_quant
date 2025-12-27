@@ -5,7 +5,7 @@
 """
 
 from .alert import Alert, AlertType, AlertLevel, AlertFormatter
-from .notifier import BaseNotifier, NotifierConfig
+from .notifier import BaseNotifier, NotifierConfig, MockNotifier
 from .telegram_bot import TelegramNotifier, TelegramConfig
 from .notification_manager import NotificationManager, RateLimitConfig
 
@@ -18,6 +18,7 @@ __all__ = [
     # Notifier
     'BaseNotifier',
     'NotifierConfig',
+    'MockNotifier',
     # Telegram
     'TelegramNotifier',
     'TelegramConfig',
