@@ -28,6 +28,14 @@ from .paper_trader import (
     PaperTradingConfig,
     TradingSession,
 )
+from .order_state_machine import (
+    OrderStateMachine,
+    OrderStateMachineManager,
+    OrderState,
+    OrderEvent,
+    StateTransition,
+    InvalidTransitionError,
+)
 
 __all__ = [
     # Portfolio
@@ -50,4 +58,11 @@ __all__ = [
     'PaperTrader',
     'PaperTradingConfig',
     'TradingSession',
+    # State Machine
+    'OrderStateMachine',
+    'OrderStateMachineManager',
+    'OrderState',
+    'OrderEvent',
+    'StateTransition',
+    'InvalidTransitionError',
 ]
