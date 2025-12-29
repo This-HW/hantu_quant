@@ -582,10 +582,85 @@ class FeedbackSystem:
                 }
                 
                 return summary
-                
+
         except Exception as e:
             self._logger.error(f"피드백 요약 조회 오류: {e}")
             return {}
+
+    def get_recent_feedback(self, days: int = 7) -> List[Dict[str, Any]]:
+        """최근 피드백 데이터 조회
+
+        Args:
+            days: 조회 기간 (일)
+
+        Returns:
+            List[Dict[str, Any]]: 최근 피드백 목록
+        """
+        try:
+            cutoff_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+
+            with sqlite3.connect(self._db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+
+                cursor.execute("""
+                    SELECT stock_code, prediction_date, predicted_value,
+                           actual_value, prediction_type, model_name,
+                           is_processed, predicted_class, actual_class
+                    FROM feedback_data
+                    WHERE prediction_date >= ?
+                    ORDER BY prediction_date DESC
+                    LIMIT 100
+                """, (cutoff_date,))
+
+                rows = cursor.fetchall()
+                return [dict(row) for row in rows]
+
+        except Exception as e:
+            self._logger.error(f"최근 피드백 조회 오류: {e}")
+            return []
+
+    def get_stats(self) -> Dict[str, Any]:
+        """피드백 통계 조회
+
+        Returns:
+            Dict[str, Any]: 피드백 통계
+        """
+        try:
+            with sqlite3.connect(self._db_path) as conn:
+                cursor = conn.cursor()
+
+                cursor.execute("""
+                    SELECT COUNT(*) as total_count,
+                           COUNT(CASE WHEN is_processed = TRUE THEN 1 END) as processed_count,
+                           AVG(CASE WHEN is_processed = TRUE THEN
+                               CASE WHEN actual_class = predicted_class THEN 1.0 ELSE 0.0 END
+                           END) as accuracy
+                    FROM feedback_data
+                """)
+
+                result = cursor.fetchone()
+
+                # 최근 30일 통계
+                cutoff_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+                cursor.execute("""
+                    SELECT COUNT(*) as recent_count
+                    FROM feedback_data
+                    WHERE prediction_date >= ?
+                """, (cutoff_date,))
+
+                recent_result = cursor.fetchone()
+
+                return {
+                    'total_count': result[0] if result else 0,
+                    'processed_count': result[1] if result else 0,
+                    'accuracy': result[2] if result and result[2] else 0.0,
+                    'recent_count': recent_result[0] if recent_result else 0
+                }
+
+        except Exception as e:
+            self._logger.error(f"피드백 통계 조회 오류: {e}")
+            return {'total_count': 0, 'processed_count': 0, 'accuracy': 0.0, 'recent_count': 0}
 
 
 # 싱글톤 인스턴스

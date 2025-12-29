@@ -40,9 +40,9 @@ class TestRegimeDetector:
     """RegimeDetector 테스트"""
 
     @pytest.fixture
-    def detector(self):
-        """RegimeDetector 인스턴스"""
-        return RegimeDetector()
+    def detector(self, tmp_path):
+        """RegimeDetector 인스턴스 (임시 디렉토리 사용)"""
+        return RegimeDetector(state_dir=str(tmp_path / "regime_test"))
 
     @pytest.fixture
     def bull_indicators(self):
@@ -54,11 +54,10 @@ class TestRegimeDetector:
             kosdaq_price=950.0,
             kosdaq_change=0.015,
             advance_decline_ratio=1.8,
-            above_ma200_ratio=0.75,
-            new_high_ratio=0.15,
-            new_low_ratio=0.02,
-            market_volatility=12.0,
-            vkospi=15.0,
+            kospi_vs_ma200=0.05,
+            new_high_count=150,
+            new_low_count=20,
+            market_volatility=0.12,
             fear_greed_score=75.0
         )
 
@@ -72,17 +71,16 @@ class TestRegimeDetector:
             kosdaq_price=700.0,
             kosdaq_change=-0.03,
             advance_decline_ratio=0.4,
-            above_ma200_ratio=0.25,
-            new_high_ratio=0.02,
-            new_low_ratio=0.15,
-            market_volatility=35.0,
-            vkospi=40.0,
+            kospi_vs_ma200=-0.10,
+            new_high_count=20,
+            new_low_count=150,
+            market_volatility=0.35,
             fear_greed_score=20.0
         )
 
     def test_detect_returns_result(self, detector, bull_indicators):
         """레짐 탐지가 결과를 반환하는지 확인"""
-        with patch.object(detector._indicator_collector, 'collect', return_value=bull_indicators):
+        with patch.object(detector._collector, 'collect', return_value=bull_indicators):
             result = detector.detect()
 
         assert result is not None
@@ -91,7 +89,7 @@ class TestRegimeDetector:
 
     def test_confidence_range(self, detector, bull_indicators):
         """신뢰도 범위 확인"""
-        with patch.object(detector._indicator_collector, 'collect', return_value=bull_indicators):
+        with patch.object(detector._collector, 'collect', return_value=bull_indicators):
             result = detector.detect()
 
         assert 0.0 <= result.confidence <= 1.0
@@ -102,17 +100,16 @@ class TestRegimeDetector:
 
     def test_get_current_regime_after_detect(self, detector, bull_indicators):
         """탐지 후 현재 레짐 반환"""
-        with patch.object(detector._indicator_collector, 'collect', return_value=bull_indicators):
+        with patch.object(detector._collector, 'collect', return_value=bull_indicators):
             detector.detect()
 
         regime = detector.get_current_regime()
         assert regime is not None
 
-    def test_get_status(self, detector):
-        """상태 조회"""
-        status = detector.get_status()
-        assert 'current_regime' in status
-        assert 'last_detection' in status
+    def test_get_regime_history(self, detector):
+        """레짐 이력 조회"""
+        history = detector.get_regime_history(limit=5)
+        assert isinstance(history, list)
 
     def test_singleton_instance(self):
         """싱글톤 인스턴스 테스트"""

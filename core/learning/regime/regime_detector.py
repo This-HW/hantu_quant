@@ -48,6 +48,11 @@ class RegimeResult:
     regime_changed: bool = False
     regime_duration_days: int = 0
 
+    @property
+    def regime(self) -> MarketCondition:
+        """호환성을 위한 별칭"""
+        return self.detected_regime
+
     def to_dict(self) -> Dict[str, Any]:
         result = {
             'detected_regime': self.detected_regime.value,
