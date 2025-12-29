@@ -102,7 +102,21 @@ class SensitiveDataFilter(logging.Filter):
             msg = re.sub(pattern2, fr'\1=***MASKED***', msg, flags=re.IGNORECASE)
             
         return msg
-        
+
+
+class TraceIdFilter(logging.Filter):
+    """
+    trace_id를 로그 레코드에 추가하는 필터
+
+    Feature 2.1: 로깅 아키텍처 통합
+    """
+
+    def filter(self, record):
+        """trace_id를 레코드에 추가"""
+        record.trace_id = get_trace_id() or "-"
+        return True
+
+
 def setup_logging(log_file: str = None, level: int = logging.INFO, add_sensitive_filter: bool = True):
     """로깅 설정
     
