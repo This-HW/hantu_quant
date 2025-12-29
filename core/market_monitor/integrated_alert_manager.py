@@ -2,6 +2,9 @@
 통합 알림 관리자
 
 이메일, SMS, 웹푸시 등 다양한 알림 채널을 통합 관리하는 시스템
+
+Story 1.2: TelegramNotifier 통합
+- T-1.2.6: 표준 TelegramNotifier 사용하도록 수정
 """
 
 import json
@@ -13,13 +16,17 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional, Any, Callable
 from dataclasses import dataclass, asdict, field
 from enum import Enum
-import requests
 from concurrent.futures import ThreadPoolExecutor
 
 from ..utils.logging import get_logger
 from .market_monitor import MarketMonitor, MarketSnapshot
 from .anomaly_detector import AnomalyDetector, AnomalyAlert, AnomalySeverity
 from .alert_system import AlertSystem, AlertChannel
+from ..notification.telegram_bot import (
+    TelegramNotifier as StandardTelegramNotifier,
+    TelegramConfig as StandardTelegramConfig,
+)
+from ..utils.log_utils import trace_operation, get_trace_id
 
 logger = get_logger(__name__)
 
@@ -553,127 +560,118 @@ class WebPushNotifier:
             self._logger.error(f"웹 푸시 전송 실패: {e}")
             return False
 
-class TelegramNotifier:
-    """텔레그램 알림기"""
-    
+class AnomalyAlertTelegramNotifier:
+    """
+    이상 감지 알림용 텔레그램 전송기
+
+    표준 TelegramNotifier를 래핑하여 AnomalyAlert 전용 기능 제공
+
+    Story 1.2: TelegramNotifier 통합 (T-1.2.6)
+    """
+
     def __init__(self, config: Dict[str, Any]):
         self._config = config
         self._logger = logger
-    
+
+        # 표준 TelegramNotifier 초기화
+        bot_token = config.get('bot_token', '')
+        default_chat_ids = config.get('default_chat_ids', [])
+        primary_chat_id = default_chat_ids[0] if default_chat_ids else ''
+
+        standard_config = StandardTelegramConfig(
+            bot_token=bot_token,
+            chat_id=primary_chat_id,
+            timeout=10,
+            max_retries=3,
+        )
+        self._standard_notifier = StandardTelegramNotifier(config=standard_config)
+
+    @trace_operation("anomaly_alert_send")
     def send_notification(self, alert: AnomalyAlert, priority: NotificationPriority,
                          chat_ids: List[str] = None) -> bool:
         """텔레그램 알림 전송"""
+        trace_id = get_trace_id()
+
         try:
             bot_token = self._config.get('bot_token')
             chat_ids = chat_ids or self._config.get('default_chat_ids', [])
-            
+
             if not bot_token or not chat_ids:
                 return False
-            
+
             # 메시지 생성
             message = self._create_telegram_message(alert, priority)
-            
-            # 전송
-            return self._send_telegram_message(bot_token, chat_ids, message, priority)
-            
+
+            # 표준 notifier를 통해 전송
+            success_count = 0
+            for chat_id in chat_ids:
+                # 동적으로 chat_id 변경하여 전송
+                self._standard_notifier.config.chat_id = chat_id
+                result = self._standard_notifier.send_raw(message)
+                if result.success:
+                    success_count += 1
+                else:
+                    self._logger.warning(
+                        f"텔레그램 전송 실패 ({chat_id}): {result.error}",
+                        extra={"trace_id": trace_id, "alert_id": alert.alert_id}
+                    )
+
+            if success_count > 0:
+                self._logger.info(
+                    f"이상 감지 알림 전송 완료: {alert.title}",
+                    extra={"trace_id": trace_id, "success_count": success_count}
+                )
+
+            return success_count > 0
+
         except Exception as e:
-            self._logger.error(f"텔레그램 알림 전송 실패: {e}")
+            self._logger.error(
+                f"텔레그램 알림 전송 실패: {e}",
+                extra={"trace_id": trace_id}
+            )
             return False
-    
+
     def _create_telegram_message(self, alert: AnomalyAlert, priority: NotificationPriority) -> str:
         """텔레그램 메시지 생성"""
-        # 우선순위별 이모지
         priority_emoji = {
             NotificationPriority.EMERGENCY: '🚨🔥',
-            NotificationPriority.HIGH: '⚠️🔴', 
+            NotificationPriority.HIGH: '⚠️🔴',
             NotificationPriority.NORMAL: '📊🔵',
             NotificationPriority.LOW: 'ℹ️⚪'
         }
-        
+
         emoji = priority_emoji.get(priority, '📊🔵')
-        
-        # Markdown 형식 메시지
+
         message = f"{emoji} *한투 퀀트 알림*\n\n"
         message += f"*{alert.title}*\n\n"
         message += f"📅 시간: `{alert.timestamp.strftime('%Y-%m-%d %H:%M:%S')}`\n"
         message += f"🎯 심각도: `{alert.severity.value.upper()}`\n"
         message += f"🔍 유형: `{alert.anomaly_type.value}`\n"
         message += f"📊 신뢰도: `{alert.confidence_score:.1%}`\n\n"
-        
+
         message += f"📝 설명:\n{alert.description}\n\n"
-        
+
         if alert.affected_stocks:
             stocks = ', '.join([f"`{stock}`" for stock in alert.affected_stocks[:5]])
             message += f"📈 영향 종목: {stocks}\n"
             if len(alert.affected_stocks) > 5:
                 message += f"... 외 {len(alert.affected_stocks) - 5}개\n"
             message += "\n"
-        
+
         if alert.recommendations:
             message += "💡 추천 조치:\n"
             for i, rec in enumerate(alert.recommendations[:3], 1):
                 message += f"{i}. {rec}\n"
             message += "\n"
-        
-        # 인라인 키보드 버튼
+
         if priority in [NotificationPriority.EMERGENCY, NotificationPriority.HIGH]:
             message += "👆 빠른 액션이 필요할 수 있습니다."
-        
+
         return message
-    
-    def _send_telegram_message(self, bot_token: str, chat_ids: List[str], 
-                              message: str, priority: NotificationPriority) -> bool:
-        """텔레그램 메시지 전송"""
-        try:
-            success_count = 0
-            
-            for chat_id in chat_ids:
-                url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-                
-                # 인라인 키보드 생성
-                keyboard = self._create_inline_keyboard(priority)
-                
-                payload = {
-                    'chat_id': chat_id,
-                    'text': message,
-                    'parse_mode': 'Markdown',
-                    'disable_web_page_preview': True,
-                    'reply_markup': json.dumps(keyboard) if keyboard else None
-                }
-                
-                response = requests.post(url, json=payload, timeout=10)
-                
-                if response.status_code == 200:
-                    success_count += 1
-                else:
-                    self._logger.error(f"텔레그램 전송 실패 ({chat_id}): {response.status_code}")
-            
-            return success_count > 0
-            
-        except Exception as e:
-            self._logger.error(f"텔레그램 메시지 전송 실패: {e}")
-            return False
-    
-    def _create_inline_keyboard(self, priority: NotificationPriority) -> Optional[Dict]:
-        """인라인 키보드 생성"""
-        if priority == NotificationPriority.LOW:
-            return None
-        
-        keyboard = {
-            'inline_keyboard': [
-                [
-                    {'text': '📊 대시보드', 'url': 'https://dashboard.hantu-quant.com'},
-                    {'text': '✅ 확인', 'callback_data': 'acknowledge'}
-                ]
-            ]
-        }
-        
-        if priority == NotificationPriority.EMERGENCY:
-            keyboard['inline_keyboard'].append([
-                {'text': '🚨 긴급 대응', 'callback_data': 'emergency_response'}
-            ])
-        
-        return keyboard
+
+
+# 하위 호환성을 위한 별칭
+TelegramNotifier = AnomalyAlertTelegramNotifier
 
 class IntegratedAlertManager:
     """통합 알림 관리자"""

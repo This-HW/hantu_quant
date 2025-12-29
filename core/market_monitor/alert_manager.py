@@ -2,6 +2,9 @@
 시스템 상태 알림 시스템 (텔레그램 통합)
 
 시스템 상태를 모니터링하고 텔레그램을 통해 실시간 알림을 전송
+
+Story 1.2: TelegramNotifier 통합
+- T-1.2.5: 표준 TelegramNotifier 사용하도록 수정
 """
 
 import asyncio
@@ -14,9 +17,14 @@ from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass, asdict
 from enum import Enum
 from pathlib import Path
-import requests
 
 from ..utils.logging import get_logger
+from ..notification.telegram_bot import (
+    TelegramNotifier as StandardTelegramNotifier,
+    TelegramConfig as StandardTelegramConfig,
+)
+from ..notification.config_loader import get_telegram_config
+from ..utils.log_utils import trace_operation, get_trace_id
 
 logger = get_logger(__name__)
 
@@ -91,21 +99,36 @@ class TelegramConfig:
         if self.categories is None:
             self.categories = list(AlertCategory)
 
-class TelegramNotifier:
-    """텔레그램 알림 전송기"""
-    
+class SystemAlertTelegramNotifier:
+    """
+    시스템 알림용 텔레그램 전송기
+
+    표준 TelegramNotifier를 래핑하여 SystemAlert 전용 기능 제공
+
+    Story 1.2: TelegramNotifier 통합 (T-1.2.5)
+    """
+
     def __init__(self, config: TelegramConfig):
         """초기화
-        
+
         Args:
             config: 텔레그램 설정
         """
         self._logger = logger
         self._config = config
-        
+
+        # 표준 TelegramNotifier 사용
+        standard_config = StandardTelegramConfig(
+            bot_token=config.bot_token,
+            chat_id=config.chat_id,
+            timeout=10,
+            max_retries=3,
+        )
+        self._standard_notifier = StandardTelegramNotifier(config=standard_config)
+
         # 메시지 발송 이력 (rate limiting용)
         self._message_history: List[datetime] = []
-        
+
         # 메시지 템플릿
         self._message_templates = {
             AlertLevel.INFO: "ℹ️ {title}\n\n{message}",
@@ -113,120 +136,135 @@ class TelegramNotifier:
             AlertLevel.ERROR: "❌ {title}\n\n{message}\n\n컴포넌트: {component}\n시간: {timestamp}",
             AlertLevel.CRITICAL: "🚨 CRITICAL: {title}\n\n{message}\n\n컴포넌트: {component}\n시간: {timestamp}\n\n즉시 확인이 필요합니다!"
         }
-        
+
         # 이모지 매핑
         self._category_emojis = {
             AlertCategory.SYSTEM: "⚙️",
             AlertCategory.TRADING: "📈",
-            AlertCategory.API: "🔌", 
+            AlertCategory.API: "🔌",
             AlertCategory.PERFORMANCE: "⚡",
             AlertCategory.SECURITY: "🔒",
             AlertCategory.DATA_QUALITY: "📊"
         }
-        
-        self._logger.info("TelegramNotifier 초기화 완료")
-    
+
+        self._logger.info("SystemAlertTelegramNotifier 초기화 완료")
+
+    @trace_operation("system_alert_send")
     def send_alert(self, alert: SystemAlert) -> bool:
         """알림 전송
-        
+
         Args:
             alert: 시스템 알림
-            
+
         Returns:
             전송 성공 여부
         """
+        trace_id = get_trace_id()
+
         try:
             # 설정 확인
             if not self._config.enabled:
                 return False
-            
+
             # 레벨 필터링
             if not self._should_send_alert(alert):
                 return False
-            
+
             # Rate limiting 확인
             if not self._check_rate_limit():
-                self._logger.warning("텔레그램 메시지 발송 제한 초과")
+                self._logger.warning(
+                    "텔레그램 메시지 발송 제한 초과",
+                    extra={"trace_id": trace_id, "alert_id": alert.alert_id}
+                )
                 return False
-            
+
             # 조용한 시간 확인
             if self._is_quiet_hours() and alert.level != AlertLevel.CRITICAL:
-                self._logger.debug("조용한 시간대로 인해 알림 발송 지연")
+                self._logger.debug(
+                    "조용한 시간대로 인해 알림 발송 지연",
+                    extra={"trace_id": trace_id}
+                )
                 return False
-            
+
             # 메시지 생성
             message = self._format_message(alert)
-            
-            # 텔레그램 API 호출
-            success = self._send_telegram_message(message, alert.urgent)
-            
-            if success:
+
+            # 표준 TelegramNotifier를 통해 전송
+            result = self._standard_notifier.send_raw(message)
+
+            if result.success:
                 self._record_message_sent()
                 alert.sent = True
-                self._logger.info(f"텔레그램 알림 전송 완료: {alert.title}")
+                self._logger.info(
+                    f"시스템 알림 전송 완료: {alert.title}",
+                    extra={"trace_id": trace_id, "alert_id": alert.alert_id}
+                )
             else:
-                self._logger.error(f"텔레그램 알림 전송 실패: {alert.title}")
-            
-            return success
-            
+                self._logger.error(
+                    f"시스템 알림 전송 실패: {alert.title} - {result.error}",
+                    extra={"trace_id": trace_id, "alert_id": alert.alert_id}
+                )
+
+            return result.success
+
         except Exception as e:
-            self._logger.error(f"텔레그램 알림 전송 중 오류: {e}")
+            self._logger.error(
+                f"시스템 알림 전송 중 오류: {e}",
+                extra={"trace_id": trace_id, "alert_id": alert.alert_id}
+            )
             return False
-    
+
     def _should_send_alert(self, alert: SystemAlert) -> bool:
         """알림 전송 여부 확인"""
-        # 레벨 확인
         level_priorities = {
             AlertLevel.INFO: 1,
             AlertLevel.WARNING: 2,
             AlertLevel.ERROR: 3,
             AlertLevel.CRITICAL: 4
         }
-        
+
         if level_priorities[alert.level] < level_priorities[self._config.min_level]:
             return False
-        
-        # 카테고리 확인
+
         if alert.category not in self._config.categories:
             return False
-        
+
         return True
-    
+
     def _check_rate_limit(self) -> bool:
         """Rate limit 확인"""
         now = datetime.now()
         cutoff_time = now - timedelta(minutes=1)
-        
-        # 최근 1분간 메시지 수 확인
+
         recent_messages = [
             timestamp for timestamp in self._message_history
             if timestamp > cutoff_time
         ]
-        
+
         return len(recent_messages) < self._config.rate_limit
-    
+
     def _is_quiet_hours(self) -> bool:
         """조용한 시간대 확인"""
         if not self._config.quiet_hours:
             return False
-        
+
         start_hour, end_hour = self._config.quiet_hours
         current_hour = datetime.now().hour
-        
+
         if start_hour <= end_hour:
             return start_hour <= current_hour <= end_hour
-        else:  # 밤 시간대 (예: 22시-8시)
+        else:
             return current_hour >= start_hour or current_hour <= end_hour
-    
+
     def _format_message(self, alert: SystemAlert) -> str:
         """메시지 형식 지정"""
-        template = self._message_templates.get(alert.level, self._message_templates[AlertLevel.INFO])
-        
-        # 카테고리 이모지 추가
+        template = self._message_templates.get(
+            alert.level, self._message_templates[AlertLevel.INFO]
+        )
+
         category_emoji = self._category_emojis.get(alert.category, "")
         title_with_emoji = f"{category_emoji} {alert.title}"
-        
-        # 메트릭 정보 추가
+
         metrics_text = ""
         if alert.metrics:
             metrics_lines = []
@@ -235,66 +273,44 @@ class TelegramNotifier:
                     metrics_lines.append(f"• {key}: {value:.2f}")
                 else:
                     metrics_lines.append(f"• {key}: {value}")
-            
+
             if metrics_lines:
                 metrics_text = f"\n\n📊 지표:\n" + "\n".join(metrics_lines)
-        
+
         message = template.format(
             title=title_with_emoji,
             message=alert.message + metrics_text,
             component=alert.component,
             timestamp=alert.timestamp.strftime("%Y-%m-%d %H:%M:%S")
         )
-        
-        # 액션 가능한 알림인 경우 추가 정보
+
         if alert.actionable:
             message += "\n\n🔧 조치가 필요합니다."
-        
+
         return message
-    
-    def _send_telegram_message(self, message: str, urgent: bool = False) -> bool:
-        """텔레그램 메시지 전송"""
-        try:
-            url = f"https://api.telegram.org/bot{self._config.bot_token}/sendMessage"
-            
-            data = {
-                'chat_id': self._config.chat_id,
-                'text': message,
-                'parse_mode': 'HTML' if urgent else 'Markdown',
-                'disable_notification': not urgent
-            }
-            
-            response = requests.post(url, data=data, timeout=10)
-            
-            if response.status_code == 200:
-                return True
-            else:
-                self._logger.error(f"텔레그램 API 오류: {response.status_code} - {response.text}")
-                return False
-                
-        except requests.RequestException as e:
-            self._logger.error(f"텔레그램 API 요청 중 오류: {e}")
-            return False
-    
+
     def _record_message_sent(self):
         """메시지 발송 기록"""
         self._message_history.append(datetime.now())
-        
-        # 오래된 기록 정리 (최근 1시간만 유지)
+
         cutoff_time = datetime.now() - timedelta(hours=1)
         self._message_history = [
             timestamp for timestamp in self._message_history
             if timestamp > cutoff_time
         ]
-    
+
     def test_connection(self) -> bool:
         """텔레그램 연결 테스트"""
         try:
-            test_message = "🔧 한투 퀀트 시스템 알림 테스트\n\n텔레그램 연결이 정상적으로 작동합니다."
-            return self._send_telegram_message(test_message)
+            result = self._standard_notifier.test_connection()
+            return result.get("success", False)
         except Exception as e:
             self._logger.error(f"텔레그램 연결 테스트 중 오류: {e}")
             return False
+
+
+# 하위 호환성을 위한 별칭
+TelegramNotifier = SystemAlertTelegramNotifier
 
 class SystemAlertManager:
     """시스템 알림 관리자"""

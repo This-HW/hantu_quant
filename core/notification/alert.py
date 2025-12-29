@@ -5,6 +5,7 @@
 """
 
 import logging
+import uuid
 from datetime import datetime
 from typing import Dict, Optional, Any, List
 from dataclasses import dataclass, field
@@ -62,6 +63,11 @@ class AlertLevel(Enum):
     EMERGENCY = 4  # 긴급
 
 
+def _generate_alert_id() -> str:
+    """고유한 알림 ID 생성 (UUID 앞 12자리)"""
+    return uuid.uuid4().hex[:12]
+
+
 @dataclass
 class Alert:
     """알림 객체"""
@@ -70,6 +76,9 @@ class Alert:
     title: str
     message: str
     timestamp: datetime = field(default_factory=datetime.now)
+
+    # 고유 식별자 (자동 생성)
+    id: str = field(default_factory=_generate_alert_id)
 
     # 추가 데이터
     data: Dict[str, Any] = field(default_factory=dict)
@@ -82,6 +91,7 @@ class Alert:
 
     def to_dict(self) -> Dict:
         return {
+            'id': self.id,
             'alert_type': self.alert_type.value,
             'level': self.level.value,
             'title': self.title,
