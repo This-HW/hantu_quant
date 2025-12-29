@@ -43,6 +43,51 @@ class Phase1Workflow:
         
         logger.info(f"Phase 1 워크플로우 초기화 완료 (병렬 워커: {p_parallel_workers}개)")
     
+    def run_screening(self) -> Optional[Dict]:
+        """스크리닝 실행 (CLI 인터페이스용)
+
+        Returns:
+            결과 딕셔너리 또는 None (실패 시)
+            - total_screened: 스크리닝된 총 종목 수
+            - added_count: 감시 리스트에 추가된 종목 수
+            - duration_seconds: 처리 시간 (초)
+        """
+        import time
+        start_time = time.time()
+
+        try:
+            success = self.run_full_screening(p_send_notification=False)
+            duration = time.time() - start_time
+
+            if success:
+                # 최신 스크리닝 결과 파일에서 통계 가져오기
+                _v_screening_files = [f for f in os.listdir("data/watchlist/") if f.startswith("screening_results_")]
+                total_screened = 0
+                added_count = 0
+
+                if _v_screening_files:
+                    _v_latest_file = sorted(_v_screening_files)[-1]
+                    _v_filepath = os.path.join("data/watchlist", _v_latest_file)
+
+                    with open(_v_filepath, 'r', encoding='utf-8') as f:
+                        _v_data = json.load(f)
+
+                    _v_results = _v_data.get('results', [])
+                    total_screened = len(_v_results)
+                    added_count = len([r for r in _v_results if r.get('overall_passed', False)])
+
+                return {
+                    'total_screened': total_screened,
+                    'added_count': added_count,
+                    'duration_seconds': duration
+                }
+
+            return None
+
+        except Exception as e:
+            logger.error(f"run_screening 오류: {e}")
+            return None
+
     def run_full_screening(self, p_stock_list: Optional[List[str]] = None, p_send_notification: bool = True) -> bool:
         """전체 스크리닝 실행 (배치 처리 최적화)
         
