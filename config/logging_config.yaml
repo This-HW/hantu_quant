@@ -1,0 +1,184 @@
+# Hantu Quant 로깅 설정
+#
+# Feature 2.1: 로깅 아키텍처 통합
+# T-2.1.1: 통합 로깅 설정 파일
+#
+# 사용법:
+#   from core.utils.logging_config import setup_logging
+#   setup_logging()
+
+version: 1
+disable_existing_loggers: false
+
+# 로그 디렉토리 설정
+directories:
+  base: "logs"
+  app: "logs/app"
+  trade: "logs/trade"
+  system: "logs/system"
+  error: "logs/error"
+
+# 로테이션 설정
+rotation:
+  when: "midnight"  # 일별 로테이션
+  interval: 1
+  backup_count: 30  # 30일 보관
+  encoding: "utf-8"
+
+# 포맷터 정의
+formatters:
+  standard:
+    format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+
+  detailed:
+    format: "%(asctime)s [%(levelname)s] %(name)s (%(filename)s:%(lineno)d) [trace:%(trace_id)s]: %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+
+  json:
+    class: "core.utils.log_utils.JSONFormatter"
+    include_timestamp: true
+    include_trace_id: true
+
+# 필터 정의
+filters:
+  sensitive_data:
+    class: "core.utils.log_utils.SensitiveDataFilter"
+
+  trace_id:
+    class: "core.utils.log_utils.TraceIdFilter"
+
+# 핸들러 정의
+handlers:
+  console:
+    class: "logging.StreamHandler"
+    level: "INFO"
+    formatter: "standard"
+    stream: "ext://sys.stdout"
+    filters:
+      - sensitive_data
+
+  app_file:
+    class: "logging.handlers.TimedRotatingFileHandler"
+    level: "DEBUG"
+    formatter: "detailed"
+    filename: "logs/app/app.log"
+    when: "midnight"
+    interval: 1
+    backupCount: 30
+    encoding: "utf-8"
+    filters:
+      - sensitive_data
+      - trace_id
+
+  trade_file:
+    class: "logging.handlers.TimedRotatingFileHandler"
+    level: "INFO"
+    formatter: "json"
+    filename: "logs/trade/trade.log"
+    when: "midnight"
+    interval: 1
+    backupCount: 30
+    encoding: "utf-8"
+    filters:
+      - sensitive_data
+
+  system_file:
+    class: "logging.handlers.TimedRotatingFileHandler"
+    level: "INFO"
+    formatter: "detailed"
+    filename: "logs/system/system.log"
+    when: "midnight"
+    interval: 1
+    backupCount: 30
+    encoding: "utf-8"
+    filters:
+      - sensitive_data
+
+  error_file:
+    class: "logging.handlers.TimedRotatingFileHandler"
+    level: "ERROR"
+    formatter: "json"
+    filename: "logs/error/error.log"
+    when: "midnight"
+    interval: 1
+    backupCount: 60  # 에러 로그는 60일 보관
+    encoding: "utf-8"
+    filters:
+      - sensitive_data
+      - trace_id
+
+# 로거 정의
+loggers:
+  # 루트 로거
+  root:
+    level: "INFO"
+    handlers:
+      - console
+      - app_file
+      - error_file
+
+  # 트레이딩 관련 로거
+  core.trading:
+    level: "DEBUG"
+    handlers:
+      - trade_file
+      - error_file
+    propagate: false
+
+  # API 관련 로거
+  core.api:
+    level: "INFO"
+    handlers:
+      - app_file
+      - error_file
+    propagate: false
+
+  # 알림 관련 로거
+  core.notification:
+    level: "INFO"
+    handlers:
+      - system_file
+      - error_file
+    propagate: false
+
+  # 모니터링 관련 로거
+  core.monitoring:
+    level: "INFO"
+    handlers:
+      - system_file
+      - error_file
+    propagate: false
+
+  core.market_monitor:
+    level: "INFO"
+    handlers:
+      - system_file
+      - error_file
+    propagate: false
+
+  # 학습 관련 로거
+  core.learning:
+    level: "INFO"
+    handlers:
+      - app_file
+    propagate: false
+
+# 레벨별 알림 설정
+alert_levels:
+  # CRITICAL 레벨은 즉시 텔레그램 알림
+  CRITICAL:
+    notify: true
+    channels:
+      - telegram
+
+  # ERROR 레벨은 5분마다 집계 알림
+  ERROR:
+    notify: true
+    aggregate_minutes: 5
+    channels:
+      - telegram
+
+  # WARNING 레벨은 로그만
+  WARNING:
+    notify: false
