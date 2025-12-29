@@ -111,7 +111,7 @@ class TestLearningOrchestrator:
 
         assert results == []
 
-    @patch('core.learning.orchestrator.learning_orchestrator.get_feedback_system')
+    @patch('core.learning.models.feedback_system.get_feedback_system')
     def test_process_queue_with_task(self, mock_feedback, orchestrator):
         """작업 큐 처리"""
         # Mock 설정
@@ -164,8 +164,8 @@ class TestLearningOrchestrator:
 
         assert completed == []
 
-    @patch('core.learning.orchestrator.learning_orchestrator.get_feedback_system')
-    @patch('core.learning.orchestrator.learning_orchestrator.get_regime_detector')
+    @patch('core.learning.models.feedback_system.get_feedback_system')
+    @patch('core.learning.regime.regime_detector.get_regime_detector')
     def test_run_daily_cycle(self, mock_detector, mock_feedback, orchestrator):
         """일일 사이클 실행"""
         # Mock 설정
