@@ -1,8 +1,9 @@
 # Implementation Phase Checklist
 ## 알람/모니터링/로깅 시스템 재설계
 
-**문서 버전**: 1.0
+**문서 버전**: 2.0
 **작성일**: 2025-12-29
+**최종 수정일**: 2025-12-29
 **기준 문서**: `TECHNICAL_REVIEW_ALARM_LOGGING.md`
 
 ---
@@ -195,6 +196,162 @@
 
 ---
 
+## Phase 5: 에러 추적 및 원인 파악 시스템 (Critical Priority)
+
+### Feature 5: 에러 추적 및 원인 파악 시스템
+
+#### Story 5.1: Custom Exception 체계 구축
+
+| 상태 | Task ID | Task | 완료일 | 비고 |
+|------|---------|------|--------|------|
+| [ ] | T-5.1.1 | 기본 예외 클래스 `HantuQuantException` 정의 | | |
+| [ ] | T-5.1.2 | 도메인별 예외 클래스 정의 (API, Data, Trading, Config) | | |
+| [ ] | T-5.1.3 | 예외 클래스에 `error_code`, `context` 필드 추가 | | |
+| [ ] | T-5.1.4 | 기존 코드에서 일반 Exception을 Custom Exception으로 교체 (핵심 모듈) | | |
+
+**Story 5.1 테스트 체크리스트**:
+- [ ] HantuQuantException이 Exception 상속 확인
+- [ ] APIConnectionError 발생 시 error_code 포함 확인
+- [ ] context 딕셔너리에 추가 정보 저장 확인
+- [ ] 예외 메시지에 error_code와 context 포함 확인
+- [ ] 기존 코드에서 Custom Exception 정상 동작 확인
+
+**Custom Exception 적용 대상 모듈**:
+- [ ] `core/api/kis_api.py` - API 호출 관련
+- [ ] `core/api/kis_websocket.py` - WebSocket 연결 관련
+- [ ] `core/daily_selection/` - 데이터 처리 관련
+- [ ] `core/trading/` - 거래 실행 관련
+- [ ] `core/notification/` - 알림 발송 관련
+
+---
+
+#### Story 5.2: Context-aware Error Logging
+
+| 상태 | Task ID | Task | 완료일 | 비고 |
+|------|---------|------|--------|------|
+| [ ] | T-5.2.1 | `ErrorContext` 데이터 클래스 정의 (작업명, 파라미터, 시스템 상태) | | |
+| [ ] | T-5.2.2 | `log_error_with_context()` 유틸리티 함수 구현 | | |
+| [ ] | T-5.2.3 | 핵심 모듈에 Context-aware 로깅 적용 | | |
+| [ ] | T-5.2.4 | 에러 로그에 stack trace 자동 포함 (`logger.exception` 표준화) | | |
+
+**Story 5.2 테스트 체크리스트**:
+- [ ] ErrorContext에 operation, params, timestamp 포함 확인
+- [ ] log_error_with_context() 호출 시 JSON 구조로 기록 확인
+- [ ] stack trace가 자동으로 포함되는지 확인
+- [ ] 에러 로그에서 작업명과 파라미터 검색 가능 확인
+
+**Context-aware 로깅 적용 우선 대상**:
+- [ ] API 호출 실패 시
+- [ ] 데이터 검증 실패 시
+- [ ] 주문 실행 실패 시
+- [ ] 설정 로드 실패 시
+
+---
+
+#### Story 5.3: Distributed Tracing 구현
+
+| 상태 | Task ID | Task | 완료일 | 비고 |
+|------|---------|------|--------|------|
+| [ ] | T-5.3.1 | `RequestContext` 클래스 정의 (trace_id, span_id, 작업 이력) | | |
+| [ ] | T-5.3.2 | Context 전파 메커니즘 구현 (contextvars 활용) | | |
+| [ ] | T-5.3.3 | API 엔드포인트에 자동 trace_id 생성 미들웨어 적용 | | |
+| [ ] | T-5.3.4 | 모든 로그에 trace_id 자동 포함 | | |
+
+**Story 5.3 테스트 체크리스트**:
+- [ ] RequestContext 생성 시 trace_id 자동 할당 확인
+- [ ] 비동기 함수에서 trace_id 전파 확인
+- [ ] API 요청 시 trace_id가 응답 헤더에 포함 확인
+- [ ] 동일 요청의 모든 로그가 같은 trace_id 공유 확인
+- [ ] trace_id로 로그 검색 시 요청 전체 흐름 추적 가능 확인
+
+---
+
+#### Story 5.4: Silent Failure 제거 및 에러 알림 강화
+
+| 상태 | Task ID | Task | 완료일 | 비고 |
+|------|---------|------|--------|------|
+| [ ] | T-5.4.1 | Silent Failure 패턴 코드 스캔 및 목록화 | | |
+| [ ] | T-5.4.2 | Silent Failure 코드를 명시적 에러 처리로 교체 | | |
+| [ ] | T-5.4.3 | 에러 심각도별 알림 정책 정의 | | |
+| [ ] | T-5.4.4 | ErrorRecoverySystem과 NotificationManager 연동 | | |
+
+**Story 5.4 테스트 체크리스트**:
+- [ ] `except: pass` 패턴 0개 확인
+- [ ] `except: return {}` 패턴 0개 확인
+- [ ] `except Exception: return None` 패턴 명시적 처리 확인
+- [ ] CRITICAL 에러 발생 시 텔레그램 알림 수신 확인
+- [ ] HIGH 에러 발생 시 텔레그램 알림 수신 확인
+- [ ] ErrorRecoverySystem 에러 발생 시 NotificationManager 호출 확인
+
+**Silent Failure 스캔 대상 패턴**:
+- [ ] `except:` (bare except)
+- [ ] `except Exception: pass`
+- [ ] `except Exception: return {}`
+- [ ] `except Exception: return None`
+- [ ] `except Exception: return []`
+
+---
+
+#### Story 5.5: 비동기 에러 처리 강화
+
+| 상태 | Task ID | Task | 완료일 | 비고 |
+|------|---------|------|--------|------|
+| [ ] | T-5.5.1 | `safe_gather()` 유틸리티 함수 구현 | | |
+| [ ] | T-5.5.2 | `AsyncErrorHandler` 데코레이터 구현 | | |
+| [ ] | T-5.5.3 | asyncio.Task 에러 핸들러 글로벌 등록 | | |
+| [ ] | T-5.5.4 | 핵심 비동기 코드에 safe_gather/데코레이터 적용 | | |
+
+**Story 5.5 테스트 체크리스트**:
+- [ ] safe_gather()가 개별 태스크 에러를 수집 확인
+- [ ] safe_gather()가 성공한 결과와 실패 정보 모두 반환 확인
+- [ ] AsyncErrorHandler 데코레이터가 에러를 로깅 확인
+- [ ] asyncio.Task 미처리 예외가 글로벌 핸들러로 전달 확인
+- [ ] 비동기 작업 실패 시 어떤 작업이 실패했는지 로그에 기록 확인
+
+**비동기 에러 처리 적용 대상**:
+- [ ] `core/api/kis_websocket.py` - 실시간 데이터 수신
+- [ ] `core/market_monitor/` - 실시간 모니터링
+- [ ] `api-server/` - FastAPI 엔드포인트
+
+---
+
+#### Story 5.6: Error Metrics 및 분석 시스템
+
+| 상태 | Task ID | Task | 완료일 | 비고 |
+|------|---------|------|--------|------|
+| [ ] | T-5.6.1 | `ErrorMetrics` 클래스 정의 | | |
+| [ ] | T-5.6.2 | 에러 발생 시 메트릭 자동 수집 | | |
+| [ ] | T-5.6.3 | 에러 통계 조회 API 구현 | | |
+| [ ] | T-5.6.4 | 반복 에러 패턴 감지 및 알림 | | |
+
+**Story 5.6 테스트 체크리스트**:
+- [ ] 에러 발생 횟수 카운트 확인
+- [ ] 에러 타입별 발생 통계 확인
+- [ ] 복구 성공률 계산 확인
+- [ ] 반복 에러 (5분 내 3회 이상) 감지 확인
+- [ ] 반복 에러 발생 시 알림 수신 확인
+
+---
+
+#### Story 5.7: 에러 추적 테스트 구축
+
+| 상태 | Task ID | Task | 완료일 | 비고 |
+|------|---------|------|--------|------|
+| [ ] | T-5.7.1 | `tests/test_custom_exceptions.py` 작성 | | |
+| [ ] | T-5.7.2 | `tests/test_error_context.py` 작성 | | |
+| [ ] | T-5.7.3 | `tests/test_tracing.py` 작성 | | |
+| [ ] | T-5.7.4 | `tests/test_async_error_handling.py` 작성 | | |
+| [ ] | T-5.7.5 | `tests/integration/test_error_tracking.py` 작성 | | |
+
+**Story 5.7 테스트 커버리지 목표**:
+- [ ] Custom Exception 클래스 커버리지 90% 이상
+- [ ] ErrorContext 유틸리티 커버리지 90% 이상
+- [ ] Tracing 시스템 커버리지 85% 이상
+- [ ] 비동기 에러 처리 커버리지 85% 이상
+- [ ] 통합 테스트 시나리오 10개 이상
+
+---
+
 ## Integration Test Checklist
 
 ### 전체 시스템 통합 테스트
@@ -207,6 +364,10 @@
 | [ ] | 중복 알림 방지: 동일 내용 알림 300초 내 재발송 방지 | | |
 | [ ] | 로그 통합: 알림 발송 시 로그 기록, trace_id 일치 확인 | | |
 | [ ] | 장애 복구: 텔레그램 API 실패 시 재시도 및 로그 기록 | | |
+| [ ] | **에러 추적 E2E**: API 에러 발생 → Custom Exception → Context 로깅 → 알림 발송 | | |
+| [ ] | **trace_id 전파**: API 요청 → 내부 처리 → 에러 발생 → 동일 trace_id 로그 | | |
+| [ ] | **Silent Failure 검증**: 기존 Silent Failure 코드가 명시적 에러 처리로 변경 확인 | | |
+| [ ] | **비동기 에러 추적**: 여러 비동기 작업 중 일부 실패 시 개별 추적 가능 확인 | | |
 
 ---
 
@@ -221,6 +382,8 @@
 | [ ] | TODO/FIXME 주석 해결 또는 이슈 등록 | | |
 | [ ] | 디버깅용 print 문 제거 | | |
 | [ ] | 하드코딩된 테스트 값 제거 | | |
+| [ ] | Silent Failure 패턴 완전 제거 확인 | | |
+| [ ] | `except Exception: pass` 패턴 완전 제거 확인 | | |
 
 ---
 
@@ -235,6 +398,9 @@
 | [ ] | `config/telegram_config.json.example` | 새 스키마 반영 | |
 | [ ] | `docs/NOTIFICATION_GUIDE.md` | 알림 시스템 상세 가이드 (신규) | |
 | [ ] | `docs/LOGGING_GUIDE.md` | 로깅 시스템 상세 가이드 (신규) | |
+| [ ] | `docs/ERROR_HANDLING_GUIDE.md` | 에러 처리 가이드 (신규) | |
+| [ ] | `docs/CUSTOM_EXCEPTIONS.md` | Custom Exception 사용 가이드 (신규) | |
+| [ ] | `docs/TRACING_GUIDE.md` | Distributed Tracing 가이드 (신규) | |
 
 ---
 
@@ -274,17 +440,23 @@
 | Phase 2: 로깅 시스템 통합 | 0 | 10 | 0% | 대기 |
 | Phase 3: 모니터링 개선 | 0 | 4 | 0% | 대기 |
 | Phase 4: 테스트/품질 보증 | 0 | 6 | 0% | 대기 |
-| **전체** | **0** | **34** | **0%** | **대기** |
+| Phase 5: 에러 추적 시스템 | 0 | 29 | 0% | 대기 |
+| **전체** | **0** | **63** | **0%** | **대기** |
 
 ### 주요 마일스톤
 
 | 마일스톤 | 목표 | 상태 |
 |---------|------|------|
 | M1: Alert.id 버그 수정 | Critical 버그 해결 | 대기 |
-| M2: TelegramNotifier 통합 | 중복 제거 완료 | 대기 |
-| M3: 텔레그램 설정 체계 | 설정 로드 정상화 | 대기 |
-| M4: 테스트 구축 | 테스트 커버리지 80% | 대기 |
-| M5: 로깅 통합 | 중앙 설정 적용 완료 | 대기 |
+| M2: Custom Exception 체계 구축 | 에러 타입 분류 체계 확립 | 대기 |
+| M3: Context-aware 로깅 | 에러 원인 파악 능력 향상 | 대기 |
+| M4: Distributed Tracing | 요청 흐름 추적 가능 | 대기 |
+| M5: Silent Failure 제거 | 숨겨진 에러 노출 | 대기 |
+| M6: TelegramNotifier 통합 | 중복 제거 완료 | 대기 |
+| M7: 텔레그램 설정 체계 | 설정 로드 정상화 | 대기 |
+| M8: 테스트 구축 | 테스트 커버리지 80% | 대기 |
+| M9: 로깅 통합 | 중앙 설정 적용 완료 | 대기 |
+| M10: Error Metrics | 에러 분석 가능 | 대기 |
 
 ---
 
