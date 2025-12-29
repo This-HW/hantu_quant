@@ -386,15 +386,15 @@ def load_latest_watchlist_data() -> List[WatchlistItem]:
         # 프로젝트 루트 경로 기준으로 수정
         project_root = Path(__file__).parent.parent
         watchlist_path = project_root / "data" / "watchlist" / "watchlist.json"
-        
+
         with open(watchlist_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        
+
         watchlist = []
-        for stock_data in data["data"]["stocks"][:20]:  # 상위 20개
-            stock_code = stock_data["stock_code"] 
+        for i, stock_data in enumerate(data["data"]["stocks"][:20]):  # 상위 20개
+            stock_code = stock_data["stock_code"]
             stock_name = stock_data["stock_name"]
-            
+
             # 실제 데이터 사용 (스크리닝 결과)
             stock = Stock(
                 code=stock_code,
@@ -407,19 +407,20 @@ def load_latest_watchlist_data() -> List[WatchlistItem]:
                 volume=stock_data.get("volume", 100000),
                 marketCap=stock_data.get("market_cap", 500000000)
             )
-            
+
             item = WatchlistItem(
+                id=str(i + 1),
                 stock=stock,
-                addedDate=stock_data.get("added_date", "2025-01-27"),
+                addedAt=stock_data.get("added_date", datetime.now().strftime("%Y-%m-%d")) + "T09:00:00",
+                targetPrice=stock_data.get("target_price", int(stock_data.get("current_price", 50000) * 1.15)),
                 reason=stock_data.get("added_reason", "스크리닝 통과"),
-                targetPrice=stock_data.get("target_price", 0),
-                riskLevel=stock_data.get("risk_level", "보통")
+                score=stock_data.get("screening_score", 50.0)
             )
-            
+
             watchlist.append(item)
-        
+
         return watchlist
-        
+
     except Exception as e:
         logger.error(f"최신 감시리스트 로드 오류: {e}")
         return []
