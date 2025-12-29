@@ -163,11 +163,11 @@ class NotificationHistoryDB:
                 entry.sent_at,
                 entry.response_data,
             ))
-            conn.commit()
 
             # 통계 업데이트
             self._update_stats(conn, entry)
 
+            conn.commit()
             return cursor.lastrowid
 
     def _update_stats(self, conn, entry: NotificationHistoryEntry) -> None:
