@@ -100,7 +100,32 @@ cp config/telegram_config.example.json config/telegram_config.json
 
 ## 🎯 빠른 시작
 
-### 통합 스케줄러 실행 (권장)
+### 통합 CLI 사용 (권장)
+
+```bash
+# CLI 설치
+pip install -e .
+
+# 모든 서비스 시작
+hantu start all
+
+# 상태 확인
+hantu status
+
+# 잔고 조회
+hantu trade balance
+
+# 종목 스크리닝
+hantu screen
+
+# 일일 선정
+hantu select
+
+# 모든 서비스 중지
+hantu stop all
+```
+
+### 레거시 방식 (개별 실행)
 
 ```bash
 # 프로덕션 환경 전체 시작
@@ -120,9 +145,38 @@ python scripts/telegram_diagnostic.py
 python scripts/telegram_diagnostic.py --quick
 ```
 
-## 📊 사용 방법
+## 📊 CLI 명령어
 
-### 개별 기능 실행
+### 서비스 관리
+```bash
+hantu start [scheduler|api|all]   # 서비스 시작
+hantu stop [scheduler|api|all]    # 서비스 중지
+hantu status                       # 상태 확인
+hantu health                       # 시스템 헬스체크
+```
+
+### 트레이딩
+```bash
+hantu trade balance     # 잔고 조회
+hantu trade positions   # 보유 종목
+hantu trade find        # 후보 종목 검색
+```
+
+### 분석
+```bash
+hantu screen            # Phase 1 스크리닝
+hantu select            # Phase 2 일일 선정
+```
+
+### 시스템
+```bash
+hantu config check      # 설정 검증
+hantu logs -f           # 로그 실시간 확인
+```
+
+자세한 CLI 문서는 `docs/CLI_REFERENCE.md` 참조
+
+## 📊 개별 기능 실행 (레거시)
 
 ```bash
 # Phase 1: 종목 스크리닝
@@ -142,7 +196,8 @@ python workflows/phase2_daily_selection.py analyze
 
 ```bash
 # API 서버 시작
-cd api-server && python main.py
+hantu start api
+# 또는: cd api-server && python main.py
 
 # 웹 인터페이스 시작
 cd web-interface && npm run dev
