@@ -2,6 +2,9 @@
 텔레그램 알림 모듈
 
 텔레그램 봇을 통한 실시간 알림을 발송합니다.
+
+Feature 1: 알림 시스템 통합
+Story 1.2: TelegramNotifier 통합
 """
 
 import logging
@@ -14,8 +17,29 @@ import queue
 
 from .alert import Alert, AlertFormatter
 from .notifier import BaseNotifier, NotifierConfig, NotificationResult
+from .config_loader import (
+    TelegramConfigData,
+    TelegramConfigLoader,
+    get_telegram_config,
+)
+from core.utils.log_utils import (
+    trace_operation,
+    get_trace_id,
+    get_context_logger,
+)
+from core.error_handler import (
+    handle_error,
+    ErrorAction,
+    error_handler,
+)
+from core.exceptions import (
+    NotificationException,
+    NotificationSendError,
+    NotificationConfigError,
+    ErrorSeverity,
+)
 
-logger = logging.getLogger(__name__)
+logger = get_context_logger(__name__)
 
 
 @dataclass
@@ -42,25 +66,77 @@ class TelegramNotifier(BaseNotifier):
     텔레그램 알림 발송기
 
     텔레그램 봇 API를 통해 메시지를 발송합니다.
+
+    Story 1.2: TelegramNotifier 통합
+    - T-1.2.4: config_loader 사용
+    - T-1.2.5: 분산 추적 적용
+    - T-1.2.6: 에러 핸들링 강화
     """
 
-    def __init__(self, config: Optional[TelegramConfig] = None):
+    def __init__(
+        self,
+        config: Optional[TelegramConfig] = None,
+        config_data: Optional[TelegramConfigData] = None,
+        config_path: Optional[str] = None,
+    ):
         """
         Args:
-            config: 텔레그램 설정
+            config: 텔레그램 설정 (기존 방식)
+            config_data: TelegramConfigData 객체 (신규 방식)
+            config_path: 설정 파일 경로 (config_loader 사용)
         """
         super().__init__(config)
-        self.config: TelegramConfig = config or TelegramConfig()
+
+        # config_loader를 통한 설정 로드 지원
+        if config_data:
+            self._config_data = config_data
+            self.config = self._convert_to_telegram_config(config_data)
+        elif config_path:
+            loader = TelegramConfigLoader(config_path)
+            self._config_data = loader.load()
+            self.config = self._convert_to_telegram_config(self._config_data)
+        elif config:
+            self.config = config
+            self._config_data = None
+        else:
+            # 기본 config_loader 사용
+            try:
+                self._config_data = get_telegram_config()
+                self.config = self._convert_to_telegram_config(self._config_data)
+            except Exception:
+                self.config = TelegramConfig()
+                self._config_data = None
 
         # 비동기 발송 큐
         self._send_queue: queue.Queue = queue.Queue()
         self._worker_thread: Optional[threading.Thread] = None
         self._running: bool = False
 
+        # 발송 통계
+        self._send_count: int = 0
+        self._error_count: int = 0
+        self._last_send_time: Optional[datetime] = None
+
+    def _convert_to_telegram_config(
+        self,
+        config_data: TelegramConfigData
+    ) -> TelegramConfig:
+        """TelegramConfigData를 TelegramConfig로 변환"""
+        return TelegramConfig(
+            bot_token=config_data.bot_token,
+            chat_id=config_data.get_primary_chat_id() or "",
+            api_base_url=config_data.api_base_url,
+            timeout=config_data.timeout,
+            max_retries=config_data.max_retries,
+            retry_delay=config_data.retry_delay,
+            parse_mode="HTML" if config_data.message_format.use_html else "Markdown",
+        )
+
     def is_configured(self) -> bool:
         """설정 완료 여부"""
         return bool(self.config.bot_token and self.config.chat_id)
 
+    @trace_operation("telegram_send_alert", include_result=False)
     def send(self, alert: Alert) -> NotificationResult:
         """
         알림 발송
@@ -71,24 +147,65 @@ class TelegramNotifier(BaseNotifier):
         Returns:
             NotificationResult: 발송 결과
         """
+        trace_id = get_trace_id()
+
         if not self.is_configured():
+            logger.warning(
+                "Telegram not configured",
+                extra={"trace_id": trace_id, "alert_id": alert.id}
+            )
             return NotificationResult(
                 success=False,
-                alert_id=str(id(alert)),
+                alert_id=alert.id,
                 error="Telegram not configured",
             )
 
         if not self.should_send(alert):
+            logger.debug(
+                "Alert filtered out",
+                extra={"trace_id": trace_id, "alert_id": alert.id}
+            )
             return NotificationResult(
                 success=False,
-                alert_id=str(id(alert)),
+                alert_id=alert.id,
                 error="Alert filtered out",
             )
 
-        # 메시지 포맷
-        message = AlertFormatter.format_telegram(alert)
+        try:
+            # 메시지 포맷
+            message = AlertFormatter.format_telegram(alert)
+            result = self._send_message(message, alert.id)
 
-        return self._send_message(message, str(id(alert)))
+            if result.success:
+                self._send_count += 1
+                self._last_send_time = datetime.now()
+                logger.info(
+                    f"Alert sent successfully: {alert.id}",
+                    extra={"trace_id": trace_id, "alert_id": alert.id}
+                )
+            else:
+                self._error_count += 1
+                logger.warning(
+                    f"Alert send failed: {alert.id} - {result.error}",
+                    extra={"trace_id": trace_id, "alert_id": alert.id}
+                )
+
+            return result
+
+        except Exception as e:
+            self._error_count += 1
+            error = NotificationSendError(
+                f"Failed to send telegram alert: {e}",
+                original_error=e,
+                context={"alert_id": alert.id, "trace_id": trace_id},
+            )
+            handle_error(error, "Telegram send error", action=ErrorAction.LOG_AND_ALERT)
+
+            return NotificationResult(
+                success=False,
+                alert_id=alert.id,
+                error=str(e),
+            )
 
     def send_raw(self, message: str) -> NotificationResult:
         """
@@ -109,6 +226,7 @@ class TelegramNotifier(BaseNotifier):
 
         return self._send_message(message, "raw")
 
+    @trace_operation("telegram_send_message", include_result=False)
     def _send_message(
         self,
         message: str,
@@ -129,6 +247,7 @@ class TelegramNotifier(BaseNotifier):
         import urllib.error
         import json
 
+        trace_id = get_trace_id()
         url = f"{self.config.api_base_url}/bot{self.config.bot_token}/sendMessage"
 
         data = {
@@ -157,7 +276,10 @@ class TelegramNotifier(BaseNotifier):
 
                     if response_data.get('ok'):
                         self._record_success()
-                        logger.debug(f"Telegram message sent: {alert_id}")
+                        logger.debug(
+                            f"Telegram message sent: {alert_id}",
+                            extra={"trace_id": trace_id, "alert_id": alert_id}
+                        )
 
                         return NotificationResult(
                             success=True,
@@ -167,18 +289,31 @@ class TelegramNotifier(BaseNotifier):
                         )
                     else:
                         last_error = response_data.get('description', 'Unknown error')
+                        logger.warning(
+                            f"Telegram API error: {last_error}",
+                            extra={"trace_id": trace_id, "alert_id": alert_id}
+                        )
 
             except urllib.error.HTTPError as e:
                 last_error = f"HTTP error: {e.code}"
-                logger.warning(f"Telegram HTTP error: {e.code}")
+                logger.warning(
+                    f"Telegram HTTP error: {e.code}",
+                    extra={"trace_id": trace_id, "alert_id": alert_id, "retry": retry_count}
+                )
 
             except urllib.error.URLError as e:
                 last_error = f"URL error: {e.reason}"
-                logger.warning(f"Telegram URL error: {e.reason}")
+                logger.warning(
+                    f"Telegram URL error: {e.reason}",
+                    extra={"trace_id": trace_id, "alert_id": alert_id, "retry": retry_count}
+                )
 
             except Exception as e:
                 last_error = str(e)
-                logger.warning(f"Telegram error: {e}")
+                logger.warning(
+                    f"Telegram error: {e}",
+                    extra={"trace_id": trace_id, "alert_id": alert_id, "retry": retry_count}
+                )
 
             retry_count += 1
             if retry_count <= self.config.max_retries:
@@ -186,7 +321,17 @@ class TelegramNotifier(BaseNotifier):
 
         # 모든 재시도 실패
         self._record_error()
-        logger.error(f"Telegram send failed after {retry_count} retries: {last_error}")
+
+        error = NotificationSendError(
+            f"Telegram send failed after {retry_count} retries: {last_error}",
+            context={
+                "alert_id": alert_id,
+                "retry_count": retry_count,
+                "trace_id": trace_id,
+            },
+            severity=ErrorSeverity.WARNING,
+        )
+        handle_error(error, "Telegram send failed", action=ErrorAction.LOG_ONLY)
 
         return NotificationResult(
             success=False,
@@ -401,3 +546,107 @@ class TelegramNotifier(BaseNotifier):
             logger.error(f"Get updates failed: {e}")
 
         return []
+
+    def get_stats(self) -> Dict[str, Any]:
+        """
+        발송 통계 조회
+
+        Returns:
+            Dict: 통계 정보
+        """
+        return {
+            "send_count": self._send_count,
+            "error_count": self._error_count,
+            "success_rate": (
+                self._send_count / (self._send_count + self._error_count)
+                if (self._send_count + self._error_count) > 0
+                else 0.0
+            ),
+            "last_send_time": (
+                self._last_send_time.isoformat()
+                if self._last_send_time
+                else None
+            ),
+            "is_configured": self.is_configured(),
+            "queue_size": self._send_queue.qsize(),
+            "worker_running": self._running,
+        }
+
+    def get_config_info(self) -> Dict[str, Any]:
+        """
+        설정 정보 조회 (민감 정보 마스킹)
+
+        Returns:
+            Dict: 설정 정보
+        """
+        return {
+            "api_base_url": self.config.api_base_url,
+            "chat_id": self.config.chat_id[:4] + "***" if self.config.chat_id else "",
+            "bot_token_set": bool(self.config.bot_token),
+            "timeout": self.config.timeout,
+            "max_retries": self.config.max_retries,
+            "parse_mode": self.config.parse_mode,
+            "is_configured": self.is_configured(),
+        }
+
+
+# 글로벌 인스턴스 (싱글톤 패턴)
+_telegram_notifier_instance: Optional[TelegramNotifier] = None
+
+
+def get_telegram_notifier(
+    config_path: Optional[str] = None,
+    force_reload: bool = False,
+) -> TelegramNotifier:
+    """
+    TelegramNotifier 싱글톤 인스턴스 반환
+
+    Args:
+        config_path: 설정 파일 경로
+        force_reload: 강제 재로드 여부
+
+    Returns:
+        TelegramNotifier: 인스턴스
+    """
+    global _telegram_notifier_instance
+
+    if _telegram_notifier_instance is None or force_reload:
+        _telegram_notifier_instance = TelegramNotifier(config_path=config_path)
+
+    return _telegram_notifier_instance
+
+
+def send_telegram_alert(
+    alert: Alert,
+    config_path: Optional[str] = None,
+) -> NotificationResult:
+    """
+    텔레그램 알림 발송 헬퍼 함수
+
+    Args:
+        alert: 알림 객체
+        config_path: 설정 파일 경로
+
+    Returns:
+        NotificationResult: 발송 결과
+    """
+    notifier = get_telegram_notifier(config_path)
+    return notifier.send(alert)
+
+
+def send_telegram_message(
+    message: str,
+    config_path: Optional[str] = None,
+) -> NotificationResult:
+    """
+    텔레그램 메시지 발송 헬퍼 함수
+
+    Args:
+        message: 메시지 내용
+        config_path: 설정 파일 경로
+
+    Returns:
+        NotificationResult: 발송 결과
+    """
+    notifier = get_telegram_notifier(config_path)
+    return notifier.send_raw(message)

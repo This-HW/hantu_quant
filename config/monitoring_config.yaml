@@ -1,0 +1,162 @@
+# Hantu Quant 모니터링 설정
+#
+# Feature 3.1: 모니터링 설정 외부화
+# T-3.1.1: SystemMonitor 임계값 설정 파일화
+# T-3.1.2: 환경별 임계값 프로필 지원
+
+version: 1
+
+# 기본 프로필 (개발/프로덕션 공통)
+default:
+  # 시스템 리소스 임계값
+  thresholds:
+    cpu:
+      warning: 70
+      error: 80
+      critical: 90
+    memory:
+      warning: 75
+      error: 85
+      critical: 95
+    disk:
+      warning: 80
+      error: 90
+      critical: 95
+
+  # API 관련 임계값
+  api:
+    error_rate:
+      warning: 5
+      error: 10
+      critical: 20
+    latency_ms:
+      warning: 1000
+      error: 3000
+      critical: 5000
+    rate_limit:
+      warning: 70
+      error: 85
+      critical: 95
+
+  # 트레이딩 관련 임계값
+  trading:
+    drawdown_percent:
+      warning: 3
+      error: 7
+      critical: 15
+    daily_loss_percent:
+      warning: 2
+      error: 5
+      critical: 10
+    position_limit:
+      warning: 80
+      error: 90
+      critical: 100
+
+  # 모니터링 간격 (초)
+  intervals:
+    system_check: 60
+    api_health: 30
+    trading_status: 10
+    anomaly_detection: 300
+
+  # 알림 설정
+  alerting:
+    cooldown_minutes: 5
+    max_alerts_per_hour: 20
+    quiet_hours:
+      enabled: false
+      start: "22:00"
+      end: "08:00"
+
+# 개발 환경 프로필
+development:
+  thresholds:
+    cpu:
+      warning: 80
+      error: 90
+      critical: 95
+    memory:
+      warning: 85
+      error: 92
+      critical: 98
+
+  intervals:
+    system_check: 120
+    anomaly_detection: 600
+
+  alerting:
+    cooldown_minutes: 1
+    max_alerts_per_hour: 100
+    quiet_hours:
+      enabled: false
+
+# 스테이징 환경 프로필
+staging:
+  thresholds:
+    cpu:
+      warning: 75
+      error: 85
+      critical: 92
+
+  alerting:
+    cooldown_minutes: 3
+
+# 프로덕션 환경 프로필
+production:
+  thresholds:
+    cpu:
+      warning: 65
+      error: 75
+      critical: 85
+    memory:
+      warning: 70
+      error: 80
+      critical: 90
+    disk:
+      warning: 75
+      error: 85
+      critical: 92
+
+  api:
+    error_rate:
+      warning: 3
+      error: 5
+      critical: 10
+
+  trading:
+    drawdown_percent:
+      warning: 2
+      error: 5
+      critical: 10
+    daily_loss_percent:
+      warning: 1
+      error: 3
+      critical: 7
+
+  intervals:
+    system_check: 30
+    api_health: 15
+    trading_status: 5
+    anomaly_detection: 180
+
+  alerting:
+    cooldown_minutes: 10
+    max_alerts_per_hour: 10
+    quiet_hours:
+      enabled: true
+      start: "23:00"
+      end: "06:00"
+
+# Circuit Breaker 설정 (변경 불가)
+circuit_breaker:
+  stages:
+    - name: "stage_1"
+      drawdown_threshold: 3
+      action: "reduce_position_30"
+    - name: "stage_2"
+      drawdown_threshold: 7
+      action: "reduce_position_70"
+    - name: "stage_3"
+      drawdown_threshold: 15
+      action: "halt_trading"
