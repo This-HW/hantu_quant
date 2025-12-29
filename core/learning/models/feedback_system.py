@@ -585,4 +585,16 @@ class FeedbackSystem:
                 
         except Exception as e:
             self._logger.error(f"피드백 요약 조회 오류: {e}")
-            return {} 
+            return {}
+
+
+# 싱글톤 인스턴스
+_feedback_system_instance: Optional[FeedbackSystem] = None
+
+
+def get_feedback_system() -> FeedbackSystem:
+    """FeedbackSystem 싱글톤 인스턴스 반환"""
+    global _feedback_system_instance
+    if _feedback_system_instance is None:
+        _feedback_system_instance = FeedbackSystem()
+    return _feedback_system_instance
