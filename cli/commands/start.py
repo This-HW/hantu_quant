@@ -87,7 +87,8 @@ def _run_foreground(svc_name: str, svc_info: dict, workers: int) -> None:
     cmd = [sys.executable, script]
 
     if svc_name == 'scheduler':
-        cmd.extend(['--workers', str(workers)])
+        # Scheduler requires 'start' subcommand
+        cmd.append('start')
 
     os.execv(sys.executable, cmd)
 
@@ -98,7 +99,8 @@ def _run_background(svc_name: str, svc_info: dict, workers: int) -> int:
     cmd = [sys.executable, script]
 
     if svc_name == 'scheduler':
-        cmd.extend(['--workers', str(workers)])
+        # Scheduler requires 'start' subcommand
+        cmd.append('start')
 
     # Start as detached process
     process = subprocess.Popen(
