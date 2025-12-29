@@ -74,21 +74,21 @@ class TelegramNotifier(BaseNotifier):
         if not self.is_configured():
             return NotificationResult(
                 success=False,
-                alert_id=str(id(alert)),
+                alert_id=alert.id,
                 error="Telegram not configured",
             )
 
         if not self.should_send(alert):
             return NotificationResult(
                 success=False,
-                alert_id=str(id(alert)),
+                alert_id=alert.id,
                 error="Alert filtered out",
             )
 
         # 메시지 포맷
         message = AlertFormatter.format_telegram(alert)
 
-        return self._send_message(message, str(id(alert)))
+        return self._send_message(message, alert.id)
 
     def send_raw(self, message: str) -> NotificationResult:
         """
