@@ -9,16 +9,24 @@
 - 변동성 팩터
 - 기술적 팩터
 - 시장 강도 팩터
+
+통합 기능:
+- WeightProvider를 통한 동적 가중치 지원
+- 학습 시스템과 연동하여 가중치 자동 조정
 """
 
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Tuple, Optional
-from dataclasses import dataclass
+from typing import Dict, List, Tuple, Optional, TYPE_CHECKING
+from dataclasses import dataclass, asdict
 from scipy import stats
 import logging
 
 from core.utils.log_utils import get_logger
+
+# 순환 import 방지
+if TYPE_CHECKING:
+    from core.learning.weights.weight_provider import WeightProvider
 
 logger = get_logger(__name__)
 
@@ -50,23 +58,152 @@ class FactorScores:
     technical_zscore: float
     market_strength_zscore: float
 
+    def to_factor_dict(self) -> Dict[str, float]:
+        """팩터 점수를 딕셔너리로 반환 (학습 시스템 연동용)"""
+        return {
+            'momentum': self.momentum_score,
+            'value': self.value_score,
+            'quality': self.quality_score,
+            'volume': self.volume_score,
+            'volatility': self.volatility_score,
+            'technical': self.technical_score,
+            'market_strength': self.market_strength_score
+        }
+
+    def to_dict(self) -> Dict[str, any]:
+        """전체 데이터를 딕셔너리로 반환"""
+        return asdict(self)
+
 
 class MultiFactorScorer:
-    """멀티 팩터 스코어링 시스템"""
+    """멀티 팩터 스코어링 시스템
 
-    def __init__(self):
-        """초기화"""
+    동적 가중치 지원:
+    - WeightProvider를 통해 학습 시스템에서 최적화된 가중치 사용
+    - 시장 레짐에 따라 자동으로 가중치 조정
+    """
+
+    # 기본 가중치 (WeightProvider 없을 때 사용)
+    DEFAULT_WEIGHTS = {
+        'momentum': 0.20,
+        'value': 0.15,
+        'quality': 0.20,
+        'volume': 0.15,
+        'volatility': 0.10,
+        'technical': 0.15,
+        'market_strength': 0.05
+    }
+
+    def __init__(self, weight_provider: Optional['WeightProvider'] = None):
+        """초기화
+
+        Args:
+            weight_provider: 동적 가중치 제공자 (옵션)
+        """
         self.logger = logger
 
-        # 팩터 가중치 (합 = 1.0)
-        self.factor_weights = {
-            'momentum': 0.20,       # 모멘텀
-            'value': 0.15,          # 밸류
-            'quality': 0.20,        # 퀄리티
-            'volume': 0.15,         # 거래량
-            'volatility': 0.10,     # 변동성 (낮을수록 좋음)
-            'technical': 0.15,      # 기술적
-            'market_strength': 0.05 # 시장 강도
+        # 기본 팩터 가중치 (합 = 1.0)
+        self.factor_weights = self.DEFAULT_WEIGHTS.copy()
+
+        # 동적 가중치 관련
+        self._weight_provider: Optional['WeightProvider'] = weight_provider
+        self._dynamic_weights_enabled = weight_provider is not None
+        self._last_weight_update: Optional[str] = None
+
+        if weight_provider:
+            self._update_weights_from_provider()
+
+    def set_weight_provider(self, provider: 'WeightProvider'):
+        """WeightProvider 설정 (D.2.2)
+
+        Args:
+            provider: WeightProvider 인스턴스
+        """
+        self._weight_provider = provider
+        self._dynamic_weights_enabled = True
+        self._update_weights_from_provider()
+        self.logger.info("WeightProvider 연결됨")
+
+    def enable_dynamic_weights(self, enabled: bool = True):
+        """동적 가중치 활성화/비활성화
+
+        Args:
+            enabled: 활성화 여부
+        """
+        self._dynamic_weights_enabled = enabled
+        if enabled and self._weight_provider:
+            self._update_weights_from_provider()
+        elif not enabled:
+            self.factor_weights = self.DEFAULT_WEIGHTS.copy()
+        self.logger.info(f"동적 가중치 {'활성화' if enabled else '비활성화'}")
+
+    def update_weights(self, new_weights: Dict[str, float]):
+        """가중치 직접 업데이트
+
+        Args:
+            new_weights: 새로운 가중치
+        """
+        # 유효성 검증
+        if not self._validate_weights(new_weights):
+            self.logger.warning("잘못된 가중치 - 업데이트 거부")
+            return
+
+        self.factor_weights = new_weights.copy()
+        from datetime import datetime
+        self._last_weight_update = datetime.now().isoformat()
+        self.logger.info(f"가중치 업데이트 완료: {new_weights}")
+
+    def _update_weights_from_provider(self):
+        """WeightProvider에서 가중치 가져오기"""
+        if not self._weight_provider or not self._dynamic_weights_enabled:
+            return
+
+        try:
+            if self._weight_provider.is_available():
+                new_weights = self._weight_provider.get_weights()
+                if self._validate_weights(new_weights):
+                    self.factor_weights = new_weights
+                    from datetime import datetime
+                    self._last_weight_update = datetime.now().isoformat()
+                    self.logger.debug(f"Provider에서 가중치 로드: {new_weights}")
+        except Exception as e:
+            self.logger.warning(f"Provider 가중치 로드 실패: {e}")
+
+    def _validate_weights(self, weights: Dict[str, float]) -> bool:
+        """가중치 유효성 검증"""
+        if not weights:
+            return False
+
+        # 모든 팩터 존재 확인
+        required_factors = set(self.DEFAULT_WEIGHTS.keys())
+        if set(weights.keys()) != required_factors:
+            return False
+
+        # 값 범위 검증
+        for v in weights.values():
+            if not (0.0 <= v <= 1.0):
+                return False
+
+        # 합계 검증 (약간의 오차 허용)
+        if not (0.99 <= sum(weights.values()) <= 1.01):
+            return False
+
+        return True
+
+    def get_current_weights(self) -> Dict[str, float]:
+        """현재 가중치 반환"""
+        # 동적 가중치 활성화 시 최신 가중치 가져오기
+        if self._dynamic_weights_enabled and self._weight_provider:
+            self._update_weights_from_provider()
+        return self.factor_weights.copy()
+
+    def get_weight_status(self) -> Dict[str, any]:
+        """가중치 상태 정보"""
+        return {
+            'weights': self.factor_weights.copy(),
+            'dynamic_enabled': self._dynamic_weights_enabled,
+            'provider_connected': self._weight_provider is not None,
+            'last_update': self._last_weight_update
         }
 
     def calculate_multi_factor_scores(self, stock_data_list: List[Dict]) -> List[FactorScores]:
@@ -81,6 +218,10 @@ class MultiFactorScorer:
         try:
             if not stock_data_list:
                 return []
+
+            # 동적 가중치 업데이트 (활성화된 경우)
+            if self._dynamic_weights_enabled and self._weight_provider:
+                self._update_weights_from_provider()
 
             self.logger.info(f"멀티 팩터 스코어링 시작: {len(stock_data_list)}개 종목")
 
