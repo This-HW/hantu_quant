@@ -43,7 +43,97 @@ class Phase2CLI:
         self._v_parallel_workers = p_parallel_workers
         
         logger.info(f"Phase 2 CLI 초기화 완료 (병렬 워커: {p_parallel_workers}개)")
-    
+
+    def run_update(self) -> Optional[Dict]:
+        """일일 업데이트 실행 (CLI 인터페이스용)
+
+        Returns:
+            결과 딕셔너리 또는 None (실패 시)
+            - evaluated_count: 평가된 종목 수
+            - selected_count: 선정된 종목 수
+            - duration_seconds: 처리 시간 (초)
+            - selections: 선정된 종목 리스트
+        """
+        import time
+        start_time = time.time()
+
+        try:
+            # 일일 업데이트 실행
+            success = self._v_daily_updater.run_daily_update(p_force_run=True)
+            duration = time.time() - start_time
+
+            if success:
+                # 최신 선정 결과 가져오기
+                latest_result = self._v_daily_updater.get_latest_selection()
+                selected_stocks = latest_result.get('data', {}).get('selected_stocks', []) if latest_result else []
+
+                # 감시 리스트 수 조회
+                watchlist_stocks = self._v_watchlist_manager.list_stocks(p_status="active")
+
+                return {
+                    'evaluated_count': len(watchlist_stocks),
+                    'selected_count': len(selected_stocks),
+                    'duration_seconds': duration,
+                    'selections': [
+                        {
+                            'code': s.get('stock_code', ''),
+                            'name': s.get('stock_name', ''),
+                            'score': s.get('price_attractiveness', 0),
+                            'signal': 'BUY' if s.get('price_attractiveness', 0) >= 70 else 'HOLD'
+                        }
+                        for s in selected_stocks
+                    ]
+                }
+
+            return None
+
+        except Exception as e:
+            logger.error(f"run_update 오류: {e}")
+            return None
+
+    def run_analysis(self) -> Optional[Dict]:
+        """상세 분석 실행 (CLI 인터페이스용)
+
+        Returns:
+            결과 딕셔너리 또는 None (실패 시)
+            - evaluated_count: 평가된 종목 수
+            - selected_count: 선정된 종목 수
+            - duration_seconds: 처리 시간 (초)
+            - selections: 선정된 종목 리스트
+        """
+        import time
+        start_time = time.time()
+
+        try:
+            # 전체 감시 리스트 분석 실행
+            results = self._analyze_all_stocks()
+            duration = time.time() - start_time
+
+            if results:
+                # 상위 종목 선정 (점수 70점 이상)
+                selected = [r for r in results if r.total_score >= 70]
+
+                return {
+                    'evaluated_count': len(results),
+                    'selected_count': len(selected),
+                    'duration_seconds': duration,
+                    'selections': [
+                        {
+                            'code': r.stock_code,
+                            'name': r.stock_name,
+                            'score': r.total_score,
+                            'signal': 'BUY' if r.total_score >= 80 else 'HOLD' if r.total_score >= 70 else 'WAIT'
+                        }
+                        for r in sorted(results, key=lambda x: x.total_score, reverse=True)[:10]
+                    ]
+                }
+
+            return None
+
+        except Exception as e:
+            logger.error(f"run_analysis 오류: {e}")
+            return None
+
     def run(self):
         """CLI 실행"""
         parser = argparse.ArgumentParser(
