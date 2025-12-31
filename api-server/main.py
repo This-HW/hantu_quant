@@ -386,15 +386,15 @@ def load_latest_watchlist_data() -> List[WatchlistItem]:
         # 프로젝트 루트 경로 기준으로 수정
         project_root = Path(__file__).parent.parent
         watchlist_path = project_root / "data" / "watchlist" / "watchlist.json"
-        
+
         with open(watchlist_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        
+
         watchlist = []
-        for stock_data in data["data"]["stocks"][:20]:  # 상위 20개
-            stock_code = stock_data["stock_code"] 
+        for i, stock_data in enumerate(data["data"]["stocks"][:20]):  # 상위 20개
+            stock_code = stock_data["stock_code"]
             stock_name = stock_data["stock_name"]
-            
+
             # 실제 데이터 사용 (스크리닝 결과)
             stock = Stock(
                 code=stock_code,
@@ -407,47 +407,48 @@ def load_latest_watchlist_data() -> List[WatchlistItem]:
                 volume=stock_data.get("volume", 100000),
                 marketCap=stock_data.get("market_cap", 500000000)
             )
-            
+
             item = WatchlistItem(
+                id=str(i + 1),
                 stock=stock,
-                addedDate=stock_data.get("added_date", "2025-01-27"),
+                addedAt=stock_data.get("added_date", datetime.now().strftime("%Y-%m-%d")) + "T09:00:00",
+                targetPrice=stock_data.get("target_price", int(stock_data.get("current_price", 50000) * 1.15)),
                 reason=stock_data.get("added_reason", "스크리닝 통과"),
-                targetPrice=stock_data.get("target_price", 0),
-                riskLevel=stock_data.get("risk_level", "보통")
+                score=stock_data.get("screening_score", 50.0)
             )
-            
+
             watchlist.append(item)
-        
+
         return watchlist
-        
+
     except Exception as e:
         logger.error(f"최신 감시리스트 로드 오류: {e}")
         return []
 
-def load_latest_daily_selection_data() -> List[DailySelectionItem]:
+def load_latest_daily_selection_data() -> List[DailySelection]:
     """최신 일일선정 데이터 로드"""
     try:
         project_root = Path(__file__).parent.parent
-        
+
         # 최신 일일선정 파일 찾기
         daily_dir = project_root / "data" / "daily_selection"
         pattern = "daily_selection_*.json"
         daily_files = list(daily_dir.glob(pattern))
-        
+
         if not daily_files:
             return []
-        
+
         # 가장 최신 파일 선택
         latest_file = max(daily_files, key=lambda x: x.stat().st_mtime)
-        
+
         with open(latest_file, "r", encoding="utf-8") as f:
             data = json.load(f)
-        
+
         selections = []
-        for stock_data in data.get("data", {}).get("selected_stocks", [])[:10]:  # 상위 10개
+        for i, stock_data in enumerate(data.get("data", {}).get("selected_stocks", [])[:10]):  # 상위 10개
             stock_code = stock_data["stock_code"]
             stock_name = stock_data["stock_name"]
-            
+
             stock = Stock(
                 code=stock_code,
                 name=stock_name,
@@ -459,20 +460,28 @@ def load_latest_daily_selection_data() -> List[DailySelectionItem]:
                 volume=stock_data.get("volume", 100000),
                 marketCap=stock_data.get("market_cap", 500000000)
             )
-            
-            item = DailySelectionItem(
+
+            # 리스크 레벨 계산
+            risk_score = stock_data.get("risk_score", 50)
+            risk_level = "LOW" if risk_score < 30 else "MEDIUM" if risk_score < 70 else "HIGH"
+
+            selection = DailySelection(
+                id=str(i + 1),
                 stock=stock,
-                selectionDate=stock_data.get("selection_date", "2025-01-27"),
-                reason=stock_data.get("selection_reason", "가격 매력도"),
-                confidence=stock_data.get("confidence_score", 0.8),
-                expectedReturn=stock_data.get("expected_return", 0.1),
-                riskScore=stock_data.get("risk_score", 0.3)
+                selectedAt=stock_data.get("selection_date", datetime.now().strftime("%Y-%m-%d")) + "T09:00:00",
+                attractivenessScore=stock_data.get("price_attractiveness", 50),
+                technicalScore=min(stock_data.get("volume_score", 50) + 30, 100),
+                momentumScore=min(stock_data.get("volume_score", 50) + 20, 100),
+                reasons=stock_data.get("technical_signals", ["AI 분석", "스크리닝 통과"]),
+                expectedReturn=stock_data.get("expected_return", 10.0),
+                confidence=stock_data.get("confidence_score", 0.7),
+                riskLevel=risk_level
             )
-            
-            selections.append(item)
-        
+
+            selections.append(selection)
+
         return selections
-        
+
     except Exception as e:
         logger.error(f"최신 일일선정 로드 오류: {e}")
         return []
@@ -484,7 +493,7 @@ def load_watchlist_with_real_prices() -> List[WatchlistItem]:
     logger.warning("load_watchlist_with_real_prices()는 레거시 함수입니다. load_latest_watchlist_data() 사용을 권장합니다.")
     return load_latest_watchlist_data()
 
-def load_daily_selections_with_real_prices() -> List[DailySelectionItem]:
+def load_daily_selections_with_real_prices() -> List[DailySelection]:
     """레거시 함수 - load_latest_daily_selection_data() 사용 권장"""
     logger.warning("load_daily_selections_with_real_prices()는 레거시 함수입니다. load_latest_daily_selection_data() 사용을 권장합니다.")
     return load_latest_daily_selection_data()
