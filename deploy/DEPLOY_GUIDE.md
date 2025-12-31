@@ -1,14 +1,16 @@
 # Hantu Quant - Oracle Cloud 배포 가이드
 
-## 리소스 사용량
+## 리소스 사용량 (여유있는 구성)
 
 | 서비스 | CPU | RAM | 용도 |
 |--------|-----|-----|------|
-| scheduler | 0.25 | 256MB | 자동 스크리닝 |
-| api | 0.25 | 256MB | REST API (선택) |
-| **합계** | **0.5** | **512MB** | |
+| PostgreSQL | 0.5 | 512MB | 데이터베이스 |
+| Redis | 0.25 | 256MB | 캐시 |
+| scheduler | 0.5 | 512MB | 자동 스크리닝 |
+| api | 0.5 | 512MB | REST API |
+| **합계** | **1.75** | **~2GB** | |
 
-> 4코어/24GB 중 약 2% 사용 → 다른 프로젝트 여유 충분
+> 4코어/24GB 중 약 8% 사용 → 다른 프로젝트 2-3개 여유
 
 ---
 
@@ -85,25 +87,33 @@ nano .env  # API 키 등 설정
 
 필수 설정:
 ```env
+# 한국투자증권 API
 APP_KEY="한국투자증권 API 키"
 APP_SECRET="한국투자증권 API 시크릿"
 ACCOUNT_NUMBER="계좌번호"
 SERVER="virtual"  # 또는 "prod"
 
+# 텔레그램 알림
 TELEGRAM_BOT_TOKEN="텔레그램 봇 토큰"
 TELEGRAM_CHAT_ID="채팅 ID"
+
+# 데이터베이스 (보안을 위해 반드시 변경!)
+DB_USER="hantu"
+DB_PASSWORD="your_strong_password_here"
+DB_NAME="hantu_quant"
 ```
 
 ### 3.3 Docker 빌드 및 실행
 ```bash
-# 스케줄러만 실행 (최소 구성)
-docker compose up -d scheduler
-
-# API도 함께 실행
-docker compose --profile with-api up -d
+# 전체 서비스 실행 (PostgreSQL + Redis + Scheduler + API)
+docker compose up -d
 
 # 로그 확인
 docker compose logs -f
+
+# 개별 서비스 로그
+docker compose logs -f scheduler
+docker compose logs -f postgres
 ```
 
 ---
@@ -173,11 +183,29 @@ df -h
 
 ### 헬스체크
 ```bash
-# API 헬스체크 (API 실행 시)
+# API 헬스체크
 curl http://localhost:8000/health
+
+# PostgreSQL 상태
+docker compose exec postgres pg_isready
+
+# Redis 상태
+docker compose exec redis redis-cli ping
 
 # 스케줄러 프로세스 확인
 docker compose exec scheduler pgrep -f integrated_scheduler
+```
+
+### 데이터베이스 접속
+```bash
+# PostgreSQL CLI 접속
+docker compose exec postgres psql -U hantu -d hantu_quant
+
+# 테이블 확인
+\dt
+
+# 종료
+\q
 ```
 
 ---
