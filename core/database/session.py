@@ -1,10 +1,11 @@
 """
 Database session management module.
+Supports both SQLite (local development) and PostgreSQL (production).
 """
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, Session
-from sqlalchemy.pool import QueuePool
+from sqlalchemy.pool import QueuePool, NullPool
 from sqlalchemy.exc import SQLAlchemyError
 from contextlib import contextmanager
 import os
@@ -17,38 +18,53 @@ from .models import Base
 logger = get_logger(__name__)
 
 class DatabaseSession:
-    """데이터베이스 세션 관리"""
-    
+    """데이터베이스 세션 관리 (SQLite/PostgreSQL 지원)"""
+
     _instance = None
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
-    
+
     def __init__(self):
         """초기화"""
         self._init_database()
         self.session = self._create_session()
-    
+
     def _init_database(self):
         """데이터베이스 초기화"""
         try:
-            # 데이터베이스 디렉토리 생성
-            db_dir = os.path.dirname(settings.DB_PATH)
-            Path(db_dir).mkdir(parents=True, exist_ok=True)
-            
-            # 데이터베이스 엔진 생성
-            self.engine = create_engine(
-                f'sqlite:///{settings.DB_PATH}',
-                connect_args={'check_same_thread': False}
-            )
-            
+            database_url = settings.DATABASE_URL
+
+            # SQLite인 경우 디렉토리 생성
+            if settings.DB_TYPE == 'sqlite':
+                db_dir = os.path.dirname(settings.DB_PATH)
+                Path(db_dir).mkdir(parents=True, exist_ok=True)
+
+                # SQLite 엔진 생성
+                self.engine = create_engine(
+                    database_url,
+                    connect_args={'check_same_thread': False}
+                )
+                logger.info(f"SQLite 데이터베이스 연결 완료 - {settings.DB_PATH}")
+            else:
+                # PostgreSQL 엔진 생성 (커넥션 풀 사용)
+                self.engine = create_engine(
+                    database_url,
+                    poolclass=QueuePool,
+                    pool_size=settings.DB_POOL_SIZE,
+                    max_overflow=settings.DB_MAX_OVERFLOW,
+                    pool_timeout=settings.DB_POOL_TIMEOUT,
+                    pool_recycle=settings.DB_POOL_RECYCLE,
+                    pool_pre_ping=True  # 연결 상태 확인
+                )
+                logger.info(f"PostgreSQL 데이터베이스 연결 완료")
+
             # 테이블 생성
             Base.metadata.create_all(self.engine)
-            logger.info(f"데이터베이스 연결 완료 - {settings.DB_PATH}")
-            
+
         except SQLAlchemyError as e:
             logger.error(f"데이터베이스 오류 발생: {str(e)}")
             raise
