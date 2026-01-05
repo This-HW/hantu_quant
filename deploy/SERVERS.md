@@ -34,7 +34,7 @@ ssh -i ~/.ssh/id_rsa ubuntu@134.185.104.141
 
 ---
 
-### hantu-db (예비 서버)
+### hantu-db (데이터베이스 서버)
 
 | 항목 | 값 |
 |------|-----|
@@ -44,12 +44,22 @@ ssh -i ~/.ssh/id_rsa ubuntu@134.185.104.141
 | **CPU** | 1 OCPU (2 vCPU) |
 | **RAM** | 1GB |
 | **OS** | Ubuntu 24.04 |
-| **용도** | 예비 / 백업 / 다른 프로젝트 |
+| **용도** | PostgreSQL 데이터베이스 |
 | **Free Tier** | ✅ |
 
 **SSH 접속:**
 ```bash
 ssh -i ~/.ssh/id_rsa ubuntu@168.107.3.196
+```
+
+**서비스:**
+- PostgreSQL 16: `168.107.3.196:5432`
+- Database: `hantu_quant`
+- User: `hantu`
+
+**연결 정보:**
+```
+DATABASE_URL=postgresql://hantu:<password>@168.107.3.196:5432/hantu_quant
 ```
 
 ---
@@ -62,10 +72,11 @@ ssh -i ~/.ssh/id_rsa ubuntu@168.107.3.196
 - **CIDR**: 10.0.0.0/24
 
 ### 방화벽 (Security List)
-| 포트 | 프로토콜 | 용도 |
-|------|----------|------|
-| 22 | TCP | SSH |
-| 8000 | TCP | API Server |
+| 포트 | 프로토콜 | 용도 | Source |
+|------|----------|------|--------|
+| 22 | TCP | SSH | 0.0.0.0/0 |
+| 8000 | TCP | API Server | 0.0.0.0/0 |
+| 5432 | TCP | PostgreSQL | 134.185.104.141/32 |
 
 ---
 
@@ -157,3 +168,4 @@ ARM 성공 시:
 |------|------|
 | 2026-01-05 | hantu-app, hantu-db 인스턴스 생성 |
 | 2026-01-05 | hantu-app에 hantu_quant 배포 |
+| 2026-01-06 | hantu-db에 PostgreSQL 16 설치 |
