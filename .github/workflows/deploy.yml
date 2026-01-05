@@ -74,9 +74,13 @@ jobs:
 
       - name: Send Telegram Notification
         if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          COMMIT_SHA: ${{ github.sha }}
+          JOB_STATUS: ${{ job.status }}
         run: |
-          STATUS="${{ job.status }}"
-          if [ "$STATUS" = "success" ]; then
+          if [ "$JOB_STATUS" = "success" ]; then
             EMOJI="✅"
             MESSAGE="배포 성공"
           else
@@ -84,12 +88,14 @@ jobs:
             MESSAGE="배포 실패"
           fi
 
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d parse_mode="Markdown" \
-            -d text="$EMOJI *한투 퀀트 배포 알림*
+          TEXT="$EMOJI *한투 퀀트 배포 알림*
 
-*상태*: $MESSAGE
-*브랜치*: main
-*커밋*: ${{ github.sha }}
-*시간*: $(date '+%Y-%m-%d %H:%M:%S')" || true
+          *상태*: $MESSAGE
+          *브랜치*: main
+          *커밋*: ${COMMIT_SHA:0:7}
+          *시간*: $(date '+%Y-%m-%d %H:%M:%S')"
+
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "parse_mode=Markdown" \
+            -d "text=${TEXT}" || true
