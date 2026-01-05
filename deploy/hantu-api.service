@@ -1,0 +1,35 @@
+[Unit]
+Description=Hantu Quant API Server
+Documentation=https://github.com/This-HW/hantu_quant
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/hantu_quant
+Environment="PATH=/opt/hantu_quant/venv/bin:/usr/local/bin:/usr/bin:/bin"
+
+# API 서버 실행 (uvicorn)
+ExecStart=/opt/hantu_quant/venv/bin/python -m uvicorn api-server.main:app --host 0.0.0.0 --port 8000
+
+# 재시작 정책
+Restart=always
+RestartSec=10
+
+# 타임아웃 설정
+TimeoutStartSec=30
+TimeoutStopSec=30
+
+# 리소스 제한 (1GB RAM 환경)
+MemoryMax=300M
+CPUQuota=50%
+
+# 로깅
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hantu-api
+
+[Install]
+WantedBy=multi-user.target
