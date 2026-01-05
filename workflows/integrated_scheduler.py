@@ -39,6 +39,15 @@ log_filename = f"logs/{datetime.now().strftime('%Y%m%d')}.log"
 setup_logging(log_filename, add_sensitive_filter=True)
 logger = get_logger(__name__)
 
+# DB 에러 로깅 설정 (PostgreSQL에 에러 저장)
+try:
+    from core.utils.db_error_handler import setup_db_error_logging
+    db_error_handler = setup_db_error_logging(service_name="scheduler")
+    if db_error_handler:
+        logger.info("DB 에러 로깅 활성화됨 (PostgreSQL)")
+except Exception as e:
+    logger.warning(f"DB 에러 로깅 설정 실패: {e}")
+
 # 스케줄러 시작 시 로그 기록
 logger.info("="*50)
 logger.info("🚀 통합 스케줄러 모듈 로딩 시작")
