@@ -34,6 +34,14 @@ from .db_error_handler import (
     get_recent_errors,
     mark_error_resolved,
 )
+from .system_monitor import (
+    SystemMonitor,
+    MonitoringThresholds,
+    MonitoringStatus,
+    AlertLevel,
+    get_system_monitor,
+    quick_health_check,
+)
 
 __all__ = [
     # Logging (P2-2)
@@ -63,4 +71,11 @@ __all__ = [
     'setup_db_error_logging',
     'get_recent_errors',
     'mark_error_resolved',
+    # System Monitoring
+    'SystemMonitor',
+    'MonitoringThresholds',
+    'MonitoringStatus',
+    'AlertLevel',
+    'get_system_monitor',
+    'quick_health_check',
 ]
