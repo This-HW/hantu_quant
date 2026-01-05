@@ -1,0 +1,35 @@
+[Unit]
+Description=Hantu Quant Scheduler
+Documentation=https://github.com/This-HW/hantu_quant
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/hantu_quant
+Environment="PATH=/opt/hantu_quant/venv/bin:/usr/local/bin:/usr/bin:/bin"
+
+# 스케줄러 실행
+ExecStart=/opt/hantu_quant/venv/bin/python -m hantu_scheduler
+
+# 재시작 정책
+Restart=always
+RestartSec=10
+
+# 타임아웃 설정
+TimeoutStartSec=30
+TimeoutStopSec=30
+
+# 리소스 제한 (1GB RAM 환경)
+MemoryMax=400M
+CPUQuota=50%
+
+# 로깅
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hantu-scheduler
+
+[Install]
+WantedBy=multi-user.target
