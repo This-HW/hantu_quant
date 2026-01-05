@@ -21,6 +21,8 @@ from .models import (
     WatchlistStock,
     DailySelection,
     TradeHistory,
+    # 에러 로깅
+    ErrorLog,
 )
 from .repository import (
     StockRepository,
@@ -46,6 +48,7 @@ __all__ = [
     'WatchlistStock',
     'DailySelection',
     'TradeHistory',
+    'ErrorLog',
     # Repositories
     'StockRepository',
     'WatchlistRepository',

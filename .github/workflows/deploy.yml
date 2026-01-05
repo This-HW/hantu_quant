@@ -1,0 +1,95 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Deploy target'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - api-server
+          - scheduler
+
+env:
+  DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+  DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+  DEPLOY_PATH: /opt/hantu_quant
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+            cd ${{ env.DEPLOY_PATH }}
+
+            # Pull latest changes
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Install dependencies
+            source venv/bin/activate
+            pip install -r requirements.txt --quiet
+
+            # Run database migrations (if needed)
+            python -c "from core.database.session import DatabaseSession; db = DatabaseSession(); print('DB schema updated')"
+
+            # Restart services
+            sudo systemctl restart hantu-api
+            sudo systemctl restart hantu-scheduler
+
+            # Verify services
+            sleep 5
+            systemctl is-active hantu-api || echo "API server not running"
+            systemctl is-active hantu-scheduler || echo "Scheduler not running"
+
+            echo "Deployment complete!"
+          ENDSSH
+
+      - name: Health Check
+        run: |
+          sleep 10
+          curl -f http://${{ secrets.DEPLOY_HOST }}:8000/health || echo "Health check failed"
+
+      - name: Send Telegram Notification
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          if [ "$STATUS" = "success" ]; then
+            EMOJI="✅"
+            MESSAGE="배포 성공"
+          else
+            EMOJI="❌"
+            MESSAGE="배포 실패"
+          fi
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="Markdown" \
+            -d text="$EMOJI *한투 퀀트 배포 알림*
+
+*상태*: $MESSAGE
+*브랜치*: main
+*커밋*: ${{ github.sha }}
+*시간*: $(date '+%Y-%m-%d %H:%M:%S')" || true
