@@ -115,10 +115,22 @@ LOG_LEVEL="INFO"
 
 ## 4. 방화벽 설정
 
+**중요**: REJECT 규칙 앞에 추가해야 합니다!
+
 ```bash
-sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 8000 -j ACCEPT
+# 현재 규칙 확인 (REJECT 위치 파악)
+sudo iptables -L INPUT -n --line-numbers
+
+# REJECT 규칙 앞 위치에 추가 (보통 5번)
+sudo iptables -I INPUT 5 -m state --state NEW -p tcp --dport 8000 -j ACCEPT
+
+# 저장
 sudo netfilter-persistent save
 ```
+
+**OCI Security List도 설정 필요**:
+- OCI Console → Networking → VCN → Security Lists
+- Ingress Rule 추가: TCP, Port 8000, Source 0.0.0.0/0
 
 ---
 
