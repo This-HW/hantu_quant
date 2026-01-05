@@ -4,6 +4,7 @@
 """
 
 import json
+import os
 import requests
 import logging
 from datetime import datetime
@@ -36,25 +37,37 @@ class TelegramNotifier:
         self._load_config()
     
     def _load_config(self):
-        """텔레그램 설정 로드"""
+        """텔레그램 설정 로드 (환경변수 우선, JSON 폴백)"""
+        # 1. 환경변수에서 먼저 시도
+        env_token = os.getenv('TELEGRAM_BOT_TOKEN', '')
+        env_chat_id = os.getenv('TELEGRAM_CHAT_ID', '')
+
+        if env_token and env_chat_id:
+            self._bot_token = env_token
+            self._chat_ids = [env_chat_id]
+            self._enabled = True
+            logger.info("텔레그램 알림 시스템 활성화됨 (환경변수)")
+            return
+
+        # 2. JSON 설정 파일에서 시도
         try:
             if not self._config_file.exists():
-                logger.warning(f"텔레그램 설정 파일 없음: {self._config_file}")
+                logger.warning(f"텔레그램 설정 없음: 환경변수(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID) 또는 {self._config_file} 필요")
                 return
-                
+
             with open(self._config_file, 'r', encoding='utf-8') as f:
                 config = json.load(f)
-            
+
             telegram_config = config.get('telegram', {})
             self._bot_token = telegram_config.get('bot_token', '')
             self._chat_ids = telegram_config.get('default_chat_ids', [])
-            
+
             if self._bot_token and self._chat_ids:
                 self._enabled = True
-                logger.info("텔레그램 알림 시스템 활성화됨")
+                logger.info("텔레그램 알림 시스템 활성화됨 (JSON 설정)")
             else:
                 logger.warning("텔레그램 설정이 불완전함 - 알림 비활성화")
-                
+
         except Exception as e:
             logger.error(f"텔레그램 설정 로드 실패: {e}")
             self._enabled = False
