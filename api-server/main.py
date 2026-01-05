@@ -482,7 +482,7 @@ def load_latest_watchlist_data() -> List[WatchlistItem]:
         return watchlist
 
     except Exception as e:
-        logger.error(f"최신 감시리스트 로드 오류: {e}")
+        logger.error(f"최신 감시리스트 로드 오류: {e}", exc_info=True)
         return []
 
 def load_latest_daily_selection_data() -> List[DailySelection]:
@@ -582,7 +582,7 @@ def load_latest_daily_selection_data() -> List[DailySelection]:
         return selections
 
     except Exception as e:
-        logger.error(f"최신 일일선정 로드 오류: {e}")
+        logger.error(f"최신 일일선정 로드 오류: {e}", exc_info=True)
         return []
 
 # 과거 함수 제거됨 - load_latest_watchlist_data()로 대체
@@ -708,7 +708,7 @@ def get_integrated_scheduler_status() -> Dict[str, Any]:
         }
         
     except Exception as e:
-        logger.error(f"스케줄러 상태 조회 오류: {e}")
+        logger.error(f"스케줄러 상태 조회 오류: {e}", exc_info=True)
         return {
             "running": False,
             "pid": None,
@@ -781,7 +781,7 @@ def _load_legacy_watchlist_code_placeholder():
         return watchlist
         
     except Exception as e:
-        logger.error(f"감시 리스트 로딩 실패: {e}")
+        logger.error(f"감시 리스트 로딩 실패: {e}", exc_info=True)
         return []
 
 def load_daily_selections_with_real_prices() -> List[DailySelection]:
@@ -853,7 +853,7 @@ def load_daily_selections_with_real_prices() -> List[DailySelection]:
         return selections
         
     except Exception as e:
-        logger.error(f"일일 선정 로딩 실패: {e}")
+        logger.error(f"일일 선정 로딩 실패: {e}", exc_info=True)
         return []
 
 def load_stock_list() -> List[Dict]:
@@ -1046,7 +1046,7 @@ async def get_system_errors(
             "errors": errors
         }
     except Exception as e:
-        logger.error(f"에러 로그 조회 실패: {e}")
+        logger.error(f"에러 로그 조회 실패: {e}", exc_info=True)
         return {
             "success": False,
             "count": 0,
@@ -1065,7 +1065,7 @@ async def get_monitoring_status(_: bool = Depends(verify_api_key)):
         from core.utils.system_monitor import quick_health_check
         return quick_health_check()
     except Exception as e:
-        logger.error(f"모니터링 상태 조회 실패: {e}")
+        logger.error(f"모니터링 상태 조회 실패: {e}", exc_info=True)
         return {
             "healthy": False,
             "error": str(e),
@@ -1088,7 +1088,7 @@ async def send_monitoring_report(_: bool = Depends(verify_api_key)):
             "message": "리포트 전송 완료" if success else "리포트 전송 실패"
         }
     except Exception as e:
-        logger.error(f"모니터링 리포트 전송 실패: {e}")
+        logger.error(f"모니터링 리포트 전송 실패: {e}", exc_info=True)
         return {
             "success": False,
             "message": str(e)
