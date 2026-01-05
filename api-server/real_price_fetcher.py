@@ -32,7 +32,7 @@ class RealPriceFetcher:
             self._cache_duration = 60  # 1분 캐시
             logger.info("실시간 가격 페처 초기화 완료")
         except Exception as e:
-            logger.error(f"실시간 가격 페처 초기화 실패: {e}")
+            logger.error(f"실시간 가격 페처 초기화 실패: {e}", exc_info=True)
             self.kis_client = None
     
     async def get_real_price(self, stock_code: str) -> Optional[Dict]:
@@ -60,7 +60,7 @@ class RealPriceFetcher:
             return price_data
             
         except Exception as e:
-            logger.error(f"실시간 가격 조회 실패 ({stock_code}): {e}")
+            logger.error(f"실시간 가격 조회 실패 ({stock_code}): {e}", exc_info=True)
             return None
     
     async def get_real_prices(self, stock_codes: List[str]) -> Dict[str, Dict]:
@@ -130,7 +130,7 @@ class RealPriceFetcher:
             }
             
         except Exception as e:
-            logger.error(f"API 가격 조회 오류 ({stock_code}): {e}")
+            logger.error(f"API 가격 조회 오류 ({stock_code}): {e}", exc_info=True)
             return None
     
     def _get_fallback_price(self, stock_code: str) -> Dict:

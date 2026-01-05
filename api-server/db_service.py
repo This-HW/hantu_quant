@@ -16,10 +16,12 @@ sys.path.insert(0, str(project_root))
 
 from core.config import settings
 from core.database.models import (
+    Base,
     Stock as StockModel,
     WatchlistStock,
     DailySelection as DailySelectionModel,
-    TradeHistory
+    TradeHistory,
+    ErrorLog  # 에러 로그 테이블
 )
 from core.utils import get_logger
 
@@ -63,9 +65,12 @@ class DBService:
                 )
 
             self._session_factory = sessionmaker(bind=self._engine)
-            logger.info(f"DBService initialized with {settings.DB_TYPE}")
+
+            # 테이블 생성 (없는 경우에만)
+            Base.metadata.create_all(self._engine)
+            logger.info(f"DBService initialized with {settings.DB_TYPE} (tables created/verified)")
         except Exception as e:
-            logger.error(f"DBService initialization failed: {e}")
+            logger.error(f"DBService initialization failed: {e}", exc_info=True)
             raise
 
     def get_session(self) -> Session:
@@ -115,7 +120,7 @@ class DBService:
             return watchlist
 
         except Exception as e:
-            logger.error(f"Error loading watchlist from DB: {e}")
+            logger.error(f"Error loading watchlist from DB: {e}", exc_info=True)
             return []
         finally:
             session.close()
@@ -188,7 +193,7 @@ class DBService:
             return selections
 
         except Exception as e:
-            logger.error(f"Error loading daily selections from DB: {e}")
+            logger.error(f"Error loading daily selections from DB: {e}", exc_info=True)
             return []
         finally:
             session.close()
@@ -219,7 +224,7 @@ class DBService:
             return stocks
 
         except Exception as e:
-            logger.error(f"Error loading stocks from DB: {e}")
+            logger.error(f"Error loading stocks from DB: {e}", exc_info=True)
             return []
         finally:
             session.close()
@@ -281,7 +286,7 @@ class DBService:
             return trades
 
         except Exception as e:
-            logger.error(f"Error loading trade history from DB: {e}")
+            logger.error(f"Error loading trade history from DB: {e}", exc_info=True)
             return []
         finally:
             session.close()
