@@ -1,0 +1,59 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv/
+ENV/
+.eggs/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs and data (마운트로 처리)
+logs/
+data/
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build
+build/
+dist/
+*.egg
+
+# Documentation
+docs/
+*.md
+!requirements.txt
+
+# Tests
+tests/
+test_*.py
+*_test.py
+.coverage
+htmlcov/
+
+# Deploy scripts (이미지에 불필요)
+deploy/
+
+# Misc
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp

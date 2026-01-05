@@ -23,15 +23,24 @@ METADATA_DIR = DATA_DIR / 'metadata'
 LOG_DIR = ROOT_DIR / 'logs'
 
 # 데이터베이스 설정
+# 환경변수 DATABASE_URL이 있으면 사용 (PostgreSQL 등)
+# 없으면 기본 SQLite 사용 (로컬 개발용)
 DB_FILENAME = 'stock_data.db'
 DB_PATH = DB_DIR / DB_FILENAME
-DATABASE_URL = f"sqlite:///{DB_PATH.absolute()}"
+SQLITE_URL = f"sqlite:///{DB_PATH.absolute()}"
+DATABASE_URL = os.getenv('DATABASE_URL', SQLITE_URL)
+
+# 데이터베이스 타입 감지
+DB_TYPE = 'postgresql' if DATABASE_URL.startswith('postgresql') else 'sqlite'
 
 # 데이터베이스 연결 설정
-DB_POOL_SIZE = 5
-DB_MAX_OVERFLOW = 10
-DB_POOL_TIMEOUT = 30
-DB_POOL_RECYCLE = 1800
+DB_POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '5'))
+DB_MAX_OVERFLOW = int(os.getenv('DB_MAX_OVERFLOW', '10'))
+DB_POOL_TIMEOUT = int(os.getenv('DB_POOL_TIMEOUT', '30'))
+DB_POOL_RECYCLE = int(os.getenv('DB_POOL_RECYCLE', '1800'))
+
+# Redis 설정 (캐시용)
+REDIS_URL = os.getenv('REDIS_URL', None)
 
 # API 설정
 APP_KEY = os.getenv('APP_KEY')
