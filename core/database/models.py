@@ -197,6 +197,33 @@ class DailySelection(Base):
         }
 
 
+class ErrorLog(Base):
+    """에러 로그 (중앙 집중식 에러 추적)"""
+    __tablename__ = 'error_logs'
+
+    id = Column(Integer, primary_key=True)
+    timestamp = Column(DateTime, nullable=False, default=datetime.now)
+    level = Column(String(20), nullable=False)  # ERROR, CRITICAL, WARNING
+    service = Column(String(50), nullable=False)  # api-server, scheduler, etc.
+    module = Column(String(100))  # 모듈/파일명
+    function = Column(String(100))  # 함수명
+    message = Column(Text, nullable=False)  # 에러 메시지
+    error_type = Column(String(100))  # Exception 타입
+    stack_trace = Column(Text)  # 스택 트레이스
+    context = Column(Text)  # JSON 형태의 추가 컨텍스트
+    resolved = Column(DateTime)  # 해결 시각
+    resolution_note = Column(Text)  # 해결 방법
+
+    __table_args__ = (
+        Index('ix_error_logs_timestamp', 'timestamp'),
+        Index('ix_error_logs_level', 'level'),
+        Index('ix_error_logs_service', 'service'),
+    )
+
+    def __repr__(self):
+        return f"<ErrorLog(id={self.id}, level={self.level}, service={self.service})>"
+
+
 class TradeHistory(Base):
     """거래 이력 (상세)"""
     __tablename__ = 'trade_history'
