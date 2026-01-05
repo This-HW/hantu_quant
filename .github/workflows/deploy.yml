@@ -1,7 +1,10 @@
 name: Deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -24,7 +27,8 @@ jobs:
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    # CI 성공 시에만 배포 (workflow_dispatch는 항상 허용)
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - uses: actions/checkout@v4
