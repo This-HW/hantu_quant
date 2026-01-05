@@ -593,6 +593,108 @@ class Phase1Workflow:
             logger.error(f"종목 정보 조회 오류 - {p_stock_code}: {e}")
             return None
     
+    def _load_top_stocks_from_results(self, p_top_count: int = 500) -> List[Dict]:
+        """스크리닝 결과 파일에서 상위 종목 로드
+
+        Args:
+            p_top_count: 가져올 상위 종목 수 (기본값: 500)
+
+        Returns:
+            상위 종목 리스트 (실패 시 빈 리스트)
+        """
+        try:
+            _v_screening_files = [
+                f for f in os.listdir("data/watchlist/")
+                if f.startswith("screening_results_")
+            ]
+            if not _v_screening_files:
+                logger.warning("스크리닝 결과 파일이 없습니다.")
+                return []
+
+            _v_latest_file = sorted(_v_screening_files)[-1]
+            _v_filepath = os.path.join("data/watchlist", _v_latest_file)
+
+            with open(_v_filepath, 'r', encoding='utf-8') as f:
+                _v_data = json.load(f)
+
+            _v_all_results = _v_data.get('results', [])
+            _v_top_stocks = sorted(
+                _v_all_results,
+                key=lambda x: x.get('overall_score', 0),
+                reverse=True
+            )[:p_top_count]
+
+            logger.info(f"상위 {len(_v_top_stocks)}개 종목을 감시 리스트 후보로 선정")
+            return _v_top_stocks
+
+        except Exception as e:
+            logger.error(f"스크리닝 결과 파일 로드 오류: {e}")
+            return []
+
+    def _process_single_stock_for_watchlist(
+        self,
+        p_stock: Dict,
+        p_existing_codes: set
+    ) -> tuple[bool, bool, Optional[str]]:
+        """단일 종목을 감시 리스트에 추가 처리
+
+        Args:
+            p_stock: 종목 정보 딕셔너리
+            p_existing_codes: 기존 감시 리스트 종목 코드 집합
+
+        Returns:
+            (성공 여부, 신규 추가 여부, 오류 메시지)
+            - 성공 여부: 처리 성공 (이미 존재하는 경우 포함)
+            - 신규 추가 여부: 실제로 새로 추가된 경우 True
+            - 오류 메시지: 실패 시 오류 내용, 성공 시 None
+        """
+        _v_stock_code = p_stock.get("stock_code", "unknown")
+        _v_stock_name = p_stock.get("stock_name", "")
+        _v_overall_score = p_stock.get("overall_score", 0.0)
+        _v_sector = p_stock.get("sector", "기타")
+
+        # 이미 감시 리스트에 있는지 확인
+        if _v_stock_code in p_existing_codes:
+            logger.debug(f"이미 감시 리스트에 존재: {_v_stock_code}")
+            return (True, False, None)  # 성공, 신규 아님
+
+        # 종목 정보 조회
+        _v_stock_info = self._get_stock_info(_v_stock_code)
+        if not _v_stock_info:
+            return (False, False, "종목 정보 조회 실패")
+
+        # 목표가와 손절가 계산 (현재가 기준)
+        _v_current_price = _v_stock_info.get("current_price", 50000)
+        _v_target_price = int(_v_current_price * 1.15)  # 15% 상승 목표
+        _v_stop_loss = int(_v_current_price * 0.92)     # 8% 하락 손절
+
+        # 추가 사유 결정
+        _v_reason = (
+            "스크리닝 통과" if p_stock.get('overall_passed', False)
+            else "스크리닝 상위 종목"
+        )
+
+        # 감시 리스트에 추가
+        _v_success = self.watchlist_manager.add_stock_legacy(
+            p_stock_code=_v_stock_code,
+            p_stock_name=_v_stock_name,
+            p_added_reason=_v_reason,
+            p_target_price=_v_target_price,
+            p_stop_loss=_v_stop_loss,
+            p_sector=_v_sector,
+            p_screening_score=_v_overall_score,
+            p_notes=f"스크리닝 점수: {_v_overall_score:.1f}점"
+        )
+
+        if _v_success:
+            logger.info(
+                f"감시 리스트 추가 성공: {_v_stock_code} ({_v_stock_name}) "
+                f"- {_v_overall_score:.1f}점 ({_v_sector})"
+            )
+            return (True, True, None)  # 성공, 신규 추가
+        else:
+            return (False, False, "감시 리스트 추가 실패")
+
     def _auto_add_to_watchlist(self, p_passed_stocks: List[Dict]) -> int:
         """스크리닝 통과 종목을 감시 리스트에 자동 추가 (부분 실패 허용)
 
@@ -604,111 +706,81 @@ class Phase1Workflow:
         """
         _v_added_count = 0
 
-        try:
-            # 통과 종목이 없으면 상위 점수 종목들을 선택
+        # 통과 종목이 없으면 상위 점수 종목들을 선택
+        if not p_passed_stocks:
+            logger.info("통과 종목이 없으므로 상위 점수 종목들을 감시 리스트에 추가합니다.")
+            p_passed_stocks = self._load_top_stocks_from_results(p_top_count=500)
             if not p_passed_stocks:
-                logger.info("통과 종목이 없으므로 상위 점수 종목들을 감시 리스트에 추가합니다.")
+                return 0
 
-                # 최신 스크리닝 결과에서 상위 종목들 가져오기
-                _v_screening_files = [f for f in os.listdir("data/watchlist/") if f.startswith("screening_results_")]
-                if not _v_screening_files:
-                    logger.warning("스크리닝 결과 파일이 없습니다.")
-                    return 0
+        logger.info(f"감시 리스트 자동 추가 시작: {len(p_passed_stocks)}개 종목")
 
-                _v_latest_file = sorted(_v_screening_files)[-1]
-                _v_filepath = os.path.join("data/watchlist", _v_latest_file)
+        # 부분 실패 허용 결과 추적
+        _v_partial_result = PartialResult[str](min_success_rate=0.9)
 
-                with open(_v_filepath, 'r', encoding='utf-8') as f:
-                    _v_data = json.load(f)
+        # 기존 감시 리스트 조회 (루프 밖에서 한 번만)
+        _v_existing_stocks = self.watchlist_manager.list_stocks(p_status="active")
+        _v_existing_codes = {s.stock_code for s in _v_existing_stocks}
 
-                _v_all_results = _v_data.get('results', [])
+        # 각 종목 처리
+        for stock in p_passed_stocks:
+            _v_stock_code = stock.get("stock_code", "unknown")
 
-                # 상위 500개 종목 선택 (점수 순)
-                _v_top_stocks = sorted(_v_all_results, key=lambda x: x.get('overall_score', 0), reverse=True)[:500]
+            try:
+                _v_success, _v_is_new, _v_error = self._process_single_stock_for_watchlist(
+                    stock, _v_existing_codes
+                )
 
-                logger.info(f"상위 {len(_v_top_stocks)}개 종목을 감시 리스트 후보로 선정")
-                p_passed_stocks = _v_top_stocks
-
-            logger.info(f"감시 리스트 자동 추가 시작: {len(p_passed_stocks)}개 종목")
-
-            # 부분 실패 허용 결과 추적
-            _v_partial_result = PartialResult[str](min_success_rate=0.9)
-
-            # 기존 감시 리스트 조회 (루프 밖에서 한 번만)
-            _v_existing_stocks = self.watchlist_manager.list_stocks(p_status="active")
-            _v_existing_codes = {s.stock_code for s in _v_existing_stocks}
-
-            for stock in p_passed_stocks:
-                _v_stock_code = stock.get("stock_code", "unknown")
-
-                try:
-                    _v_stock_name = stock["stock_name"]
-                    _v_overall_score = stock["overall_score"]
-                    _v_sector = stock.get("sector", "기타")
-
-                    # 이미 감시 리스트에 있는지 확인
-                    if _v_stock_code in _v_existing_codes:
-                        logger.debug(f"이미 감시 리스트에 존재: {_v_stock_code}")
-                        _v_partial_result.add_success(_v_stock_code)  # 이미 존재하는 것도 성공으로 카운트
-                        continue
-
-                    # 종목 정보 조회
-                    _v_stock_info = self._get_stock_info(_v_stock_code)
-                    if not _v_stock_info:
-                        _v_partial_result.add_failure(_v_stock_code, "종목 정보 조회 실패")
-                        continue
-
-                    # 목표가와 손절가 계산 (현재가 기준)
-                    _v_current_price = _v_stock_info.get("current_price", 50000)
-                    _v_target_price = int(_v_current_price * 1.15)  # 15% 상승 목표
-                    _v_stop_loss = int(_v_current_price * 0.92)     # 8% 하락 손절
-
-                    # 감시 리스트에 추가
-                    _v_success = self.watchlist_manager.add_stock_legacy(
-                        p_stock_code=_v_stock_code,
-                        p_stock_name=_v_stock_name,
-                        p_added_reason="스크리닝 상위 종목" if not stock.get('overall_passed', False) else "스크리닝 통과",
-                        p_target_price=_v_target_price,
-                        p_stop_loss=_v_stop_loss,
-                        p_sector=_v_sector,
-                        p_screening_score=_v_overall_score,
-                        p_notes=f"스크리닝 점수: {_v_overall_score:.1f}점"
-                    )
-
-                    if _v_success:
+                if _v_success:
+                    _v_partial_result.add_success(_v_stock_code)
+                    if _v_is_new:
                         _v_added_count += 1
-                        _v_partial_result.add_success(_v_stock_code)
-                        logger.info(f"감시 리스트 추가 성공: {_v_stock_code} ({_v_stock_name}) - {_v_overall_score:.1f}점 ({_v_sector})")
-                    else:
-                        _v_partial_result.add_failure(_v_stock_code, "감시 리스트 추가 실패")
+                else:
+                    _v_partial_result.add_failure(_v_stock_code, _v_error or "알 수 없는 오류")
 
-                except Exception as e:
-                    _v_partial_result.add_failure(_v_stock_code, str(e))
+            except Exception as e:
+                _v_partial_result.add_failure(_v_stock_code, str(e))
 
-            # 부분 실패 결과 로깅
-            _v_partial_result.log_summary("감시 리스트 자동 추가")
+        # 결과 로깅 및 저장
+        self._finalize_watchlist_results(_v_partial_result, len(p_passed_stocks), _v_added_count)
 
-            # 실패 항목 저장
-            if _v_partial_result.failed:
-                save_failed_items(
-                    _v_partial_result.failed,
-                    "phase1_watchlist_add",
-                    "data/logs/failures"
-                )
+        return _v_added_count
 
-            # 성공률 체크 및 경고
-            if not _v_partial_result.is_acceptable:
-                logger.warning(
-                    f"⚠️ 감시 리스트 추가 성공률({_v_partial_result.success_rate:.1%})이 "
-                    f"최소 기준({_v_partial_result.min_success_rate:.0%}) 미만입니다!"
-                )
+    def _finalize_watchlist_results(
+        self,
+        p_partial_result: PartialResult,
+        p_total_count: int,
+        p_added_count: int
+    ) -> None:
+        """감시 리스트 추가 결과 로깅 및 저장
 
-            logger.info(f"감시 리스트 자동 추가 완료: {_v_added_count}/{len(p_passed_stocks)}개 종목 (성공률: {_v_partial_result.success_rate:.1%})")
-            return _v_added_count
+        Args:
+            p_partial_result: 부분 결과 객체
+            p_total_count: 처리 대상 총 종목 수
+            p_added_count: 실제 추가된 종목 수
+        """
+        # 부분 실패 결과 로깅
+        p_partial_result.log_summary("감시 리스트 자동 추가")
 
-        except Exception as e:
-            logger.error(f"감시 리스트 자동 추가 오류: {e}")
-            return _v_added_count
+        # 실패 항목 저장
+        if p_partial_result.failed:
+            save_failed_items(
+                p_partial_result.failed,
+                "phase1_watchlist_add",
+                "data/logs/failures"
+            )
+
+        # 성공률 체크 및 경고
+        if not p_partial_result.is_acceptable:
+            logger.warning(
+                f"⚠️ 감시 리스트 추가 성공률({p_partial_result.success_rate:.1%})이 "
+                f"최소 기준({p_partial_result.min_success_rate:.0%}) 미만입니다!"
+            )
+
+        logger.info(
+            f"감시 리스트 자동 추가 완료: {p_added_count}/{p_total_count}개 종목 "
+            f"(성공률: {p_partial_result.success_rate:.1%})"
+        )
     
     def _send_screening_complete_notification(self, passed_stocks: List[Dict], all_results: List[Dict]) -> None:
         """스크리닝 완료 텔레그램 알림 전송"""
