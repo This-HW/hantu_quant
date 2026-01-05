@@ -28,6 +28,12 @@ from .health_check import (
     perform_health_check,
     PSUTIL_AVAILABLE,
 )
+from .db_error_handler import (
+    PostgreSQLErrorHandler,
+    setup_db_error_logging,
+    get_recent_errors,
+    mark_error_resolved,
+)
 
 __all__ = [
     # Logging (P2-2)
@@ -52,4 +58,9 @@ __all__ = [
     'determine_health_status',
     'perform_health_check',
     'PSUTIL_AVAILABLE',
+    # DB Error Logging
+    'PostgreSQLErrorHandler',
+    'setup_db_error_logging',
+    'get_recent_errors',
+    'mark_error_resolved',
 ]

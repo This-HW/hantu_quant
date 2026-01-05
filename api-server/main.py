@@ -61,6 +61,15 @@ app.add_middleware(
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# DB 에러 로깅 설정 (PostgreSQL에 에러 저장)
+try:
+    from core.utils.db_error_handler import setup_db_error_logging, get_recent_errors
+    db_error_handler = setup_db_error_logging(service_name="api-server")
+    if db_error_handler:
+        logger.info("DB 에러 로깅 활성화됨 (PostgreSQL)")
+except Exception as e:
+    logger.warning(f"DB 에러 로깅 설정 실패: {e}")
+
 # ========== 보안: API 키 인증 설정 ==========
 # 환경변수에서 API 키 로드 (설정 안된 경우 기본값 사용 - 프로덕션에서는 반드시 설정 필요)
 API_KEY = os.getenv('API_SERVER_KEY', '')
@@ -432,9 +441,10 @@ def load_latest_watchlist_data() -> List[WatchlistItem]:
                 logger.info(f"Loaded {len(watchlist)} watchlist items from DB")
                 return watchlist
         except Exception as e:
-            logger.warning(f"DB watchlist load failed, falling back to JSON: {e}")
+            logger.error(f"DB watchlist load failed: {e}", exc_info=True)
 
-    # 2. Fallback to JSON file
+    # 2. Fallback to JSON file (WARNING: This should not happen in production)
+    logger.error("Using JSON fallback for watchlist - DB data not available")
     try:
         project_root = Path(__file__).parent.parent
         watchlist_path = project_root / "data" / "watchlist" / "watchlist.json"
@@ -517,9 +527,10 @@ def load_latest_daily_selection_data() -> List[DailySelection]:
                 logger.info(f"Loaded {len(selections)} daily selections from DB")
                 return selections
         except Exception as e:
-            logger.warning(f"DB daily selection load failed, falling back to JSON: {e}")
+            logger.error(f"DB daily selection load failed: {e}", exc_info=True)
 
-    # 2. Fallback to JSON file
+    # 2. Fallback to JSON file (WARNING: This should not happen in production)
+    logger.error("Using JSON fallback for daily selections - DB data not available")
     try:
         project_root = Path(__file__).parent.parent
         daily_dir = project_root / "data" / "daily_selection"
@@ -1008,6 +1019,40 @@ async def health_check():
         },
         timestamp=datetime.now().isoformat()
     )
+
+
+@app.get("/api/system/errors")
+async def get_system_errors(
+    service: Optional[str] = None,
+    level: Optional[str] = None,
+    limit: int = 50,
+    _: bool = Depends(verify_api_key)
+):
+    """시스템 에러 로그 조회 (API 키 인증 필요)
+
+    Args:
+        service: 서비스 필터 (api-server, scheduler 등)
+        level: 레벨 필터 (ERROR, CRITICAL 등)
+        limit: 최대 조회 수
+
+    Returns:
+        최근 에러 로그 목록
+    """
+    try:
+        errors = get_recent_errors(service=service, level=level, limit=limit)
+        return {
+            "success": True,
+            "count": len(errors),
+            "errors": errors
+        }
+    except Exception as e:
+        logger.error(f"에러 로그 조회 실패: {e}")
+        return {
+            "success": False,
+            "count": 0,
+            "errors": [],
+            "message": str(e)
+        }
 
 
 @app.get("/api/system/status", response_model=SystemStatus)
