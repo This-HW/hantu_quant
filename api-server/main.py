@@ -1055,6 +1055,46 @@ async def get_system_errors(
         }
 
 
+@app.get("/api/system/monitoring")
+async def get_monitoring_status(_: bool = Depends(verify_api_key)):
+    """시스템 모니터링 상태 조회 (API 키 인증 필요)
+
+    실시간 시스템 리소스 및 서비스 상태를 확인합니다.
+    """
+    try:
+        from core.utils.system_monitor import quick_health_check
+        return quick_health_check()
+    except Exception as e:
+        logger.error(f"모니터링 상태 조회 실패: {e}")
+        return {
+            "healthy": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+
+@app.post("/api/system/monitoring/report")
+async def send_monitoring_report(_: bool = Depends(verify_api_key)):
+    """모니터링 리포트 전송 (Telegram)
+
+    현재 시스템 상태 리포트를 Telegram으로 전송합니다.
+    """
+    try:
+        from core.utils.system_monitor import get_system_monitor
+        monitor = get_system_monitor()
+        success = monitor.send_status_report()
+        return {
+            "success": success,
+            "message": "리포트 전송 완료" if success else "리포트 전송 실패"
+        }
+    except Exception as e:
+        logger.error(f"모니터링 리포트 전송 실패: {e}")
+        return {
+            "success": False,
+            "message": str(e)
+        }
+
+
 @app.get("/api/system/status", response_model=SystemStatus)
 async def get_system_status():
     """실시간 시스템 상태"""
