@@ -203,15 +203,25 @@ async def check_kis_api_health() -> Dict[str, Any]:
 
 
 async def check_database_health() -> Dict[str, Any]:
-    """데이터베이스 연결 상태 확인 (파일 기반)"""
+    """데이터베이스 연결 상태 확인 (PostgreSQL/SQLite)"""
     try:
-        project_root = Path(__file__).parent.parent
-        data_dir = project_root / "data"
+        from core.config import settings
 
-        # 데이터 디렉토리 존재 확인
-        if data_dir.exists():
-            return {"healthy": True, "message": "Data directory accessible"}
-        return {"healthy": False, "message": "Data directory not found"}
+        if settings.DB_TYPE == 'postgresql':
+            # PostgreSQL 연결 확인
+            from sqlalchemy import create_engine, text
+            engine = create_engine(settings.DATABASE_URL)
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            engine.dispose()
+            return {"healthy": True, "message": f"PostgreSQL connected"}
+        else:
+            # SQLite - 파일 존재 확인
+            project_root = Path(__file__).parent.parent
+            data_dir = project_root / "data"
+            if data_dir.exists():
+                return {"healthy": True, "message": "SQLite data directory accessible"}
+            return {"healthy": False, "message": "Data directory not found"}
     except Exception as e:
         return {"healthy": False, "message": str(e)}
 
