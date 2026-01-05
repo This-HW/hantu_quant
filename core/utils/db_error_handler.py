@@ -66,7 +66,8 @@ class PostgreSQLErrorHandler(logging.Handler):
         service_name: str = "hantu_quant",
         level: int = logging.ERROR,
         batch_size: int = 10,
-        flush_interval: float = 5.0
+        flush_interval: float = 5.0,
+        send_telegram: bool = True
     ):
         """
         초기화
@@ -76,15 +77,21 @@ class PostgreSQLErrorHandler(logging.Handler):
             level: 최소 로그 레벨 (기본 ERROR)
             batch_size: 배치 저장 크기
             flush_interval: 자동 플러시 간격 (초)
+            send_telegram: Telegram 알림 전송 여부
         """
         super().__init__(level)
         self.service_name = service_name
         self.batch_size = batch_size
         self.flush_interval = flush_interval
+        self.send_telegram = send_telegram
 
         # 비동기 처리를 위한 큐
         self._queue: Queue = Queue()
         self._shutdown = False
+
+        # Telegram 알림 쿨다운 (같은 에러 반복 방지)
+        self._last_telegram_errors: Dict[str, datetime] = {}
+        self._telegram_cooldown_seconds = 300  # 5분
 
         # 백그라운드 스레드 시작
         self._worker = threading.Thread(target=self._process_queue, daemon=True)
@@ -154,10 +161,16 @@ class PostgreSQLErrorHandler(logging.Handler):
             self._flush_batch(batch)
 
     def _flush_batch(self, batch: list):
-        """배치를 데이터베이스에 저장"""
+        """배치를 데이터베이스에 저장하고 Telegram 알림 전송"""
         if not batch:
             return
 
+        # Telegram 알림 전송
+        if self.send_telegram:
+            for entry in batch:
+                self._send_telegram_alert(entry)
+
+        # DB 저장
         _, session_factory = _get_db_connection()
         if session_factory is None:
             return
@@ -188,6 +201,69 @@ class PostgreSQLErrorHandler(logging.Handler):
                 session.close()
         except Exception:
             pass  # DB 저장 실패는 무시 (로깅 시스템 자체가 실패하면 안됨)
+
+    def _send_telegram_alert(self, entry: Dict[str, Any]):
+        """에러 발생 시 Telegram 알림 전송"""
+        try:
+            # 쿨다운 체크 (같은 에러 반복 방지)
+            error_key = f"{entry['service']}:{entry['module']}:{entry['message'][:50]}"
+            now = datetime.now()
+
+            if error_key in self._last_telegram_errors:
+                last_sent = self._last_telegram_errors[error_key]
+                if (now - last_sent).total_seconds() < self._telegram_cooldown_seconds:
+                    return  # 쿨다운 중
+
+            # Telegram 알림 전송
+            from core.utils.telegram_notifier import get_telegram_notifier
+
+            notifier = get_telegram_notifier()
+            if not notifier.is_enabled():
+                return
+
+            # 메시지 구성
+            timestamp = entry['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+            level = entry['level']
+            service = entry['service']
+            module = entry['module']
+            function = entry['function'] or 'unknown'
+            message = entry['message'][:200]  # 메시지 길이 제한
+            error_type = entry['error_type'] or 'Unknown'
+
+            # 스택 트레이스 (축약)
+            stack_trace = entry.get('stack_trace', '')
+            if stack_trace:
+                # 마지막 3줄만 표시
+                stack_lines = stack_trace.strip().split('\n')
+                stack_summary = '\n'.join(stack_lines[-3:])[:300]
+            else:
+                stack_summary = 'N/A'
+
+            alert_message = f"""🚨 *에러 발생*
+
+⏰ 시간: `{timestamp}`
+🏷️ 서비스: `{service}`
+📍 위치: `{module}.{function}`
+❌ 타입: `{error_type}`
+
+📝 *메시지*:
+`{message}`
+
+📋 *스택 트레이스*:
+```
+{stack_summary}
+```"""
+
+            # 우선순위 결정
+            priority = "critical" if level == "CRITICAL" else "emergency"
+
+            notifier.send_message(alert_message, priority)
+
+            # 쿨다운 기록
+            self._last_telegram_errors[error_key] = now
+
+        except Exception:
+            pass  # Telegram 전송 실패는 무시
 
     def close(self):
         """핸들러 종료"""
