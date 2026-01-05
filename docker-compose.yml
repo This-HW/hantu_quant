@@ -1,0 +1,171 @@
+version: '3.8'
+
+services:
+  # ===========================================
+  # PostgreSQL 데이터베이스
+  # ===========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: hantu-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-hantu}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-hantu_secret}
+      POSTGRES_DB: ${DB_NAME:-hantu_quant}
+      TZ: Asia/Seoul
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./deploy/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-hantu} -d ${DB_NAME:-hantu_quant}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # Redis 캐시 (API 응답 캐싱, 세션 등)
+  # ===========================================
+  redis:
+    image: redis:7-alpine
+    container_name: hantu-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.05'
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # 통합 스케줄러 (핵심 서비스)
+  # ===========================================
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hantu-scheduler
+    restart: unless-stopped
+    command: ["python", "-m", "workflows.integrated_scheduler", "start"]
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./.env:/app/.env:ro
+    environment:
+      - TZ=Asia/Seoul
+      - DATABASE_URL=postgresql://${DB_USER:-hantu}:${DB_PASSWORD:-hantu_secret}@postgres:5432/${DB_NAME:-hantu_quant}
+      - REDIS_URL=redis://redis:6379/0
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "integrated_scheduler"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================
+  # API 서버
+  # ===========================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hantu-api
+    restart: unless-stopped
+    command: ["python", "api-server/main.py"]
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./.env:/app/.env:ro
+    environment:
+      - TZ=Asia/Seoul
+      - DATABASE_URL=postgresql://${DB_USER:-hantu}:${DB_PASSWORD:-hantu_secret}@postgres:5432/${DB_NAME:-hantu_quant}
+      - REDIS_URL=redis://redis:6379/0
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ===========================================
+# 볼륨 정의 (영구 데이터)
+# ===========================================
+volumes:
+  postgres-data:
+    name: hantu-postgres-data
+  redis-data:
+    name: hantu-redis-data
+
+# ===========================================
+# 네트워크 정의
+# ===========================================
+networks:
+  default:
+    name: hantu-network
