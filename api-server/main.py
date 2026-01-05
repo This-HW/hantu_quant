@@ -31,6 +31,13 @@ sys.path.append(str(Path(__file__).parent.parent))
 from core.config.api_config import APIConfig
 from core.api.kis_api import KISAPI
 
+# Database service for PostgreSQL queries
+try:
+    from db_service import db_service
+    DB_SERVICE_AVAILABLE = True
+except ImportError:
+    DB_SERVICE_AVAILABLE = False
+
 # 실제 투자 환경 강제 설정
 import os
 os.environ['SERVER'] = 'prod'
@@ -391,9 +398,44 @@ async def execute_real_daily_selection() -> Dict[str, Any]:
         return {"success": False, "message": f"종목선정 실행 오류: {str(e)}"}
 
 def load_latest_watchlist_data() -> List[WatchlistItem]:
-    """최신 감시리스트 데이터 로드"""
+    """최신 감시리스트 데이터 로드 (DB 우선, JSON 폴백)"""
+
+    # 1. Try database first
+    if DB_SERVICE_AVAILABLE:
+        try:
+            db_data = db_service.get_watchlist(limit=20)
+            if db_data:
+                watchlist = []
+                for i, item_data in enumerate(db_data):
+                    stock = Stock(
+                        code=item_data['stock_code'],
+                        name=item_data['stock_name'],
+                        market=item_data.get('market', 'KOSPI'),
+                        sector=item_data.get('sector', '기타'),
+                        price=0,  # Will be updated with real price
+                        change=0,
+                        changePercent=0.0,
+                        volume=0,
+                        marketCap=0
+                    )
+
+                    item = WatchlistItem(
+                        id=str(i + 1),
+                        stock=stock,
+                        addedAt=(item_data.get('added_date') or datetime.now().strftime("%Y-%m-%d")) + "T09:00:00",
+                        targetPrice=0,
+                        reason="DB 스크리닝 통과",
+                        score=item_data.get('total_score', 50.0)
+                    )
+                    watchlist.append(item)
+
+                logger.info(f"Loaded {len(watchlist)} watchlist items from DB")
+                return watchlist
+        except Exception as e:
+            logger.warning(f"DB watchlist load failed, falling back to JSON: {e}")
+
+    # 2. Fallback to JSON file
     try:
-        # 프로젝트 루트 경로 기준으로 수정
         project_root = Path(__file__).parent.parent
         watchlist_path = project_root / "data" / "watchlist" / "watchlist.json"
 
@@ -401,11 +443,10 @@ def load_latest_watchlist_data() -> List[WatchlistItem]:
             data = json.load(f)
 
         watchlist = []
-        for i, stock_data in enumerate(data["data"]["stocks"][:20]):  # 상위 20개
+        for i, stock_data in enumerate(data["data"]["stocks"][:20]):
             stock_code = stock_data["stock_code"]
             stock_name = stock_data["stock_name"]
 
-            # 실제 데이터 사용 (스크리닝 결과)
             stock = Stock(
                 code=stock_code,
                 name=stock_name,
@@ -426,7 +467,6 @@ def load_latest_watchlist_data() -> List[WatchlistItem]:
                 reason=stock_data.get("added_reason", "스크리닝 통과"),
                 score=stock_data.get("screening_score", 50.0)
             )
-
             watchlist.append(item)
 
         return watchlist
@@ -436,11 +476,52 @@ def load_latest_watchlist_data() -> List[WatchlistItem]:
         return []
 
 def load_latest_daily_selection_data() -> List[DailySelection]:
-    """최신 일일선정 데이터 로드"""
+    """최신 일일선정 데이터 로드 (DB 우선, JSON 폴백)"""
+
+    # 1. Try database first
+    if DB_SERVICE_AVAILABLE:
+        try:
+            db_data = db_service.get_daily_selections(limit=10)
+            if db_data:
+                selections = []
+                for i, item_data in enumerate(db_data):
+                    stock = Stock(
+                        code=item_data['stock_code'],
+                        name=item_data['stock_name'],
+                        market=item_data.get('market', 'KOSPI'),
+                        sector=item_data.get('sector', '기타'),
+                        price=0,
+                        change=0,
+                        changePercent=0.0,
+                        volume=0,
+                        marketCap=0
+                    )
+
+                    risk_score = item_data.get('risk_score', 50) or 50
+                    risk_level = "LOW" if risk_score < 30 else "MEDIUM" if risk_score < 70 else "HIGH"
+
+                    selection = DailySelection(
+                        id=str(i + 1),
+                        stock=stock,
+                        selectedAt=(item_data.get('selection_date') or datetime.now().strftime("%Y-%m-%d")) + "T09:00:00",
+                        attractivenessScore=item_data.get('technical_score', 50) or 50,
+                        technicalScore=item_data.get('technical_score', 50) or 50,
+                        momentumScore=item_data.get('momentum_score', 50) or 50,
+                        reasons=[item_data.get('signal', 'buy'), "DB 분석"],
+                        expectedReturn=10.0,
+                        confidence=item_data.get('signal_strength', 0.7) or 0.7,
+                        riskLevel=risk_level
+                    )
+                    selections.append(selection)
+
+                logger.info(f"Loaded {len(selections)} daily selections from DB")
+                return selections
+        except Exception as e:
+            logger.warning(f"DB daily selection load failed, falling back to JSON: {e}")
+
+    # 2. Fallback to JSON file
     try:
         project_root = Path(__file__).parent.parent
-
-        # 최신 일일선정 파일 찾기
         daily_dir = project_root / "data" / "daily_selection"
         pattern = "daily_selection_*.json"
         daily_files = list(daily_dir.glob(pattern))
@@ -448,14 +529,13 @@ def load_latest_daily_selection_data() -> List[DailySelection]:
         if not daily_files:
             return []
 
-        # 가장 최신 파일 선택
         latest_file = max(daily_files, key=lambda x: x.stat().st_mtime)
 
         with open(latest_file, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         selections = []
-        for i, stock_data in enumerate(data.get("data", {}).get("selected_stocks", [])[:10]):  # 상위 10개
+        for i, stock_data in enumerate(data.get("data", {}).get("selected_stocks", [])[:10]):
             stock_code = stock_data["stock_code"]
             stock_name = stock_data["stock_name"]
 
@@ -471,7 +551,6 @@ def load_latest_daily_selection_data() -> List[DailySelection]:
                 marketCap=stock_data.get("market_cap", 500000000)
             )
 
-            # 리스크 레벨 계산
             risk_score = stock_data.get("risk_score", 50)
             risk_level = "LOW" if risk_score < 30 else "MEDIUM" if risk_score < 70 else "HIGH"
 
@@ -487,7 +566,6 @@ def load_latest_daily_selection_data() -> List[DailySelection]:
                 confidence=stock_data.get("confidence_score", 0.7),
                 riskLevel=risk_level
             )
-
             selections.append(selection)
 
         return selections
