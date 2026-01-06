@@ -149,7 +149,7 @@ class IntegratedScheduler:
             return True
             
         except Exception as e:
-            logger.error(f"텔레그램 알람 전송 오류: {e}")
+            logger.error(f"텔레그램 알람 전송 오류: {e}", exc_info=True)
             return False
     
     def start_scheduler(self):
@@ -311,7 +311,7 @@ class IntegratedScheduler:
             else:
                 logger.debug("텔레그램 알림이 비활성화됨")
         except Exception as e:
-            logger.error(f"스케줄러 시작 알림 전송 오류: {e}")
+            logger.error(f"스케줄러 시작 알림 전송 오류: {e}", exc_info=True)
     
     def stop_scheduler(self, reason: str = "사용자 요청"):
         """통합 스케줄러 중지"""
@@ -333,7 +333,7 @@ class IntegratedScheduler:
             else:
                 logger.debug("텔레그램 알림이 비활성화됨")
         except Exception as e:
-            logger.error(f"스케줄러 종료 알림 전송 오류: {e}")
+            logger.error(f"스케줄러 종료 알림 전송 오류: {e}", exc_info=True)
         
         # 스케줄러 중지
         self._v_scheduler_running = False
@@ -441,7 +441,7 @@ class IntegratedScheduler:
                 time.sleep(60)  # 1분마다 체크
                 
             except Exception as e:
-                logger.error(f"❌ 스케줄러 루프 오류: {e}")
+                logger.error(f"❌ 스케줄러 루프 오류: {e}", exc_info=True)
                 logger.error(f"📋 상세 오류:\n{traceback.format_exc()}")
                 time.sleep(60)
                 
@@ -483,7 +483,7 @@ class IntegratedScheduler:
                 self._send_telegram_alert(_v_error_message, "emergency")
                 
         except Exception as e:
-            logger.error(f"일간 스크리닝 오류: {e}")
+            logger.error(f"일간 스크리닝 오류: {e}", exc_info=True)
             print(f"❌ 일간 스크리닝 오류: {e}")
             self._v_phase1_completed = False
     
@@ -520,7 +520,7 @@ class IntegratedScheduler:
                 print("❌ 일일 업데이트 실패")
                 
         except Exception as e:
-            logger.error(f"일일 업데이트 오류: {e}")
+            logger.error(f"일일 업데이트 오류: {e}", exc_info=True)
             print(f"❌ 일일 업데이트 오류: {e}")
     
     def _run_market_close_tasks(self):
@@ -566,7 +566,7 @@ class IntegratedScheduler:
             print("✅ 시장 마감 후 정리 완료")
             
         except Exception as e:
-            logger.error(f"시장 마감 후 정리 오류: {e}")
+            logger.error(f"시장 마감 후 정리 오류: {e}", exc_info=True)
             print(f"❌ 시장 마감 후 정리 오류: {e}")
     
     def _run_daily_performance_analysis(self):
@@ -631,11 +631,11 @@ class IntegratedScheduler:
                     json.dump(performance_data, f, indent=2, ensure_ascii=False)
                     
             except Exception as ai_error:
-                logger.error(f"성과 분석 중 오류 발생: {ai_error}")
+                logger.error(f"성과 분석 중 오류 발생: {ai_error}", exc_info=True)
                 print(f"⚠️ 성과 분석 중 오류: {ai_error}")
                 
         except Exception as e:
-            logger.error(f"일일 성과 분석 오류: {e}")
+            logger.error(f"일일 성과 분석 오류: {e}", exc_info=True)
             print(f"❌ 일일 성과 분석 오류: {e}")
             
     def _run_enhanced_adaptive_learning(self):
@@ -703,7 +703,7 @@ class IntegratedScheduler:
                 self._run_adaptive_learning_fallback()
 
         except Exception as e:
-            logger.error(f"강화된 적응형 학습 오류: {e}")
+            logger.error(f"강화된 적응형 학습 오류: {e}", exc_info=True)
             print(f"❌ 강화된 적응형 학습 오류: {e}")
 
     def _run_adaptive_learning_fallback(self):
@@ -732,7 +732,7 @@ class IntegratedScheduler:
                 print(f"⚠️ 적응형 학습 실패: {result.get('message')}")
 
         except Exception as e:
-            logger.error(f"기본 적응형 학습 오류: {e}")
+            logger.error(f"기본 적응형 학습 오류: {e}", exc_info=True)
             print(f"❌ 기본 적응형 학습 오류: {e}")
 
     def _generate_enhanced_learning_alert(self, result: Dict[str, Any]) -> str:
@@ -804,7 +804,17 @@ class IntegratedScheduler:
             return message
 
         except Exception as e:
-            logger.error(f"강화된 학습 알림 메시지 생성 실패: {e}")
+            # 상세 에러 정보 로깅
+            logger.error(
+                f"강화된 학습 알림 메시지 생성 실패: {e}",
+                exc_info=True,
+                extra={
+                    'error_type': type(e).__name__,
+                    'result_keys': list(result.keys()) if isinstance(result, dict) else 'N/A',
+                    'screening_accuracy_type': type(result.get('screening_accuracy')).__name__ if isinstance(result, dict) else 'N/A',
+                    'selection_accuracy_type': type(result.get('selection_accuracy')).__name__ if isinstance(result, dict) else 'N/A',
+                }
+            )
             return f"""🧠 *강화된 AI 학습 완료*
 
 ✅ 포괄적 분석이 완료되었습니다.
@@ -872,7 +882,7 @@ class IntegratedScheduler:
                 print(f"⚠️ 주간 학습 모듈을 찾을 수 없습니다")
                 
         except Exception as e:
-            logger.error(f"주간 깊이 학습 오류: {e}")
+            logger.error(f"주간 깊이 학습 오류: {e}", exc_info=True)
             print(f"❌ 주간 깊이 학습 오류: {e}")
 
     def _run_weekly_backtest(self):
@@ -1036,7 +1046,7 @@ class IntegratedScheduler:
                 print(f"⚠️ 백테스트 모듈을 찾을 수 없습니다")
 
         except Exception as e:
-            logger.error(f"주간 백테스트 오류: {e}")
+            logger.error(f"주간 백테스트 오류: {e}", exc_info=True)
             print(f"❌ 주간 백테스트 오류: {e}")
             import traceback
             traceback.print_exc()
@@ -1089,7 +1099,7 @@ class IntegratedScheduler:
                 print(f"⚠️ 시스템 모니터링 모듈을 찾을 수 없습니다")
 
         except Exception as e:
-            logger.error(f"시스템 모니터링 시작 오류: {e}")
+            logger.error(f"시스템 모니터링 시작 오류: {e}", exc_info=True)
             print(f"❌ 시스템 모니터링 시작 오류: {e}")
 
     def _run_health_check(self):
@@ -1108,7 +1118,7 @@ class IntegratedScheduler:
                 logger.warning(f"헬스체크 완료: {len(result.issues)}개 문제 발견")
 
         except Exception as e:
-            logger.error(f"헬스체크 실행 오류: {e}")
+            logger.error(f"헬스체크 실행 오류: {e}", exc_info=True)
 
     def _run_auto_maintenance(self):
         """자동 유지보수 실행"""
@@ -1194,7 +1204,7 @@ class IntegratedScheduler:
                 print(f"⚠️ 자동 유지보수 모듈을 찾을 수 없습니다")
 
         except Exception as e:
-            logger.error(f"자동 유지보수 오류: {e}")
+            logger.error(f"자동 유지보수 오류: {e}", exc_info=True)
             print(f"❌ 자동 유지보수 오류: {e}")
 
     def _check_ml_trigger(self):
@@ -1238,7 +1248,7 @@ class IntegratedScheduler:
                 print(f"⚠️ ML 트리거 모듈을 찾을 수 없습니다")
 
         except Exception as e:
-            logger.error(f"ML 학습 조건 체크 오류: {e}")
+            logger.error(f"ML 학습 조건 체크 오류: {e}", exc_info=True)
             print(f"❌ ML 학습 조건 체크 오류: {e}")
 
 
@@ -1275,7 +1285,7 @@ class IntegratedScheduler:
                         loop = asyncio.get_event_loop()
                         loop.run_until_complete(trading_engine.start_trading())
                     except Exception as e:
-                        logger.error(f"자동 매매 실행 오류: {e}")
+                        logger.error(f"자동 매매 실행 오류: {e}", exc_info=True)
                         import traceback
                         logger.error(f"상세 오류:\n{traceback.format_exc()}")
 
@@ -1306,7 +1316,7 @@ class IntegratedScheduler:
                 print(f"❌ 매매 엔진 import 실패: {ie}")
 
         except Exception as e:
-            logger.error(f"자동 매매 시작 오류: {e}")
+            logger.error(f"자동 매매 시작 오류: {e}", exc_info=True)
             print(f"❌ 자동 매매 시작 오류: {e}")
             import traceback
             logger.error(f"상세 오류:\n{traceback.format_exc()}")
@@ -1332,7 +1342,7 @@ class IntegratedScheduler:
                             loop = asyncio.get_event_loop()
                             loop.run_until_complete(trading_engine.stop_trading("스케줄러 자동 중지"))
                         except Exception as e:
-                            logger.error(f"자동 매매 중지 실행 오류: {e}")
+                            logger.error(f"자동 매매 중지 실행 오류: {e}", exc_info=True)
 
                     stop_thread = threading.Thread(target=stop_trading, daemon=False)
                     stop_thread.start()
@@ -1360,7 +1370,7 @@ class IntegratedScheduler:
                 print("ℹ️ 자동 매매 엔진을 찾을 수 없습니다.")
 
         except Exception as e:
-            logger.error(f"자동 매매 중지 오류: {e}")
+            logger.error(f"자동 매매 중지 오류: {e}", exc_info=True)
             print(f"❌ 자동 매매 중지 오류: {e}")
             import traceback
             logger.error(f"상세 오류:\n{traceback.format_exc()}")
@@ -1400,7 +1410,7 @@ class IntegratedScheduler:
             print("✅ AI 학습 데이터 연동 완료!")
             
         except Exception as e:
-            logger.error(f"AI 학습 데이터 연동 오류: {e}")
+            logger.error(f"AI 학습 데이터 연동 오류: {e}", exc_info=True)
             print(f"❌ AI 학습 데이터 연동 오류: {e}")
     
     def _collect_phase1_data(self):
@@ -1507,7 +1517,7 @@ class IntegratedScheduler:
                         print(f"  {i}. {stock.get('stock_name', '')} ({stock.get('stock_code', '')}) - {stock.get('price_attractiveness', 0):.1f}점")
             
         except Exception as e:
-            logger.error(f"일일 요약 출력 오류: {e}")
+            logger.error(f"일일 요약 출력 오류: {e}", exc_info=True)
     
     def run_immediate_tasks(self):
         """즉시 실행 (테스트용)"""
@@ -1567,7 +1577,7 @@ class IntegratedScheduler:
             return message
             
         except Exception as e:
-            logger.error(f"스크리닝 알람 메시지 생성 실패: {e}")
+            logger.error(f"스크리닝 알람 메시지 생성 실패: {e}", exc_info=True)
             return f"""🌅 *한투 퀀트 아침 스크리닝 완료*
 
 ⏰ 완료 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
@@ -1700,7 +1710,7 @@ def main():
         scheduler.stop_scheduler("사용자 중단 (Ctrl+C)")
         sys.exit(0)
     except Exception as e:
-        logger.error(f"스케줄러 실행 오류: {e}")
+        logger.error(f"스케줄러 실행 오류: {e}", exc_info=True)
         sys.exit(1)
 
 
