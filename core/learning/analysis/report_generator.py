@@ -337,7 +337,7 @@ class PerformanceReportGenerator:
             return "\n".join(section)
             
         except Exception as e:
-            self._logger.error(f"전략 비교 섹션 생성 실패: {e}")
+            self._logger.error(f"전략 비교 섹션 생성 실패: {e}", exc_info=True)
             return """## 🔄 전략 비교 분석
 
 ⚠️ 전략 비교 데이터를 생성할 수 없습니다. 더 많은 데이터가 필요합니다."""
@@ -417,7 +417,7 @@ class PerformanceReportGenerator:
                 section.append("")
             
         except Exception as e:
-            self._logger.error(f"차트 생성 실패: {e}")
+            self._logger.error(f"차트 생성 실패: {e}", exc_info=True)
             section.append("⚠️ 차트를 생성할 수 없습니다.")
         
         return "\n".join(section)
@@ -582,7 +582,7 @@ class PerformanceReportGenerator:
             return "\n".join(section)
             
         except Exception as e:
-            self._logger.error(f"추천사항 섹션 생성 실패: {e}")
+            self._logger.error(f"추천사항 섹션 생성 실패: {e}", exc_info=True)
             return """## 💡 추천사항
 
 ⚠️ 추천사항을 생성할 수 없습니다. 더 많은 데이터가 필요합니다."""

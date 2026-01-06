@@ -198,7 +198,7 @@ class NotificationManager:
                         alert_id=str(id(alert)),
                         error=str(e),
                     )
-                    logger.error(f"Send error on {channel_name}: {e}")
+                    logger.error(f"Send error on {channel_name}: {e}", exc_info=True)
 
         # 이력 기록
         self._record_history(alert, any(r.success for r in results.values()))

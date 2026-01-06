@@ -188,7 +188,7 @@ class PerformanceAlert:
                 try:
                     callback(alert['type'], alert)
                 except Exception as e:
-                    logger.error(f"알림 콜백 실행 중 오류: {e}")
+                    logger.error(f"알림 콜백 실행 중 오류: {e}", exc_info=True)
 
 class PerformanceMonitor:
     """실시간 성능 모니터링 시스템"""
@@ -396,7 +396,7 @@ class PerformanceMonitor:
                                  f"API 호출 {api_metrics.calls_per_minute}/분")
                 
             except Exception as e:
-                self._logger.error(f"성능 모니터링 중 오류: {e}")
+                self._logger.error(f"성능 모니터링 중 오류: {e}", exc_info=True)
             
             time.sleep(self._monitoring_interval)
     
@@ -485,7 +485,7 @@ class PerformanceMonitor:
             self._logger.info(f"성능 지표를 {file_path}에 저장했습니다.")
             
         except Exception as e:
-            self._logger.error(f"지표 내보내기 중 오류: {e}")
+            self._logger.error(f"지표 내보내기 중 오류: {e}", exc_info=True)
 
 # 글로벌 인스턴스 (싱글톤 패턴)
 _performance_monitor_instance: Optional[PerformanceMonitor] = None

@@ -240,7 +240,7 @@ class OrderBookAnalyzer:
                     bids.append((bid_price, bid_volume))
 
         except Exception as e:
-            logger.error(f"호가 데이터 파싱 오류: {e}")
+            logger.error(f"호가 데이터 파싱 오류: {e}", exc_info=True)
 
         return bids, asks
 
@@ -352,7 +352,7 @@ class OrderBookAnalyzer:
                 try:
                     callback(result)
                 except Exception as e:
-                    logger.error(f"호가 분석 콜백 오류: {e}")
+                    logger.error(f"호가 분석 콜백 오류: {e}", exc_info=True)
 
     # ========== 캐시 조회 ==========
 
@@ -439,7 +439,7 @@ class OrderBookMonitor:
             return True
 
         except Exception as e:
-            logger.error(f"호가 모니터링 시작 실패: {e}")
+            logger.error(f"호가 모니터링 시작 실패: {e}", exc_info=True)
             return False
 
     async def stop_monitoring(self):
@@ -470,7 +470,7 @@ class OrderBookMonitor:
                 )
 
         except Exception as e:
-            logger.error(f"호가 데이터 처리 오류: {e}")
+            logger.error(f"호가 데이터 처리 오류: {e}", exc_info=True)
 
     @property
     def is_running(self) -> bool:

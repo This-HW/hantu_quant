@@ -124,7 +124,7 @@ class APIConfig:
             logger.debug("[_save_token] 토큰 정보 저장 완료")
 
         except Exception as e:
-            logger.error(f"[_save_token] 토큰 정보 저장 중 오류 발생: {str(e)}")
+            logger.error(f"[_save_token] 토큰 정보 저장 중 오류 발생: {str(e)}", exc_info=True)
 
     def _load_token(self) -> None:
         """저장된 토큰 정보 로드"""
@@ -147,7 +147,7 @@ class APIConfig:
             logger.debug("[_load_token] 토큰 정보 로드 완료")
 
         except Exception as e:
-            logger.error(f"[_load_token] 토큰 정보 로드 중 오류 발생: {str(e)}")
+            logger.error(f"[_load_token] 토큰 정보 로드 중 오류 발생: {str(e)}", exc_info=True)
 
     def _can_refresh_token(self) -> bool:
         """토큰 재발급 가능 여부 확인 (1분당 1회 제한)
@@ -290,12 +290,12 @@ class APIConfig:
                 logger.info("[refresh_token] 토큰 갱신 성공")
                 return True
             else:
-                logger.error(f"[refresh_token] 토큰 갱신 실패 - 상태 코드: {response.status_code}")
-                logger.error(f"[refresh_token] 응답 본문: {response.text}")
+                logger.error(f"[refresh_token] 토큰 갱신 실패 - 상태 코드: {response.status_code}", exc_info=True)
+                logger.error(f"[refresh_token] 응답 본문: {response.text}", exc_info=True)
                 return False
 
         except Exception as e:
-            logger.error(f"[refresh_token] 토큰 갱신 중 오류 발생: {str(e)}")
+            logger.error(f"[refresh_token] 토큰 갱신 중 오류 발생: {str(e)}", exc_info=True)
             return False
             
     def validate_token(self) -> bool:
@@ -386,11 +386,11 @@ class APIConfig:
                 logger.info("[get_ws_approval_key] WebSocket 접속키 발급 성공")
                 return self.ws_approval_key
             else:
-                logger.error(f"[get_ws_approval_key] 접속키 발급 실패: {response.status_code}")
+                logger.error(f"[get_ws_approval_key] 접속키 발급 실패: {response.status_code}", exc_info=True)
                 return None
 
         except Exception as e:
-            logger.error(f"[get_ws_approval_key] 오류: {e}")
+            logger.error(f"[get_ws_approval_key] 오류: {e}", exc_info=True)
             return None
 
     def _save_ws_approval_key(self) -> None:
@@ -403,7 +403,7 @@ class APIConfig:
             with open(self._ws_approval_key_file, 'w') as f:
                 json.dump(data, f)
         except Exception as e:
-            logger.error(f"[_save_ws_approval_key] 저장 실패: {e}")
+            logger.error(f"[_save_ws_approval_key] 저장 실패: {e}", exc_info=True)
 
     def _load_ws_approval_key(self) -> None:
         """WebSocket 접속키 로드"""
@@ -414,7 +414,7 @@ class APIConfig:
                 data = json.load(f)
             self.ws_approval_key = data.get('approval_key')
         except Exception as e:
-            logger.error(f"[_load_ws_approval_key] 로드 실패: {e}")
+            logger.error(f"[_load_ws_approval_key] 로드 실패: {e}", exc_info=True)
 
     # ========== 에러 처리 유틸리티 ==========
 

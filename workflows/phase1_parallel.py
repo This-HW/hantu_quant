@@ -137,7 +137,7 @@ class Phase1ParallelWorkflow:
                         
                     except Exception as e:
                         batch_num = batch_info["batch_num"]
-                        logger.error(f"배치 {batch_num} 결과 처리 오류: {e}")
+                        logger.error(f"배치 {batch_num} 결과 처리 오류: {e}", exc_info=True)
             
             processing_time = time.time() - start_time
             
@@ -183,7 +183,7 @@ class Phase1ParallelWorkflow:
                 return False
                 
         except Exception as e:
-            logger.error(f"전체 스크리닝 실행 오류: {e}")
+            logger.error(f"전체 스크리닝 실행 오류: {e}", exc_info=True)
             return False
     
     def _get_all_stock_codes(self) -> List[str]:
@@ -200,7 +200,7 @@ class Phase1ParallelWorkflow:
             return stock_codes
             
         except Exception as e:
-            logger.error(f"전체 종목 조회 오류: {e}")
+            logger.error(f"전체 종목 조회 오류: {e}", exc_info=True)
             logger.warning("KRX API 오류로 인해 샘플 종목으로 대체합니다")
             
             # 샘플 종목으로 대체
@@ -250,7 +250,7 @@ class Phase1ParallelWorkflow:
             return added_count
             
         except Exception as e:
-            logger.error(f"감시 리스트 자동 추가 오류: {e}")
+            logger.error(f"감시 리스트 자동 추가 오류: {e}", exc_info=True)
             return added_count
 
 def main():
@@ -290,7 +290,7 @@ def main():
         logger.info("사용자에 의해 중단됨")
         sys.exit(1)
     except Exception as e:
-        logger.error(f"워크플로우 실행 오류: {e}")
+        logger.error(f"워크플로우 실행 오류: {e}", exc_info=True)
         sys.exit(1)
 
 if __name__ == "__main__":

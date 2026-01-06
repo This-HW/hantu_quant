@@ -105,7 +105,7 @@ class ModelSwapper:
             model = self._model_loader(version)
 
             if model is None:
-                logger.error(f"모델 로드 실패: {version}")
+                logger.error(f"모델 로드 실패: {version}", exc_info=True)
                 return False
 
             # 대기 모델 설정
@@ -122,7 +122,7 @@ class ModelSwapper:
             return True
 
         except Exception as e:
-            logger.error(f"대기 모델 준비 실패: {e}")
+            logger.error(f"대기 모델 준비 실패: {e}", exc_info=True)
             return False
 
     def swap(self, immediate: bool = False) -> bool:
@@ -183,7 +183,7 @@ class ModelSwapper:
             return True
 
         except Exception as e:
-            logger.error(f"모델 스왑 실패: {e}")
+            logger.error(f"모델 스왑 실패: {e}", exc_info=True)
             return False
 
         finally:
@@ -284,7 +284,7 @@ class ModelSwapper:
             with open(history_file, 'w', encoding='utf-8') as f:
                 json.dump(history, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f"스왑 이력 저장 실패: {e}")
+            logger.error(f"스왑 이력 저장 실패: {e}", exc_info=True)
 
     def get_status(self) -> Dict[str, Any]:
         """스왑퍼 상태 조회"""

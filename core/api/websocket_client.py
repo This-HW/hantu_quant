@@ -87,7 +87,7 @@ class KISWebSocketClient:
             logger.info("WebSocket 연결 성공")
             return True
         except Exception as e:
-            logger.error(f"WebSocket 연결 실패: {str(e)}")
+            logger.error(f"WebSocket 연결 실패: {str(e)}", exc_info=True)
             return False
 
     async def heartbeat(self) -> bool:
@@ -150,7 +150,7 @@ class KISWebSocketClient:
             return True
 
         except Exception as e:
-            logger.error(f"구독 요청 실패: {e}")
+            logger.error(f"구독 요청 실패: {e}", exc_info=True)
             return False
             
     async def unsubscribe(self, stock_code: str):
@@ -179,7 +179,7 @@ class KISWebSocketClient:
             del self.subscribed_codes[stock_code]
 
         except Exception as e:
-            logger.error(f"구독 해지 실패: {e}")
+            logger.error(f"구독 해지 실패: {e}", exc_info=True)
             
     async def start_streaming(self):
         """실시간 데이터 수신 시작"""
@@ -193,20 +193,20 @@ class KISWebSocketClient:
                     data = await self.websocket.recv()
                     await self._handle_message(data)
                 except websockets.exceptions.ConnectionClosed as e:
-                    logger.error(f"WebSocket 연결이 종료되었습니다. 코드: {e.code}, 사유: {e.reason}")
+                    logger.error(f"WebSocket 연결이 종료되었습니다. 코드: {e.code}, 사유: {e.reason}", exc_info=True)
                     success = await self._reconnect()
                     if not success:
                         logger.error("재연결 실패로 스트리밍을 종료합니다.")
                         break
                 except json.JSONDecodeError as e:
-                    logger.error(f"JSON 디코딩 오류: {e}")
+                    logger.error(f"JSON 디코딩 오류: {e}", exc_info=True)
                     continue
                 except Exception as e:
-                    logger.error(f"스트리밍 중 예상치 못한 오류: {str(e)}")
+                    logger.error(f"스트리밍 중 예상치 못한 오류: {str(e)}", exc_info=True)
                     await asyncio.sleep(1)  # 짧은 대기 후 계속
                     
         except Exception as e:
-            logger.error(f"스트리밍 중 심각한 오류 발생: {str(e)}")
+            logger.error(f"스트리밍 중 심각한 오류 발생: {str(e)}", exc_info=True)
             self.running = False
             
     async def _handle_message(self, message: str):
@@ -221,7 +221,7 @@ class KISWebSocketClient:
                 logger.warning(f"등록되지 않은 TR_ID: {tr_id}")
                 
         except Exception as e:
-            logger.error(f"메시지 처리 중 오류 발생: {e}")
+            logger.error(f"메시지 처리 중 오류 발생: {e}", exc_info=True)
             
     async def _reconnect(self):
         """WebSocket 재연결"""
@@ -244,11 +244,11 @@ class KISWebSocketClient:
                     return True
                 
             except Exception as e:
-                logger.error(f"재연결 실패 ({retry_count}/{max_retries}): {str(e)}")
+                logger.error(f"재연결 실패 ({retry_count}/{max_retries}): {str(e)}", exc_info=True)
                 await asyncio.sleep(min(5 * retry_count, 30))  # 지수 백오프, 최대 30초
         
         if retry_count >= max_retries:
-            logger.error(f"최대 재시도 횟수({max_retries})를 초과했습니다. 재연결 중단.")
+            logger.error(f"최대 재시도 횟수({max_retries})를 초과했습니다. 재연결 중단.", exc_info=True)
             self.running = False
             return False
             

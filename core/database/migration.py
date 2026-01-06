@@ -88,7 +88,7 @@ class DataMigrator:
                 self.session.flush()
             return stock
         except SQLAlchemyError as e:
-            logger.error(f"종목 조회/생성 실패 {code}: {e}")
+            logger.error(f"종목 조회/생성 실패 {code}: {e}", exc_info=True)
             return None
 
     def migrate_watchlist(
@@ -111,11 +111,11 @@ class DataMigrator:
             with open(json_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
         except FileNotFoundError:
-            logger.error(f"파일 없음: {json_path}")
+            logger.error(f"파일 없음: {json_path}", exc_info=True)
             result.errors.append(f"파일 없음: {json_path}")
             return result
         except json.JSONDecodeError as e:
-            logger.error(f"JSON 파싱 실패: {e}")
+            logger.error(f"JSON 파싱 실패: {e}", exc_info=True)
             result.errors.append(f"JSON 파싱 실패: {str(e)}")
             return result
 
@@ -173,7 +173,7 @@ class DataMigrator:
             except Exception as e:
                 result.failed += 1
                 result.errors.append(f"처리 실패 {item}: {str(e)}")
-                logger.error(f"WatchlistStock 마이그레이션 실패: {e}")
+                logger.error(f"WatchlistStock 마이그레이션 실패: {e}", exc_info=True)
 
         try:
             self.session.commit()
@@ -181,7 +181,7 @@ class DataMigrator:
         except SQLAlchemyError as e:
             self.session.rollback()
             result.errors.append(f"커밋 실패: {str(e)}")
-            logger.error(f"커밋 실패: {e}")
+            logger.error(f"커밋 실패: {e}", exc_info=True)
 
         return result
 
@@ -205,11 +205,11 @@ class DataMigrator:
             with open(json_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
         except FileNotFoundError:
-            logger.error(f"파일 없음: {json_path}")
+            logger.error(f"파일 없음: {json_path}", exc_info=True)
             result.errors.append(f"파일 없음: {json_path}")
             return result
         except json.JSONDecodeError as e:
-            logger.error(f"JSON 파싱 실패: {e}")
+            logger.error(f"JSON 파싱 실패: {e}", exc_info=True)
             result.errors.append(f"JSON 파싱 실패: {str(e)}")
             return result
 
@@ -270,7 +270,7 @@ class DataMigrator:
             except Exception as e:
                 result.failed += 1
                 result.errors.append(f"처리 실패 {item}: {str(e)}")
-                logger.error(f"DailySelection 마이그레이션 실패: {e}")
+                logger.error(f"DailySelection 마이그레이션 실패: {e}", exc_info=True)
 
         try:
             self.session.commit()
@@ -278,7 +278,7 @@ class DataMigrator:
         except SQLAlchemyError as e:
             self.session.rollback()
             result.errors.append(f"커밋 실패: {str(e)}")
-            logger.error(f"커밋 실패: {e}")
+            logger.error(f"커밋 실패: {e}", exc_info=True)
 
         return result
 
@@ -302,11 +302,11 @@ class DataMigrator:
             with open(json_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
         except FileNotFoundError:
-            logger.error(f"파일 없음: {json_path}")
+            logger.error(f"파일 없음: {json_path}", exc_info=True)
             result.errors.append(f"파일 없음: {json_path}")
             return result
         except json.JSONDecodeError as e:
-            logger.error(f"JSON 파싱 실패: {e}")
+            logger.error(f"JSON 파싱 실패: {e}", exc_info=True)
             result.errors.append(f"JSON 파싱 실패: {str(e)}")
             return result
 
@@ -365,7 +365,7 @@ class DataMigrator:
             except Exception as e:
                 result.failed += 1
                 result.errors.append(f"처리 실패 {item}: {str(e)}")
-                logger.error(f"TradeHistory 마이그레이션 실패: {e}")
+                logger.error(f"TradeHistory 마이그레이션 실패: {e}", exc_info=True)
 
         try:
             self.session.commit()
@@ -373,7 +373,7 @@ class DataMigrator:
         except SQLAlchemyError as e:
             self.session.rollback()
             result.errors.append(f"커밋 실패: {str(e)}")
-            logger.error(f"커밋 실패: {e}")
+            logger.error(f"커밋 실패: {e}", exc_info=True)
 
         return result
 

@@ -66,7 +66,7 @@ class DatabaseSession:
             Base.metadata.create_all(self.engine)
 
         except SQLAlchemyError as e:
-            logger.error(f"데이터베이스 오류 발생: {str(e)}")
+            logger.error(f"데이터베이스 오류 발생: {str(e)}", exc_info=True)
             raise
     
     def _create_session(self) -> Session:
@@ -116,5 +116,5 @@ class DatabaseSession:
             Base.metadata.create_all(self.engine)
             logger.info("데이터베이스 테이블 재생성 완료")
         except SQLAlchemyError as e:
-            logger.error(f"테이블 재생성 중 오류 발생: {str(e)}")
+            logger.error(f"테이블 재생성 중 오류 발생: {str(e)}", exc_info=True)
             raise 

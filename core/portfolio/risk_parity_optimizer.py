@@ -100,7 +100,7 @@ class RiskParityOptimizer:
             return result
 
         except Exception as e:
-            self.logger.error(f"리스크 패리티 최적화 오류: {e}")
+            self.logger.error(f"리스크 패리티 최적화 오류: {e}", exc_info=True)
             # 폴백: 동일 가중치
             return self._equal_weight_fallback(stock_data)
 

@@ -82,7 +82,7 @@ class EventBus(IEventBus):
         
         # 이벤트 유효성 검증
         if not event.validate():
-            logger.error(f"Invalid event: {event}")
+            logger.error(f"Invalid event: {event}", exc_info=True)
             return False
         
         # 이벤트 ID 생성 (없는 경우)
@@ -193,7 +193,7 @@ class EventBus(IEventBus):
                 logger.info(f"EventBus worker '{worker_name}' cancelled")
                 break
             except Exception as e:
-                logger.error(f"EventBus worker '{worker_name}' error: {str(e)}")
+                logger.error(f"EventBus worker '{worker_name}' error: {str(e)}", exc_info=True)
                 await asyncio.sleep(1)  # 오류 발생 시 잠시 대기
         
         logger.info(f"EventBus worker '{worker_name}' stopped")
@@ -241,7 +241,7 @@ class EventBus(IEventBus):
                 _v_success_count = 0
                 for result in _v_results:
                     if isinstance(result, Exception):
-                        logger.error(f"Handler failed: {str(result)}")
+                        logger.error(f"Handler failed: {str(result)}", exc_info=True)
                         self._v_failed_count += 1
                     elif result:
                         _v_success_count += 1
@@ -252,7 +252,7 @@ class EventBus(IEventBus):
                 logger.debug(f"Event processed: {event.event_id} ({_v_success_count}/{len(_v_tasks)} handlers succeeded)")
             
         except Exception as e:
-            logger.error(f"Failed to process event {event.event_id}: {str(e)}")
+            logger.error(f"Failed to process event {event.event_id}: {str(e)}", exc_info=True)
             self._v_failed_count += 1
         
         finally:

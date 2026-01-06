@@ -99,7 +99,7 @@ class SystemMonitor:
                 status.memory_percent = psutil.virtual_memory().percent
                 status.disk_percent = psutil.disk_usage('/').percent
             except Exception as e:
-                logger.error(f"시스템 메트릭 수집 실패: {e}")
+                logger.error(f"시스템 메트릭 수집 실패: {e}", exc_info=True)
 
         # CPU 체크
         if status.cpu_percent >= self.thresholds.cpu_critical:
@@ -180,7 +180,7 @@ class SystemMonitor:
             engine.dispose()
             return True
         except Exception as e:
-            logger.error(f"DB 연결 확인 실패: {e}")
+            logger.error(f"DB 연결 확인 실패: {e}", exc_info=True)
             return False
 
     def _count_recent_errors(self, minutes: int = 5) -> int:
@@ -201,7 +201,7 @@ class SystemMonitor:
 
             return recent_count
         except Exception as e:
-            logger.error(f"에러 수 조회 실패: {e}")
+            logger.error(f"에러 수 조회 실패: {e}", exc_info=True)
             return 0
 
     def _process_alerts(self, alerts: List[Dict[str, Any]]):

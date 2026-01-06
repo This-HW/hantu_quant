@@ -202,7 +202,7 @@ class ChartGenerator:
             return self._save_chart(fig, "market_overview")
             
         except Exception as e:
-            self._logger.error(f"시장 개요 차트 생성 실패: {e}")
+            self._logger.error(f"시장 개요 차트 생성 실패: {e}", exc_info=True)
             return None
     
     def create_volatility_heatmap(self, current_snapshot: MarketSnapshot) -> Optional[str]:
@@ -260,7 +260,7 @@ class ChartGenerator:
             return self._save_chart(fig, "volatility_heatmap")
             
         except Exception as e:
-            self._logger.error(f"변동성 히트맵 생성 실패: {e}")
+            self._logger.error(f"변동성 히트맵 생성 실패: {e}", exc_info=True)
             return None
     
     def create_volume_analysis_chart(self, current_snapshot: MarketSnapshot) -> Optional[str]:
@@ -324,7 +324,7 @@ class ChartGenerator:
             return self._save_chart(fig, "volume_analysis")
             
         except Exception as e:
-            self._logger.error(f"거래량 분석 차트 생성 실패: {e}")
+            self._logger.error(f"거래량 분석 차트 생성 실패: {e}", exc_info=True)
             return None
     
     def create_alert_timeline(self, alerts: List[AnomalyAlert]) -> Optional[str]:
@@ -389,7 +389,7 @@ class ChartGenerator:
             return self._save_chart(fig, "alert_timeline")
             
         except Exception as e:
-            self._logger.error(f"알림 타임라인 생성 실패: {e}")
+            self._logger.error(f"알림 타임라인 생성 실패: {e}", exc_info=True)
             return None
     
     def create_market_status_gauge(self, current_snapshot: MarketSnapshot) -> Optional[str]:
@@ -444,7 +444,7 @@ class ChartGenerator:
             return self._save_chart(fig, "market_status_gauge")
             
         except Exception as e:
-            self._logger.error(f"시장 상태 게이지 생성 실패: {e}")
+            self._logger.error(f"시장 상태 게이지 생성 실패: {e}", exc_info=True)
             return None
     
     def _save_chart(self, fig, filename: str) -> Optional[str]:
@@ -477,7 +477,7 @@ class ChartGenerator:
             return filepath
             
         except Exception as e:
-            self._logger.error(f"차트 저장 실패: {e}")
+            self._logger.error(f"차트 저장 실패: {e}", exc_info=True)
             return None
 
 class MetricsCollector:
@@ -541,7 +541,7 @@ class MetricsCollector:
             return metrics
             
         except Exception as e:
-            self._logger.error(f"지표 수집 실패: {e}")
+            self._logger.error(f"지표 수집 실패: {e}", exc_info=True)
             return self._create_default_metrics()
     
     def _calculate_volatility_index(self, snapshot: MarketSnapshot) -> float:
@@ -692,7 +692,7 @@ class MonitoringDashboard:
             self._logger.debug("대시보드 업데이트 완료")
             
         except Exception as e:
-            self._logger.error(f"대시보드 업데이트 실패: {e}")
+            self._logger.error(f"대시보드 업데이트 실패: {e}", exc_info=True)
     
     def _update_loop(self):
         """업데이트 루프"""
@@ -702,7 +702,7 @@ class MonitoringDashboard:
                 self._stop_event.wait(self._config.update_interval)
                 
             except Exception as e:
-                self._logger.error(f"대시보드 업데이트 루프 오류: {e}")
+                self._logger.error(f"대시보드 업데이트 루프 오류: {e}", exc_info=True)
                 time.sleep(60)
     
     def _update_charts(self):
@@ -752,7 +752,7 @@ class MonitoringDashboard:
             self._chart_paths = charts
             
         except Exception as e:
-            self._logger.error(f"차트 업데이트 실패: {e}")
+            self._logger.error(f"차트 업데이트 실패: {e}", exc_info=True)
     
     def _generate_html_dashboard(self):
         """HTML 대시보드 생성"""
@@ -779,7 +779,7 @@ class MonitoringDashboard:
             self._logger.info(f"HTML 대시보드 생성: {filepath}")
             
         except Exception as e:
-            self._logger.error(f"HTML 대시보드 생성 실패: {e}")
+            self._logger.error(f"HTML 대시보드 생성 실패: {e}", exc_info=True)
     
     def _create_html_template(self) -> str:
         """HTML 템플릿 생성"""
@@ -1016,7 +1016,7 @@ class MonitoringDashboard:
                 json.dump(metrics_data, f, ensure_ascii=False, indent=2, default=str)
                 
         except Exception as e:
-            self._logger.error(f"지표 저장 실패: {e}")
+            self._logger.error(f"지표 저장 실패: {e}", exc_info=True)
     
     def get_dashboard_status(self) -> Dict[str, Any]:
         """대시보드 상태 조회"""
@@ -1061,7 +1061,7 @@ class MonitoringDashboard:
             return filepath
             
         except Exception as e:
-            self._logger.error(f"대시보드 데이터 내보내기 실패: {e}")
+            self._logger.error(f"대시보드 데이터 내보내기 실패: {e}", exc_info=True)
             return ""
 
 # 전역 인스턴스

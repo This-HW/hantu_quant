@@ -31,7 +31,7 @@ class PerformanceMetrics:
             try:
                 self.api = KISAPI()
             except Exception as e:
-                self.logger.error(f"API 초기화 실패: {e}")
+                self.logger.error(f"API 초기화 실패: {e}", exc_info=True)
         return self.api
         
     def get_daily_performance(self, date_str: Optional[str] = None) -> Dict[str, Any]:
@@ -133,7 +133,7 @@ class PerformanceMetrics:
                 }
                 
         except Exception as e:
-            self.logger.error(f"실현손익 계산 실패: {e}")
+            self.logger.error(f"실현손익 계산 실패: {e}", exc_info=True)
             return {
                 "realized_pnl": 0.0,
                 "realized_return": 0.0,
@@ -190,7 +190,7 @@ class PerformanceMetrics:
             }
             
         except Exception as e:
-            self.logger.error(f"평가손익 계산 실패: {e}")
+            self.logger.error(f"평가손익 계산 실패: {e}", exc_info=True)
             return {
                 "unrealized_pnl": 0.0,
                 "unrealized_return": 0.0,
@@ -215,7 +215,7 @@ class PerformanceMetrics:
             return deposit + total_eval
             
         except Exception as e:
-            self.logger.error(f"총 투자금액 계산 실패: {e}")
+            self.logger.error(f"총 투자금액 계산 실패: {e}", exc_info=True)
             return 0.0
             
     def get_historical_performance(self, days: int = 30) -> Dict[str, Any]:
@@ -264,7 +264,7 @@ class PerformanceMetrics:
                                 daily_returns.append((sell_price - buy_price) / buy_price)
                                 
                 except Exception as e:
-                    self.logger.error(f"요약 파일 읽기 실패 {date_str}: {e}")
+                    self.logger.error(f"요약 파일 읽기 실패 {date_str}: {e}", exc_info=True)
                     
             current_date += timedelta(days=1)
             
@@ -330,7 +330,7 @@ class PerformanceMetrics:
                 }
                 
         except Exception as e:
-            self.logger.error(f"스크리닝 통계 계산 실패: {e}")
+            self.logger.error(f"스크리닝 통계 계산 실패: {e}", exc_info=True)
             return {
                 "total_count": 0,
                 "avg_score": 0.0,

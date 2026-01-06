@@ -138,7 +138,7 @@ class EmailNotifier:
             return True
             
         except Exception as e:
-            self._logger.error(f"이메일 알림 전송 실패: {e}")
+            self._logger.error(f"이메일 알림 전송 실패: {e}", exc_info=True)
             return False
     
     def _create_email_body(self, alert: AnomalyAlert) -> str:
@@ -246,11 +246,11 @@ class SlackNotifier:
                 self._logger.info(f"슬랙 알림 전송 완료: {alert.alert_id}")
                 return True
             else:
-                self._logger.error(f"슬랙 알림 전송 실패: {response.status_code}")
+                self._logger.error(f"슬랙 알림 전송 실패: {response.status_code}", exc_info=True)
                 return False
                 
         except Exception as e:
-            self._logger.error(f"슬랙 알림 전송 실패: {e}")
+            self._logger.error(f"슬랙 알림 전송 실패: {e}", exc_info=True)
             return False
     
     def _create_slack_payload(self, alert: AnomalyAlert) -> Dict:
@@ -359,11 +359,11 @@ class DiscordNotifier:
                 self._logger.info(f"디스코드 알림 전송 완료: {alert.alert_id}")
                 return True
             else:
-                self._logger.error(f"디스코드 알림 전송 실패: {response.status_code}")
+                self._logger.error(f"디스코드 알림 전송 실패: {response.status_code}", exc_info=True)
                 return False
                 
         except Exception as e:
-            self._logger.error(f"디스코드 알림 전송 실패: {e}")
+            self._logger.error(f"디스코드 알림 전송 실패: {e}", exc_info=True)
             return False
     
     def _create_discord_payload(self, alert: AnomalyAlert) -> Dict:
@@ -461,7 +461,7 @@ class WebhookNotifier:
                         self._logger.warning(f"웹훅 전송 실패 ({webhook_url}): {response.status_code}")
                         
                 except Exception as e:
-                    self._logger.error(f"웹훅 전송 오류 ({webhook_url}): {e}")
+                    self._logger.error(f"웹훅 전송 오류 ({webhook_url}): {e}", exc_info=True)
             
             if success_count > 0:
                 self._logger.info(f"웹훅 알림 전송 완료: {success_count}/{len(self._config.webhook_urls)}")
@@ -470,7 +470,7 @@ class WebhookNotifier:
                 return False
                 
         except Exception as e:
-            self._logger.error(f"웹훅 알림 전송 실패: {e}")
+            self._logger.error(f"웹훅 알림 전송 실패: {e}", exc_info=True)
             return False
     
     def _create_webhook_payload(self, alert: AnomalyAlert) -> Dict:
@@ -536,7 +536,7 @@ class ConsoleNotifier:
             return True
             
         except Exception as e:
-            self._logger.error(f"콘솔 알림 출력 실패: {e}")
+            self._logger.error(f"콘솔 알림 출력 실패: {e}", exc_info=True)
             return False
 
 class AlertRateLimiter:
@@ -694,7 +694,7 @@ class AlertSystem:
             self._rate_limiter.record_alert()
             
         except Exception as e:
-            self._logger.error(f"알림 전송 실패: {e}")
+            self._logger.error(f"알림 전송 실패: {e}", exc_info=True)
     
     def _get_channels_for_severity(self, severity: AnomalySeverity) -> List[AlertChannel]:
         """심각도별 채널 조회"""
@@ -723,7 +723,7 @@ class AlertSystem:
                 self._simple_queue.append(message)
                 
         except Exception as e:
-            self._logger.error(f"큐 추가 실패: {e}")
+            self._logger.error(f"큐 추가 실패: {e}", exc_info=True)
     
     def _process_alerts_sync(self):
         """동기적 알림 처리 루프"""
@@ -742,7 +742,7 @@ class AlertSystem:
                     time.sleep(1)  # 1초 대기
                     
             except Exception as e:
-                self._logger.error(f"알림 처리 루프 오류: {e}")
+                self._logger.error(f"알림 처리 루프 오류: {e}", exc_info=True)
                 time.sleep(5)
     
     def _send_message_sync(self, message: AlertMessage):
@@ -750,7 +750,7 @@ class AlertSystem:
         try:
             notifier = self._notifiers.get(message.channel)
             if not notifier:
-                self._logger.error(f"알 수 없는 채널: {message.channel}")
+                self._logger.error(f"알 수 없는 채널: {message.channel}", exc_info=True)
                 return
             
             # 알림 전송
@@ -768,13 +768,13 @@ class AlertSystem:
             else:
                 message.error_message = "전송 실패"
                 self._failed_alerts.append(message)
-                self._logger.error(f"알림 전송 실패: {message.message_id} via {message.channel.value}")
+                self._logger.error(f"알림 전송 실패: {message.message_id} via {message.channel.value}", exc_info=True)
             
             # 기록 저장
             self._save_alert_record(message)
             
         except Exception as e:
-            self._logger.error(f"메시지 전송 오류: {e}")
+            self._logger.error(f"메시지 전송 오류: {e}", exc_info=True)
             message.error_message = str(e)
             self._failed_alerts.append(message)
     
@@ -811,7 +811,7 @@ class AlertSystem:
                 json.dump(records, f, ensure_ascii=False, indent=2, default=str)
                 
         except Exception as e:
-            self._logger.error(f"알림 기록 저장 실패: {e}")
+            self._logger.error(f"알림 기록 저장 실패: {e}", exc_info=True)
     
     def get_alert_statistics(self, days: int = 7) -> Dict[str, Any]:
         """알림 통계 조회"""
@@ -879,7 +879,7 @@ class AlertSystem:
                     test_results[channel.value] = False
                     
             except Exception as e:
-                self._logger.error(f"채널 테스트 실패 ({channel.value}): {e}")
+                self._logger.error(f"채널 테스트 실패 ({channel.value}): {e}", exc_info=True)
                 test_results[channel.value] = False
         
         return test_results

@@ -451,7 +451,7 @@ class USTrader:
                 # return self.kis_api.get_us_quote(symbol)
                 pass
             except Exception as e:
-                logger.error(f"시세 조회 실패 {symbol}: {e}")
+                logger.error(f"시세 조회 실패 {symbol}: {e}", exc_info=True)
 
         # 더미 데이터
         return {
@@ -521,7 +521,7 @@ class USTrader:
                 # result = self.kis_api.place_us_order(order)
                 order.status = OrderStatus.SUBMITTED
             except Exception as e:
-                logger.error(f"주문 실패: {e}")
+                logger.error(f"주문 실패: {e}", exc_info=True)
                 order.status = OrderStatus.REJECTED
                 return None
 
@@ -578,7 +578,7 @@ class USTrader:
                 # result = self.kis_api.place_us_order(order)
                 order.status = OrderStatus.SUBMITTED
             except Exception as e:
-                logger.error(f"주문 실패: {e}")
+                logger.error(f"주문 실패: {e}", exc_info=True)
                 order.status = OrderStatus.REJECTED
                 return None
 
@@ -608,7 +608,7 @@ class USTrader:
                 # self.kis_api.cancel_us_order(order_id)
                 pass
             except Exception as e:
-                logger.error(f"취소 실패: {e}")
+                logger.error(f"취소 실패: {e}", exc_info=True)
                 return False
 
         order.status = OrderStatus.CANCELLED

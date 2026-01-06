@@ -311,7 +311,7 @@ def get_real_stock_price(stock_code: str) -> Dict:
         }
         
     except Exception as e:
-        logger.error(f"실제 가격 조회 실패 ({stock_code}): {e}")
+        logger.error(f"실제 가격 조회 실패 ({stock_code}): {e}", exc_info=True)
         raise Exception(f"실시간 데이터 조회 실패: {e}")
 
 async def execute_real_screening() -> Dict[str, Any]:
@@ -347,7 +347,7 @@ async def execute_real_screening() -> Dict[str, Any]:
                 "details": "새로운 로직으로 실제 종목 스크리닝 수행"
             }
         else:
-            logger.error(f"스크리닝 실행 실패: {process.stderr}")
+            logger.error(f"스크리닝 실행 실패: {process.stderr}", exc_info=True)
             return {
                 "success": False, 
                 "message": "스크리닝 실행 실패",
@@ -357,7 +357,7 @@ async def execute_real_screening() -> Dict[str, Any]:
     except subprocess.TimeoutExpired:
         return {"success": False, "message": "스크리닝 실행 시간 초과 (5분)"}
     except Exception as e:
-        logger.error(f"스크리닝 실행 오류: {e}")
+        logger.error(f"스크리닝 실행 오류: {e}", exc_info=True)
         return {"success": False, "message": f"스크리닝 실행 오류: {str(e)}"}
 
 async def execute_real_daily_selection() -> Dict[str, Any]:
@@ -393,7 +393,7 @@ async def execute_real_daily_selection() -> Dict[str, Any]:
                 "details": "새로운 로직으로 실제 종목 선정 수행"
             }
         else:
-            logger.error(f"종목선정 실행 실패: {process.stderr}")
+            logger.error(f"종목선정 실행 실패: {process.stderr}", exc_info=True)
             return {
                 "success": False,
                 "message": "종목선정 실행 실패", 
@@ -403,7 +403,7 @@ async def execute_real_daily_selection() -> Dict[str, Any]:
     except subprocess.TimeoutExpired:
         return {"success": False, "message": "종목선정 실행 시간 초과 (3분)"}
     except Exception as e:
-        logger.error(f"종목선정 실행 오류: {e}")
+        logger.error(f"종목선정 실행 오류: {e}", exc_info=True)
         return {"success": False, "message": f"종목선정 실행 오류: {str(e)}"}
 
 def load_latest_watchlist_data() -> List[WatchlistItem]:
@@ -774,7 +774,7 @@ def _load_legacy_watchlist_code_placeholder():
                 print(f"✅ {stock_name} ({stock_code}): 기존 데이터 로딩")
                 
             except Exception as e:
-                logger.error(f"❌ {stock_name} ({stock_code}): 가격 조회 실패 - {e}")
+                logger.error(f"❌ {stock_name} ({stock_code}): 가격 조회 실패 - {e}", exc_info=True)
                 continue
         
         print(f"🎯 실제 데이터 감시 리스트 로딩 완료: {len(watchlist)}개 종목")
@@ -846,7 +846,7 @@ def load_daily_selections_with_real_prices() -> List[DailySelection]:
                 print(f"🎯 {stock_name} ({stock_code}): 기존 데이터 로딩")
                 
             except Exception as e:
-                logger.error(f"❌ {stock_name} ({stock_code}): 가격 조회 실패 - {e}")
+                logger.error(f"❌ {stock_name} ({stock_code}): 가격 조회 실패 - {e}", exc_info=True)
                 continue
         
         print(f"🚀 실제 데이터 일일 선정 로딩 완료: {len(selections)}개 종목")

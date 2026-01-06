@@ -76,14 +76,14 @@ class ParallelPriceAnalyzer(PriceAnalyzer):
                             
                     except Exception as e:
                         _v_stock_code = p_stock_list[_v_stock_idx].get("stock_code", "Unknown")
-                        logger.error(f"종목 {_v_stock_code} 분석 오류: {e}")
+                        logger.error(f"종목 {_v_stock_code} 분석 오류: {e}", exc_info=True)
                         continue
             
             logger.info(f"병렬 다중 종목 분석 완료: {len(_v_results)}개 결과")
             return _v_results
             
         except Exception as e:
-            logger.error(f"병렬 다중 종목 분석 오류: {e}")
+            logger.error(f"병렬 다중 종목 분석 오류: {e}", exc_info=True)
             return []
     
     def batch_analyze_stocks(self, p_stock_list: List[Dict], p_batch_size: int = 50) -> List[PriceAttractiveness]:
@@ -128,14 +128,14 @@ class ParallelPriceAnalyzer(PriceAnalyzer):
                         print(f"🔄 분석 배치 {_v_batch_idx + 1}/{len(_v_batches)} 완료")
                         
                     except Exception as e:
-                        logger.error(f"배치 {_v_batch_idx + 1} 분석 오류: {e}")
+                        logger.error(f"배치 {_v_batch_idx + 1} 분석 오류: {e}", exc_info=True)
                         continue
             
             logger.info(f"배치 종목 분석 완료 - 총 {len(_v_all_results)}개 결과")
             return _v_all_results
             
         except Exception as e:
-            logger.error(f"배치 종목 분석 오류: {e}")
+            logger.error(f"배치 종목 분석 오류: {e}", exc_info=True)
             return []
     
     def _analyze_single_stock_wrapper(self, p_stock_data: Dict) -> Optional[PriceAttractiveness]:
@@ -151,7 +151,7 @@ class ParallelPriceAnalyzer(PriceAnalyzer):
             return self.analyze_price_attractiveness(p_stock_data)
             
         except Exception as e:
-            logger.error(f"종목 분석 래퍼 오류 ({p_stock_data.get('stock_code', 'Unknown')}): {e}")
+            logger.error(f"종목 분석 래퍼 오류 ({p_stock_data.get('stock_code', 'Unknown')}): {e}", exc_info=True)
             return None
     
     @staticmethod
@@ -179,13 +179,13 @@ class ParallelPriceAnalyzer(PriceAnalyzer):
                         _v_batch_results.append(_v_result)
                         
                 except Exception as e:
-                    logger.error(f"배치 워커 종목 분석 오류 ({stock_data.get('stock_code', 'Unknown')}): {e}")
+                    logger.error(f"배치 워커 종목 분석 오류 ({stock_data.get('stock_code', 'Unknown')}): {e}", exc_info=True)
                     continue
             
             return _v_batch_results
             
         except Exception as e:
-            logger.error(f"배치 분석 워커 오류: {e}")
+            logger.error(f"배치 분석 워커 오류: {e}", exc_info=True)
             return []
     
     def concurrent_technical_analysis(self, p_stock_data_list: List[Dict]) -> List[Dict]:
@@ -223,14 +223,14 @@ class ParallelPriceAnalyzer(PriceAnalyzer):
                         })
                         
                     except Exception as e:
-                        logger.error(f"종목 {_v_stock_code} 기술적 분석 오류: {e}")
+                        logger.error(f"종목 {_v_stock_code} 기술적 분석 오류: {e}", exc_info=True)
                         continue
             
             logger.info(f"동시 기술적 분석 완료: {len(_v_results)}개 결과")
             return _v_results
             
         except Exception as e:
-            logger.error(f"동시 기술적 분석 오류: {e}")
+            logger.error(f"동시 기술적 분석 오류: {e}", exc_info=True)
             return []
     
     def get_performance_comparison(self, p_stock_list: List[Dict]) -> Dict:
@@ -274,7 +274,7 @@ class ParallelPriceAnalyzer(PriceAnalyzer):
             return _v_comparison
             
         except Exception as e:
-            logger.error(f"성능 비교 오류: {e}")
+            logger.error(f"성능 비교 오류: {e}", exc_info=True)
             return {}
     
     def _get_performance_recommendation(self, p_speedup: float) -> str:
@@ -353,7 +353,7 @@ class ParallelPriceAnalyzer(PriceAnalyzer):
                 return self.batch_analyze_stocks(p_stock_list, _v_optimal_batch_size)
                 
         except Exception as e:
-            logger.error(f"적응형 분석 오류: {e}")
+            logger.error(f"적응형 분석 오류: {e}", exc_info=True)
             return []
 
 if __name__ == "__main__":

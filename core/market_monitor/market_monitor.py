@@ -159,7 +159,7 @@ class MarketDataProcessor:
             return market_snapshot
             
         except Exception as e:
-            self._logger.error(f"시장 데이터 처리 실패: {e}")
+            self._logger.error(f"시장 데이터 처리 실패: {e}", exc_info=True)
             return self._create_empty_snapshot()
     
     def _extract_index_data(self, index_data: Dict) -> Dict[str, float]:
@@ -231,7 +231,7 @@ class MarketDataProcessor:
             return snapshot
             
         except Exception as e:
-            self._logger.error(f"종목 데이터 처리 실패 ({stock_info.get('stock_code', 'unknown')}): {e}")
+            self._logger.error(f"종목 데이터 처리 실패 ({stock_info.get('stock_code', 'unknown')}): {e}", exc_info=True)
             return None
     
     def _calculate_technical_indicators(self, stock_code: str, current_price: float) -> Dict[str, Optional[float]]:
@@ -271,7 +271,7 @@ class MarketDataProcessor:
             }
             
         except Exception as e:
-            self._logger.error(f"기술적 지표 계산 실패 ({stock_code}): {e}")
+            self._logger.error(f"기술적 지표 계산 실패 ({stock_code}): {e}", exc_info=True)
             return {
                 'rsi': None, 'ma5': None, 'ma20': None, 'ma60': None,
                 'bollinger_upper': None, 'bollinger_lower': None
@@ -633,7 +633,7 @@ class MarketMonitor:
                 self._stop_event.wait(self._config.update_interval)
                 
             except Exception as e:
-                self._logger.error(f"모니터링 루프 오류: {e}")
+                self._logger.error(f"모니터링 루프 오류: {e}", exc_info=True)
                 time.sleep(60)  # 오류 시 1분 대기
     
     def _collect_market_data(self) -> Dict[str, Any]:
@@ -647,7 +647,7 @@ class MarketMonitor:
                 return self._generate_mock_data()
                 
         except Exception as e:
-            self._logger.error(f"시장 데이터 수집 실패: {e}")
+            self._logger.error(f"시장 데이터 수집 실패: {e}", exc_info=True)
             return self._generate_mock_data()
     
     def _collect_real_data(self) -> Dict[str, Any]:
@@ -680,7 +680,7 @@ class MarketMonitor:
                     market_data['stocks'].append(stock_data)
                     
         except Exception as e:
-            self._logger.error(f"실제 데이터 수집 실패: {e}")
+            self._logger.error(f"실제 데이터 수집 실패: {e}", exc_info=True)
         
         return market_data
     
@@ -703,7 +703,7 @@ class MarketMonitor:
             }
             
         except Exception as e:
-            self._logger.error(f"종목 데이터 조회 실패 ({symbol}): {e}")
+            self._logger.error(f"종목 데이터 조회 실패 ({symbol}): {e}", exc_info=True)
             return None
     
     def _generate_mock_data(self) -> Dict[str, Any]:
@@ -773,7 +773,7 @@ class MarketMonitor:
                 json.dump(snapshot_dict, f, ensure_ascii=False, indent=2, default=str)
                 
         except Exception as e:
-            self._logger.error(f"스냅샷 저장 실패: {e}")
+            self._logger.error(f"스냅샷 저장 실패: {e}", exc_info=True)
     
     def _execute_snapshot_callbacks(self, snapshot: MarketSnapshot):
         """스냅샷 콜백 실행"""
@@ -781,7 +781,7 @@ class MarketMonitor:
             try:
                 callback(snapshot)
             except Exception as e:
-                self._logger.error(f"스냅샷 콜백 실행 실패: {e}")
+                self._logger.error(f"스냅샷 콜백 실행 실패: {e}", exc_info=True)
     
     def _process_alerts(self, snapshot: MarketSnapshot):
         """알림 처리"""
@@ -820,7 +820,7 @@ class MarketMonitor:
                 self._execute_alert_callbacks(alert)
                 
         except Exception as e:
-            self._logger.error(f"알림 처리 실패: {e}")
+            self._logger.error(f"알림 처리 실패: {e}", exc_info=True)
     
     def _execute_alert_callbacks(self, alert: Dict):
         """알림 콜백 실행"""
@@ -828,7 +828,7 @@ class MarketMonitor:
             try:
                 callback(alert['type'], alert)
             except Exception as e:
-                self._logger.error(f"알림 콜백 실행 실패: {e}")
+                self._logger.error(f"알림 콜백 실행 실패: {e}", exc_info=True)
     
     def get_current_snapshot(self) -> Optional[MarketSnapshot]:
         """현재 스냅샷 조회"""

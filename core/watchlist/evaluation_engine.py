@@ -109,7 +109,7 @@ class EvaluationEngine:
             return _v_comprehensive_score, _v_score_details
             
         except Exception as e:
-            logger.error(f"종합 점수 계산 오류: {e}")
+            logger.error(f"종합 점수 계산 오류: {e}", exc_info=True)
             return 0.0, {}
     
     def _calculate_fundamental_score(self, p_stock_data: Dict) -> float:
@@ -198,7 +198,7 @@ class EvaluationEngine:
             return (_v_score / _v_max_score) * 100.0
             
         except Exception as e:
-            logger.error(f"재무제표 점수 계산 오류: {e}")
+            logger.error(f"재무제표 점수 계산 오류: {e}", exc_info=True)
             return 0.0
     
     def _calculate_technical_score(self, p_stock_data: Dict) -> float:
@@ -277,7 +277,7 @@ class EvaluationEngine:
             return (_v_score / _v_max_score) * 100.0
             
         except Exception as e:
-            logger.error(f"기술적 분석 점수 계산 오류: {e}")
+            logger.error(f"기술적 분석 점수 계산 오류: {e}", exc_info=True)
             return 0.0
     
     def _calculate_momentum_score(self, p_stock_data: Dict) -> float:
@@ -345,7 +345,7 @@ class EvaluationEngine:
             return (_v_score / _v_max_score) * 100.0
             
         except Exception as e:
-            logger.error(f"모멘텀 점수 계산 오류: {e}")
+            logger.error(f"모멘텀 점수 계산 오류: {e}", exc_info=True)
             return 0.0
     
     def _calculate_sector_score(self, p_stock_data: Dict) -> float:
@@ -401,7 +401,7 @@ class EvaluationEngine:
             return (_v_score / _v_max_score) * 100.0
             
         except Exception as e:
-            logger.error(f"섹터 점수 계산 오류: {e}")
+            logger.error(f"섹터 점수 계산 오류: {e}", exc_info=True)
             return 50.0  # 기본값
     
     def compare_with_sector(self, p_stock_data: Dict) -> Dict:
@@ -462,7 +462,7 @@ class EvaluationEngine:
             return _v_comparison
             
         except Exception as e:
-            logger.error(f"섹터 비교 오류: {e}")
+            logger.error(f"섹터 비교 오류: {e}", exc_info=True)
             return {}
     
     def _adjust_weights_for_market(self) -> EvaluationWeights:
@@ -510,7 +510,7 @@ class EvaluationEngine:
             return _v_adjusted_weights
             
         except Exception as e:
-            logger.error(f"가중치 조정 오류: {e}")
+            logger.error(f"가중치 조정 오류: {e}", exc_info=True)
             return self._v_weights
     
     def update_market_condition(self, p_market_condition: MarketCondition) -> None:
@@ -543,7 +543,7 @@ class EvaluationEngine:
                 self._save_config()
                 
         except Exception as e:
-            logger.error(f"평가 설정 로드 오류: {e}")
+            logger.error(f"평가 설정 로드 오류: {e}", exc_info=True)
     
     def _save_config(self) -> None:
         """평가 설정 저장"""
@@ -566,7 +566,7 @@ class EvaluationEngine:
             logger.debug("평가 설정 저장 완료")
             
         except Exception as e:
-            logger.error(f"평가 설정 저장 오류: {e}")
+            logger.error(f"평가 설정 저장 오류: {e}", exc_info=True)
     
     def _load_sector_data(self) -> None:
         """섹터 데이터 로드"""
@@ -630,7 +630,7 @@ class EvaluationEngine:
             logger.info("섹터 데이터 로드 완료")
             
         except Exception as e:
-            logger.error(f"섹터 데이터 로드 오류: {e}")
+            logger.error(f"섹터 데이터 로드 오류: {e}", exc_info=True)
     
     def _get_sector_average(self, p_metric: str, p_sector: str) -> float:
         """섹터 평균값 조회
@@ -648,7 +648,7 @@ class EvaluationEngine:
             return _v_averages.get(p_metric, 0.0)
             
         except Exception as e:
-            logger.error(f"섹터 평균값 조회 오류: {e}")
+            logger.error(f"섹터 평균값 조회 오류: {e}", exc_info=True)
             return 0.0
     
     def set_weights(self, p_weights: EvaluationWeights) -> bool:
@@ -672,5 +672,5 @@ class EvaluationEngine:
             return True
             
         except Exception as e:
-            logger.error(f"가중치 설정 오류: {e}")
+            logger.error(f"가중치 설정 오류: {e}", exc_info=True)
             return False 

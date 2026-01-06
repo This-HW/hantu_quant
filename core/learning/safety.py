@@ -434,7 +434,7 @@ class ModelRollback:
                 logger.warning(f"Model rolled back to {target_version}")
                 return history['state']
 
-        logger.error(f"Version not found: {target_version}")
+        logger.error(f"Version not found: {target_version}", exc_info=True)
         return None
 
     def force_rollback(self, steps: int = 1) -> Optional[Dict]:

@@ -88,7 +88,7 @@ class AutoRecoverySystem:
                 self._record_recovery_attempt(issue, action)
 
             except Exception as e:
-                self.logger.error(f"복구 시도 중 오류 ({issue}): {e}")
+                self.logger.error(f"복구 시도 중 오류 ({issue}): {e}", exc_info=True)
                 recovery_results['failed'] += 1
 
                 action = RecoveryAction(
@@ -417,7 +417,7 @@ class AutoRecoverySystem:
                 json.dump(data, f, ensure_ascii=False, indent=2)
 
         except Exception as e:
-            self.logger.error(f"복구 시도 기록 실패: {e}")
+            self.logger.error(f"복구 시도 기록 실패: {e}", exc_info=True)
 
     def send_recovery_report(self, recovery_results: Dict, priority: str = "normal"):
         """복구 결과 리포트 전송"""
@@ -470,7 +470,7 @@ class AutoRecoverySystem:
             self.logger.info("복구 리포트 전송 완료")
 
         except Exception as e:
-            self.logger.error(f"복구 리포트 전송 실패: {e}")
+            self.logger.error(f"복구 리포트 전송 실패: {e}", exc_info=True)
 
 
 # 싱글톤 인스턴스

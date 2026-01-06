@@ -77,14 +77,14 @@ class ParallelStockScreener(StockScreener):
                         print(f"🔄 배치 {_v_batch_idx + 1}/{len(_v_batches)} 완료 ({_v_passed_count}개 통과)")
                         
                     except Exception as e:
-                        logger.error(f"배치 {_v_batch_idx + 1} 처리 오류: {e}")
+                        logger.error(f"배치 {_v_batch_idx + 1} 처리 오류: {e}", exc_info=True)
                         continue
             
             logger.info(f"병렬 스크리닝 완료 - 총 {len(_v_all_results)}개 종목 처리")
             return _v_all_results
             
         except Exception as e:
-            logger.error(f"병렬 스크리닝 오류: {e}")
+            logger.error(f"병렬 스크리닝 오류: {e}", exc_info=True)
             return []
     
     def threaded_screening_batch(self, p_stock_list: List[str]) -> List[Dict]:
@@ -119,14 +119,14 @@ class ParallelStockScreener(StockScreener):
                             _v_results.append(_v_result)
                             
                     except Exception as e:
-                        logger.error(f"종목 {_v_stock_code} 스크리닝 오류: {e}")
+                        logger.error(f"종목 {_v_stock_code} 스크리닝 오류: {e}", exc_info=True)
                         continue
             
             logger.info(f"스레드 배치 스크리닝 완료: {len(_v_results)}개 결과")
             return _v_results
             
         except Exception as e:
-            logger.error(f"스레드 배치 스크리닝 오류: {e}")
+            logger.error(f"스레드 배치 스크리닝 오류: {e}", exc_info=True)
             return []
     
     def _screen_single_stock(self, p_stock_code: str) -> Optional[Dict]:
@@ -201,7 +201,7 @@ class ParallelStockScreener(StockScreener):
             return _v_result
             
         except Exception as e:
-            logger.error(f"단일 종목 스크리닝 오류 ({p_stock_code}): {e}")
+            logger.error(f"단일 종목 스크리닝 오류 ({p_stock_code}): {e}", exc_info=True)
             return None
     
     @staticmethod
@@ -229,13 +229,13 @@ class ParallelStockScreener(StockScreener):
                         _v_batch_results.append(_v_result)
                         
                 except Exception as e:
-                    logger.error(f"배치 워커 종목 처리 오류 ({stock_code}): {e}")
+                    logger.error(f"배치 워커 종목 처리 오류 ({stock_code}): {e}", exc_info=True)
                     continue
             
             return _v_batch_results
             
         except Exception as e:
-            logger.error(f"배치 워커 오류: {e}")
+            logger.error(f"배치 워커 오류: {e}", exc_info=True)
             return []
     
     def get_performance_metrics(self) -> Dict:

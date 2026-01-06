@@ -44,8 +44,8 @@ class KRXClient:
                 logger.info(f"[save_stock_list] {market}: {count}개 종목")
             
         except Exception as e:
-            logger.error(f"[save_stock_list] 주식 목록 저장 중 오류 발생: {str(e)}")
-            logger.error(f"[save_stock_list] 상세 에러: {e.__class__.__name__}")
+            logger.error(f"[save_stock_list] 주식 목록 저장 중 오류 발생: {str(e)}", exc_info=True)
+            logger.error(f"[save_stock_list] 상세 에러: {e.__class__.__name__}", exc_info=True)
             raise
             
     def get_stock_list(self, market: str = "ALL") -> pd.DataFrame:
@@ -75,8 +75,8 @@ class KRXClient:
             return df
             
         except Exception as e:
-            logger.error(f"[get_stock_list] 종목 목록 조회 중 오류 발생: {str(e)}")
-            logger.error(f"[get_stock_list] 상세 에러: {e.__class__.__name__}")
+            logger.error(f"[get_stock_list] 종목 목록 조회 중 오류 발생: {str(e)}", exc_info=True)
+            logger.error(f"[get_stock_list] 상세 에러: {e.__class__.__name__}", exc_info=True)
             raise
             
     def get_stock_info(self, ticker: str) -> dict:
@@ -96,6 +96,6 @@ class KRXClient:
             return stock_info
             
         except Exception as e:
-            logger.error(f"[get_stock_info] 종목 정보 조회 중 오류 발생: {str(e)}")
-            logger.error(f"[get_stock_info] 상세 에러: {e.__class__.__name__}")
+            logger.error(f"[get_stock_info] 종목 정보 조회 중 오류 발생: {str(e)}", exc_info=True)
+            logger.error(f"[get_stock_info] 상세 에러: {e.__class__.__name__}", exc_info=True)
             raise 

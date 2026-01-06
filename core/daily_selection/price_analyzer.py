@@ -318,7 +318,7 @@ class TechnicalIndicators:
             return _v_upper, _v_sma, _v_lower
             
         except Exception as e:
-            logger.error(f"볼린저 밴드 계산 오류: {e}")
+            logger.error(f"볼린저 밴드 계산 오류: {e}", exc_info=True)
             return 0.0, 0.0, 0.0
 
     @staticmethod
@@ -350,7 +350,7 @@ class TechnicalIndicators:
             return _v_macd_line, _v_signal_line, _v_histogram
             
         except Exception as e:
-            logger.error(f"MACD 계산 오류: {e}")
+            logger.error(f"MACD 계산 오류: {e}", exc_info=True)
             return 0.0, 0.0, 0.0
 
     @staticmethod
@@ -376,7 +376,7 @@ class TechnicalIndicators:
             return _v_rsi
             
         except Exception as e:
-            logger.error(f"RSI 계산 오류: {e}")
+            logger.error(f"RSI 계산 오류: {e}", exc_info=True)
             return 50.0
 
     @staticmethod
@@ -446,7 +446,7 @@ class TechnicalIndicators:
             return float(_v_current_k), float(_v_current_d)
 
         except Exception as e:
-            logger.error(f"스토캐스틱 계산 오류: {e}")
+            logger.error(f"스토캐스틱 계산 오류: {e}", exc_info=True)
             return 50.0, 50.0
 
     @staticmethod
@@ -499,7 +499,7 @@ class TechnicalIndicators:
             return float(_v_cci)
 
         except Exception as e:
-            logger.error(f"CCI 계산 오류: {e}")
+            logger.error(f"CCI 계산 오류: {e}", exc_info=True)
             return 0.0
 
     @staticmethod
@@ -551,7 +551,7 @@ class TechnicalIndicators:
             return float(_v_atr)
 
         except Exception as e:
-            logger.error(f"ATR 계산 오류: {e}")
+            logger.error(f"ATR 계산 오류: {e}", exc_info=True)
             return 0.0
 
 @plugin(
@@ -630,7 +630,7 @@ class PriceAnalyzer(IPriceAnalyzer):
             return _v_legacy_result.to_price_attractiveness()
             
         except Exception as e:
-            self._logger.error(f"가격 매력도 분석 오류: {e}")
+            self._logger.error(f"가격 매력도 분석 오류: {e}", exc_info=True)
             return self._create_default_result(p_stock_data)
 
     def analyze_multiple_stocks(self, p_stock_list: List[Dict]) -> List[PriceAttractiveness]:
@@ -642,7 +642,7 @@ class PriceAnalyzer(IPriceAnalyzer):
                 _v_result = self.analyze_price_attractiveness(_v_stock_data)
                 _v_results.append(_v_result)
             except Exception as e:
-                self._logger.error(f"종목 {_v_stock_data.get('stock_code', 'Unknown')} 분석 오류: {e}")
+                self._logger.error(f"종목 {_v_stock_data.get('stock_code', 'Unknown')} 분석 오류: {e}", exc_info=True)
                 continue
         
         # 점수 순으로 정렬
@@ -671,7 +671,7 @@ class PriceAnalyzer(IPriceAnalyzer):
             return _v_score, _v_signals
             
         except Exception as e:
-            self._logger.error(f"기술적 지표 분석 오류: {e}")
+            self._logger.error(f"기술적 지표 분석 오류: {e}", exc_info=True)
             return 0.0, []
 
     def analyze_volume_pattern(self, p_stock_data: Dict) -> float:
@@ -679,7 +679,7 @@ class PriceAnalyzer(IPriceAnalyzer):
         try:
             return self._analyze_volume(p_stock_data)
         except Exception as e:
-            self._logger.error(f"거래량 패턴 분석 오류: {e}")
+            self._logger.error(f"거래량 패턴 분석 오류: {e}", exc_info=True)
             return 0.0
 
     def detect_patterns(self, p_stock_data: Dict) -> float:
@@ -687,7 +687,7 @@ class PriceAnalyzer(IPriceAnalyzer):
         try:
             return self._analyze_patterns(p_stock_data)
         except Exception as e:
-            self._logger.error(f"패턴 감지 오류: {e}")
+            self._logger.error(f"패턴 감지 오류: {e}", exc_info=True)
             return 0.0
 
     def _analyze_price_attractiveness_legacy(self, p_stock_data: Dict) -> PriceAttractivenessLegacy:
@@ -762,7 +762,7 @@ class PriceAnalyzer(IPriceAnalyzer):
             )
             
         except Exception as e:
-            self._logger.error(f"가격 매력도 분석 오류: {e}")
+            self._logger.error(f"가격 매력도 분석 오류: {e}", exc_info=True)
             return self._create_default_result_legacy(p_stock_data)
 
     def _create_default_result(self, p_stock_data: Dict) -> PriceAttractiveness:
@@ -1015,7 +1015,7 @@ class PriceAnalyzer(IPriceAnalyzer):
             return float(_v_volume_score)
             
         except Exception as e:
-            self._logger.error(f"거래량 분석 오류: {e}")
+            self._logger.error(f"거래량 분석 오류: {e}", exc_info=True)
             return 50.0
 
     def _analyze_patterns(self, p_stock_data: Dict) -> float:
@@ -1051,7 +1051,7 @@ class PriceAnalyzer(IPriceAnalyzer):
             return float(_v_pattern_score)
             
         except Exception as e:
-            self._logger.error(f"패턴 분석 오류: {e}")
+            self._logger.error(f"패턴 분석 오류: {e}", exc_info=True)
             return 50.0
     
     def _analyze_slope_indicators(self, p_stock_data: Dict) -> Tuple[float, List[TechnicalSignal]]:
@@ -1183,7 +1183,7 @@ class PriceAnalyzer(IPriceAnalyzer):
             return _v_normalized_score, _v_signals
             
         except Exception as e:
-            logger.error(f"기울기 분석 중 오류 발생: {e}")
+            logger.error(f"기울기 분석 중 오류 발생: {e}", exc_info=True)
             return 50.0, []
     
     def _generate_ohlcv_data(self, p_stock_data: Dict) -> Optional[pd.DataFrame]:
@@ -1233,7 +1233,7 @@ class PriceAnalyzer(IPriceAnalyzer):
             return _v_ohlcv_data
             
         except Exception as e:
-            logger.error(f"OHLCV 데이터 생성 오류: {e}")
+            logger.error(f"OHLCV 데이터 생성 오류: {e}", exc_info=True)
             return None
     
     def _calculate_target_stop(self, p_entry_price: float, p_score: float) -> Tuple[float, float, float]:
@@ -1278,7 +1278,7 @@ class PriceAnalyzer(IPriceAnalyzer):
             return float(_v_annual_volatility)
 
         except Exception as e:
-            logger.error(f"변동성 계산 오류: {e}")
+            logger.error(f"변동성 계산 오류: {e}", exc_info=True)
             return 0.25
 
     def _calculate_var(self, p_prices: List[float], p_position_value: float,
@@ -1318,7 +1318,7 @@ class PriceAnalyzer(IPriceAnalyzer):
             _v_var = p_position_value * _v_z_score * _v_volatility / np.sqrt(252)
             return float(abs(_v_var))
         except Exception as e:
-            logger.error(f"VaR 계산 오류: {e}")
+            logger.error(f"VaR 계산 오류: {e}", exc_info=True)
             return p_position_value * 0.02  # 기본 2%
 
     def _calculate_risk_score(self, p_stock_data: Dict, p_total_score: float) -> float:
@@ -1464,7 +1464,7 @@ class PriceAnalyzer(IPriceAnalyzer):
             return True
             
         except Exception as e:
-            logger.error(f"분석 결과 저장 실패: {e}")
+            logger.error(f"분석 결과 저장 실패: {e}", exc_info=True)
             return False
 
 if __name__ == "__main__":
