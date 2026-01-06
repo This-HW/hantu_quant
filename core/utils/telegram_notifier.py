@@ -131,27 +131,20 @@ class TelegramNotifier:
             return False
 
     def _format_message_by_priority(self, message: str, priority: str) -> str:
-        """우선순위에 따라 메시지 포맷 추가"""
-        priority_headers = {
-            'critical': '🚨🚨🚨 *[긴급 시스템 알림]* 🚨🚨🚨\n\n',
-            'emergency': '🔴🔴 *[긴급 알림]* 🔴🔴\n\n',
-            'high': '⚠️ *[중요 알림]* ⚠️\n\n',
-            'normal': '📢 *[알림]* 📢\n\n',
-            'low': 'ℹ️ *[정보]* ℹ️\n\n',
-            'info': '💡 *[참고]* 💡\n\n'
+        """우선순위에 따라 메시지 포맷 추가 (간소화)"""
+        # 중요도별 간단한 이모지만 추가
+        priority_prefix = {
+            'critical': '🚨 ',
+            'emergency': '🔴 ',
+            'high': '⚠️ ',
+            'normal': '',
+            'low': '',
+            'info': ''
         }
 
-        header = priority_headers.get(priority, '')
+        prefix = priority_prefix.get(priority, '')
 
-        # critical이나 emergency는 강조 표시
-        if priority in ['critical', 'emergency']:
-            footer = '\n\n‼️ *즉시 확인하시기 바랍니다!* ‼️'
-        elif priority == 'high':
-            footer = '\n\n⚡ *빠른 확인이 필요합니다*'
-        else:
-            footer = ''
-
-        return f"{header}{message}{footer}"
+        return f"{prefix}{message}"
 
     def _should_silent_notification(self, priority: str) -> bool:
         """우선순위에 따라 무음 알림 여부 결정"""
@@ -260,16 +253,12 @@ class TelegramNotifier:
     def send_error_alert(self, error_type: str, error_message: str) -> bool:
         """오류 알림 전송"""
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        message = f"""🚨 *한투 퀀트 시스템 오류*
 
-⏰ 발생 시간: `{current_time}`
-❌ 오류 유형: `{error_type}`
-📝 오류 내용: `{error_message}`
+        message = f"""*시스템 오류*
+`{current_time}` | `{error_type}`
 
-⚠️ *시스템 점검이 필요합니다.*
-🔧 *관리자에게 문의하거나 로그를 확인해주세요.*"""
-        
+{error_message}"""
+
         return self.send_message(message, "emergency")
     
     def send_scheduler_started(self) -> bool:
