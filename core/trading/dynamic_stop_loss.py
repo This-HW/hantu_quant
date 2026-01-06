@@ -120,7 +120,7 @@ class DynamicStopLossCalculator:
             return float(atr)
 
         except Exception as e:
-            logger.error(f"ATR 계산 오류: {e}")
+            logger.error(f"ATR 계산 오류: {e}", exc_info=True)
             return 0.0
 
     def calculate_atr_from_prices(

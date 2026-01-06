@@ -171,7 +171,7 @@ class GeneticOptimizer:
             return result
             
         except Exception as e:
-            self._logger.error(f"유전 알고리즘 최적화 오류: {e}")
+            self._logger.error(f"유전 알고리즘 최적화 오류: {e}", exc_info=True)
             # 빈 결과 반환
             return OptimizationResult(
                 method="genetic_algorithm",
@@ -214,7 +214,7 @@ class GeneticOptimizer:
             self._logger.debug(f"초기 집단 생성 완료: {len(self._population)}개 개체")
             
         except Exception as e:
-            self._logger.error(f"초기 집단 생성 오류: {e}")
+            self._logger.error(f"초기 집단 생성 오류: {e}", exc_info=True)
     
     def _evaluate_population(self, component: str):
         """집단 평가"""
@@ -229,7 +229,7 @@ class GeneticOptimizer:
                     self._fitness_scores.append(0.0)  # 실패한 경우 최저 점수
             
         except Exception as e:
-            self._logger.error(f"집단 평가 오류: {e}")
+            self._logger.error(f"집단 평가 오류: {e}", exc_info=True)
             self._fitness_scores = [0.0] * len(self._population)
     
     def _evolve_population(self, component: str) -> List[Dict[str, Any]]:
@@ -266,7 +266,7 @@ class GeneticOptimizer:
             return new_population[:self._config.population_size]
             
         except Exception as e:
-            self._logger.error(f"집단 진화 오류: {e}")
+            self._logger.error(f"집단 진화 오류: {e}", exc_info=True)
             return self._population.copy()
     
     def _tournament_selection(self) -> Dict[str, Any]:
@@ -284,7 +284,7 @@ class GeneticOptimizer:
             return self._population[best_idx].copy()
             
         except Exception as e:
-            self._logger.error(f"토너먼트 선택 오류: {e}")
+            self._logger.error(f"토너먼트 선택 오류: {e}", exc_info=True)
             return random.choice(self._population).copy()
     
     def _crossover(self, component: str, parent1: Dict[str, Any], 
@@ -301,7 +301,7 @@ class GeneticOptimizer:
             return child1, child2
             
         except Exception as e:
-            self._logger.error(f"교차 연산 오류: {e}")
+            self._logger.error(f"교차 연산 오류: {e}", exc_info=True)
             return parent1.copy(), parent2.copy()
     
     def _mutate(self, component: str, individual: Dict[str, Any]) -> Dict[str, Any]:
@@ -342,7 +342,7 @@ class GeneticOptimizer:
             return mutated
             
         except Exception as e:
-            self._logger.error(f"돌연변이 연산 오류: {e}")
+            self._logger.error(f"돌연변이 연산 오류: {e}", exc_info=True)
             return individual.copy()
     
     def get_optimization_progress(self) -> Dict[str, Any]:
@@ -405,5 +405,5 @@ class GeneticOptimizer:
             return np.mean(diversity_scores) if diversity_scores else 0.0
             
         except Exception as e:
-            self._logger.error(f"집단 다양성 계산 오류: {e}")
+            self._logger.error(f"집단 다양성 계산 오류: {e}", exc_info=True)
             return 0.0 

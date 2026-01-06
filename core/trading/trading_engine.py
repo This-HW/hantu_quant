@@ -134,7 +134,7 @@ class TradingEngine:
             return True
             
         except Exception as e:
-            self.logger.error(f"API 초기화 실패: {e}")
+            self.logger.error(f"API 초기화 실패: {e}", exc_info=True)
             return False
             
     def _load_daily_selection(self) -> List[Dict[str, Any]]:
@@ -156,7 +156,7 @@ class TradingEngine:
             return selected_stocks
             
         except Exception as e:
-            self.logger.error(f"일일 선정 종목 로드 실패: {e}")
+            self.logger.error(f"일일 선정 종목 로드 실패: {e}", exc_info=True)
             return []
             
     def _is_market_time(self) -> bool:
@@ -224,7 +224,7 @@ class TradingEngine:
             return quantity
             
         except Exception as e:
-            self.logger.error(f"포지션 크기 계산 실패 {stock_code}: {e}")
+            self.logger.error(f"포지션 크기 계산 실패 {stock_code}: {e}", exc_info=True)
             return 0
             
     def _get_account_balance(self) -> float:
@@ -244,7 +244,7 @@ class TradingEngine:
             return float(total_eval)
 
         except Exception as e:
-            self.logger.error(f"계좌 잔고 조회 실패: {e}")
+            self.logger.error(f"계좌 잔고 조회 실패: {e}", exc_info=True)
             return 0.0
             
     def _get_available_cash(self) -> float:
@@ -261,7 +261,7 @@ class TradingEngine:
             return balance.get("deposit", 0)
             
         except Exception as e:
-            self.logger.error(f"가용 현금 조회 실패: {e}")
+            self.logger.error(f"가용 현금 조회 실패: {e}", exc_info=True)
             return 0.0
             
     def _calculate_risk_based_size(self, account_balance: float, current_price: float) -> float:
@@ -281,7 +281,7 @@ class TradingEngine:
                 return account_balance * self.config.position_size_value
                 
         except Exception as e:
-            self.logger.error(f"리스크 기반 사이징 계산 실패: {e}")
+            self.logger.error(f"리스크 기반 사이징 계산 실패: {e}", exc_info=True)
             return account_balance * self.config.position_size_value
             
     def _calculate_kelly_size(self, account_balance: float, stock_code: str, stock_data: Optional[Dict]) -> float:
@@ -319,7 +319,7 @@ class TradingEngine:
             return position_amount
             
         except Exception as e:
-            self.logger.error(f"Kelly 사이징 계산 실패: {e}")
+            self.logger.error(f"Kelly 사이징 계산 실패: {e}", exc_info=True)
             return account_balance * self.config.position_size_value
             
     def _get_historical_performance(self) -> Tuple[float, float, float]:
@@ -360,7 +360,7 @@ class TradingEngine:
             return win_rate, avg_win, avg_loss
             
         except Exception as e:
-            self.logger.error(f"과거 성과 조회 실패: {e}")
+            self.logger.error(f"과거 성과 조회 실패: {e}", exc_info=True)
             return 0.6, 100000, 50000
 
     def _calculate_stop_prices(
@@ -425,7 +425,7 @@ class TradingEngine:
             return stop_loss, take_profit, None
 
         except Exception as e:
-            self.logger.error(f"손절/익절가 계산 실패 {stock_code}: {e}")
+            self.logger.error(f"손절/익절가 계산 실패 {stock_code}: {e}", exc_info=True)
             # 폴백: 고정 비율
             stop_loss = entry_price * (1 - self.config.stop_loss_pct)
             take_profit = entry_price * (1 + self.config.take_profit_pct)
@@ -478,7 +478,7 @@ class TradingEngine:
             return df
 
         except Exception as e:
-            self.logger.error(f"OHLCV 데이터 조회 실패 {stock_code}: {e}")
+            self.logger.error(f"OHLCV 데이터 조회 실패 {stock_code}: {e}", exc_info=True)
             return None
 
     def _should_buy(self, stock_data: Dict[str, Any]) -> Tuple[bool, str]:
@@ -516,7 +516,7 @@ class TradingEngine:
             return True, "매수 조건 충족"
             
         except Exception as e:
-            self.logger.error(f"매수 조건 확인 실패: {e}")
+            self.logger.error(f"매수 조건 확인 실패: {e}", exc_info=True)
             return False, f"오류: {e}"
             
     def _should_sell(self, position: Position) -> Tuple[bool, str]:
@@ -546,7 +546,7 @@ class TradingEngine:
             return False, "보유 유지"
             
         except Exception as e:
-            self.logger.error(f"매도 조건 확인 실패: {e}")
+            self.logger.error(f"매도 조건 확인 실패: {e}", exc_info=True)
             return False, f"오류: {e}"
             
     async def _execute_buy_order(self, stock_data: Dict[str, Any]) -> bool:
@@ -634,11 +634,11 @@ class TradingEngine:
                 
             else:
                 error_msg = result.get('message', '알 수 없는 오류') if result else "응답 없음"
-                self.logger.error(f"매수 주문 실패: {stock_code} - {error_msg}")
+                self.logger.error(f"매수 주문 실패: {stock_code} - {error_msg}", exc_info=True)
                 return False
                 
         except Exception as e:
-            self.logger.error(f"매수 주문 실행 실패: {e}")
+            self.logger.error(f"매수 주문 실행 실패: {e}", exc_info=True)
             return False
             
     async def _execute_sell_order(self, position: Position, reason: str) -> bool:
@@ -649,7 +649,7 @@ class TradingEngine:
             # 현재가 조회
             price_data = self.api.get_current_price(stock_code)
             if not price_data:
-                self.logger.error(f"현재가 조회 실패: {stock_code}")
+                self.logger.error(f"현재가 조회 실패: {stock_code}", exc_info=True)
                 return False
                 
             current_price = price_data.get('current_price', position.current_price)
@@ -719,11 +719,11 @@ class TradingEngine:
                 
             else:
                 error_msg = result.get('message', '알 수 없는 오류') if result else "응답 없음"
-                self.logger.error(f"매도 주문 실패: {stock_code} - {error_msg}")
+                self.logger.error(f"매도 주문 실패: {stock_code} - {error_msg}", exc_info=True)
                 return False
                 
         except Exception as e:
-            self.logger.error(f"매도 주문 실행 실패: {e}")
+            self.logger.error(f"매도 주문 실행 실패: {e}", exc_info=True)
             return False
             
     async def _update_positions(self):
@@ -745,7 +745,7 @@ class TradingEngine:
                         position.unrealized_return = unrealized_return
                         
         except Exception as e:
-            self.logger.error(f"포지션 업데이트 실패: {e}")
+            self.logger.error(f"포지션 업데이트 실패: {e}", exc_info=True)
             
     async def _trading_loop(self):
         """매매 실행 루프"""
@@ -798,7 +798,7 @@ class TradingEngine:
                 await asyncio.sleep(30)
                 
             except Exception as e:
-                self.logger.error(f"매매 루프 오류: {e}")
+                self.logger.error(f"매매 루프 오류: {e}", exc_info=True)
                 await asyncio.sleep(60)  # 오류 시 1분 대기
                 
         self.logger.info("자동 매매 루프 종료")
@@ -895,7 +895,7 @@ class TradingEngine:
             return True
             
         except Exception as e:
-            self.logger.error(f"자동 매매 시작 실패: {e}")
+            self.logger.error(f"자동 매매 시작 실패: {e}", exc_info=True)
             return False
             
     async def stop_trading(self, reason: str = "사용자 요청") -> bool:
@@ -939,7 +939,7 @@ class TradingEngine:
             return True
             
         except Exception as e:
-            self.logger.error(f"자동 매매 종료 실패: {e}")
+            self.logger.error(f"자동 매매 종료 실패: {e}", exc_info=True)
             return False
             
     async def _load_existing_positions(self):
@@ -970,7 +970,7 @@ class TradingEngine:
             self.logger.info(f"기존 포지션 로드 완료: {len(self.positions)}개")
             
         except Exception as e:
-            self.logger.error(f"기존 포지션 로드 실패: {e}")
+            self.logger.error(f"기존 포지션 로드 실패: {e}", exc_info=True)
             
     def get_status(self) -> Dict[str, Any]:
         """매매 엔진 상태 조회"""

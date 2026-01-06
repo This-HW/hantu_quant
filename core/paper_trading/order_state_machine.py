@@ -253,7 +253,7 @@ class OrderStateMachine:
             try:
                 self._on_transition(transition)
             except Exception as e:
-                logger.error(f"Transition callback error: {e}")
+                logger.error(f"Transition callback error: {e}", exc_info=True)
 
         return next_state
 

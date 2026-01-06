@@ -227,7 +227,7 @@ class ErrorNotifier:
             return result.success if hasattr(result, 'success') else bool(result)
 
         except Exception as e:
-            logger.error(f"Failed to send error notification: {e}")
+            logger.error(f"Failed to send error notification: {e}", exc_info=True)
             return False
 
     def get_stats(self, error_key: Optional[str] = None) -> Dict[str, Any]:

@@ -106,7 +106,7 @@ class StrategyComparator:
                 return comparisons
             return []
         except Exception as e:
-            self._logger.error(f"전략 비교 이력 로드 실패: {e}")
+            self._logger.error(f"전략 비교 이력 로드 실패: {e}", exc_info=True)
             return []
     
     def _save_comparison_history(self):
@@ -126,7 +126,7 @@ class StrategyComparator:
                 json.dump(data, f, ensure_ascii=False, indent=2)
                 
         except Exception as e:
-            self._logger.error(f"전략 비교 이력 저장 실패: {e}")
+            self._logger.error(f"전략 비교 이력 저장 실패: {e}", exc_info=True)
     
     def compare_strategies(self, days: int = 30) -> StrategyComparison:
         """전략 비교 실행"""

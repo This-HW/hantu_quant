@@ -107,7 +107,7 @@ class PortfolioOptimizer:
             )
 
         except Exception as e:
-            logger.error(f"Min variance optimization failed: {e}")
+            logger.error(f"Min variance optimization failed: {e}", exc_info=True)
             return self._equal_weight_fallback(stocks)
 
     def optimize_max_sharpe(

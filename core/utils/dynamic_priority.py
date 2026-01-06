@@ -139,7 +139,7 @@ class DynamicPriorityManager:
                 return todos
             return {}
         except Exception as e:
-            self._logger.error(f"TODO 목록 로드 실패: {e}")
+            self._logger.error(f"TODO 목록 로드 실패: {e}", exc_info=True)
             return {}
     
     def _save_todos(self):
@@ -158,7 +158,7 @@ class DynamicPriorityManager:
                 json.dump(data, f, ensure_ascii=False, indent=2)
                 
         except Exception as e:
-            self._logger.error(f"TODO 목록 저장 실패: {e}")
+            self._logger.error(f"TODO 목록 저장 실패: {e}", exc_info=True)
     
     def _load_market_condition(self) -> Optional[MarketCondition]:
         """시장 상황 로드"""
@@ -176,7 +176,7 @@ class DynamicPriorityManager:
                 )
             return None
         except Exception as e:
-            self._logger.error(f"시장 상황 로드 실패: {e}")
+            self._logger.error(f"시장 상황 로드 실패: {e}", exc_info=True)
             return None
     
     def _save_market_condition(self, condition: MarketCondition):
@@ -189,7 +189,7 @@ class DynamicPriorityManager:
                 json.dump(data, f, ensure_ascii=False, indent=2)
                 
         except Exception as e:
-            self._logger.error(f"시장 상황 저장 실패: {e}")
+            self._logger.error(f"시장 상황 저장 실패: {e}", exc_info=True)
     
     def _load_adjustment_history(self) -> List[PriorityAdjustment]:
         """우선순위 조정 이력 로드"""
@@ -213,7 +213,7 @@ class DynamicPriorityManager:
                 return history
             return []
         except Exception as e:
-            self._logger.error(f"조정 이력 로드 실패: {e}")
+            self._logger.error(f"조정 이력 로드 실패: {e}", exc_info=True)
             return []
     
     def _save_adjustment_history(self):
@@ -231,7 +231,7 @@ class DynamicPriorityManager:
                 json.dump(data, f, ensure_ascii=False, indent=2)
                 
         except Exception as e:
-            self._logger.error(f"조정 이력 저장 실패: {e}")
+            self._logger.error(f"조정 이력 저장 실패: {e}", exc_info=True)
     
     def update_market_condition(self, volatility: float, trend: float, 
                               accuracy: float, performance_score: float):

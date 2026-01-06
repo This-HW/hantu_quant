@@ -149,7 +149,7 @@ class MarketIndicatorCollector:
             return indicators
 
         except Exception as e:
-            logger.error(f"시장 지표 수집 오류: {e}")
+            logger.error(f"시장 지표 수집 오류: {e}", exc_info=True)
             # 실패 시 캐시 또는 기본값 반환
             if self._cache:
                 return self._cache
@@ -386,7 +386,7 @@ class MarketIndicatorCollector:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             logger.info("지수 데이터 업데이트")
         except Exception as e:
-            logger.error(f"지수 데이터 업데이트 오류: {e}")
+            logger.error(f"지수 데이터 업데이트 오류: {e}", exc_info=True)
 
     def update_breadth_data(self, data: Dict[str, Any]):
         """시장 폭 데이터 업데이트"""
@@ -396,7 +396,7 @@ class MarketIndicatorCollector:
             with open(breadth_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f"시장 폭 데이터 업데이트 오류: {e}")
+            logger.error(f"시장 폭 데이터 업데이트 오류: {e}", exc_info=True)
 
     def get_historical_indicators(self, days: int = 30) -> List[MarketIndicators]:
         """과거 지표 조회"""

@@ -612,7 +612,7 @@ class LearningReporter:
             with open(report_file, 'w', encoding='utf-8') as f:
                 json.dump(asdict(report), f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f"리포트 저장 실패: {e}")
+            logger.error(f"리포트 저장 실패: {e}", exc_info=True)
 
     def get_saved_reports(self,
                          report_type: str = "all",

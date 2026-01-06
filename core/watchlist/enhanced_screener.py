@@ -163,7 +163,7 @@ class EnhancedScreener(StockScreener):
             return indicators
 
         except Exception as e:
-            logger.error(f"향상된 지표 계산 실패 ({stock_code}): {e}")
+            logger.error(f"향상된 지표 계산 실패 ({stock_code}): {e}", exc_info=True)
             return None
 
     def enhanced_screening(self, stock_code: str, stock_name: str,
@@ -210,7 +210,7 @@ class EnhancedScreener(StockScreener):
             return result
 
         except Exception as e:
-            logger.error(f"향상된 스크리닝 실패 ({stock_code}): {e}")
+            logger.error(f"향상된 스크리닝 실패 ({stock_code}): {e}", exc_info=True)
             return None
 
     def calculate_enhanced_score(self, indicators: Dict[str, Any]) -> float:

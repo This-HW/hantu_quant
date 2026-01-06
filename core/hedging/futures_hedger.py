@@ -532,7 +532,7 @@ class FuturesHedger:
                 # order_result = self.kis_api.futures_order(...)
                 pass
             except Exception as e:
-                logger.error(f"선물 주문 실패: {e}")
+                logger.error(f"선물 주문 실패: {e}", exc_info=True)
                 return None
 
         position = HedgePosition(
@@ -592,7 +592,7 @@ class FuturesHedger:
                 # order_result = self.kis_api.futures_order(...)
                 pass
             except Exception as e:
-                logger.error(f"선물 청산 실패: {e}")
+                logger.error(f"선물 청산 실패: {e}", exc_info=True)
                 return None
 
         self.trade_history.append({

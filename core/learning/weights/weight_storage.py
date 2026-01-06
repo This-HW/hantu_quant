@@ -111,7 +111,7 @@ class WeightStorage:
         if version:
             # 무결성 검증 (B.2.2)
             if not self.verify_checksum(version):
-                logger.error(f"가중치 무결성 검증 실패: {version_id}")
+                logger.error(f"가중치 무결성 검증 실패: {version_id}", exc_info=True)
                 return None
 
         return version
@@ -140,7 +140,7 @@ class WeightStorage:
         # 무결성 검증
         version = self._versions[version_id]
         if not self.verify_checksum(version):
-            logger.error(f"무결성 검증 실패로 활성화 거부: {version_id}")
+            logger.error(f"무결성 검증 실패로 활성화 거부: {version_id}", exc_info=True)
             return False
 
         # 기존 활성 버전 비활성화
@@ -209,7 +209,7 @@ class WeightStorage:
             with open(version_file, 'w', encoding='utf-8') as f:
                 json.dump(version.to_dict(), f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f"버전 파일 저장 실패: {e}")
+            logger.error(f"버전 파일 저장 실패: {e}", exc_info=True)
 
     def _save_registry(self):
         """버전 레지스트리 저장"""
@@ -223,7 +223,7 @@ class WeightStorage:
             with open(registry_file, 'w', encoding='utf-8') as f:
                 json.dump(registry, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f"레지스트리 저장 실패: {e}")
+            logger.error(f"레지스트리 저장 실패: {e}", exc_info=True)
 
     def _load_all_versions(self):
         """모든 버전 로드"""
@@ -241,7 +241,7 @@ class WeightStorage:
                     except Exception as e:
                         logger.warning(f"버전 로드 실패 {vid}: {e}")
         except Exception as e:
-            logger.error(f"레지스트리 로드 실패: {e}")
+            logger.error(f"레지스트리 로드 실패: {e}", exc_info=True)
 
     def list_versions(self, limit: int = 20) -> List[WeightVersion]:
         """

@@ -133,7 +133,7 @@ class AdvancedEmailNotifier:
             return self._send_email(recipients, subject, body, priority)
             
         except Exception as e:
-            self._logger.error(f"고급 이메일 알림 전송 실패: {e}")
+            self._logger.error(f"고급 이메일 알림 전송 실패: {e}", exc_info=True)
             return False
     
     def _get_template_for_priority(self, priority: NotificationPriority) -> Dict[str, str]:
@@ -311,7 +311,7 @@ class AdvancedEmailNotifier:
             return True
             
         except Exception as e:
-            self._logger.error(f"이메일 전송 실패: {e}")
+            self._logger.error(f"이메일 전송 실패: {e}", exc_info=True)
             return False
 
 class SMSNotifier:
@@ -336,7 +336,7 @@ class SMSNotifier:
             return self._send_sms(phone_numbers, message)
             
         except Exception as e:
-            self._logger.error(f"SMS 알림 전송 실패: {e}")
+            self._logger.error(f"SMS 알림 전송 실패: {e}", exc_info=True)
             return False
     
     def _create_sms_content(self, alert: AnomalyAlert, priority: NotificationPriority) -> str:
@@ -381,7 +381,7 @@ class SMSNotifier:
                 return True
                 
         except Exception as e:
-            self._logger.error(f"SMS 전송 실패: {e}")
+            self._logger.error(f"SMS 전송 실패: {e}", exc_info=True)
             return False
     
     def _send_via_twilio(self, phone_numbers: List[str], message: str) -> bool:
@@ -411,7 +411,7 @@ class SMSNotifier:
             return True
             
         except Exception as e:
-            self._logger.error(f"Twilio SMS 전송 실패: {e}")
+            self._logger.error(f"Twilio SMS 전송 실패: {e}", exc_info=True)
             return False
     
     def _send_via_aws_sns(self, phone_numbers: List[str], message: str) -> bool:
@@ -423,7 +423,7 @@ class SMSNotifier:
             return True
             
         except Exception as e:
-            self._logger.error(f"AWS SNS SMS 전송 실패: {e}")
+            self._logger.error(f"AWS SNS SMS 전송 실패: {e}", exc_info=True)
             return False
 
 class WebPushNotifier:
@@ -457,7 +457,7 @@ class WebPushNotifier:
             return success_count > 0
             
         except Exception as e:
-            self._logger.error(f"웹 푸시 알림 전송 실패: {e}")
+            self._logger.error(f"웹 푸시 알림 전송 실패: {e}", exc_info=True)
             return False
     
     def _create_push_payload(self, alert: AnomalyAlert, priority: NotificationPriority) -> Dict:
@@ -557,7 +557,7 @@ class WebPushNotifier:
             return True
             
         except Exception as e:
-            self._logger.error(f"웹 푸시 전송 실패: {e}")
+            self._logger.error(f"웹 푸시 전송 실패: {e}", exc_info=True)
             return False
 
 class AnomalyAlertTelegramNotifier:
@@ -751,7 +751,7 @@ class IntegratedAlertManager:
                         default_config[key] = value
                         
             except Exception as e:
-                self._logger.error(f"설정 파일 로드 실패: {e}")
+                self._logger.error(f"설정 파일 로드 실패: {e}", exc_info=True)
         
         return default_config
     
@@ -788,7 +788,7 @@ class IntegratedAlertManager:
             self._logger.info(f"알림기 초기화 완료: {len(self._notifiers)}개")
             
         except Exception as e:
-            self._logger.error(f"알림기 초기화 실패: {e}")
+            self._logger.error(f"알림기 초기화 실패: {e}", exc_info=True)
     
     def _load_rules_and_configs(self):
         """규칙 및 설정 로드"""
@@ -820,7 +820,7 @@ class IntegratedAlertManager:
                     self._channel_configs[config.channel] = config
                     
         except Exception as e:
-            self._logger.error(f"규칙 및 설정 로드 실패: {e}")
+            self._logger.error(f"규칙 및 설정 로드 실패: {e}", exc_info=True)
     
     def _create_default_rules(self):
         """기본 알림 규칙 생성"""
@@ -976,7 +976,7 @@ class IntegratedAlertManager:
                         })
                         
         except Exception as e:
-            self._logger.error(f"알림 전송 스케줄링 실패: {e}")
+            self._logger.error(f"알림 전송 스케줄링 실패: {e}", exc_info=True)
     
     def _find_applicable_rules(self, alert: AnomalyAlert) -> List[NotificationRule]:
         """적용 가능한 규칙 찾기"""
@@ -1043,7 +1043,7 @@ class IntegratedAlertManager:
             return True
             
         except Exception as e:
-            self._logger.error(f"알림 전송 여부 확인 실패: {e}")
+            self._logger.error(f"알림 전송 여부 확인 실패: {e}", exc_info=True)
             return False
     
     def _processing_loop(self):
@@ -1065,7 +1065,7 @@ class IntegratedAlertManager:
                 time.sleep(1)
                 
             except Exception as e:
-                self._logger.error(f"알림 처리 루프 오류: {e}")
+                self._logger.error(f"알림 처리 루프 오류: {e}", exc_info=True)
                 time.sleep(5)
     
     def _send_notification(self, notification: Dict) -> bool:
@@ -1127,7 +1127,7 @@ class IntegratedAlertManager:
             return success
             
         except Exception as e:
-            self._logger.error(f"알림 전송 실패: {e}")
+            self._logger.error(f"알림 전송 실패: {e}", exc_info=True)
             return False
     
     def get_notification_statistics(self, hours: int = 24) -> Dict[str, Any]:

@@ -161,7 +161,7 @@ class AccuracyAnalyzer:
             return metrics
             
         except Exception as e:
-            self._logger.error(f"정확도 분석 오류: {e}")
+            self._logger.error(f"정확도 분석 오류: {e}", exc_info=True)
             return self._create_empty_metrics(f"{start_date} ~ {end_date}")
     
     def _get_performance_data(self, start_date: str, end_date: str, return_period: str) -> List[Dict]:
@@ -187,7 +187,7 @@ class AccuracyAnalyzer:
                 return [dict(zip(columns, row)) for row in rows]
                 
         except Exception as e:
-            self._logger.error(f"성과 데이터 조회 오류: {e}")
+            self._logger.error(f"성과 데이터 조회 오류: {e}", exc_info=True)
             return []
     
     def _calculate_avg_return(self, performance_data: List[Dict], period: str) -> float:
@@ -196,7 +196,7 @@ class AccuracyAnalyzer:
             returns = [p[f'return_{period}'] for p in performance_data if p[f'return_{period}'] is not None]
             return np.mean(returns) if returns else 0.0
         except Exception as e:
-            self._logger.error(f"평균 수익률 계산 오류: {e}")
+            self._logger.error(f"평균 수익률 계산 오류: {e}", exc_info=True)
             return 0.0
     
     def _calculate_sharpe_ratio(self, returns: List[float], risk_free_rate: float = 0.03) -> Optional[float]:
@@ -229,7 +229,7 @@ class AccuracyAnalyzer:
             return float(sharpe)
             
         except Exception as e:
-            self._logger.error(f"샤프 비율 계산 오류: {e}")
+            self._logger.error(f"샤프 비율 계산 오류: {e}", exc_info=True)
             return None
     
     def _calculate_portfolio_max_drawdown(self, performance_data: List[Dict]) -> Optional[float]:
@@ -274,7 +274,7 @@ class AccuracyAnalyzer:
             return float(max_drawdown)
             
         except Exception as e:
-            self._logger.error(f"포트폴리오 최대 낙폭 계산 오류: {e}")
+            self._logger.error(f"포트폴리오 최대 낙폭 계산 오류: {e}", exc_info=True)
             return None
     
     def _calculate_sector_accuracy(self, performance_data: List[Dict], return_period: str) -> Dict[str, float]:
@@ -301,7 +301,7 @@ class AccuracyAnalyzer:
             return sector_accuracy
             
         except Exception as e:
-            self._logger.error(f"섹터별 정확도 계산 오류: {e}")
+            self._logger.error(f"섹터별 정확도 계산 오류: {e}", exc_info=True)
             return {}
     
     def _create_empty_metrics(self, period: str) -> AccuracyMetrics:
@@ -342,7 +342,7 @@ class AccuracyAnalyzer:
             return results
             
         except Exception as e:
-            self._logger.error(f"기간 비교 분석 오류: {e}")
+            self._logger.error(f"기간 비교 분석 오류: {e}", exc_info=True)
             return {}
     
     def get_accuracy_trend(self, start_date: str, end_date: str, 
@@ -391,7 +391,7 @@ class AccuracyAnalyzer:
             return trend_data
             
         except Exception as e:
-            self._logger.error(f"정확도 추세 분석 오류: {e}")
+            self._logger.error(f"정확도 추세 분석 오류: {e}", exc_info=True)
             return []
     
     def save_accuracy_report(self, metrics: AccuracyMetrics, filepath: str) -> bool:
@@ -424,5 +424,5 @@ class AccuracyAnalyzer:
             return True
             
         except Exception as e:
-            self._logger.error(f"정확도 리포트 저장 오류: {e}")
+            self._logger.error(f"정확도 리포트 저장 오류: {e}", exc_info=True)
             return False 

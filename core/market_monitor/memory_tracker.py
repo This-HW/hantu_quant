@@ -169,7 +169,7 @@ class MemoryTracker:
                     continue
                     
         except Exception as e:
-            self._logger.error(f"프로세스 메모리 정보 수집 중 오류: {e}")
+            self._logger.error(f"프로세스 메모리 정보 수집 중 오류: {e}", exc_info=True)
         
         return MemorySnapshot(
             timestamp=datetime.now(),
@@ -223,7 +223,7 @@ class MemoryTracker:
                         self._logger.warning(f"메모리 누수 의심 프로세스: {snapshot.memory_leak_suspects}")
                     
                 except Exception as e:
-                    self._logger.error(f"메모리 추적 중 오류: {e}")
+                    self._logger.error(f"메모리 추적 중 오류: {e}", exc_info=True)
                 
                 time.sleep(self._tracking_interval)
         
@@ -346,7 +346,7 @@ class APICallTracker:
                 self._logger.info("API 추적 데이터베이스 초기화 완료")
                 
         except Exception as e:
-            self._logger.error(f"API 추적 데이터베이스 초기화 중 오류: {e}")
+            self._logger.error(f"API 추적 데이터베이스 초기화 중 오류: {e}", exc_info=True)
     
     def record_api_call(self, endpoint: str, method: str = "GET", 
                        response_time: float = 0.0, request_size: int = 0,
@@ -414,7 +414,7 @@ class APICallTracker:
                 conn.commit()
                 
         except Exception as e:
-            self._logger.error(f"API 호출 기록 저장 중 오류: {e}")
+            self._logger.error(f"API 호출 기록 저장 중 오류: {e}", exc_info=True)
     
     def _invalidate_stats_cache(self, endpoint: str):
         """통계 캐시 무효화"""
@@ -517,7 +517,7 @@ class APICallTracker:
                 return statistics
                 
         except Exception as e:
-            self._logger.error(f"API 통계 조회 중 오류: {e}")
+            self._logger.error(f"API 통계 조회 중 오류: {e}", exc_info=True)
             return None
     
     def get_recent_calls(self, minutes: int = 60) -> List[APICallRecord]:
@@ -535,7 +535,7 @@ class APICallTracker:
                 cursor = conn.execute('SELECT DISTINCT endpoint FROM api_calls')
                 return [row[0] for row in cursor.fetchall()]
         except Exception as e:
-            self._logger.error(f"엔드포인트 목록 조회 중 오류: {e}")
+            self._logger.error(f"엔드포인트 목록 조회 중 오류: {e}", exc_info=True)
             return []
     
     def generate_traffic_report(self, hours: int = 24) -> Dict[str, Any]:
@@ -573,7 +573,7 @@ class APICallTracker:
             }
             
         except Exception as e:
-            self._logger.error(f"트래픽 리포트 생성 중 오류: {e}")
+            self._logger.error(f"트래픽 리포트 생성 중 오류: {e}", exc_info=True)
             return {}
 
 class SystemResourceTracker:

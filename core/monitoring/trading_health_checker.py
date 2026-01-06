@@ -147,7 +147,7 @@ class TradingHealthChecker:
             return result
 
         except Exception as e:
-            self.logger.error(f"헬스체크 실행 실패: {e}")
+            self.logger.error(f"헬스체크 실행 실패: {e}", exc_info=True)
             return HealthCheckResult(
                 timestamp=timestamp.isoformat(),
                 is_healthy=False,
@@ -169,7 +169,7 @@ class TradingHealthChecker:
                 'daily_trades': status['daily_trades']
             }
         except Exception as e:
-            self.logger.error(f"엔진 상태 확인 실패: {e}")
+            self.logger.error(f"엔진 상태 확인 실패: {e}", exc_info=True)
             return {'is_running': False, 'error': str(e)}
 
     def _check_trade_activity(self) -> Dict:
@@ -220,7 +220,7 @@ class TradingHealthChecker:
             }
 
         except Exception as e:
-            self.logger.error(f"거래 활동 확인 실패: {e}")
+            self.logger.error(f"거래 활동 확인 실패: {e}", exc_info=True)
             return {'count': 0, 'last_time': None, 'should_alert': False, 'hours_since_trade': None}
 
     def _check_error_logs(self) -> Dict:
@@ -269,7 +269,7 @@ class TradingHealthChecker:
             }
 
         except Exception as e:
-            self.logger.error(f"오류 로그 확인 실패: {e}")
+            self.logger.error(f"오류 로그 확인 실패: {e}", exc_info=True)
             return {'count': 0, 'critical_errors': []}
 
     def _check_api_connection(self) -> Dict:
@@ -287,7 +287,7 @@ class TradingHealthChecker:
             }
 
         except Exception as e:
-            self.logger.error(f"API 연결 확인 실패: {e}")
+            self.logger.error(f"API 연결 확인 실패: {e}", exc_info=True)
             return {'connected': False, 'error': str(e)}
 
     def _check_daily_selection(self) -> Dict:
@@ -307,7 +307,7 @@ class TradingHealthChecker:
             return {'exists': True, 'count': count}
 
         except Exception as e:
-            self.logger.error(f"일일 선정 확인 실패: {e}")
+            self.logger.error(f"일일 선정 확인 실패: {e}", exc_info=True)
             return {'exists': False, 'count': 0}
 
     def _check_account_balance(self) -> Dict:
@@ -326,7 +326,7 @@ class TradingHealthChecker:
             }
 
         except Exception as e:
-            self.logger.error(f"잔고 확인 실패: {e}")
+            self.logger.error(f"잔고 확인 실패: {e}", exc_info=True)
             return {'cash': 0, 'total': 0}
 
     def _check_system_resources(self) -> Dict:
@@ -343,7 +343,7 @@ class TradingHealthChecker:
             }
 
         except Exception as e:
-            self.logger.error(f"시스템 리소스 확인 실패: {e}")
+            self.logger.error(f"시스템 리소스 확인 실패: {e}", exc_info=True)
             return {}
 
     def _is_market_hours(self) -> bool:
@@ -396,7 +396,7 @@ class TradingHealthChecker:
                 json.dump(data, f, ensure_ascii=False, indent=2)
 
         except Exception as e:
-            self.logger.error(f"헬스체크 결과 저장 실패: {e}")
+            self.logger.error(f"헬스체크 결과 저장 실패: {e}", exc_info=True)
 
     def _attempt_auto_recovery(self, issues: List[str]) -> Dict:
         """자동 복구 시도"""
@@ -414,7 +414,7 @@ class TradingHealthChecker:
             return recovery_results
 
         except Exception as e:
-            self.logger.error(f"자동 복구 시도 실패: {e}")
+            self.logger.error(f"자동 복구 시도 실패: {e}", exc_info=True)
             return {
                 'attempted': 0,
                 'succeeded': 0,
@@ -479,7 +479,7 @@ class TradingHealthChecker:
                     self.logger.error("헬스체크 알림 전송 실패")
 
         except Exception as e:
-            self.logger.error(f"헬스체크 알림 전송 오류: {e}")
+            self.logger.error(f"헬스체크 알림 전송 오류: {e}", exc_info=True)
 
     def _format_health_alert(self, result: HealthCheckResult, recovery_results: Dict = None) -> str:
         """헬스체크 알림 메시지 포맷 (간소화)"""

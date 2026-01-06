@@ -106,7 +106,7 @@ class SlopeFeatureExtractor:
             return features
             
         except Exception as e:
-            self._logger.error(f"기울기 피처 추출 중 오류 발생: {e}")
+            self._logger.error(f"기울기 피처 추출 중 오류 발생: {e}", exc_info=True)
             return SlopeFeatures()
     
     def _calculate_price_slope(self, ohlcv_data: pd.DataFrame, days: int) -> float:
@@ -137,7 +137,7 @@ class SlopeFeatureExtractor:
             return normalized_slope
             
         except Exception as e:
-            self._logger.error(f"가격 기울기 계산 오류: {e}")
+            self._logger.error(f"가격 기울기 계산 오류: {e}", exc_info=True)
             return 0.0
     
     def _calculate_ma_slope(self, ohlcv_data: pd.DataFrame, ma_period: int, slope_days: int) -> float:
@@ -175,7 +175,7 @@ class SlopeFeatureExtractor:
             return normalized_slope
             
         except Exception as e:
-            self._logger.error(f"이동평균 기울기 계산 오류: {e}")
+            self._logger.error(f"이동평균 기울기 계산 오류: {e}", exc_info=True)
             return 0.0
     
     def _calculate_slope_acceleration(self, ohlcv_data: pd.DataFrame) -> float:
@@ -207,7 +207,7 @@ class SlopeFeatureExtractor:
             return acceleration
             
         except Exception as e:
-            self._logger.error(f"기울기 가속도 계산 오류: {e}")
+            self._logger.error(f"기울기 가속도 계산 오류: {e}", exc_info=True)
             return 0.0
     
     def _check_trend_consistency(self, ohlcv_data: pd.DataFrame) -> float:
@@ -235,7 +235,7 @@ class SlopeFeatureExtractor:
             return 1.0 if (positive_trend or negative_trend) else 0.0
             
         except Exception as e:
-            self._logger.error(f"추세 일관성 확인 오류: {e}")
+            self._logger.error(f"추세 일관성 확인 오류: {e}", exc_info=True)
             return 0.0
     
     def _calculate_slope_angle(self, ohlcv_data: pd.DataFrame) -> float:
@@ -260,7 +260,7 @@ class SlopeFeatureExtractor:
             return angle
             
         except Exception as e:
-            self._logger.error(f"기울기 각도 계산 오류: {e}")
+            self._logger.error(f"기울기 각도 계산 오류: {e}", exc_info=True)
             return 0.0
     
     def _get_slope_strength_score(self, ohlcv_data: pd.DataFrame) -> float:
@@ -297,7 +297,7 @@ class SlopeFeatureExtractor:
                 return 0.0    # 매우 강한 하락
                 
         except Exception as e:
-            self._logger.error(f"기울기 강도 점수 계산 오류: {e}")
+            self._logger.error(f"기울기 강도 점수 계산 오류: {e}", exc_info=True)
             return 50.0
     
     def extract_features_from_stock_data(self, stock_data: Dict) -> SlopeFeatures:
@@ -321,7 +321,7 @@ class SlopeFeatureExtractor:
             return self.extract_features(ohlcv_data)
             
         except Exception as e:
-            self._logger.error(f"주식 데이터에서 기울기 피처 추출 오류: {e}")
+            self._logger.error(f"주식 데이터에서 기울기 피처 추출 오류: {e}", exc_info=True)
             return SlopeFeatures()
     
     def _generate_ohlcv_data(self, stock_data: Dict) -> Optional[pd.DataFrame]:
@@ -380,7 +380,7 @@ class SlopeFeatureExtractor:
             return ohlcv_data
             
         except Exception as e:
-            self._logger.error(f"OHLCV 데이터 생성 오류: {e}")
+            self._logger.error(f"OHLCV 데이터 생성 오류: {e}", exc_info=True)
             return None
     
     def get_feature_names(self) -> List[str]:

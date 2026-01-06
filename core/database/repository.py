@@ -35,7 +35,7 @@ class StockRepository:
                 logger.debug(f"신규 종목 추가: {code} - {name}")
             return stock
         except SQLAlchemyError as e:
-            logger.error(f"종목 정보 저장 중 오류 발생: {str(e)}")
+            logger.error(f"종목 정보 저장 중 오류 발생: {str(e)}", exc_info=True)
             return None
 
     def get_stock(self, code: str) -> Optional[Stock]:
@@ -48,7 +48,7 @@ class StockRepository:
                 logger.debug(f"종목 정보 없음: {code}")
             return stock
         except SQLAlchemyError as e:
-            logger.error(f"종목 정보 조회 중 오류 발생: {str(e)}")
+            logger.error(f"종목 정보 조회 중 오류 발생: {str(e)}", exc_info=True)
             return None
 
     def get_all_stocks(self) -> List[Stock]:
@@ -58,7 +58,7 @@ class StockRepository:
             logger.debug(f"전체 종목 수: {len(stocks)}개")
             return stocks
         except SQLAlchemyError as e:
-            logger.error(f"전체 종목 목록 조회 중 오류 발생: {str(e)}")
+            logger.error(f"전체 종목 목록 조회 중 오류 발생: {str(e)}", exc_info=True)
             return []
 
     def save_price(self, stock_id: int, date: datetime, open_price: Decimal,
@@ -78,7 +78,7 @@ class StockRepository:
             self.session.add(price)
             return price
         except SQLAlchemyError as e:
-            logger.error(f"가격 정보 저장 중 오류 발생: {str(e)}")
+            logger.error(f"가격 정보 저장 중 오류 발생: {str(e)}", exc_info=True)
             return None
 
     def get_stock_prices(self, stock_id: int, start_date: Optional[datetime] = None,
@@ -92,7 +92,7 @@ class StockRepository:
                 query = query.filter(Price.date <= end_date)
             return query.order_by(Price.date).all()
         except SQLAlchemyError as e:
-            logger.error(f"가격 정보 조회 중 오류 발생: {str(e)}")
+            logger.error(f"가격 정보 조회 중 오류 발생: {str(e)}", exc_info=True)
             return []
 
     def save_indicator(self, stock_id: int, date: datetime, name: str,
@@ -109,7 +109,7 @@ class StockRepository:
             self.session.add(indicator)
             return indicator
         except SQLAlchemyError as e:
-            logger.error(f"기술적 지표 저장 중 오류 발생: {str(e)}")
+            logger.error(f"기술적 지표 저장 중 오류 발생: {str(e)}", exc_info=True)
             return None
 
     def get_indicators(self, stock_id: int, name: str,
@@ -127,7 +127,7 @@ class StockRepository:
                 query = query.filter(Indicator.date <= end_date)
             return query.order_by(Indicator.date).all()
         except SQLAlchemyError as e:
-            logger.error(f"기술적 지표 조회 중 오류 발생: {str(e)}")
+            logger.error(f"기술적 지표 조회 중 오류 발생: {str(e)}", exc_info=True)
             return []
 
     def save_trade(self, stock_id: int, trade_type: str, price: float,
@@ -148,7 +148,7 @@ class StockRepository:
             self.session.add(trade)
             logger.info(f"거래 내역 저장: stock_id={stock_id}, {trade_type}, {quantity}주, {amount:,.0f}원")
         except SQLAlchemyError as e:
-            logger.error(f"거래 내역 저장 중 오류 발생: {str(e)}")
+            logger.error(f"거래 내역 저장 중 오류 발생: {str(e)}", exc_info=True)
 
     def get_trades(self, stock_id: Optional[int] = None,
                    start_date: Optional[datetime] = None,
@@ -168,7 +168,7 @@ class StockRepository:
             logger.debug(f"거래 내역 조회: {len(trades)}개")
             return trades
         except SQLAlchemyError as e:
-            logger.error(f"거래 내역 조회 중 오류 발생: {str(e)}")
+            logger.error(f"거래 내역 조회 중 오류 발생: {str(e)}", exc_info=True)
             return []
 
 
@@ -188,7 +188,7 @@ class WatchlistRepository:
             logger.info(f"관심종목 추가: stock_id={watchlist.stock_id}")
             return watchlist
         except SQLAlchemyError as e:
-            logger.error(f"관심종목 추가 실패: {e}")
+            logger.error(f"관심종목 추가 실패: {e}", exc_info=True)
             return None
 
     def get_active(self) -> List[WatchlistStock]:
@@ -198,7 +198,7 @@ class WatchlistRepository:
                 status='active'
             ).order_by(WatchlistStock.total_score.desc()).all()
         except SQLAlchemyError as e:
-            logger.error(f"관심종목 조회 실패: {e}")
+            logger.error(f"관심종목 조회 실패: {e}", exc_info=True)
             return []
 
     def get_by_date(self, target_date: datetime) -> List[WatchlistStock]:
@@ -208,7 +208,7 @@ class WatchlistRepository:
                 WatchlistStock.added_date == target_date.date()
             ).all()
         except SQLAlchemyError as e:
-            logger.error(f"관심종목 조회 실패: {e}")
+            logger.error(f"관심종목 조회 실패: {e}", exc_info=True)
             return []
 
     def remove(self, stock_id: int, reason: str = None) -> bool:
@@ -225,7 +225,7 @@ class WatchlistRepository:
                 return True
             return False
         except SQLAlchemyError as e:
-            logger.error(f"관심종목 제거 실패: {e}")
+            logger.error(f"관심종목 제거 실패: {e}", exc_info=True)
             return False
 
     def get_top(self, n: int = 10) -> List[WatchlistStock]:
@@ -235,7 +235,7 @@ class WatchlistRepository:
                 status='active'
             ).order_by(WatchlistStock.total_score.desc()).limit(n).all()
         except SQLAlchemyError as e:
-            logger.error(f"관심종목 조회 실패: {e}")
+            logger.error(f"관심종목 조회 실패: {e}", exc_info=True)
             return []
 
 
@@ -253,7 +253,7 @@ class DailySelectionRepository:
             logger.info(f"선정종목 추가: stock_id={selection.stock_id}, date={selection.selection_date}")
             return selection
         except SQLAlchemyError as e:
-            logger.error(f"선정종목 추가 실패: {e}")
+            logger.error(f"선정종목 추가 실패: {e}", exc_info=True)
             return None
 
     def get_by_date(self, target_date: datetime) -> List[DailySelection]:
@@ -263,7 +263,7 @@ class DailySelectionRepository:
                 DailySelection.selection_date == target_date.date()
             ).order_by(DailySelection.total_score.desc()).all()
         except SQLAlchemyError as e:
-            logger.error(f"선정종목 조회 실패: {e}")
+            logger.error(f"선정종목 조회 실패: {e}", exc_info=True)
             return []
 
     def get_by_signal(self, signal: str, days: int = 30) -> List[DailySelection]:
@@ -276,7 +276,7 @@ class DailySelectionRepository:
                 DailySelection.selection_date >= start_date
             ).order_by(DailySelection.selection_date.desc()).all()
         except SQLAlchemyError as e:
-            logger.error(f"선정종목 조회 실패: {e}")
+            logger.error(f"선정종목 조회 실패: {e}", exc_info=True)
             return []
 
     def update_result(self, selection_id: int, actual_return: float) -> bool:
@@ -290,7 +290,7 @@ class DailySelectionRepository:
                 return True
             return False
         except SQLAlchemyError as e:
-            logger.error(f"결과 업데이트 실패: {e}")
+            logger.error(f"결과 업데이트 실패: {e}", exc_info=True)
             return False
 
     def get_performance_stats(self, days: int = 30) -> Dict:
@@ -318,7 +318,7 @@ class DailySelectionRepository:
                 'min_return': min(returns) if returns else 0,
             }
         except SQLAlchemyError as e:
-            logger.error(f"성과 통계 조회 실패: {e}")
+            logger.error(f"성과 통계 조회 실패: {e}", exc_info=True)
             return {}
 
 
@@ -336,7 +336,7 @@ class TradeHistoryRepository:
             logger.info(f"거래 이력 추가: order_id={trade.order_id}")
             return trade
         except SQLAlchemyError as e:
-            logger.error(f"거래 이력 추가 실패: {e}")
+            logger.error(f"거래 이력 추가 실패: {e}", exc_info=True)
             return None
 
     def get_by_order_id(self, order_id: str) -> Optional[TradeHistory]:
@@ -344,7 +344,7 @@ class TradeHistoryRepository:
         try:
             return self.session.query(TradeHistory).filter_by(order_id=order_id).first()
         except SQLAlchemyError as e:
-            logger.error(f"거래 이력 조회 실패: {e}")
+            logger.error(f"거래 이력 조회 실패: {e}", exc_info=True)
             return None
 
     def get_by_status(self, status: str) -> List[TradeHistory]:
@@ -354,7 +354,7 @@ class TradeHistoryRepository:
                 status=status
             ).order_by(TradeHistory.order_datetime.desc()).all()
         except SQLAlchemyError as e:
-            logger.error(f"거래 이력 조회 실패: {e}")
+            logger.error(f"거래 이력 조회 실패: {e}", exc_info=True)
             return []
 
     def get_recent(self, limit: int = 50) -> List[TradeHistory]:
@@ -364,7 +364,7 @@ class TradeHistoryRepository:
                 TradeHistory.order_datetime.desc()
             ).limit(limit).all()
         except SQLAlchemyError as e:
-            logger.error(f"거래 이력 조회 실패: {e}")
+            logger.error(f"거래 이력 조회 실패: {e}", exc_info=True)
             return []
 
     def update_status(self, order_id: str, status: str, filled_price: float = None) -> bool:
@@ -380,7 +380,7 @@ class TradeHistoryRepository:
                 return True
             return False
         except SQLAlchemyError as e:
-            logger.error(f"상태 업데이트 실패: {e}")
+            logger.error(f"상태 업데이트 실패: {e}", exc_info=True)
             return False
 
     def get_by_strategy(self, strategy: str, days: int = 30) -> List[TradeHistory]:
@@ -393,5 +393,5 @@ class TradeHistoryRepository:
                 TradeHistory.order_datetime >= start_date
             ).order_by(TradeHistory.order_datetime.desc()).all()
         except SQLAlchemyError as e:
-            logger.error(f"거래 이력 조회 실패: {e}")
+            logger.error(f"거래 이력 조회 실패: {e}", exc_info=True)
             return []

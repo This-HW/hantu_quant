@@ -158,7 +158,7 @@ class BayesianOptimizer:
                 fitness_score = self._fitness_function(param_set)
                 param_set.fitness_score = fitness_score
             except Exception as e:
-                self._logger.error(f"적합도 평가 실패: {e}")
+                self._logger.error(f"적합도 평가 실패: {e}", exc_info=True)
                 fitness_score = 0.0
                 param_set.fitness_score = fitness_score
             
@@ -270,7 +270,7 @@ class BayesianOptimizer:
                             fitness_score = self._fitness_function(param_set)
                             param_set.fitness_score = fitness_score
                         except Exception as e:
-                            self._logger.error(f"초기 샘플 평가 실패: {e}")
+                            self._logger.error(f"초기 샘플 평가 실패: {e}", exc_info=True)
                             fitness_score = 0.0
                         param_vector = self._params_to_vector(params, param_info)
                     else:
@@ -284,7 +284,7 @@ class BayesianOptimizer:
                         fitness_score = self._fitness_function(param_set)
                         param_set.fitness_score = fitness_score
                     except Exception as e:
-                        self._logger.error(f"초기 샘플 평가 실패: {e}")
+                        self._logger.error(f"초기 샘플 평가 실패: {e}", exc_info=True)
                         fitness_score = 0.0
                     param_vector = self._params_to_vector(params, param_info)
                 else:
@@ -337,7 +337,7 @@ class BayesianOptimizer:
             
             return True
         except Exception as e:
-            self._logger.error(f"가우시안 프로세스 모델 학습 실패: {e}")
+            self._logger.error(f"가우시안 프로세스 모델 학습 실패: {e}", exc_info=True)
             return False
     
     def _acquire_next_sample(self, param_bounds: List[Tuple[float, float]], param_info: Dict) -> Optional[Dict[str, Any]]:
@@ -380,7 +380,7 @@ class BayesianOptimizer:
             return best_params
             
         except Exception as e:
-            self._logger.error(f"획득 함수 최적화 실패: {e}")
+            self._logger.error(f"획득 함수 최적화 실패: {e}", exc_info=True)
             return None
     
     def _expected_improvement(self, X: np.ndarray) -> np.ndarray:
@@ -403,7 +403,7 @@ class BayesianOptimizer:
             return ei
             
         except Exception as e:
-            self._logger.error(f"기대 개선 계산 실패: {e}")
+            self._logger.error(f"기대 개선 계산 실패: {e}", exc_info=True)
             return np.zeros(len(X))
     
     def _upper_confidence_bound(self, X: np.ndarray) -> np.ndarray:
@@ -418,7 +418,7 @@ class BayesianOptimizer:
             return ucb
             
         except Exception as e:
-            self._logger.error(f"상한 신뢰 구간 계산 실패: {e}")
+            self._logger.error(f"상한 신뢰 구간 계산 실패: {e}", exc_info=True)
             return np.zeros(len(X))
     
     def _probability_of_improvement(self, X: np.ndarray) -> np.ndarray:
@@ -439,7 +439,7 @@ class BayesianOptimizer:
             return pi
             
         except Exception as e:
-            self._logger.error(f"개선 확률 계산 실패: {e}")
+            self._logger.error(f"개선 확률 계산 실패: {e}", exc_info=True)
             return np.zeros(len(X))
     
     def _norm_cdf(self, x: np.ndarray) -> np.ndarray:
@@ -534,7 +534,7 @@ class BayesianOptimizer:
             self._logger.info(f"베이지안 최적화 결과 저장: {filepath}")
             
         except Exception as e:
-            self._logger.error(f"최적화 결과 저장 실패: {e}")
+            self._logger.error(f"최적화 결과 저장 실패: {e}", exc_info=True)
 
 # 전역 인스턴스
 _bayesian_optimizer = None

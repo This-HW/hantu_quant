@@ -82,7 +82,7 @@ class WorkflowStateManager:
                 return {}
 
         except Exception as e:
-            logger.error(f"워크플로우 상태 로드 실패: {e}")
+            logger.error(f"워크플로우 상태 로드 실패: {e}", exc_info=True)
             return {}
 
     def save_checkpoint(self, stage: WorkflowStage, status: WorkflowStatus,
@@ -120,7 +120,7 @@ class WorkflowStateManager:
             self._append_to_history(checkpoint)
 
         except Exception as e:
-            logger.error(f"체크포인트 저장 실패: {e}")
+            logger.error(f"체크포인트 저장 실패: {e}", exc_info=True)
 
     def _append_to_history(self, checkpoint: WorkflowCheckpoint):
         """히스토리에 기록 추가"""
@@ -139,7 +139,7 @@ class WorkflowStateManager:
                 json.dump(history, f, ensure_ascii=False, indent=2)
 
         except Exception as e:
-            logger.error(f"히스토리 기록 실패: {e}")
+            logger.error(f"히스토리 기록 실패: {e}", exc_info=True)
 
     def get_checkpoint(self, stage: WorkflowStage) -> Optional[WorkflowCheckpoint]:
         """특정 단계의 체크포인트 조회"""
@@ -235,7 +235,7 @@ class WorkflowStateManager:
                 json.dump(state_data, f, ensure_ascii=False, indent=2)
 
         except Exception as e:
-            logger.error(f"상태 저장 실패: {e}")
+            logger.error(f"상태 저장 실패: {e}", exc_info=True)
 
     def print_progress(self):
         """진행 상황 출력"""

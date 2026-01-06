@@ -202,7 +202,7 @@ class ParameterManager:
             return random_params
             
         except Exception as e:
-            self._logger.error(f"랜덤 파라미터 생성 오류: {e}")
+            self._logger.error(f"랜덤 파라미터 생성 오류: {e}", exc_info=True)
             return {}
     
     def get_default_parameters(self, component: str) -> Dict[str, Any]:
@@ -227,7 +227,7 @@ class ParameterManager:
             return default_params
             
         except Exception as e:
-            self._logger.error(f"기본 파라미터 조회 오류: {e}")
+            self._logger.error(f"기본 파라미터 조회 오류: {e}", exc_info=True)
             return {}
     
     def validate_parameters(self, component: str, parameters: Dict[str, Any]) -> bool:
@@ -275,7 +275,7 @@ class ParameterManager:
             return True
             
         except Exception as e:
-            self._logger.error(f"파라미터 검증 오류: {e}")
+            self._logger.error(f"파라미터 검증 오류: {e}", exc_info=True)
             return False
     
     def evaluate_parameters(self, component: str, parameters: Dict[str, Any]) -> Optional[float]:
@@ -303,7 +303,7 @@ class ParameterManager:
             return float(score) if score is not None else None
             
         except Exception as e:
-            self._logger.error(f"파라미터 평가 오류: {e}")
+            self._logger.error(f"파라미터 평가 오류: {e}", exc_info=True)
             return None
     
     def save_optimization_result(self, result: OptimizationResult):
@@ -341,7 +341,7 @@ class ParameterManager:
             self._logger.info(f"최적화 결과 저장 완료: {filepath}")
             
         except Exception as e:
-            self._logger.error(f"최적화 결과 저장 오류: {e}")
+            self._logger.error(f"최적화 결과 저장 오류: {e}", exc_info=True)
     
     def load_best_parameters(self) -> Dict[str, ParameterSet]:
         """저장된 최적 파라미터 로드
@@ -383,7 +383,7 @@ class ParameterManager:
             return loaded_params
             
         except Exception as e:
-            self._logger.error(f"최적 파라미터 로드 오류: {e}")
+            self._logger.error(f"최적 파라미터 로드 오류: {e}", exc_info=True)
             return {}
     
     def get_best_parameters(self, component: str) -> Optional[ParameterSet]:
@@ -437,7 +437,7 @@ class ParameterManager:
             return comparison
             
         except Exception as e:
-            self._logger.error(f"파라미터 비교 오류: {e}")
+            self._logger.error(f"파라미터 비교 오류: {e}", exc_info=True)
             return {}
     
     def get_optimization_history(self) -> List[OptimizationResult]:
@@ -485,5 +485,5 @@ class ParameterManager:
             return stats
             
         except Exception as e:
-            self._logger.error(f"파라미터 통계 조회 오류: {e}")
+            self._logger.error(f"파라미터 통계 조회 오류: {e}", exc_info=True)
             return {} 

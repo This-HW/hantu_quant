@@ -128,7 +128,7 @@ class RetryDecorator:
                     time.sleep(delay)
                     delay *= self.backoff
             
-            logger.error(f"함수 {func.__name__} 최종 실패: {last_exception}")
+            logger.error(f"함수 {func.__name__} 최종 실패: {last_exception}", exc_info=True)
             raise last_exception
         
         return wrapper
@@ -233,10 +233,10 @@ class FallbackManager:
                 try:
                     return self._fallbacks[component](*args, **kwargs)
                 except Exception as fallback_error:
-                    self._logger.error(f"{component} 대체 방법도 실패: {fallback_error}")
+                    self._logger.error(f"{component} 대체 방법도 실패: {fallback_error}", exc_info=True)
                     raise fallback_error
             else:
-                self._logger.error(f"{component} 대체 방법 없음")
+                self._logger.error(f"{component} 대체 방법 없음", exc_info=True)
                 raise e
 
 class HealthMonitor:
@@ -293,7 +293,7 @@ class HealthMonitor:
                 time.sleep(10)  # 10초마다 체크
                 
             except Exception as e:
-                self._logger.error(f"헬스 모니터링 루프 오류: {e}")
+                self._logger.error(f"헬스 모니터링 루프 오류: {e}", exc_info=True)
                 time.sleep(10)
     
     def _should_check(self, health_check: HealthCheck) -> bool:
@@ -331,7 +331,7 @@ class HealthMonitor:
             
             # 임계 컴포넌트의 연속 실패 시 알림
             if health_check.critical and health_check.consecutive_failures >= 3:
-                self._logger.error(f"임계 컴포넌트 {health_check.component} 연속 실패")
+                self._logger.error(f"임계 컴포넌트 {health_check.component} 연속 실패", exc_info=True)
     
     def _run_with_timeout(self, func: Callable, timeout_seconds: int):
         """타임아웃과 함께 함수 실행"""
@@ -467,7 +467,7 @@ class StabilityManager:
             self._logger.info("점진적 종료 완료")
             
         except Exception as e:
-            self._logger.error(f"점진적 종료 실패: {e}")
+            self._logger.error(f"점진적 종료 실패: {e}", exc_info=True)
     
     def _cleanup(self):
         """정리 작업"""
@@ -475,7 +475,7 @@ class StabilityManager:
             self._save_state()
             self._logger.info("정리 작업 완료")
         except Exception as e:
-            self._logger.error(f"정리 작업 실패: {e}")
+            self._logger.error(f"정리 작업 실패: {e}", exc_info=True)
     
     def register_component(self, component: str, 
                           circuit_breaker_config: Dict[str, Any] = None,
@@ -510,7 +510,7 @@ class StabilityManager:
             self._logger.info(f"컴포넌트 등록 완료: {component}")
             
         except Exception as e:
-            self._logger.error(f"컴포넌트 등록 실패 ({component}): {e}")
+            self._logger.error(f"컴포넌트 등록 실패 ({component}): {e}", exc_info=True)
     
     def start_monitoring(self):
         """안정성 모니터링 시작"""
@@ -519,7 +519,7 @@ class StabilityManager:
             self._logger.info("안정성 모니터링 시작")
             
         except Exception as e:
-            self._logger.error(f"안정성 모니터링 시작 실패: {e}")
+            self._logger.error(f"안정성 모니터링 시작 실패: {e}", exc_info=True)
     
     def stop_monitoring(self):
         """안정성 모니터링 중지"""
@@ -528,7 +528,7 @@ class StabilityManager:
             self._logger.info("안정성 모니터링 중지")
             
         except Exception as e:
-            self._logger.error(f"안정성 모니터링 중지 실패: {e}")
+            self._logger.error(f"안정성 모니터링 중지 실패: {e}", exc_info=True)
     
     def record_failure(self, component: str, error: Exception, 
                       failure_type: FailureType = None, severity: int = 3):
@@ -565,7 +565,7 @@ class StabilityManager:
             self._logger.warning(f"장애 기록: {component} - {failure_type.value} - {error}")
             
         except Exception as e:
-            self._logger.error(f"장애 기록 실패: {e}")
+            self._logger.error(f"장애 기록 실패: {e}", exc_info=True)
     
     def _infer_failure_type(self, error: Exception) -> FailureType:
         """에러로부터 장애 유형 추론"""
@@ -611,7 +611,7 @@ class StabilityManager:
                 self._system_state = SystemState.HEALTHY
                 
         except Exception as e:
-            self._logger.error(f"시스템 상태 업데이트 실패: {e}")
+            self._logger.error(f"시스템 상태 업데이트 실패: {e}", exc_info=True)
     
     def _attempt_recovery(self, failure_record: FailureRecord):
         """복구 시도"""
@@ -631,13 +631,13 @@ class StabilityManager:
                         break
                     
                 except Exception as e:
-                    self._logger.error(f"복구 전략 실행 실패 ({strategy.value}): {e}")
+                    self._logger.error(f"복구 전략 실행 실패 ({strategy.value}): {e}", exc_info=True)
                     continue
             
             failure_record.recovery_attempts = len(strategies)
             
         except Exception as e:
-            self._logger.error(f"복구 시도 실패: {e}")
+            self._logger.error(f"복구 시도 실패: {e}", exc_info=True)
     
     def _execute_recovery_strategy(self, strategy: RecoveryStrategy, 
                                   failure_record: FailureRecord) -> bool:
@@ -671,7 +671,7 @@ class StabilityManager:
             return False
             
         except Exception as e:
-            self._logger.error(f"복구 전략 실행 오류: {e}")
+            self._logger.error(f"복구 전략 실행 오류: {e}", exc_info=True)
             return False
     
     def _apply_graceful_degradation(self, component: str):
@@ -687,7 +687,7 @@ class StabilityManager:
             return True
             
         except Exception as e:
-            self._logger.error(f"컴포넌트 재시작 실패: {e}")
+            self._logger.error(f"컴포넌트 재시작 실패: {e}", exc_info=True)
             return False
     
     def _save_failure_record(self, failure_record: FailureRecord):
@@ -716,7 +716,7 @@ class StabilityManager:
                 json.dump(records, f, ensure_ascii=False, indent=2, default=str)
                 
         except Exception as e:
-            self._logger.error(f"장애 기록 저장 실패: {e}")
+            self._logger.error(f"장애 기록 저장 실패: {e}", exc_info=True)
     
     def _save_state(self):
         """현재 상태 저장"""
@@ -741,7 +741,7 @@ class StabilityManager:
                 json.dump(state, f, ensure_ascii=False, indent=2, default=str)
                 
         except Exception as e:
-            self._logger.error(f"상태 저장 실패: {e}")
+            self._logger.error(f"상태 저장 실패: {e}", exc_info=True)
     
     def get_circuit_breaker(self, component: str) -> Optional[CircuitBreaker]:
         """회로 차단기 조회"""
@@ -795,7 +795,7 @@ class StabilityManager:
             return report
             
         except Exception as e:
-            self._logger.error(f"안정성 리포트 생성 실패: {e}")
+            self._logger.error(f"안정성 리포트 생성 실패: {e}", exc_info=True)
             return {'error': str(e)}
 
 # 전역 인스턴스

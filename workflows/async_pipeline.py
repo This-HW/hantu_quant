@@ -110,7 +110,7 @@ class AsyncPipeline:
             return True
             
         except Exception as e:
-            logger.error(f"비동기 파이프라인 실행 오류: {e}")
+            logger.error(f"비동기 파이프라인 실행 오류: {e}", exc_info=True)
             return False
     
     def _run_phase1_streaming(self, p_stock_list: List[str]):
@@ -145,7 +145,7 @@ class AsyncPipeline:
             logger.info("Phase1 스트리밍 완료")
             
         except Exception as e:
-            logger.error(f"Phase1 스트리밍 오류: {e}")
+            logger.error(f"Phase1 스트리밍 오류: {e}", exc_info=True)
             self.phase1_completed = True
     
     def _run_phase2_consumer(self):
@@ -191,7 +191,7 @@ class AsyncPipeline:
             logger.info(f"Phase2 분석 완료 - 처리: {processed_count}개, 선정: {len(selected_stocks)}개")
             
         except Exception as e:
-            logger.error(f"Phase2 분석 오류: {e}")
+            logger.error(f"Phase2 분석 오류: {e}", exc_info=True)
             self.phase2_completed = True
     
     def _run_watchlist_updater(self):
@@ -227,7 +227,7 @@ class AsyncPipeline:
             logger.info(f"감시 리스트 업데이트 완료 - 총 {added_count}개 종목 추가")
             
         except Exception as e:
-            logger.error(f"감시 리스트 업데이트 오류: {e}")
+            logger.error(f"감시 리스트 업데이트 오류: {e}", exc_info=True)
     
     def _analyze_price_attractiveness(self, p_result: Dict) -> Optional[Dict]:
         """가격 매력도 분석"""
@@ -253,7 +253,7 @@ class AsyncPipeline:
             }
             
         except Exception as e:
-            logger.error(f"가격 매력도 분석 오류: {e}")
+            logger.error(f"가격 매력도 분석 오류: {e}", exc_info=True)
             return None
     
     def _add_to_watchlist(self, p_watchlist_manager: WatchlistManager, p_result: Dict) -> bool:
@@ -285,7 +285,7 @@ class AsyncPipeline:
             return success
             
         except Exception as e:
-            logger.error(f"감시 리스트 추가 오류: {e}")
+            logger.error(f"감시 리스트 추가 오류: {e}", exc_info=True)
             return False
     
     def _monitor_progress(self):
@@ -305,7 +305,7 @@ class AsyncPipeline:
             print("\n✅ 모든 단계 완료")
             
         except Exception as e:
-            logger.error(f"진행률 모니터링 오류: {e}")
+            logger.error(f"진행률 모니터링 오류: {e}", exc_info=True)
     
     def _print_pipeline_summary(self, p_total_time: float):
         """파이프라인 결과 요약"""
@@ -326,7 +326,7 @@ class AsyncPipeline:
             print(f"└─ 속도 향상: {speedup:.1f}배")
             
         except Exception as e:
-            logger.error(f"요약 출력 오류: {e}")
+            logger.error(f"요약 출력 오류: {e}", exc_info=True)
 
 def main():
     """메인 함수"""
@@ -355,7 +355,7 @@ def main():
         logger.info("사용자에 의해 중단됨")
         sys.exit(1)
     except Exception as e:
-        logger.error(f"파이프라인 실행 오류: {e}")
+        logger.error(f"파이프라인 실행 오류: {e}", exc_info=True)
         sys.exit(1)
 
 if __name__ == "__main__":

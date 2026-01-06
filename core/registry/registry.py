@@ -76,7 +76,7 @@ class ModuleRegistry(IModuleRegistry):
                 return True
                 
             except Exception as e:
-                logger.error(f"Failed to register module '{metadata.name}': {e}")
+                logger.error(f"Failed to register module '{metadata.name}': {e}", exc_info=True)
                 raise
     
     def unregister_module(self, module_name: str) -> bool:
@@ -114,7 +114,7 @@ class ModuleRegistry(IModuleRegistry):
                 return True
                 
             except Exception as e:
-                logger.error(f"Failed to unregister module '{module_name}': {e}")
+                logger.error(f"Failed to unregister module '{module_name}': {e}", exc_info=True)
                 raise
     
     def get_module(self, module_name: str) -> Optional[IModuleMetadata]:
@@ -167,7 +167,7 @@ class ModuleRegistry(IModuleRegistry):
                 return True
                 
             except Exception as e:
-                logger.error(f"Failed to update module '{module_name}' status: {e}")
+                logger.error(f"Failed to update module '{module_name}' status: {e}", exc_info=True)
                 raise
     
     def validate_dependencies(self, module_name: str) -> Tuple[bool, List[str]]:
@@ -199,7 +199,7 @@ class ModuleRegistry(IModuleRegistry):
                 return len(errors) == 0, errors
                 
             except Exception as e:
-                logger.error(f"Failed to validate dependencies for '{module_name}': {e}")
+                logger.error(f"Failed to validate dependencies for '{module_name}': {e}", exc_info=True)
                 raise
     
     def get_module_graph(self) -> Dict[str, List[str]]:
@@ -386,7 +386,7 @@ class ModuleRegistry(IModuleRegistry):
                 else:
                     listener(event_type, extra_data or {})
             except Exception as e:
-                logger.error(f"Error in event listener for '{event_type}': {e}")
+                logger.error(f"Error in event listener for '{event_type}': {e}", exc_info=True)
     
     def get_modules_by_type(self, module_type: ModuleType) -> List[IModuleMetadata]:
         """타입별 모듈 조회"""

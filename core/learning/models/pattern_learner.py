@@ -141,7 +141,7 @@ class PatternLearner:
             self._logger.info(f"머신러닝 모델 초기화 완료: {len(self._models)}개 모델")
             
         except Exception as e:
-            self._logger.error(f"모델 초기화 오류: {e}")
+            self._logger.error(f"모델 초기화 오류: {e}", exc_info=True)
     
     def train_models(self, training_data: List[PatternFeatures], 
                     labels: List[int], test_size: float = 0.2) -> Dict[str, Any]:
@@ -232,7 +232,7 @@ class PatternLearner:
                     self._logger.info(f"{model_name} 학습 완료 - 정확도: {accuracy:.3f}, AUC: {auc_score:.3f}")
                     
                 except Exception as e:
-                    self._logger.error(f"{model_name} 학습 오류: {e}")
+                    self._logger.error(f"{model_name} 학습 오류: {e}", exc_info=True)
                     training_results[model_name] = {'error': str(e)}
             
             # 모델 저장
@@ -254,7 +254,7 @@ class PatternLearner:
             return overall_results
             
         except Exception as e:
-            self._logger.error(f"모델 학습 오류: {e}")
+            self._logger.error(f"모델 학습 오류: {e}", exc_info=True)
             return {'error': str(e)}
     
     def predict_pattern(self, features: PatternFeatures, 
@@ -274,7 +274,7 @@ class PatternLearner:
                 return None
             
             if model_name not in self._models:
-                self._logger.error(f"존재하지 않는 모델: {model_name}")
+                self._logger.error(f"존재하지 않는 모델: {model_name}", exc_info=True)
                 return None
             
             model = self._models[model_name]
@@ -312,7 +312,7 @@ class PatternLearner:
             return prediction
             
         except Exception as e:
-            self._logger.error(f"패턴 예측 오류: {e}")
+            self._logger.error(f"패턴 예측 오류: {e}", exc_info=True)
             return None
     
     def predict_batch(self, features_list: List[PatternFeatures],
@@ -338,7 +338,7 @@ class PatternLearner:
             return predictions
             
         except Exception as e:
-            self._logger.error(f"배치 예측 오류: {e}")
+            self._logger.error(f"배치 예측 오류: {e}", exc_info=True)
             return []
     
     def optimize_hyperparameters(self, training_data: List[PatternFeatures],
@@ -387,7 +387,7 @@ class PatternLearner:
             }
             
             if model_name not in param_grids:
-                self._logger.error(f"지원하지 않는 모델: {model_name}")
+                self._logger.error(f"지원하지 않는 모델: {model_name}", exc_info=True)
                 return {}
             
             # 그리드 서치 실행
@@ -418,7 +418,7 @@ class PatternLearner:
             return optimization_results
             
         except Exception as e:
-            self._logger.error(f"하이퍼파라미터 최적화 오류: {e}")
+            self._logger.error(f"하이퍼파라미터 최적화 오류: {e}", exc_info=True)
             return {'error': str(e)}
     
     def _save_models(self):
@@ -439,7 +439,7 @@ class PatternLearner:
             self._logger.info(f"모델 저장 완료: {len(self._models)}개")
             
         except Exception as e:
-            self._logger.error(f"모델 저장 오류: {e}")
+            self._logger.error(f"모델 저장 오류: {e}", exc_info=True)
     
     def load_models(self):
         """저장된 모델 로드"""
@@ -466,7 +466,7 @@ class PatternLearner:
                 return False
                 
         except Exception as e:
-            self._logger.error(f"모델 로드 오류: {e}")
+            self._logger.error(f"모델 로드 오류: {e}", exc_info=True)
             return False
     
     def get_model_performance(self) -> Dict[str, Any]:
@@ -482,5 +482,5 @@ class PatternLearner:
             return performance_info
             
         except Exception as e:
-            self._logger.error(f"모델 성능 정보 조회 오류: {e}")
+            self._logger.error(f"모델 성능 정보 조회 오류: {e}", exc_info=True)
             return {} 

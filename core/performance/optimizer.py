@@ -169,7 +169,7 @@ class SystemMonitor:
             return snapshot
             
         except Exception as e:
-            self._logger.error(f"성능 스냅샷 생성 실패: {e}")
+            self._logger.error(f"성능 스냅샷 생성 실패: {e}", exc_info=True)
             return self._create_empty_snapshot()
     
     def _create_empty_snapshot(self) -> PerformanceSnapshot:
@@ -218,7 +218,7 @@ class SystemMonitor:
                 time.sleep(interval_seconds)
                 
             except Exception as e:
-                self._logger.error(f"모니터링 루프 오류: {e}")
+                self._logger.error(f"모니터링 루프 오류: {e}", exc_info=True)
                 time.sleep(interval_seconds)
     
     def get_recent_snapshots(self, hours: int = 1) -> List[PerformanceSnapshot]:
@@ -280,7 +280,7 @@ class MemoryOptimizer:
             return result
             
         except Exception as e:
-            self._logger.error(f"메모리 최적화 실패: {e}")
+            self._logger.error(f"메모리 최적화 실패: {e}", exc_info=True)
             return {
                 'actions_taken': [],
                 'error': str(e),
@@ -294,7 +294,7 @@ class MemoryOptimizer:
             # 예: 데이터 캐시, 계산 결과 캐시 등
             pass
         except Exception as e:
-            self._logger.error(f"캐시 정리 실패: {e}")
+            self._logger.error(f"캐시 정리 실패: {e}", exc_info=True)
 
 class CPUOptimizer:
     """CPU 최적화기"""
@@ -349,7 +349,7 @@ class CPUOptimizer:
             return result
             
         except Exception as e:
-            self._logger.error(f"CPU 최적화 실패: {e}")
+            self._logger.error(f"CPU 최적화 실패: {e}", exc_info=True)
             return {
                 'actions_taken': [],
                 'error': str(e),
@@ -389,7 +389,7 @@ class IOOptimizer:
             return result
             
         except Exception as e:
-            self._logger.error(f"I/O 최적화 실패: {e}")
+            self._logger.error(f"I/O 최적화 실패: {e}", exc_info=True)
             return {
                 'actions_taken': [],
                 'error': str(e),
@@ -512,7 +512,7 @@ class PerformanceOptimizer:
                 time.sleep(60)  # 1분마다 체크
                 
             except Exception as e:
-                self._logger.error(f"자동 최적화 루프 오류: {e}")
+                self._logger.error(f"자동 최적화 루프 오류: {e}", exc_info=True)
                 time.sleep(60)
     
     def _check_and_optimize(self):
@@ -536,7 +536,7 @@ class PerformanceOptimizer:
                     self._execute_optimization(rule, current_snapshot)
                     
         except Exception as e:
-            self._logger.error(f"규칙 체크 및 최적화 실패: {e}")
+            self._logger.error(f"규칙 체크 및 최적화 실패: {e}", exc_info=True)
     
     def _check_rule_violation(self, rule: OptimizationRule, snapshot: PerformanceSnapshot) -> bool:
         """규칙 위반 여부 체크"""
@@ -580,7 +580,7 @@ class PerformanceOptimizer:
                 return False
                 
         except Exception as e:
-            self._logger.error(f"규칙 위반 체크 실패: {e}")
+            self._logger.error(f"규칙 위반 체크 실패: {e}", exc_info=True)
             return False
     
     def _extract_metric_value(self, metric: PerformanceMetric, snapshot: PerformanceSnapshot) -> Optional[float]:
@@ -605,7 +605,7 @@ class PerformanceOptimizer:
             return None
             
         except Exception as e:
-            self._logger.error(f"메트릭 값 추출 실패: {e}")
+            self._logger.error(f"메트릭 값 추출 실패: {e}", exc_info=True)
             return None
     
     def _is_in_cooldown(self, rule_id: str) -> bool:
@@ -625,7 +625,7 @@ class PerformanceOptimizer:
             return len(recent_optimizations) > 0
             
         except Exception as e:
-            self._logger.error(f"쿨다운 체크 실패: {e}")
+            self._logger.error(f"쿨다운 체크 실패: {e}", exc_info=True)
             return True  # 안전을 위해 True 반환
     
     def _execute_optimization(self, rule: OptimizationRule, before_snapshot: PerformanceSnapshot):
@@ -652,7 +652,7 @@ class PerformanceOptimizer:
                 except Exception as e:
                     error_message = str(e)
                     success = False
-                    self._logger.error(f"최적화 액션 실패 ({action}): {e}")
+                    self._logger.error(f"최적화 액션 실패 ({action}): {e}", exc_info=True)
             
             # 최적화 후 스냅샷
             time.sleep(5)  # 잠시 대기 후 측정
@@ -681,10 +681,10 @@ class PerformanceOptimizer:
             if success:
                 self._logger.info(f"최적화 완료: {improvement:.2f}% 개선")
             else:
-                self._logger.error(f"최적화 실패: {error_message}")
+                self._logger.error(f"최적화 실패: {error_message}", exc_info=True)
                 
         except Exception as e:
-            self._logger.error(f"최적화 실행 실패: {e}")
+            self._logger.error(f"최적화 실행 실패: {e}", exc_info=True)
     
     def _calculate_improvement(self, metric: PerformanceMetric, before: PerformanceSnapshot, 
                              after: PerformanceSnapshot) -> float:
@@ -700,7 +700,7 @@ class PerformanceOptimizer:
             return improvement
             
         except Exception as e:
-            self._logger.error(f"개선 정도 계산 실패: {e}")
+            self._logger.error(f"개선 정도 계산 실패: {e}", exc_info=True)
             return 0.0
     
     def _save_optimization_result(self, result: OptimizationResult):
@@ -730,7 +730,7 @@ class PerformanceOptimizer:
                 json.dump(results, f, ensure_ascii=False, indent=2, default=str)
                 
         except Exception as e:
-            self._logger.error(f"최적화 결과 저장 실패: {e}")
+            self._logger.error(f"최적화 결과 저장 실패: {e}", exc_info=True)
     
     def manual_optimization(self, level: OptimizationLevel = None) -> Dict[str, Any]:
         """수동 최적화 실행"""
@@ -771,7 +771,7 @@ class PerformanceOptimizer:
             return overall_result
             
         except Exception as e:
-            self._logger.error(f"수동 최적화 실패: {e}")
+            self._logger.error(f"수동 최적화 실패: {e}", exc_info=True)
             return {
                 'error': str(e),
                 'success': False,
@@ -816,7 +816,7 @@ class PerformanceOptimizer:
             return stats
             
         except Exception as e:
-            self._logger.error(f"성능 리포트 생성 실패: {e}")
+            self._logger.error(f"성능 리포트 생성 실패: {e}", exc_info=True)
             return {'error': str(e)}
     
     def set_optimization_level(self, level: OptimizationLevel):

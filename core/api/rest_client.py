@@ -81,13 +81,13 @@ class KISRestClient:
             )
 
         except NonRetryableAPIError as e:
-            logger.error(f"API 요청 실패 (재시도 불가): {e}")
+            logger.error(f"API 요청 실패 (재시도 불가): {e}", exc_info=True)
             return {"error": str(e), "retryable": False}
         except RetryError as e:
-            logger.error(f"API 요청 실패 (최대 재시도 횟수 초과): {e}")
+            logger.error(f"API 요청 실패 (최대 재시도 횟수 초과): {e}", exc_info=True)
             return {"error": f"최대 재시도 횟수 초과: {e}", "retryable": True}
         except Exception as e:
-            logger.error(f"API 요청 오류: {e}")
+            logger.error(f"API 요청 오류: {e}", exc_info=True)
             return {"error": str(e)}
 
     @retry(
@@ -140,11 +140,11 @@ class KISRestClient:
 
         # 4xx 클라이언트 에러 → 재시도 불가
         if 400 <= status_code < 500:
-            logger.error(f"API 클라이언트 에러 (재시도 불가): {status_code}, {response.text}")
+            logger.error(f"API 클라이언트 에러 (재시도 불가): {status_code}, {response.text}", exc_info=True)
             raise NonRetryableAPIError(f"HTTP {status_code}: {response.text}")
 
         # 기타 에러
-        logger.error(f"API 요청 실패: {status_code}, {response.text}")
+        logger.error(f"API 요청 실패: {status_code}, {response.text}", exc_info=True)
         return {"error": f"HTTP {status_code}", "message": response.text}
     
     def _rate_limit(self):
@@ -214,11 +214,11 @@ class KISRestClient:
                     "timestamp": datetime.now().isoformat()
                 }
             else:
-                logger.error(f"현재가 조회 실패: {stock_code}")
+                logger.error(f"현재가 조회 실패: {stock_code}", exc_info=True)
                 return None
                 
         except Exception as e:
-            logger.error(f"현재가 조회 오류: {e}")
+            logger.error(f"현재가 조회 오류: {e}", exc_info=True)
             return None
     
     def get_daily_chart(self, stock_code: str, period_days: int = 100) -> Optional[pd.DataFrame]:
@@ -273,11 +273,11 @@ class KISRestClient:
                 logger.info(f"일봉 데이터 조회 완료: {stock_code}, {len(df)}일")
                 return df
             else:
-                logger.error(f"일봉 데이터 조회 실패: {stock_code}")
+                logger.error(f"일봉 데이터 조회 실패: {stock_code}", exc_info=True)
                 return None
                 
         except Exception as e:
-            logger.error(f"일봉 데이터 조회 오류: {e}")
+            logger.error(f"일봉 데이터 조회 오류: {e}", exc_info=True)
             return None
     
     def get_stock_info(self, stock_code: str) -> Optional[Dict]:
@@ -315,11 +315,11 @@ class KISRestClient:
                     "bps": float(output.get("bps", 0)) if output.get("bps") else 0
                 }
             else:
-                logger.error(f"종목 정보 조회 실패: {stock_code}")
+                logger.error(f"종목 정보 조회 실패: {stock_code}", exc_info=True)
                 return None
                 
         except Exception as e:
-            logger.error(f"종목 정보 조회 오류: {e}")
+            logger.error(f"종목 정보 조회 오류: {e}", exc_info=True)
             return None
     
     def get_multiple_current_prices(self, stock_codes: List[str]) -> Dict[str, Dict]:
@@ -365,11 +365,11 @@ class KISRestClient:
             if response.status_code == 200:
                 return response.json()['HASH']
             else:
-                logger.error(f"[_get_hashkey] HASH 키 생성 실패 - 상태 코드: {response.status_code}")
+                logger.error(f"[_get_hashkey] HASH 키 생성 실패 - 상태 코드: {response.status_code}", exc_info=True)
                 return None
                 
         except Exception as e:
-            logger.error(f"[_get_hashkey] HASH 키 생성 중 오류 발생: {str(e)}")
+            logger.error(f"[_get_hashkey] HASH 키 생성 중 오류 발생: {str(e)}", exc_info=True)
             return None
             
     def place_order(self, stock_code: str, order_type: str, quantity: int,
@@ -436,11 +436,11 @@ class KISRestClient:
                 return response.get('output')
             else:
                 msg = response.get('msg1') if isinstance(response, dict) else str(response)
-                logger.error(f"[place_order] 주문 실행 실패: {msg}")
+                logger.error(f"[place_order] 주문 실행 실패: {msg}", exc_info=True)
                 return None
                 
         except Exception as e:
-            logger.error(f"[place_order] 주문 실행 중 오류 발생: {str(e)}")
+            logger.error(f"[place_order] 주문 실행 중 오류 발생: {str(e)}", exc_info=True)
             return None
             
     def get_balance(self) -> Dict:
@@ -519,11 +519,11 @@ class KISRestClient:
                 return balance
                 
             else:
-                logger.error(f"[get_balance] 잔고 조회 실패: {response.get('msg1')}")
+                logger.error(f"[get_balance] 잔고 조회 실패: {response.get('msg1')}", exc_info=True)
                 return {}
                 
         except Exception as e:
-            logger.error(f"[get_balance] 잔고 조회 중 오류 발생: {str(e)}")
+            logger.error(f"[get_balance] 잔고 조회 중 오류 발생: {str(e)}", exc_info=True)
             return {}
 
     def get_stock_list(self, market_type: str = "J") -> List[Dict]:
@@ -569,8 +569,8 @@ class KISRestClient:
             response = requests.get(url, headers=headers, params=params, timeout=settings.REQUEST_TIMEOUT)
             
             if response.status_code != 200:
-                logger.error(f"[get_stock_list] HTTP 에러 발생 - 상태 코드: {response.status_code}")
-                logger.error(f"[get_stock_list] 에러 응답: {response.text}")
+                logger.error(f"[get_stock_list] HTTP 에러 발생 - 상태 코드: {response.status_code}", exc_info=True)
+                logger.error(f"[get_stock_list] 에러 응답: {response.text}", exc_info=True)
                 response.raise_for_status()
             
             data = response.json()
@@ -591,15 +591,15 @@ class KISRestClient:
                 return stock_list
             else:
                 error_message = data.get('msg1', '알 수 없는 오류가 발생했습니다')
-                logger.error(f"[get_stock_list] 종목 목록 조회 실패: {error_message}")
+                logger.error(f"[get_stock_list] 종목 목록 조회 실패: {error_message}", exc_info=True)
                 raise Exception(f"종목 목록 조회 실패: {error_message}")
                 
         except requests.exceptions.RequestException as e:
-            logger.error(f"[get_stock_list] 종목 목록 조회 중 오류 발생: {str(e)}")
+            logger.error(f"[get_stock_list] 종목 목록 조회 중 오류 발생: {str(e)}", exc_info=True)
             raise Exception("API 요청 실패")
         except Exception as e:
-            logger.error(f"[get_stock_list] 예상치 못한 오류 발생: {str(e)}")
-            logger.error(f"[get_stock_list] 상세 에러: {e.__class__.__name__}")
+            logger.error(f"[get_stock_list] 예상치 못한 오류 발생: {str(e)}", exc_info=True)
+            logger.error(f"[get_stock_list] 상세 에러: {e.__class__.__name__}", exc_info=True)
             raise
 
     # ====== 추가 시세/체결/호가/수급 래퍼 ======
@@ -620,10 +620,10 @@ class KISRestClient:
             response = self._request("GET", url, headers=headers, params=params)
             if "output" in response:
                 return response["output"]
-            logger.error(f"[get_orderbook] 실패: {response}")
+            logger.error(f"[get_orderbook] 실패: {response}", exc_info=True)
             return None
         except Exception as e:
-            logger.error(f"[get_orderbook] 오류: {e}")
+            logger.error(f"[get_orderbook] 오류: {e}", exc_info=True)
             return None
 
     def get_tick_conclusions(self, stock_code: str, count: int = 100) -> Optional[pd.DataFrame]:
@@ -648,7 +648,7 @@ class KISRestClient:
             df = pd.DataFrame(output)
             return df
         except Exception as e:
-            logger.error(f"[get_tick_conclusions] 오류: {e}")
+            logger.error(f"[get_tick_conclusions] 오류: {e}", exc_info=True)
             return None
 
     def get_minute_bars(self, stock_code: str, time_unit: int = 1, count: int = 60) -> Optional[pd.DataFrame]:
@@ -674,7 +674,7 @@ class KISRestClient:
             df = pd.DataFrame(output)
             return df
         except Exception as e:
-            logger.error(f"[get_minute_bars] 오류: {e}")
+            logger.error(f"[get_minute_bars] 오류: {e}", exc_info=True)
             return None
 
     def get_investor_flow(self, stock_code: str) -> Optional[Dict]:
@@ -693,7 +693,7 @@ class KISRestClient:
             res = self._request("GET", url, headers=headers, params=params)
             return res.get("output") if isinstance(res, dict) else None
         except Exception as e:
-            logger.error(f"[get_investor_flow] 오류: {e}")
+            logger.error(f"[get_investor_flow] 오류: {e}", exc_info=True)
             return None
 
     def get_member_flow(self, stock_code: str) -> Optional[Dict]:
@@ -712,5 +712,5 @@ class KISRestClient:
             res = self._request("GET", url, headers=headers, params=params)
             return res.get("output") if isinstance(res, dict) else None
         except Exception as e:
-            logger.error(f"[get_member_flow] 오류: {e}")
+            logger.error(f"[get_member_flow] 오류: {e}", exc_info=True)
             return None

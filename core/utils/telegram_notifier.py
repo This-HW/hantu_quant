@@ -69,7 +69,7 @@ class TelegramNotifier:
                 logger.warning("텔레그램 설정이 불완전함 - 알림 비활성화")
 
         except Exception as e:
-            logger.error(f"텔레그램 설정 로드 실패: {e}")
+            logger.error(f"텔레그램 설정 로드 실패: {e}", exc_info=True)
             self._enabled = False
     
     def send_message(self, message: str, priority: str = "normal") -> bool:
@@ -117,7 +117,7 @@ class TelegramNotifier:
                     success_count += 1
                     logger.debug(f"텔레그램 메시지 전송 성공: {chat_id}")
                 else:
-                    logger.error(f"텔레그램 메시지 전송 실패: {chat_id}, 상태코드: {response.status_code}")
+                    logger.error(f"텔레그램 메시지 전송 실패: {chat_id}, 상태코드: {response.status_code}", exc_info=True)
 
             if success_count > 0:
                 logger.info(f"텔레그램 알림 전송 완료 ({priority}): {success_count}/{len(self._chat_ids)}")
@@ -127,7 +127,7 @@ class TelegramNotifier:
                 return False
 
         except Exception as e:
-            logger.error(f"텔레그램 메시지 전송 오류: {e}")
+            logger.error(f"텔레그램 메시지 전송 오류: {e}", exc_info=True)
             return False
 
     def _format_message_by_priority(self, message: str, priority: str) -> str:
@@ -192,7 +192,7 @@ class TelegramNotifier:
             return self.send_message(message, "high")
             
         except Exception as e:
-            logger.error(f"스크리닝 알림 생성 실패: {e}")
+            logger.error(f"스크리닝 알림 생성 실패: {e}", exc_info=True)
             
             # 기본 메시지로 폴백
             fallback_message = f"""🌅 *한투 퀀트 아침 스크리닝 완료*
@@ -218,7 +218,7 @@ class TelegramNotifier:
                 accuracy = hist_perf.get('accuracy', 0.0) * 100
                 win_rate = hist_perf.get('win_rate', 0.0) * 100
             except Exception as e:
-                logger.error(f"성과 지표 조회 실패: {e}")
+                logger.error(f"성과 지표 조회 실패: {e}", exc_info=True)
                 accuracy = 0.0
                 win_rate = 0.0
         
@@ -421,7 +421,7 @@ class TelegramNotifier:
             return self.send_message(message, priority)
             
         except Exception as e:
-            logger.error(f"일일 성과 리포트 생성 실패: {e}")
+            logger.error(f"일일 성과 리포트 생성 실패: {e}", exc_info=True)
             
             # 폴백 메시지
             fallback_message = f"""📊 *일일 성과 리포트*

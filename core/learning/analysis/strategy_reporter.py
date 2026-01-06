@@ -235,7 +235,7 @@ class StrategyReporter:
                 self._logger.info("전략 성과 데이터베이스 초기화 완료")
                 
         except Exception as e:
-            self._logger.error(f"데이터베이스 초기화 중 오류: {e}")
+            self._logger.error(f"데이터베이스 초기화 중 오류: {e}", exc_info=True)
     
     def _setup_scheduler(self):
         """스케줄러 설정"""
@@ -277,7 +277,7 @@ class StrategyReporter:
                 self._logger.debug(f"일별 전략 수익률 기록: {strategy_name} - {date}")
                 
         except Exception as e:
-            self._logger.error(f"일별 전략 수익률 기록 중 오류: {e}")
+            self._logger.error(f"일별 전략 수익률 기록 중 오류: {e}", exc_info=True)
     
     def _calculate_strategy_performance(self, strategy_name: str, 
                                       start_date: str, end_date: str) -> Optional[StrategyPerformance]:
@@ -398,7 +398,7 @@ class StrategyReporter:
                 )
                 
         except Exception as e:
-            self._logger.error(f"전략 성과 계산 중 오류: {e}")
+            self._logger.error(f"전략 성과 계산 중 오류: {e}", exc_info=True)
             return None
     
     def _classify_market_regime(self, date: str) -> MarketRegime:
@@ -515,7 +515,7 @@ class StrategyReporter:
             )
             
         except Exception as e:
-            self._logger.error(f"전략 비교 분석 중 오류: {e}")
+            self._logger.error(f"전략 비교 분석 중 오류: {e}", exc_info=True)
             return None
     
     def _save_strategy_performance(self, performance: StrategyPerformance):
@@ -547,7 +547,7 @@ class StrategyReporter:
                 self._logger.debug(f"전략 성과 저장: {performance.strategy_name}")
                 
         except Exception as e:
-            self._logger.error(f"전략 성과 저장 중 오류: {e}")
+            self._logger.error(f"전략 성과 저장 중 오류: {e}", exc_info=True)
     
     def _save_strategy_comparison(self, comparison: StrategyComparison):
         """전략 비교 저장"""
@@ -577,7 +577,7 @@ class StrategyReporter:
                 self._logger.info(f"전략 비교 저장: {comparison.comparison_date}")
                 
         except Exception as e:
-            self._logger.error(f"전략 비교 저장 중 오류: {e}")
+            self._logger.error(f"전략 비교 저장 중 오류: {e}", exc_info=True)
     
     def _generate_daily_report(self):
         """일일 리포트 생성"""
@@ -590,7 +590,7 @@ class StrategyReporter:
             self._logger.info("일일 전략 리포트 생성 완료")
             
         except Exception as e:
-            self._logger.error(f"일일 리포트 생성 중 오류: {e}")
+            self._logger.error(f"일일 리포트 생성 중 오류: {e}", exc_info=True)
     
     def _generate_weekly_report(self):
         """주간 리포트 생성"""
@@ -603,7 +603,7 @@ class StrategyReporter:
             self._logger.info("주간 전략 리포트 생성 완료")
             
         except Exception as e:
-            self._logger.error(f"주간 리포트 생성 중 오류: {e}")
+            self._logger.error(f"주간 리포트 생성 중 오류: {e}", exc_info=True)
     
     def _generate_monthly_report(self):
         """월간 리포트 생성"""
@@ -625,7 +625,7 @@ class StrategyReporter:
             self._logger.info("월간 전략 리포트 생성 완료")
             
         except Exception as e:
-            self._logger.error(f"월간 리포트 생성 중 오류: {e}")
+            self._logger.error(f"월간 리포트 생성 중 오류: {e}", exc_info=True)
     
     def get_strategy_performance_history(self, strategy_name: str, days: int = 30) -> List[StrategyPerformance]:
         """전략 성과 이력 조회"""
@@ -671,7 +671,7 @@ class StrategyReporter:
                 return performances
                 
         except Exception as e:
-            self._logger.error(f"전략 성과 이력 조회 중 오류: {e}")
+            self._logger.error(f"전략 성과 이력 조회 중 오류: {e}", exc_info=True)
             return []
     
     def export_comprehensive_report(self, file_path: str = "strategy_report.json"):
@@ -704,7 +704,7 @@ class StrategyReporter:
             self._logger.info(f"종합 전략 리포트를 {file_path}에 저장했습니다.")
             
         except Exception as e:
-            self._logger.error(f"종합 리포트 내보내기 중 오류: {e}")
+            self._logger.error(f"종합 리포트 내보내기 중 오류: {e}", exc_info=True)
     
     def start_auto_reporting(self):
         """자동 리포트 생성 시작"""
