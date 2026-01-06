@@ -180,7 +180,7 @@ class TradingHealthChecker:
 
             # 오늘 거래 내역 조회
             today = datetime.now().strftime("%Y%m%d")
-            trades_file = journal._base_dir / f"trades_{today}.json"
+            trades_file = Path(journal._base_dir) / f"trade_journal_{today}.json"
 
             if not trades_file.exists():
                 return {

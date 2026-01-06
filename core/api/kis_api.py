@@ -233,17 +233,22 @@ class KISAPI(KISRestClient):
             }
             
             response = self._request("GET", url, headers=headers, params=params)
-            
+
+            # 에러 응답 체크 (HTTP 에러나 재시도 실패 시)
+            if response.get('error'):
+                logger.error(f"[get_stock_info] API 오류: {response.get('error')}")
+                return None
+
             if response.get('rt_cd') == '0':
                 return response.get('output')
             else:
-                logger.error(f"[get_stock_info] API 오류: {response.get('msg1')}")
+                logger.error(f"[get_stock_info] API 오류: {response.get('msg1', '알 수 없는 오류')}")
                 return None
-                
+
         except Exception as e:
             logger.error(f"[get_stock_info] 종목 정보 조회 중 오류 발생: {str(e)}")
             return None
-            
+
     def get_stock_history(self, stock_code: str, period: str = "D", count: int = 20) -> Optional[pd.DataFrame]:
         """과거 주가 데이터 조회
         
@@ -276,16 +281,21 @@ class KISAPI(KISRestClient):
             }
             
             response = self._request("GET", url, headers=headers, params=params)
-            
+
+            # 에러 응답 체크 (HTTP 에러나 재시도 실패 시)
+            if response.get('error'):
+                logger.error(f"[get_stock_history] API 오류: {response.get('error')}")
+                return None
+
             if response.get('rt_cd') == '0':
                 output = response.get('output', [])
                 if not output:
                     logger.warning(f"[get_stock_history] 가격 데이터가 없습니다 - {stock_code}")
                     return None
-                    
+
                 # DataFrame 생성
                 df = pd.DataFrame(output)
-                
+
                 # 컬럼명 변경
                 df = df.rename(columns={
                     'stck_bsop_date': 'date',  # 일자
@@ -295,19 +305,19 @@ class KISAPI(KISRestClient):
                     'stck_clpr': 'close',  # 종가
                     'acml_vol': 'volume'  # 거래량
                 })
-                
+
                 # 데이터 타입 변환
                 numeric_columns = ['open', 'high', 'low', 'close', 'volume']
                 for col in numeric_columns:
                     df[col] = pd.to_numeric(df[col])
-                    
+
                 # 날짜 타입 변환
                 df['date'] = pd.to_datetime(df['date'])
-                
+
                 return df
-                
+
             else:
-                logger.error(f"[get_stock_history] API 오류: {response.get('msg1')}")
+                logger.error(f"[get_stock_history] API 오류: {response.get('msg1', '알 수 없는 오류')}")
                 return None
                 
         except Exception as e:
