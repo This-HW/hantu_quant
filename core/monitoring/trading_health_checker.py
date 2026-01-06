@@ -180,7 +180,7 @@ class TradingHealthChecker:
 
             # 오늘 거래 내역 조회
             today = datetime.now().strftime("%Y%m%d")
-            trades_file = journal._base_dir / f"trades_{today}.json"
+            trades_file = Path(journal._base_dir) / f"trade_journal_{today}.json"
 
             if not trades_file.exists():
                 return {
@@ -482,65 +482,42 @@ class TradingHealthChecker:
             self.logger.error(f"헬스체크 알림 전송 오류: {e}")
 
     def _format_health_alert(self, result: HealthCheckResult, recovery_results: Dict = None) -> str:
-        """헬스체크 알림 메시지 포맷"""
-        message = f"""*자동 매매 시스템 이상 감지*
+        """헬스체크 알림 메시지 포맷 (간소화)"""
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        message = f"*매매 시스템 이상* | `{timestamp}`\n\n"
 
-⏰ 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
-🔴 상태: *비정상*
-
-"""
-
+        # 문제점
         if result.issues:
-            message += "❌ *발견된 문제*:\n"
-            for i, issue in enumerate(result.issues, 1):
-                message += f"{i}. {issue}\n"
-            message += "\n"
+            message += "*문제:*\n"
+            for issue in result.issues:
+                message += f"• {issue}\n"
 
-        # 자동 복구 결과 추가
-        if recovery_results:
-            message += "🔧 *자동 복구 시도*:\n"
-            message += f"• 시도: {recovery_results['attempted']}건\n"
-            message += f"• 성공: {recovery_results['succeeded']}건\n"
-            message += f"• 실패: {recovery_results['failed']}건\n\n"
-
-            # 성공한 복구 액션
-            successful_actions = [a for a in recovery_results['actions'] if a.success]
-            if successful_actions:
-                message += "✅ *복구 성공*:\n"
-                for action in successful_actions[:3]:
-                    message += f"• {action.description}\n"
-                message += "\n"
-
-            # 실패한 복구 액션
-            failed_actions = [a for a in recovery_results['actions'] if not a.success]
+        # 복구 결과 (실패 시에만)
+        if recovery_results and recovery_results.get('failed', 0) > 0:
+            failed_actions = [a for a in recovery_results.get('actions', []) if not a.success]
             if failed_actions:
-                message += "❌ *복구 실패*:\n"
+                message += "\n*복구 실패:*\n"
                 for action in failed_actions[:3]:
                     message += f"• {action.description}\n"
-                message += "\n"
 
+        # 경고 (있을 경우)
         if result.warnings:
-            message += "⚠️ *경고사항*:\n"
-            for i, warning in enumerate(result.warnings, 1):
-                message += f"{i}. {warning}\n"
-            message += "\n"
+            message += "\n*경고:*\n"
+            for warning in result.warnings:
+                message += f"• {warning}\n"
 
+        # 핵심 메트릭만 표시
         if result.metrics:
-            message += "📊 *시스템 메트릭*:\n"
-
+            metrics_parts = []
             if 'engine_running' in result.metrics:
-                status = "🟢 실행중" if result.metrics['engine_running'] else "🔴 중지됨"
-                message += f"• 매매 엔진: {status}\n"
-
+                status = "실행중" if result.metrics['engine_running'] else "중지됨"
+                metrics_parts.append(f"엔진: {status}")
             if 'recent_trades' in result.metrics:
-                message += f"• 오늘 거래: {result.metrics['recent_trades']}건\n"
-
+                metrics_parts.append(f"거래: {result.metrics['recent_trades']}건")
             if 'available_cash' in result.metrics:
-                cash = result.metrics['available_cash']
-                message += f"• 가용 현금: {cash:,.0f}원\n"
-
-            if 'selection_count' in result.metrics:
-                message += f"• 일일 선정 종목: {result.metrics['selection_count']}개\n"
+                metrics_parts.append(f"현금: {result.metrics['available_cash']:,.0f}원")
+            if metrics_parts:
+                message += f"\n`{' | '.join(metrics_parts)}`"
 
         return message
 

@@ -239,20 +239,13 @@ class PostgreSQLErrorHandler(logging.Handler):
             else:
                 stack_summary = 'N/A'
 
-            alert_message = f"""🚨 *에러 발생*
+            alert_message = f"""🚨 *[{service}] 에러*
+`{timestamp}` | `{module}.{function}`
+타입: `{error_type}`
 
-⏰ 시간: `{timestamp}`
-🏷️ 서비스: `{service}`
-📍 위치: `{module}.{function}`
-❌ 타입: `{error_type}`
+{message}
 
-📝 *메시지*:
-`{message}`
-
-📋 *스택 트레이스*:
-```
-{stack_summary}
-```"""
+{f'```{stack_summary}```' if stack_summary != 'N/A' else ''}"""
 
             # 우선순위 결정
             priority = "critical" if level == "CRITICAL" else "emergency"
