@@ -746,7 +746,7 @@ class IntegratedScheduler:
             insights = result.get('insights', [])
 
             adapted = adaptation.get('status') == 'adapted'
-            actionable_insights = [i for i in insights if i.get('actionable', False)]
+            actionable_insights = [i for i in insights if getattr(i, 'actionable', False)]
 
             message = f"""🧠 *강화된 AI 학습 완료*
 
@@ -760,15 +760,15 @@ class IntegratedScheduler:
 
             if screening_accuracy:
                 message += f"""
-• 스크리닝 정밀도: {screening_accuracy['precision']:.1%}
-• 스크리닝 재현율: {screening_accuracy['recall']:.1%}
-• F1 점수: {screening_accuracy['f1_score']:.2f}"""
+• 스크리닝 정밀도: {screening_accuracy.precision:.1%}
+• 스크리닝 재현율: {screening_accuracy.recall:.1%}
+• F1 점수: {screening_accuracy.f1_score:.2f}"""
 
             if selection_accuracy:
                 message += f"""
-• 선정 승률: {selection_accuracy['win_rate']:.1%}
-• 평균 수익률: {selection_accuracy['avg_return']:+.2%}
-• 샤프 비율: {selection_accuracy['sharpe_ratio']:.2f}"""
+• 선정 승률: {selection_accuracy.win_rate:.1%}
+• 평균 수익률: {selection_accuracy.avg_return:+.2%}
+• 샤프 비율: {selection_accuracy.sharpe_ratio:.2f}"""
 
             message += f"""
 
@@ -778,8 +778,9 @@ class IntegratedScheduler:
 
             # 주요 인사이트 표시 (최대 2개)
             for insight in actionable_insights[:2]:
+                desc = getattr(insight, 'description', '')
                 message += f"""
-• {insight['description'][:50]}{'...' if len(insight['description']) > 50 else ''}"""
+• {desc[:50]}{'...' if len(desc) > 50 else ''}"""
 
             message += f"""
 
