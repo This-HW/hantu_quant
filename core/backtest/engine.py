@@ -148,7 +148,7 @@ class BacktestEngine:
             result.status = BacktestStatus.COMPLETED
 
         except Exception as e:
-            logger.error(f"백테스트 실패: {e}")
+            logger.error(f"백테스트 실패: {e}", exc_info=True)
             result.status = BacktestStatus.FAILED
             raise
 

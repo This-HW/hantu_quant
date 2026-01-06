@@ -273,7 +273,7 @@ class ValidationSystem:
             validation_result.status = ValidationStatus.FAILED
             validation_result.recommendation = f"검증 중 오류 발생: {e}"
             self._failed_validations += 1
-            self._logger.error(f"백테스트 검증 실패: {validation_id} - {e}")
+            self._logger.error(f"백테스트 검증 실패: {validation_id} - {e}", exc_info=True)
         
         finally:
             # 히스토리에 추가
@@ -614,7 +614,7 @@ class ValidationSystem:
             self._logger.debug(f"검증 결과 저장: {result_file}")
                 
         except Exception as e:
-            self._logger.error(f"검증 결과 저장 실패: {e}")
+            self._logger.error(f"검증 결과 저장 실패: {e}", exc_info=True)
     
     def get_validation_statistics(self) -> Dict[str, Any]:
         """검증 통계 정보"""

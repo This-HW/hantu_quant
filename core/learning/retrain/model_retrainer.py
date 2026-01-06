@@ -210,7 +210,7 @@ class ModelRetrainer:
             return result
 
         except Exception as e:
-            logger.error(f"재학습 실패: {e}")
+            logger.error(f"재학습 실패: {e}", exc_info=True)
             self._current_status = RetrainStatus.FAILED
 
             return RetrainResult(
@@ -379,7 +379,7 @@ class ModelRetrainer:
             )
 
         except Exception as e:
-            logger.error(f"모델 검증 오류: {e}")
+            logger.error(f"모델 검증 오류: {e}", exc_info=True)
             return ValidationResult(
                 passed=False,
                 accuracy=0.0,
@@ -456,7 +456,7 @@ class ModelRetrainer:
                 pickle.dump({'version': version, 'saved_at': datetime.now().isoformat()}, f)
             logger.info(f"모델 저장: {model_path}")
         except Exception as e:
-            logger.error(f"모델 저장 실패: {e}")
+            logger.error(f"모델 저장 실패: {e}", exc_info=True)
 
     def _register_model(self, version: str, validation: ValidationResult):
         """모델 레지스트리에 등록"""
@@ -486,7 +486,7 @@ class ModelRetrainer:
                 with open(registry_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
         except Exception as e:
-            logger.error(f"모델 레지스트리 로드 실패: {e}")
+            logger.error(f"모델 레지스트리 로드 실패: {e}", exc_info=True)
 
         return {}
 
@@ -498,7 +498,7 @@ class ModelRetrainer:
             with open(registry_file, 'w', encoding='utf-8') as f:
                 json.dump(self._model_registry, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f"모델 레지스트리 저장 실패: {e}")
+            logger.error(f"모델 레지스트리 저장 실패: {e}", exc_info=True)
 
     def _load_training_data_cache(self) -> List[Dict[str, Any]]:
         """학습 데이터 캐시 로드"""
@@ -509,7 +509,7 @@ class ModelRetrainer:
                 with open(cache_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
         except Exception as e:
-            logger.error(f"학습 데이터 캐시 로드 실패: {e}")
+            logger.error(f"학습 데이터 캐시 로드 실패: {e}", exc_info=True)
 
         return []
 

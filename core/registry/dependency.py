@@ -52,7 +52,7 @@ class DependencyAnalyzer(IDependencyAnalyzer):
             return analysis
             
         except Exception as e:
-            logger.error(f"Failed to analyze dependencies for '{module_name}': {e}")
+            logger.error(f"Failed to analyze dependencies for '{module_name}': {e}", exc_info=True)
             raise
     
     def detect_circular_dependencies(self) -> List[List[str]]:
@@ -74,7 +74,7 @@ class DependencyAnalyzer(IDependencyAnalyzer):
             return cycles
             
         except Exception as e:
-            logger.error(f"Failed to detect circular dependencies: {e}")
+            logger.error(f"Failed to detect circular dependencies: {e}", exc_info=True)
             raise
     
     def resolve_dependency_order(self, modules: List[str]) -> List[str]:
@@ -94,7 +94,7 @@ class DependencyAnalyzer(IDependencyAnalyzer):
                 raise DependencyError(f"Cannot resolve dependency order: {e}")
             
         except Exception as e:
-            logger.error(f"Failed to resolve dependency order: {e}")
+            logger.error(f"Failed to resolve dependency order: {e}", exc_info=True)
             raise
     
     def validate_dependency_versions(self, module_name: str) -> Tuple[bool, List[str]]:
@@ -128,7 +128,7 @@ class DependencyAnalyzer(IDependencyAnalyzer):
             return len(errors) == 0, errors
             
         except Exception as e:
-            logger.error(f"Failed to validate dependency versions for '{module_name}': {e}")
+            logger.error(f"Failed to validate dependency versions for '{module_name}': {e}", exc_info=True)
             raise
     
     def get_dependency_tree(self, module_name: str) -> Dict[str, Any]:
@@ -170,7 +170,7 @@ class DependencyAnalyzer(IDependencyAnalyzer):
             return build_tree(module_name)
             
         except Exception as e:
-            logger.error(f"Failed to build dependency tree for '{module_name}': {e}")
+            logger.error(f"Failed to build dependency tree for '{module_name}': {e}", exc_info=True)
             raise
     
     def get_reverse_dependencies(self, module_name: str) -> List[str]:
@@ -186,7 +186,7 @@ class DependencyAnalyzer(IDependencyAnalyzer):
             return reverse_deps
             
         except Exception as e:
-            logger.error(f"Failed to get reverse dependencies for '{module_name}': {e}")
+            logger.error(f"Failed to get reverse dependencies for '{module_name}': {e}", exc_info=True)
             raise
     
     def calculate_dependency_depth(self, module_name: str) -> int:
@@ -220,7 +220,7 @@ class DependencyAnalyzer(IDependencyAnalyzer):
             return calculate_depth(module_name)
             
         except Exception as e:
-            logger.error(f"Failed to calculate dependency depth for '{module_name}': {e}")
+            logger.error(f"Failed to calculate dependency depth for '{module_name}': {e}", exc_info=True)
             raise
     
     def get_dependency_statistics(self) -> Dict[str, Any]:
@@ -278,7 +278,7 @@ class DependencyAnalyzer(IDependencyAnalyzer):
             return dict(stats)
             
         except Exception as e:
-            logger.error(f"Failed to get dependency statistics: {e}")
+            logger.error(f"Failed to get dependency statistics: {e}", exc_info=True)
             raise
     
     def invalidate_cache(self) -> None:
@@ -407,7 +407,7 @@ class DependencyAnalyzer(IDependencyAnalyzer):
             cycles = list(nx.simple_cycles(graph))
             return cycles
         except Exception as e:
-            logger.error(f"Failed to find cycles: {e}")
+            logger.error(f"Failed to find cycles: {e}", exc_info=True)
             return []
     
     def _is_version_compatible(self, constraint: Optional[str], version) -> bool:
@@ -434,7 +434,7 @@ class DependencyAnalyzer(IDependencyAnalyzer):
             return list(reversed(ordered_modules))
             
         except Exception as e:
-            logger.error(f"Failed to determine loading order: {e}")
+            logger.error(f"Failed to determine loading order: {e}", exc_info=True)
             raise
     
     def get_unloading_order(self, modules: List[str]) -> List[str]:
@@ -447,7 +447,7 @@ class DependencyAnalyzer(IDependencyAnalyzer):
             return ordered_modules
             
         except Exception as e:
-            logger.error(f"Failed to determine unloading order: {e}")
+            logger.error(f"Failed to determine unloading order: {e}", exc_info=True)
             raise
     
     def validate_module_compatibility(self, module_name: str, 
@@ -495,7 +495,7 @@ class DependencyAnalyzer(IDependencyAnalyzer):
             return compatibility
             
         except Exception as e:
-            logger.error(f"Failed to validate module compatibility: {e}")
+            logger.error(f"Failed to validate module compatibility: {e}", exc_info=True)
             raise
     
     def __str__(self) -> str:

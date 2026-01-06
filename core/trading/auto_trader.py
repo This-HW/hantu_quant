@@ -70,7 +70,7 @@ class AutoTrader:
             return True
             
         except Exception as e:
-            logger.error(f"자동 매매 시작 중 오류 발생: {str(e)}")
+            logger.error(f"자동 매매 시작 중 오류 발생: {str(e)}", exc_info=True)
             return False
         
     async def stop(self):
@@ -82,7 +82,7 @@ class AutoTrader:
             logger.info("API 연결이 종료되었습니다.")
             return True
         except Exception as e:
-            logger.error(f"자동 매매 종료 중 오류 발생: {str(e)}")
+            logger.error(f"자동 매매 종료 중 오류 발생: {str(e)}", exc_info=True)
             return False
         
     def update_price_data(self, code: str, price_data: pd.DataFrame):
@@ -178,7 +178,7 @@ class AutoTrader:
                 )
                 
         except Exception as e:
-            logger.error(f"매수 실행 중 오류 발생: {e}")
+            logger.error(f"매수 실행 중 오류 발생: {e}", exc_info=True)
             
     def _execute_sell(self, code: str):
         """매도 실행"""
@@ -201,7 +201,7 @@ class AutoTrader:
                 self.sell_count += 1
                 
         except Exception as e:
-            logger.error(f"매도 실행 중 오류 발생: {e}")
+            logger.error(f"매도 실행 중 오류 발생: {e}", exc_info=True)
             
     def get_trading_status(self) -> Dict:
         """거래 상태 조회"""
@@ -244,12 +244,12 @@ class AutoTrader:
                 if success:
                     logger.info(f"매도 엔진 포지션 추가: {code} ({stock_name})")
                 else:
-                    logger.error(f"매도 엔진 포지션 추가 실패: {code}")
+                    logger.error(f"매도 엔진 포지션 추가 실패: {code}", exc_info=True)
             
             logger.info("포지션 동기화 완료")
             
         except Exception as e:
-            logger.error(f"포지션 동기화 오류: {e}")
+            logger.error(f"포지션 동기화 오류: {e}", exc_info=True)
     
     def check_and_execute_sell_signals(self, target_codes: List[str]):
         """매도 신호 확인 및 실행"""
@@ -304,7 +304,7 @@ class AutoTrader:
                         self._execute_intelligent_sell(primary_signal)
                     
         except Exception as e:
-            logger.error(f"매도 신호 확인 오류: {e}")
+            logger.error(f"매도 신호 확인 오류: {e}", exc_info=True)
     
     def _get_technical_indicators(self, stock_code: str) -> Dict[str, float]:
         """기술적 지표 조회 (기본 구현)"""
@@ -321,7 +321,7 @@ class AutoTrader:
                 'bollinger_position': 0.5
             }
         except Exception as e:
-            logger.error(f"기술적 지표 조회 오류: {e}")
+            logger.error(f"기술적 지표 조회 오류: {e}", exc_info=True)
             return {}
     
     def _should_execute_sell(self, sell_signal: SellSignal) -> bool:
@@ -355,7 +355,7 @@ class AutoTrader:
             return True
             
         except Exception as e:
-            logger.error(f"매도 실행 여부 판단 오류: {e}")
+            logger.error(f"매도 실행 여부 판단 오류: {e}", exc_info=True)
             return False
     
     def _execute_intelligent_sell(self, sell_signal: SellSignal):
@@ -392,10 +392,10 @@ class AutoTrader:
                 # 텔레그램 알림 발송 (선택적)
                 self._send_sell_notification(sell_signal, sell_ratio)
             else:
-                logger.error(f"매도 실행 실패: {stock_code}")
+                logger.error(f"매도 실행 실패: {stock_code}", exc_info=True)
             
         except Exception as e:
-            logger.error(f"지능형 매도 실행 오류: {e}")
+            logger.error(f"지능형 매도 실행 오류: {e}", exc_info=True)
     
     def _determine_sell_ratio(self, sell_signal: SellSignal) -> float:
         """매도 비율 결정"""
@@ -424,7 +424,7 @@ class AutoTrader:
             return 0.5
             
         except Exception as e:
-            logger.error(f"매도 비율 결정 오류: {e}")
+            logger.error(f"매도 비율 결정 오류: {e}", exc_info=True)
             return 0.5
     
     def _send_sell_notification(self, sell_signal: SellSignal, sell_ratio: float):

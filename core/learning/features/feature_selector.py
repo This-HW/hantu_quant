@@ -138,7 +138,7 @@ class FeatureSelector:
             return combined_features
             
         except Exception as e:
-            self._logger.error(f"피처 추출 오류: {e}")
+            self._logger.error(f"피처 추출 오류: {e}", exc_info=True)
             return CombinedFeatures(
                 slope_features=SlopeFeatures(),
                 volume_features=VolumeFeatures()
@@ -170,7 +170,7 @@ class FeatureSelector:
             return combined_features
             
         except Exception as e:
-            self._logger.error(f"주식 데이터에서 피처 추출 오류: {e}")
+            self._logger.error(f"주식 데이터에서 피처 추출 오류: {e}", exc_info=True)
             return CombinedFeatures(
                 slope_features=SlopeFeatures(),
                 volume_features=VolumeFeatures()
@@ -252,7 +252,7 @@ class FeatureSelector:
             return feature_importances
             
         except Exception as e:
-            self._logger.error(f"피처 중요도 분석 오류: {e}")
+            self._logger.error(f"피처 중요도 분석 오류: {e}", exc_info=True)
             return []
     
     def select_optimal_features(self,
@@ -335,7 +335,7 @@ class FeatureSelector:
             return result
             
         except Exception as e:
-            self._logger.error(f"피처 선택 오류: {e}")
+            self._logger.error(f"피처 선택 오류: {e}", exc_info=True)
             return FeatureSelectionResult(
                 selected_features=[],
                 feature_importances=[],
@@ -364,7 +364,7 @@ class FeatureSelector:
             return correlations
             
         except Exception as e:
-            self._logger.error(f"피처 상관관계 계산 오류: {e}")
+            self._logger.error(f"피처 상관관계 계산 오류: {e}", exc_info=True)
             return {}
     
     def _select_features_by_importance_and_correlation(self,
@@ -402,7 +402,7 @@ class FeatureSelector:
             return selected_features
             
         except Exception as e:
-            self._logger.error(f"피처 선택 오류: {e}")
+            self._logger.error(f"피처 선택 오류: {e}", exc_info=True)
             return []
     
     def _evaluate_feature_selection(self,
@@ -435,7 +435,7 @@ class FeatureSelector:
             return cv_scores.mean()
             
         except Exception as e:
-            self._logger.error(f"피처 선택 평가 오류: {e}")
+            self._logger.error(f"피처 선택 평가 오류: {e}", exc_info=True)
             return 0.0
     
     def get_feature_summary(self) -> Dict[str, Any]:
@@ -476,5 +476,5 @@ class FeatureSelector:
             return True
             
         except Exception as e:
-            self._logger.error(f"피처 선택 결과 저장 오류: {e}")
+            self._logger.error(f"피처 선택 결과 저장 오류: {e}", exc_info=True)
             return False 

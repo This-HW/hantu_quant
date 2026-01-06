@@ -305,7 +305,7 @@ class SystemAlertTelegramNotifier:
             result = self._standard_notifier.test_connection()
             return result.get("success", False)
         except Exception as e:
-            self._logger.error(f"텔레그램 연결 테스트 중 오류: {e}")
+            self._logger.error(f"텔레그램 연결 테스트 중 오류: {e}", exc_info=True)
             return False
 
 
@@ -408,7 +408,7 @@ class SystemAlertManager:
                 self._logger.info("시스템 알림 데이터베이스 초기화 완료")
                 
         except Exception as e:
-            self._logger.error(f"데이터베이스 초기화 중 오류: {e}")
+            self._logger.error(f"데이터베이스 초기화 중 오류: {e}", exc_info=True)
     
     def _setup_default_rules(self):
         """기본 알림 규칙 설정"""
@@ -471,7 +471,7 @@ class SystemAlertManager:
                 return False
                 
         except Exception as e:
-            self._logger.error(f"텔레그램 설정 중 오류: {e}")
+            self._logger.error(f"텔레그램 설정 중 오류: {e}", exc_info=True)
             return False
     
     def create_alert(self, level: AlertLevel, category: AlertCategory,
@@ -587,7 +587,7 @@ class SystemAlertManager:
                     self._cleanup_dedup_cache()
                     
                 except Exception as e:
-                    self._logger.error(f"알림 처리 중 오류: {e}")
+                    self._logger.error(f"알림 처리 중 오류: {e}", exc_info=True)
                 
                 time.sleep(1)  # 1초 간격으로 처리
         
@@ -621,7 +621,7 @@ class SystemAlertManager:
             self._update_statistics(alert)
             
         except Exception as e:
-            self._logger.error(f"알림 처리 중 오류: {e}")
+            self._logger.error(f"알림 처리 중 오류: {e}", exc_info=True)
     
     def _save_alert(self, alert: SystemAlert):
         """알림 저장"""
@@ -646,7 +646,7 @@ class SystemAlertManager:
                 conn.commit()
                 
         except Exception as e:
-            self._logger.error(f"알림 저장 중 오류: {e}")
+            self._logger.error(f"알림 저장 중 오류: {e}", exc_info=True)
     
     def _update_statistics(self, alert: SystemAlert):
         """알림 통계 업데이트"""
@@ -690,7 +690,7 @@ class SystemAlertManager:
                 conn.commit()
                 
         except Exception as e:
-            self._logger.error(f"알림 통계 업데이트 중 오류: {e}")
+            self._logger.error(f"알림 통계 업데이트 중 오류: {e}", exc_info=True)
     
     def _cleanup_dedup_cache(self):
         """중복 방지 캐시 정리"""
@@ -706,7 +706,7 @@ class SystemAlertManager:
                 del self._recent_alerts[key]
                 
         except Exception as e:
-            self._logger.error(f"중복 방지 캐시 정리 중 오류: {e}")
+            self._logger.error(f"중복 방지 캐시 정리 중 오류: {e}", exc_info=True)
     
     def get_alert_statistics(self, days: int = 7) -> Dict[str, Any]:
         """알림 통계 조회"""
@@ -740,7 +740,7 @@ class SystemAlertManager:
                 }
                 
         except Exception as e:
-            self._logger.error(f"알림 통계 조회 중 오류: {e}")
+            self._logger.error(f"알림 통계 조회 중 오류: {e}", exc_info=True)
             return {}
 
 # 글로벌 인스턴스

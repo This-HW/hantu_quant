@@ -173,7 +173,7 @@ class InvestorFlowAnalyzer:
             return self.analyze_from_data(stock_code, data)
 
         except Exception as e:
-            logger.error(f"투자자 수급 분석 오류 ({stock_code}): {e}")
+            logger.error(f"투자자 수급 분석 오류 ({stock_code}): {e}", exc_info=True)
             return None
 
     def analyze_from_data(
@@ -255,7 +255,7 @@ class InvestorFlowAnalyzer:
             return self.analyze(stock_code)
 
         except Exception as e:
-            logger.error(f"다일간 수급 분석 오류 ({stock_code}): {e}")
+            logger.error(f"다일간 수급 분석 오류 ({stock_code}): {e}", exc_info=True)
             return None
 
     def _create_trend(

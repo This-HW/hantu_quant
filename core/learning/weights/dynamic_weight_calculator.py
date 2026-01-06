@@ -420,7 +420,7 @@ class DynamicWeightCalculator:
                     else:
                         logger.warning(f"저장된 가중치 유효하지 않음: {errors}")
         except Exception as e:
-            logger.error(f"가중치 로드 실패: {e}")
+            logger.error(f"가중치 로드 실패: {e}", exc_info=True)
 
         # 기본 가중치 반환
         return self._weight_safety.get_safe_default_weights()
@@ -438,7 +438,7 @@ class DynamicWeightCalculator:
             with open(weight_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f"가중치 저장 실패: {e}")
+            logger.error(f"가중치 저장 실패: {e}", exc_info=True)
 
 
 # 싱글톤 인스턴스

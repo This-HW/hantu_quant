@@ -202,7 +202,7 @@ class AutomationManager:
             
         except Exception as e:
             self._status = AutomationStatus.ERROR
-            self._logger.error(f"자동화 시작 실패: {e}")
+            self._logger.error(f"자동화 시작 실패: {e}", exc_info=True)
             return False
     
     def stop_automation(self) -> bool:
@@ -227,7 +227,7 @@ class AutomationManager:
             return True
             
         except Exception as e:
-            self._logger.error(f"자동화 중지 실패: {e}")
+            self._logger.error(f"자동화 중지 실패: {e}", exc_info=True)
             return False
     
     def pause_automation(self) -> bool:
@@ -257,7 +257,7 @@ class AutomationManager:
             return True
             
         except Exception as e:
-            self._logger.error(f"규칙 추가 실패: {e}")
+            self._logger.error(f"규칙 추가 실패: {e}", exc_info=True)
             return False
     
     def remove_rule(self, rule_id: str) -> bool:
@@ -355,7 +355,7 @@ class AutomationManager:
                 self._stop_event.wait(self._config.monitor_interval)
                 
             except Exception as e:
-                self._logger.error(f"자동화 루프 오류: {e}")
+                self._logger.error(f"자동화 루프 오류: {e}", exc_info=True)
                 self._status = AutomationStatus.ERROR
                 time.sleep(60)  # 오류 시 1분 대기
                 self._status = AutomationStatus.RUNNING
@@ -375,7 +375,7 @@ class AutomationManager:
                     rule.trigger_count += 1
                     
             except Exception as e:
-                self._logger.error(f"규칙 평가 실패 [{rule.rule_id}]: {e}")
+                self._logger.error(f"규칙 평가 실패 [{rule.rule_id}]: {e}", exc_info=True)
     
     def _should_trigger_rule(self, rule: AutomationRule) -> bool:
         """규칙 트리거 여부 판단"""
@@ -424,7 +424,7 @@ class AutomationManager:
             return False
             
         except Exception as e:
-            self._logger.error(f"파라미터 변경 확인 실패: {e}")
+            self._logger.error(f"파라미터 변경 확인 실패: {e}", exc_info=True)
             return False
     
     def _check_schedule_trigger(self, rule: AutomationRule, config: Dict[str, Any]) -> bool:
@@ -572,7 +572,7 @@ class AutomationManager:
             job.error_message = str(e)
             self._failed_jobs += 1
             
-            self._logger.error(f"작업 실패: {job.job_id} - {e}")
+            self._logger.error(f"작업 실패: {job.job_id} - {e}", exc_info=True)
             self._send_notification(f"백테스트 작업 실패: {job.strategy_name}", {
                 'job_id': job.job_id,
                 'error': str(e)
@@ -620,7 +620,7 @@ class AutomationManager:
                 })
                 
             except Exception as e:
-                self._logger.error(f"자동 승인 실패: {e}")
+                self._logger.error(f"자동 승인 실패: {e}", exc_info=True)
     
     def _monitor_active_jobs(self):
         """활성 작업 모니터링"""
@@ -664,7 +664,7 @@ class AutomationManager:
             try:
                 callback(message, notification_data)
             except Exception as e:
-                self._logger.error(f"알림 콜백 실행 실패: {e}")
+                self._logger.error(f"알림 콜백 실행 실패: {e}", exc_info=True)
     
     def _add_default_rules(self):
         """기본 자동화 규칙 추가"""
@@ -711,7 +711,7 @@ class AutomationManager:
                 json.dump(rules_data, f, ensure_ascii=False, indent=2)
                 
         except Exception as e:
-            self._logger.error(f"규칙 저장 실패: {e}")
+            self._logger.error(f"규칙 저장 실패: {e}", exc_info=True)
     
     def get_automation_status(self) -> Dict[str, Any]:
         """자동화 상태 정보"""

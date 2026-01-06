@@ -99,7 +99,7 @@ def run_stage_a():
         return True
 
     except Exception as e:
-        logger.error(f"A단계 실행 오류: {e}")
+        logger.error(f"A단계 실행 오류: {e}", exc_info=True)
         state_manager.save_checkpoint(
             stage=WorkflowStage.STAGE_A,
             status=WorkflowStatus.FAILED,

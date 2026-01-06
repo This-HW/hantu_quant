@@ -139,7 +139,7 @@ class MarketConditionAnalyzer:
             return "neutral"
             
         except Exception as e:
-            logger.error(f"시장 상황 분석 오류: {e}")
+            logger.error(f"시장 상황 분석 오류: {e}", exc_info=True)
             return "neutral"
     
     def _update_market_indicators(self):
@@ -215,7 +215,7 @@ class DailyUpdater(IDailyUpdater):
                     _v_result = self._price_analyzer.analyze_price_attractiveness(_v_stock_data)
                     _v_analysis_results.append(_v_result)
                 except Exception as e:
-                    self._logger.error(f"종목 {_v_stock_data.get('stock_code')} 분석 오류: {e}")
+                    self._logger.error(f"종목 {_v_stock_data.get('stock_code')} 분석 오류: {e}", exc_info=True)
                     continue
             
             # 5. 필터링 및 선정 (PriceAttractiveness 직접 사용)
@@ -241,8 +241,8 @@ class DailyUpdater(IDailyUpdater):
                 
         except Exception as e:
             import traceback
-            self._logger.error(f"일일 업데이트 오류: {e}")
-            self._logger.error(f"상세 에러: {traceback.format_exc()}")
+            self._logger.error(f"일일 업데이트 오류: {e}", exc_info=True)
+            self._logger.error(f"상세 에러: {traceback.format_exc()}", exc_info=True)
             return False
 
     def analyze_market_condition(self) -> str:
@@ -339,7 +339,7 @@ class DailyUpdater(IDailyUpdater):
             self._logger.info("일일 업데이트 스케줄러 시작")
             
         except Exception as e:
-            self._logger.error(f"스케줄러 시작 오류: {e}")
+            self._logger.error(f"스케줄러 시작 오류: {e}", exc_info=True)
 
     def stop_scheduler(self) -> None:
         """스케줄러 중지 (새 인터페이스 구현)"""
@@ -775,7 +775,7 @@ class DailyUpdater(IDailyUpdater):
             return True
             
         except Exception as e:
-            self._logger.error(f"일일 매매 리스트 저장 실패: {e}")
+            self._logger.error(f"일일 매매 리스트 저장 실패: {e}", exc_info=True)
             return False
     
     def _send_notification(self, p_daily_list: Dict):
@@ -801,7 +801,7 @@ class DailyUpdater(IDailyUpdater):
             # 실제로는 슬랙, 이메일, SMS 등으로 알림 발송
             
         except Exception as e:
-            self._logger.error(f"알림 발송 실패: {e}")
+            self._logger.error(f"알림 발송 실패: {e}", exc_info=True)
     
     def get_latest_selection(self) -> Optional[Dict]:
         """최신 일일 선정 결과 조회
@@ -819,7 +819,7 @@ class DailyUpdater(IDailyUpdater):
                 return json.load(f)
                 
         except Exception as e:
-            self._logger.error(f"최신 선정 결과 조회 실패: {e}")
+            self._logger.error(f"최신 선정 결과 조회 실패: {e}", exc_info=True)
             return None
     
     def get_selection_history(self, p_days: int = 7) -> List[Dict]:
@@ -846,7 +846,7 @@ class DailyUpdater(IDailyUpdater):
             return _v_history
             
         except Exception as e:
-            self._logger.error(f"선정 이력 조회 실패: {e}")
+            self._logger.error(f"선정 이력 조회 실패: {e}", exc_info=True)
             return []
     
     def update_filtering_criteria(self, p_criteria: FilteringCriteria):
@@ -875,7 +875,7 @@ class DailyUpdater(IDailyUpdater):
                 self._logger.warning("일일 업데이트 완료 텔레그램 알림 전송 실패")
                 
         except Exception as e:
-            self._logger.error(f"일일 업데이트 완료 알림 전송 오류: {e}")
+            self._logger.error(f"일일 업데이트 완료 알림 전송 오류: {e}", exc_info=True)
 
 
 if __name__ == "__main__":

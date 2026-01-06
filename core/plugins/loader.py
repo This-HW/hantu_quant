@@ -111,7 +111,7 @@ class PluginLoader(IPluginLoader):
                         await self._emit_plugin_discovered_event(plugin_metadata, item_path)
                         
                     except Exception as e:
-                        self._logger.error(f"Failed to load plugin metadata from {metadata_file}: {e}")
+                        self._logger.error(f"Failed to load plugin metadata from {metadata_file}: {e}", exc_info=True)
                         continue
         
         return discovered_plugins
@@ -452,7 +452,7 @@ class PluginLoader(IPluginLoader):
             return True
             
         except Exception as e:
-            self._logger.error(f"Plugin validation error: {e}")
+            self._logger.error(f"Plugin validation error: {e}", exc_info=True)
             return False
     
     def get_discovered_plugins(self) -> List[PluginMetadata]:

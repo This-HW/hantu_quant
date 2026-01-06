@@ -129,7 +129,7 @@ class StrategyBacktester:
                             stock['selection_date'] = current_date.strftime("%Y-%m-%d")
                         selections.extend(stocks)
                 except Exception as e:
-                    self.logger.error(f"데이터 로드 실패 {date_str}: {e}")
+                    self.logger.error(f"데이터 로드 실패 {date_str}: {e}", exc_info=True)
 
             current_date += timedelta(days=1)
 

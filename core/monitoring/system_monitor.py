@@ -136,7 +136,7 @@ class SystemMonitor:
                 time.sleep(self.monitoring_interval)
 
             except Exception as e:
-                self.logger.error(f"모니터링 루프 오류: {e}")
+                self.logger.error(f"모니터링 루프 오류: {e}", exc_info=True)
                 time.sleep(60)  # 오류 시 1분 대기
 
         self.logger.info("모니터링 루프 종료")
@@ -182,7 +182,7 @@ class SystemMonitor:
                 )
 
         except Exception as e:
-            self.logger.error(f"시스템 건강 상태 체크 실패: {e}")
+            self.logger.error(f"시스템 건강 상태 체크 실패: {e}", exc_info=True)
 
     def _check_learning_health(self):
         """학습 시스템 건강 상태 체크"""
@@ -242,7 +242,7 @@ class SystemMonitor:
                 )
 
         except Exception as e:
-            self.logger.error(f"학습 건강 상태 체크 실패: {e}")
+            self.logger.error(f"학습 건강 상태 체크 실패: {e}", exc_info=True)
 
     def _check_data_health(self):
         """데이터 건강 상태 체크"""
@@ -282,7 +282,7 @@ class SystemMonitor:
                     )
 
         except Exception as e:
-            self.logger.error(f"데이터 건강 상태 체크 실패: {e}")
+            self.logger.error(f"데이터 건강 상태 체크 실패: {e}", exc_info=True)
 
     def _collect_performance_metrics(self):
         """성능 메트릭 수집"""
@@ -329,7 +329,7 @@ class SystemMonitor:
             self._save_performance_metrics(metrics)
 
         except Exception as e:
-            self.logger.error(f"성능 메트릭 수집 실패: {e}")
+            self.logger.error(f"성능 메트릭 수집 실패: {e}", exc_info=True)
 
     def _save_performance_metrics(self, metrics: PerformanceMetrics):
         """성능 메트릭 저장"""
@@ -353,7 +353,7 @@ class SystemMonitor:
                 json.dump(metrics_list, f, indent=2, ensure_ascii=False)
 
         except Exception as e:
-            self.logger.error(f"성능 메트릭 저장 실패: {e}")
+            self.logger.error(f"성능 메트릭 저장 실패: {e}", exc_info=True)
 
     def _create_alert(
         self,
@@ -396,7 +396,7 @@ class SystemMonitor:
             self.logger.warning(f"알림 생성: {title} - {description}")
 
         except Exception as e:
-            self.logger.error(f"알림 생성 실패: {e}")
+            self.logger.error(f"알림 생성 실패: {e}", exc_info=True)
 
     def _save_alert(self, alert: SystemAlert):
         """알림 저장"""
@@ -420,7 +420,7 @@ class SystemMonitor:
                 json.dump(alerts, f, indent=2, ensure_ascii=False)
 
         except Exception as e:
-            self.logger.error(f"알림 저장 실패: {e}")
+            self.logger.error(f"알림 저장 실패: {e}", exc_info=True)
 
     def _send_telegram_alert(self, alert: SystemAlert):
         """텔레그램 알림 전송"""
@@ -458,7 +458,7 @@ class SystemMonitor:
                 self.logger.warning(f"텔레그램 알림 전송 실패: {alert.title}")
 
         except Exception as e:
-            self.logger.error(f"텔레그램 알림 전송 오류: {e}")
+            self.logger.error(f"텔레그램 알림 전송 오류: {e}", exc_info=True)
 
     def _check_daily_report(self):
         """일일 보고서 생성 체크"""
@@ -491,7 +491,7 @@ class SystemMonitor:
                     json.dump({'date': now.isoformat()}, f)
 
         except Exception as e:
-            self.logger.error(f"일일 보고서 체크 실패: {e}")
+            self.logger.error(f"일일 보고서 체크 실패: {e}", exc_info=True)
 
     def _generate_daily_report(self):
         """일일 모니터링 보고서 생성"""
@@ -560,7 +560,7 @@ class SystemMonitor:
             self.logger.info("일일 모니터링 보고서 생성 완료")
 
         except Exception as e:
-            self.logger.error(f"일일 보고서 생성 실패: {e}")
+            self.logger.error(f"일일 보고서 생성 실패: {e}", exc_info=True)
 
     def _send_daily_report_summary(self, report: Dict[str, Any]):
         """일일 보고서 요약 전송"""
@@ -613,7 +613,7 @@ class SystemMonitor:
                 self.logger.warning("일일 보고서 요약 전송 실패")
 
         except Exception as e:
-            self.logger.error(f"일일 보고서 요약 전송 오류: {e}")
+            self.logger.error(f"일일 보고서 요약 전송 오류: {e}", exc_info=True)
 
     def get_system_status(self) -> Dict[str, Any]:
         """현재 시스템 상태 조회"""
@@ -657,7 +657,7 @@ class SystemMonitor:
             }
 
         except Exception as e:
-            self.logger.error(f"시스템 상태 조회 실패: {e}")
+            self.logger.error(f"시스템 상태 조회 실패: {e}", exc_info=True)
             return {'error': str(e)}
 
     def run_maintenance_check(self) -> Dict[str, Any]:
@@ -730,7 +730,7 @@ class SystemMonitor:
             }
 
         except Exception as e:
-            self.logger.error(f"유지보수 체크 실패: {e}")
+            self.logger.error(f"유지보수 체크 실패: {e}", exc_info=True)
             return {'error': str(e)}
 
 # 싱글톤 인스턴스

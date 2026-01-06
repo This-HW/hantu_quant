@@ -265,7 +265,7 @@ class RetrainHistory:
             with open(record_file, 'w', encoding='utf-8') as f:
                 json.dump(record.to_dict(), f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f"기록 저장 실패: {e}")
+            logger.error(f"기록 저장 실패: {e}", exc_info=True)
 
     def _save_index(self):
         """인덱스 파일 저장"""
@@ -279,7 +279,7 @@ class RetrainHistory:
             with open(index_file, 'w', encoding='utf-8') as f:
                 json.dump(index, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f"인덱스 저장 실패: {e}")
+            logger.error(f"인덱스 저장 실패: {e}", exc_info=True)
 
     def _load_all_records(self):
         """모든 기록 로드"""

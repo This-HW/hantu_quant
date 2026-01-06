@@ -201,7 +201,7 @@ class CriteriaOptimizer:
             return _v_best_criteria
             
         except Exception as e:
-            logger.error(f"기준 최적화 오류: {e}")
+            logger.error(f"기준 최적화 오류: {e}", exc_info=True)
             return p_base_criteria
     
     def _define_optimization_ranges(self) -> Dict[str, Tuple[float, float]]:
@@ -579,7 +579,7 @@ class SelectionCriteriaManager:
             logger.info(f"기준 저장 완료: {_v_filepath}")
             
         except Exception as e:
-            logger.error(f"기준 저장 실패: {e}")
+            logger.error(f"기준 저장 실패: {e}", exc_info=True)
     
     def load_criteria(self, p_market_condition: MarketCondition) -> Optional[SelectionCriteria]:
         """기준 로드
@@ -603,7 +603,7 @@ class SelectionCriteriaManager:
             return SelectionCriteria.from_dict(_v_data)
             
         except Exception as e:
-            logger.error(f"기준 로드 실패: {e}")
+            logger.error(f"기준 로드 실패: {e}", exc_info=True)
             return None
     
     def get_all_criteria(self) -> Dict[MarketCondition, SelectionCriteria]:

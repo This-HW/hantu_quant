@@ -323,7 +323,7 @@ class BasePlugin(IPlugin, ABC):
             self._logger.info(f"Plugin {self._name} cleaned up successfully")
             
         except Exception as e:
-            self._logger.error(f"Failed to cleanup plugin {self._name}: {e}")
+            self._logger.error(f"Failed to cleanup plugin {self._name}: {e}", exc_info=True)
             raise
     
     def get_status(self) -> Dict[str, Any]:

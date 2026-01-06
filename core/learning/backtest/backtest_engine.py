@@ -203,7 +203,7 @@ class BacktestEngine:
                 result.status = BacktestStatus.FAILED
                 result.error_message = error
                 self._failed_backtests += 1
-                self._logger.error(f"백테스트 실패: {backtest_id} - {error}")
+                self._logger.error(f"백테스트 실패: {backtest_id} - {error}", exc_info=True)
             
         except Exception as e:
             result.status = BacktestStatus.FAILED
@@ -211,7 +211,7 @@ class BacktestEngine:
             result.end_time = datetime.now()
             result.execution_time = (result.end_time - result.start_time).total_seconds()
             self._failed_backtests += 1
-            self._logger.error(f"백테스트 예외 발생: {backtest_id} - {e}")
+            self._logger.error(f"백테스트 예외 발생: {backtest_id} - {e}", exc_info=True)
         
         finally:
             # 실행 중 목록에서 제거
@@ -469,7 +469,7 @@ class BacktestEngine:
             self._logger.debug(f"백테스트 결과 저장: {result_file}")
                 
         except Exception as e:
-            self._logger.error(f"백테스트 결과 저장 실패: {e}")
+            self._logger.error(f"백테스트 결과 저장 실패: {e}", exc_info=True)
     
     def get_backtest_status(self, backtest_id: str) -> Optional[BacktestStatus]:
         """백테스트 상태 조회"""
@@ -503,7 +503,7 @@ class BacktestEngine:
                 # BacktestResult 객체로 복원
                 return self._dict_to_backtest_result(data)
         except Exception as e:
-            self._logger.error(f"백테스트 결과 로드 실패 [{backtest_id}]: {e}")
+            self._logger.error(f"백테스트 결과 로드 실패 [{backtest_id}]: {e}", exc_info=True)
         
         return None
     
@@ -576,5 +576,5 @@ class BacktestEngine:
             return removed_count
             
         except Exception as e:
-            self._logger.error(f"결과 파일 정리 실패: {e}")
+            self._logger.error(f"결과 파일 정리 실패: {e}", exc_info=True)
             return 0 

@@ -135,7 +135,7 @@ class FeedbackSystem:
             self._logger.info("피드백 데이터베이스 초기화 완료")
             
         except Exception as e:
-            self._logger.error(f"피드백 데이터베이스 초기화 오류: {e}")
+            self._logger.error(f"피드백 데이터베이스 초기화 오류: {e}", exc_info=True)
     
     def record_predictions(self, predictions: List[PredictionResult]) -> bool:
         """예측 결과 기록
@@ -212,7 +212,7 @@ class FeedbackSystem:
             return recorded_count > 0
             
         except Exception as e:
-            self._logger.error(f"예측 결과 기록 오류: {e}")
+            self._logger.error(f"예측 결과 기록 오류: {e}", exc_info=True)
             return False
     
     def update_feedback_from_performance(self, start_date: Optional[str] = None) -> bool:
@@ -289,7 +289,7 @@ class FeedbackSystem:
             return updated_count > 0
             
         except Exception as e:
-            self._logger.error(f"피드백 업데이트 오류: {e}")
+            self._logger.error(f"피드백 업데이트 오류: {e}", exc_info=True)
             return False
     
     def _get_pending_feedback(self, start_date: Optional[str] = None) -> List[FeedbackData]:
@@ -342,7 +342,7 @@ class FeedbackSystem:
                 return feedback_list
                 
         except Exception as e:
-            self._logger.error(f"대기 중인 피드백 조회 오류: {e}")
+            self._logger.error(f"대기 중인 피드백 조회 오류: {e}", exc_info=True)
             return []
     
     def _get_actual_performance(self, stock_code: str, prediction_date: str) -> Optional[float]:
@@ -365,7 +365,7 @@ class FeedbackSystem:
                 return None
                 
         except Exception as e:
-            self._logger.error(f"실제 성과 조회 오류: {e}")
+            self._logger.error(f"실제 성과 조회 오류: {e}", exc_info=True)
             return None
     
     def evaluate_model_performance(self, model_name: str = "ensemble", 
@@ -454,7 +454,7 @@ class FeedbackSystem:
                 return performance
                 
         except Exception as e:
-            self._logger.error(f"모델 성능 평가 오류: {e}")
+            self._logger.error(f"모델 성능 평가 오류: {e}", exc_info=True)
             return {}
     
     def _save_performance_history(self, performance: Dict[str, Any]):
@@ -482,7 +482,7 @@ class FeedbackSystem:
                 conn.commit()
                 
         except Exception as e:
-            self._logger.error(f"성능 히스토리 저장 오류: {e}")
+            self._logger.error(f"성능 히스토리 저장 오류: {e}", exc_info=True)
     
     def check_retrain_needed(self) -> Dict[str, Any]:
         """재학습 필요 여부 확인
@@ -523,7 +523,7 @@ class FeedbackSystem:
             return retrain_info
             
         except Exception as e:
-            self._logger.error(f"재학습 필요 여부 확인 오류: {e}")
+            self._logger.error(f"재학습 필요 여부 확인 오류: {e}", exc_info=True)
             return {'retrain_needed': False, 'error': str(e)}
     
     def get_feedback_summary(self, days_back: int = 30) -> Dict[str, Any]:
@@ -584,7 +584,7 @@ class FeedbackSystem:
                 return summary
 
         except Exception as e:
-            self._logger.error(f"피드백 요약 조회 오류: {e}")
+            self._logger.error(f"피드백 요약 조회 오류: {e}", exc_info=True)
             return {}
 
     def get_recent_feedback(self, days: int = 7) -> List[Dict[str, Any]]:
@@ -617,7 +617,7 @@ class FeedbackSystem:
                 return [dict(row) for row in rows]
 
         except Exception as e:
-            self._logger.error(f"최근 피드백 조회 오류: {e}")
+            self._logger.error(f"최근 피드백 조회 오류: {e}", exc_info=True)
             return []
 
     def get_stats(self) -> Dict[str, Any]:
@@ -659,7 +659,7 @@ class FeedbackSystem:
                 }
 
         except Exception as e:
-            self._logger.error(f"피드백 통계 조회 오류: {e}")
+            self._logger.error(f"피드백 통계 조회 오류: {e}", exc_info=True)
             return {'total_count': 0, 'processed_count': 0, 'accuracy': 0.0, 'recent_count': 0}
 
 

@@ -112,7 +112,7 @@ class PredictionEngine:
             # 1. 피처 추출
             features = self._extract_features_for_prediction(stock_data)
             if not features:
-                self._logger.error(f"피처 추출 실패: {stock_code}")
+                self._logger.error(f"피처 추출 실패: {stock_code}", exc_info=True)
                 return None
             
             # 2. 모델별 예측 실행
@@ -128,7 +128,7 @@ class PredictionEngine:
                     self._logger.warning(f"{model_name} 예측 실패: {e}")
             
             if not model_predictions:
-                self._logger.error(f"모든 모델 예측 실패: {stock_code}")
+                self._logger.error(f"모든 모델 예측 실패: {stock_code}", exc_info=True)
                 return None
             
             # 3. 앙상블 예측 계산
@@ -158,7 +158,7 @@ class PredictionEngine:
             return prediction_result
             
         except Exception as e:
-            self._logger.error(f"종목 예측 오류: {e}")
+            self._logger.error(f"종목 예측 오류: {e}", exc_info=True)
             return None
     
     def predict_multiple_stocks(self, stocks_data: List[Dict[str, Any]]) -> List[PredictionResult]:
@@ -187,7 +187,7 @@ class PredictionEngine:
             return results
             
         except Exception as e:
-            self._logger.error(f"일괄 예측 오류: {e}")
+            self._logger.error(f"일괄 예측 오류: {e}", exc_info=True)
             return []
     
     def get_top_predictions(self, stocks_data: List[Dict[str, Any]], 
@@ -219,7 +219,7 @@ class PredictionEngine:
             return top_predictions
             
         except Exception as e:
-            self._logger.error(f"상위 예측 선별 오류: {e}")
+            self._logger.error(f"상위 예측 선별 오류: {e}", exc_info=True)
             return []
     
     def _extract_features_for_prediction(self, stock_data: Dict[str, Any]) -> Optional[PatternFeatures]:
@@ -240,7 +240,7 @@ class PredictionEngine:
             return features
             
         except Exception as e:
-            self._logger.error(f"예측용 피처 추출 오류: {e}")
+            self._logger.error(f"예측용 피처 추출 오류: {e}", exc_info=True)
             return None
     
     def _calculate_ensemble_prediction(self, model_predictions: Dict[str, PatternPrediction]) -> Dict[str, float]:
@@ -279,7 +279,7 @@ class PredictionEngine:
             }
             
         except Exception as e:
-            self._logger.error(f"앙상블 예측 계산 오류: {e}")
+            self._logger.error(f"앙상블 예측 계산 오류: {e}", exc_info=True)
             return {'probability': 0.5, 'confidence': 0.5, 'prediction': 0}
     
     def _determine_recommendation(self, success_probability: float) -> str:
@@ -310,7 +310,7 @@ class PredictionEngine:
             self._prediction_thresholds.update(thresholds)
             self._logger.info(f"예측 임계값 업데이트: {thresholds}")
         except Exception as e:
-            self._logger.error(f"임계값 업데이트 오류: {e}")
+            self._logger.error(f"임계값 업데이트 오류: {e}", exc_info=True)
     
     def update_model_weights(self, weights: Dict[str, float]):
         """모델 가중치 업데이트
@@ -328,7 +328,7 @@ class PredictionEngine:
             else:
                 self._logger.error("가중치 합이 0입니다")
         except Exception as e:
-            self._logger.error(f"가중치 업데이트 오류: {e}")
+            self._logger.error(f"가중치 업데이트 오류: {e}", exc_info=True)
     
     def save_prediction_results(self, results: List[PredictionResult], filepath: str) -> bool:
         """예측 결과 저장
@@ -360,7 +360,7 @@ class PredictionEngine:
             return True
             
         except Exception as e:
-            self._logger.error(f"예측 결과 저장 오류: {e}")
+            self._logger.error(f"예측 결과 저장 오류: {e}", exc_info=True)
             return False
     
     def get_prediction_summary(self, results: List[PredictionResult]) -> Dict[str, Any]:
@@ -429,5 +429,5 @@ class PredictionEngine:
             return summary
             
         except Exception as e:
-            self._logger.error(f"예측 요약 생성 오류: {e}")
+            self._logger.error(f"예측 요약 생성 오류: {e}", exc_info=True)
             return {} 

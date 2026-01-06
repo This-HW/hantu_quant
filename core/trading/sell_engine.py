@@ -173,7 +173,7 @@ class SellEngine(ISellEngine):
             return True
             
         except Exception as e:
-            self._logger.error(f"포지션 추가 오류: {e}")
+            self._logger.error(f"포지션 추가 오류: {e}", exc_info=True)
             return False
     
     def update_position_price(self, stock_code: str, current_price: float) -> bool:
@@ -204,7 +204,7 @@ class SellEngine(ISellEngine):
             return True
             
         except Exception as e:
-            self._logger.error(f"포지션 가격 업데이트 오류: {e}")
+            self._logger.error(f"포지션 가격 업데이트 오류: {e}", exc_info=True)
             return False
     
     def check_sell_signals(self, stock_data: Dict[str, Any]) -> List[SellSignal]:
@@ -236,7 +236,7 @@ class SellEngine(ISellEngine):
                     if signal and signal.signal_strength > 0:
                         sell_signals.append(signal)
                 except Exception as e:
-                    self._logger.error(f"매도 전략 {signal_type} 검사 오류: {e}")
+                    self._logger.error(f"매도 전략 {signal_type} 검사 오류: {e}", exc_info=True)
             
             # 신호 강도 순으로 정렬
             sell_signals.sort(key=lambda x: x.signal_strength, reverse=True)
@@ -249,7 +249,7 @@ class SellEngine(ISellEngine):
             return sell_signals
             
         except Exception as e:
-            self._logger.error(f"매도 신호 검사 오류: {e}")
+            self._logger.error(f"매도 신호 검사 오류: {e}", exc_info=True)
             return []
     
     def _check_stop_loss(self, position: PositionInfo, stock_data: Dict) -> Optional[SellSignal]:
@@ -488,7 +488,7 @@ class SellEngine(ISellEngine):
         try:
             stock_code = sell_signal.stock_code
             if stock_code not in self._positions:
-                self._logger.error(f"매도 실행 실패: 포지션 없음 - {stock_code}")
+                self._logger.error(f"매도 실행 실패: 포지션 없음 - {stock_code}", exc_info=True)
                 return False
             
             position = self._positions[stock_code]
@@ -520,7 +520,7 @@ class SellEngine(ISellEngine):
             return True
             
         except Exception as e:
-            self._logger.error(f"매도 주문 실행 오류: {e}")
+            self._logger.error(f"매도 주문 실행 오류: {e}", exc_info=True)
             return False
     
     def get_positions_summary(self) -> Dict[str, Any]:
@@ -568,5 +568,5 @@ class SellEngine(ISellEngine):
             }
             
         except Exception as e:
-            self._logger.error(f"포지션 요약 생성 오류: {e}")
+            self._logger.error(f"포지션 요약 생성 오류: {e}", exc_info=True)
             return {"error": str(e)}

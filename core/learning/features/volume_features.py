@@ -112,7 +112,7 @@ class VolumeFeatureExtractor:
             return features
             
         except Exception as e:
-            self._logger.error(f"볼륨 피처 추출 중 오류 발생: {e}")
+            self._logger.error(f"볼륨 피처 추출 중 오류 발생: {e}", exc_info=True)
             return VolumeFeatures()
     
     def _calculate_volume_price_correlation(self, ohlcv_data: pd.DataFrame) -> float:
@@ -141,7 +141,7 @@ class VolumeFeatureExtractor:
             return float(correlation)
             
         except Exception as e:
-            self._logger.error(f"거래량-가격 상관관계 계산 오류: {e}")
+            self._logger.error(f"거래량-가격 상관관계 계산 오류: {e}", exc_info=True)
             return 0.0
     
     def _calculate_volume_price_divergence(self, ohlcv_data: pd.DataFrame) -> float:
@@ -178,7 +178,7 @@ class VolumeFeatureExtractor:
                 return 50.0  # neutral
                 
         except Exception as e:
-            self._logger.error(f"거래량-가격 다이버전스 계산 오류: {e}")
+            self._logger.error(f"거래량-가격 다이버전스 계산 오류: {e}", exc_info=True)
             return 50.0
     
     def _calculate_volume_momentum_score(self, ohlcv_data: pd.DataFrame) -> float:
@@ -221,7 +221,7 @@ class VolumeFeatureExtractor:
                 return 0.0    # strong_bearish
                 
         except Exception as e:
-            self._logger.error(f"거래량 모멘텀 점수 계산 오류: {e}")
+            self._logger.error(f"거래량 모멘텀 점수 계산 오류: {e}", exc_info=True)
             return 50.0
     
     def _calculate_relative_volume_strength(self, relative_volume_strength: RelativeVolumeStrength) -> float:
@@ -255,7 +255,7 @@ class VolumeFeatureExtractor:
                 return 10.0   # 매우 낮은 거래량
                 
         except Exception as e:
-            self._logger.error(f"상대적 거래량 강도 계산 오류: {e}")
+            self._logger.error(f"상대적 거래량 강도 계산 오류: {e}", exc_info=True)
             return 50.0
     
     def _calculate_volume_rank_percentile(self, relative_volume_strength: RelativeVolumeStrength) -> float:
@@ -275,7 +275,7 @@ class VolumeFeatureExtractor:
             return percentile
             
         except Exception as e:
-            self._logger.error(f"거래량 순위 백분위 계산 오류: {e}")
+            self._logger.error(f"거래량 순위 백분위 계산 오류: {e}", exc_info=True)
             return 50.0
     
     def _calculate_volume_intensity(self, relative_volume_strength: RelativeVolumeStrength) -> float:
@@ -305,7 +305,7 @@ class VolumeFeatureExtractor:
                 return 20.0
                 
         except Exception as e:
-            self._logger.error(f"거래량 강도 계산 오류: {e}")
+            self._logger.error(f"거래량 강도 계산 오류: {e}", exc_info=True)
             return 40.0
     
     def _calculate_volume_cluster_count(self, volume_cluster_analyzer: VolumeClusterAnalyzer) -> float:
@@ -326,7 +326,7 @@ class VolumeFeatureExtractor:
             return min(float(cluster_count), 20.0)
             
         except Exception as e:
-            self._logger.error(f"거래량 클러스터 개수 계산 오류: {e}")
+            self._logger.error(f"거래량 클러스터 개수 계산 오류: {e}", exc_info=True)
             return 0.0
     
     def _calculate_volume_anomaly_score(self, volume_cluster_analyzer: VolumeClusterAnalyzer) -> float:
@@ -367,7 +367,7 @@ class VolumeFeatureExtractor:
                 return 20.0   # 미약한 이상치
                 
         except Exception as e:
-            self._logger.error(f"거래량 이상치 점수 계산 오류: {e}")
+            self._logger.error(f"거래량 이상치 점수 계산 오류: {e}", exc_info=True)
             return 0.0
     
     def extract_features_from_stock_data(self, stock_data: Dict) -> VolumeFeatures:
@@ -391,7 +391,7 @@ class VolumeFeatureExtractor:
             return self.extract_features(ohlcv_data)
             
         except Exception as e:
-            self._logger.error(f"주식 데이터에서 볼륨 피처 추출 오류: {e}")
+            self._logger.error(f"주식 데이터에서 볼륨 피처 추출 오류: {e}", exc_info=True)
             return VolumeFeatures()
     
     def _generate_ohlcv_data(self, stock_data: Dict) -> Optional[pd.DataFrame]:
@@ -450,7 +450,7 @@ class VolumeFeatureExtractor:
             return ohlcv_data
             
         except Exception as e:
-            self._logger.error(f"OHLCV 데이터 생성 오류: {e}")
+            self._logger.error(f"OHLCV 데이터 생성 오류: {e}", exc_info=True)
             return None
     
     def get_feature_names(self) -> List[str]:

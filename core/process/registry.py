@@ -155,7 +155,7 @@ class ProcessRegistry:
             logger.warning(f"Could not acquire lock for {service_name} - already registered?")
             return False
         except Exception as e:
-            logger.error(f"Failed to register service '{service_name}': {e}")
+            logger.error(f"Failed to register service '{service_name}': {e}", exc_info=True)
             return False
 
     def unregister(self, service_name: str) -> bool:
@@ -176,7 +176,7 @@ class ProcessRegistry:
                 logger.info(f"Unregistered service '{service_name}'")
             return True
         except Exception as e:
-            logger.error(f"Failed to unregister service '{service_name}': {e}")
+            logger.error(f"Failed to unregister service '{service_name}': {e}", exc_info=True)
             return False
 
     def get_status(self, service_name: str) -> ProcessStatus:
@@ -244,7 +244,7 @@ class ProcessRegistry:
             logger.warning(f"Invalid PID file for '{service_name}': {e}")
             return ProcessStatus(service_name=service_name, is_running=False)
         except Exception as e:
-            logger.error(f"Error reading status for '{service_name}': {e}")
+            logger.error(f"Error reading status for '{service_name}': {e}", exc_info=True)
             return ProcessStatus(service_name=service_name, is_running=False)
 
     def list_all(self) -> Dict[str, ProcessStatus]:
@@ -261,7 +261,7 @@ class ProcessRegistry:
                 service_name = pid_file.stem
                 statuses[service_name] = self.get_status(service_name)
         except Exception as e:
-            logger.error(f"Error listing services: {e}")
+            logger.error(f"Error listing services: {e}", exc_info=True)
 
         return statuses
 

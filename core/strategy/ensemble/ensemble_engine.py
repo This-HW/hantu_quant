@@ -178,7 +178,7 @@ class LSTMSignalGenerator:
                 current_price
             )
         except Exception as e:
-            logger.error(f"LSTM prediction error: {e}")
+            logger.error(f"LSTM prediction error: {e}", exc_info=True)
             return Signal(
                 signal_type=SignalType.HOLD,
                 source=SignalSource.LSTM,

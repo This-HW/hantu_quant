@@ -212,7 +212,7 @@ class LearningTracker:
                 f.write(json.dumps(record.to_dict(), ensure_ascii=False) + '\n')
 
         except Exception as e:
-            logger.error(f"Failed to save learning record: {e}")
+            logger.error(f"Failed to save learning record: {e}", exc_info=True)
 
     def get_learning_history(
         self,
@@ -445,7 +445,7 @@ class LearningTracker:
             logger.info(f"Loaded {loaded} learning records")
 
         except Exception as e:
-            logger.error(f"Failed to load learning records: {e}")
+            logger.error(f"Failed to load learning records: {e}", exc_info=True)
 
         return loaded
 
@@ -469,5 +469,5 @@ class LearningTracker:
             return True
 
         except Exception as e:
-            logger.error(f"Failed to export report: {e}")
+            logger.error(f"Failed to export report: {e}", exc_info=True)
             return False

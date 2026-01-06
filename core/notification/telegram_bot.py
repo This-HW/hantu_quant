@@ -380,7 +380,7 @@ class TelegramNotifier(BaseNotifier):
             except queue.Empty:
                 continue
             except Exception as e:
-                logger.error(f"Telegram worker error: {e}")
+                logger.error(f"Telegram worker error: {e}", exc_info=True)
 
     def send_photo(
         self,
@@ -461,7 +461,7 @@ class TelegramNotifier(BaseNotifier):
 
         except Exception as e:
             self._record_error()
-            logger.error(f"Telegram photo send failed: {e}")
+            logger.error(f"Telegram photo send failed: {e}", exc_info=True)
             return NotificationResult(
                 success=False,
                 alert_id="photo",
@@ -543,7 +543,7 @@ class TelegramNotifier(BaseNotifier):
                     return data.get('result', [])
 
         except Exception as e:
-            logger.error(f"Get updates failed: {e}")
+            logger.error(f"Get updates failed: {e}", exc_info=True)
 
         return []
 

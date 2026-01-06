@@ -150,7 +150,7 @@ class WatchlistManager(IWatchlistManager):
                 return True
                 
         except Exception as e:
-            self._logger.error(f"종목 추가 오류: {e}")
+            self._logger.error(f"종목 추가 오류: {e}", exc_info=True)
             return False
 
     def add_stock_legacy(self, p_stock_code: str, p_stock_name: str, p_added_reason: str,
@@ -203,7 +203,7 @@ class WatchlistManager(IWatchlistManager):
                 return None
                 
         except Exception as e:
-            self._logger.error(f"종목 조회 오류: {e}")
+            self._logger.error(f"종목 조회 오류: {e}", exc_info=True)
             return None
 
     def update_stock(self, p_stock_code: str, p_updates: Dict) -> bool:
@@ -247,7 +247,7 @@ class WatchlistManager(IWatchlistManager):
                     return False
                     
         except Exception as e:
-            self._logger.error(f"종목 업데이트 오류: {e}")
+            self._logger.error(f"종목 업데이트 오류: {e}", exc_info=True)
             return False
 
     def remove_stock(self, p_stock_code: str, p_permanent: bool = False) -> bool:
@@ -280,7 +280,7 @@ class WatchlistManager(IWatchlistManager):
                 return True
                 
         except Exception as e:
-            self._logger.error(f"종목 제거 오류: {e}")
+            self._logger.error(f"종목 제거 오류: {e}", exc_info=True)
             return False
 
     def list_stocks(self, 
@@ -330,7 +330,7 @@ class WatchlistManager(IWatchlistManager):
                 return _v_filtered_stocks
                 
         except Exception as e:
-            self._logger.error(f"종목 목록 조회 오류: {e}")
+            self._logger.error(f"종목 목록 조회 오류: {e}", exc_info=True)
             return []
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -396,7 +396,7 @@ class WatchlistManager(IWatchlistManager):
                 }
                 
         except Exception as e:
-            self._logger.error(f"통계 정보 조회 오류: {e}")
+            self._logger.error(f"통계 정보 조회 오류: {e}", exc_info=True)
             return {}
     
     def backup_data(self, p_backup_file: Optional[str] = None) -> bool:
@@ -430,7 +430,7 @@ class WatchlistManager(IWatchlistManager):
                 return True
                 
         except Exception as e:
-            self._logger.error(f"백업 오류: {e}")
+            self._logger.error(f"백업 오류: {e}", exc_info=True)
             return False
     
     def restore_data(self, p_backup_file: str) -> bool:
@@ -444,7 +444,7 @@ class WatchlistManager(IWatchlistManager):
         """
         try:
             if not os.path.exists(p_backup_file):
-                self._logger.error(f"백업 파일이 존재하지 않습니다: {p_backup_file}")
+                self._logger.error(f"백업 파일이 존재하지 않습니다: {p_backup_file}", exc_info=True)
                 return False
             
             with open(p_backup_file, 'r', encoding='utf-8') as f:
@@ -468,7 +468,7 @@ class WatchlistManager(IWatchlistManager):
                 return True
                 
         except Exception as e:
-            self._logger.error(f"복원 오류: {e}")
+            self._logger.error(f"복원 오류: {e}", exc_info=True)
             return False
     
     def _load_data(self) -> None:
@@ -497,7 +497,7 @@ class WatchlistManager(IWatchlistManager):
                 self._save_data()
                 
         except Exception as e:
-            self._logger.error(f"데이터 로드 오류: {e}")
+            self._logger.error(f"데이터 로드 오류: {e}", exc_info=True)
             self._stocks = {}
     
     def _save_data(self) -> None:
@@ -520,7 +520,7 @@ class WatchlistManager(IWatchlistManager):
             self._logger.debug("감시 리스트 데이터 저장 완료")
             
         except Exception as e:
-            self._logger.error(f"데이터 저장 오류: {e}")
+            self._logger.error(f"데이터 저장 오류: {e}", exc_info=True)
     
     def validate_data(self) -> Tuple[bool, List[str]]:
         """데이터 무결성 검증
@@ -562,5 +562,5 @@ class WatchlistManager(IWatchlistManager):
             return _v_is_valid, _v_errors
             
         except Exception as e:
-            self._logger.error(f"데이터 검증 오류: {e}")
+            self._logger.error(f"데이터 검증 오류: {e}", exc_info=True)
             return False, [str(e)] 

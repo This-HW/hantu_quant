@@ -55,7 +55,7 @@ class TradeJournal:
             with open(self._journal_path, "w", encoding="utf-8") as f:
                 json.dump([asdict(e) for e in self._events], f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f"매매일지 저장 실패: {e}")
+            logger.error(f"매매일지 저장 실패: {e}", exc_info=True)
 
     def log_signal(
         self,
@@ -161,7 +161,7 @@ class TradeJournal:
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(summary, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f"매매 요약 저장 실패: {e}")
+            logger.error(f"매매 요약 저장 실패: {e}", exc_info=True)
 
         logger.info(
             f"[Journal] 일일 요약: 손익 {realized_pnl:,.0f}, 거래 {total_trades}건, 승률 {win_rate*100:.1f}%"
@@ -216,7 +216,7 @@ class TradeJournal:
             all_trades.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
 
         except Exception as e:
-            logger.error(f"전체 거래 내역 조회 실패: {e}")
+            logger.error(f"전체 거래 내역 조회 실패: {e}", exc_info=True)
 
         return all_trades
 

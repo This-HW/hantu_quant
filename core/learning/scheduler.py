@@ -286,7 +286,7 @@ class LearningScheduler:
             with self._lock:
                 task.fail_count += 1
 
-            logger.error(f"Task failed: {name} - {e}")
+            logger.error(f"Task failed: {name} - {e}", exc_info=True)
 
         # 결과 저장
         with self._lock:
@@ -528,7 +528,7 @@ class SchedulerRunner:
                 if results:
                     logger.debug(f"Executed {len(results)} scheduled tasks")
             except Exception as e:
-                logger.error(f"Scheduler error: {e}")
+                logger.error(f"Scheduler error: {e}", exc_info=True)
 
             time.sleep(self.check_interval)
 

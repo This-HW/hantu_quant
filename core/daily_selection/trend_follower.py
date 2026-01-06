@@ -91,7 +91,7 @@ class TrendFollower:
             )
 
         except Exception as e:
-            self.logger.error(f"추세 분석 실패: {e}")
+            self.logger.error(f"추세 분석 실패: {e}", exc_info=True)
             return TrendSignal(False, 0.0, 0, False, 0.0, f"분석 오류: {str(e)}")
 
     def _calculate_trend_strength(self, df: pd.DataFrame) -> float:
@@ -120,7 +120,7 @@ class TrendFollower:
             return max(0.0, min(1.0, strength))
 
         except Exception as e:
-            self.logger.error(f"추세 강도 계산 실패: {e}")
+            self.logger.error(f"추세 강도 계산 실패: {e}", exc_info=True)
             return 0.0
 
     def _count_trend_days(self, df: pd.DataFrame) -> int:
@@ -134,7 +134,7 @@ class TrendFollower:
                     break
             return count
         except Exception as e:
-            self.logger.error(f"추세 일수 계산 실패: {e}")
+            self.logger.error(f"추세 일수 계산 실패: {e}", exc_info=True)
             return 0
 
     def _calculate_momentum(self, df: pd.DataFrame) -> float:
@@ -156,7 +156,7 @@ class TrendFollower:
             return max(0.0, min(100.0, score))
 
         except Exception as e:
-            self.logger.error(f"모멘텀 계산 실패: {e}")
+            self.logger.error(f"모멘텀 계산 실패: {e}", exc_info=True)
             return 0.0
 
     def _generate_reason(

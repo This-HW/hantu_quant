@@ -94,7 +94,7 @@ class AdaptiveLearningSystem:
                 return default_params
                 
         except Exception as e:
-            self.logger.error(f"파라미터 로드 실패, 기본값 사용: {e}")
+            self.logger.error(f"파라미터 로드 실패, 기본값 사용: {e}", exc_info=True)
             return AlgorithmParams()
             
     def _save_current_params(self, params: AlgorithmParams):
@@ -106,7 +106,7 @@ class AdaptiveLearningSystem:
                 json.dump(params.to_dict(), f, indent=2, ensure_ascii=False)
                 
         except Exception as e:
-            self.logger.error(f"파라미터 저장 실패: {e}")
+            self.logger.error(f"파라미터 저장 실패: {e}", exc_info=True)
             
     def analyze_recent_performance(self, days: int = 7) -> Dict[str, Any]:
         """최근 성과 분석"""
@@ -149,7 +149,7 @@ class AdaptiveLearningSystem:
             }
             
         except Exception as e:
-            self.logger.error(f"성과 분석 실패: {e}")
+            self.logger.error(f"성과 분석 실패: {e}", exc_info=True)
             return {"status": "error", "message": str(e)}
             
     def _collect_trade_data(self, days: int) -> List[Dict[str, Any]]:
@@ -179,7 +179,7 @@ class AdaptiveLearningSystem:
             return trades
             
         except Exception as e:
-            self.logger.error(f"거래 데이터 수집 실패: {e}")
+            self.logger.error(f"거래 데이터 수집 실패: {e}", exc_info=True)
             return []
             
     def _analyze_sector_performance(self, trades_data: List[Dict]) -> Dict[str, float]:
@@ -208,7 +208,7 @@ class AdaptiveLearningSystem:
             return sector_avg
             
         except Exception as e:
-            self.logger.error(f"섹터별 성과 분석 실패: {e}")
+            self.logger.error(f"섹터별 성과 분석 실패: {e}", exc_info=True)
             return {}
             
     def _get_sector_by_code(self, stock_code: str) -> str:
@@ -256,7 +256,7 @@ class AdaptiveLearningSystem:
             return time_avg
             
         except Exception as e:
-            self.logger.error(f"시간대별 성과 분석 실패: {e}")
+            self.logger.error(f"시간대별 성과 분석 실패: {e}", exc_info=True)
             return {}
             
     def adapt_parameters(self, performance_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
@@ -328,7 +328,7 @@ class AdaptiveLearningSystem:
                 return False, {"message": "변경 불필요"}
                 
         except Exception as e:
-            self.logger.error(f"파라미터 적응 실패: {e}")
+            self.logger.error(f"파라미터 적응 실패: {e}", exc_info=True)
             return False, {"message": f"오류: {e}"}
             
     def _save_adaptation_history(self, performance_data: Dict, new_params: AlgorithmParams, changes: List[str]):
@@ -360,7 +360,7 @@ class AdaptiveLearningSystem:
                 json.dump(history, f, indent=2, ensure_ascii=False)
                 
         except Exception as e:
-            self.logger.error(f"적응 이력 저장 실패: {e}")
+            self.logger.error(f"적응 이력 저장 실패: {e}", exc_info=True)
             
     def run_daily_learning(self) -> Dict[str, Any]:
         """일일 학습 실행"""
@@ -402,7 +402,7 @@ class AdaptiveLearningSystem:
             return result
             
         except Exception as e:
-            self.logger.error(f"일일 학습 실패: {e}")
+            self.logger.error(f"일일 학습 실패: {e}", exc_info=True)
             return {
                 "status": "error",
                 "message": str(e)
@@ -446,7 +446,7 @@ class AdaptiveLearningSystem:
             return result
             
         except Exception as e:
-            self.logger.error(f"주간 학습 실패: {e}")
+            self.logger.error(f"주간 학습 실패: {e}", exc_info=True)
             return {
                 "status": "error",
                 "message": str(e)
@@ -486,7 +486,7 @@ class AdaptiveLearningSystem:
             }
             
         except Exception as e:
-            self.logger.error(f"트렌드 분석 실패: {e}")
+            self.logger.error(f"트렌드 분석 실패: {e}", exc_info=True)
             return {"status": "error"}
             
     def _get_daily_performance(self, date: str) -> Optional[Dict]:
@@ -508,7 +508,7 @@ class AdaptiveLearningSystem:
             return None
             
         except Exception as e:
-            self.logger.error(f"일일 성과 조회 실패 {date}: {e}")
+            self.logger.error(f"일일 성과 조회 실패 {date}: {e}", exc_info=True)
             return None
             
     def _save_learning_result(self, result: Dict[str, Any]):
@@ -533,7 +533,7 @@ class AdaptiveLearningSystem:
                 json.dump(results, f, indent=2, ensure_ascii=False)
                 
         except Exception as e:
-            self.logger.error(f"학습 결과 저장 실패: {e}")
+            self.logger.error(f"학습 결과 저장 실패: {e}", exc_info=True)
             
     def get_current_parameters(self) -> Dict[str, Any]:
         """현재 파라미터 조회"""
@@ -553,7 +553,7 @@ class AdaptiveLearningSystem:
                 return []
                 
         except Exception as e:
-            self.logger.error(f"학습 이력 조회 실패: {e}")
+            self.logger.error(f"학습 이력 조회 실패: {e}", exc_info=True)
             return []
 
 # 전역 인스턴스

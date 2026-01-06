@@ -110,7 +110,7 @@ class BaseEventHandler(IEventHandler):
         except Exception as e:
             self._v_failed_count += 1
             self._v_last_error = e
-            logger.error(f"EventHandler '{self._v_handler_name}' failed to process event {event.event_id}: {str(e)}")
+            logger.error(f"EventHandler '{self._v_handler_name}' failed to process event {event.event_id}: {str(e)}", exc_info=True)
             return False
     
     def get_stats(self) -> Dict[str, Any]:
@@ -174,7 +174,7 @@ class AsyncEventHandler(BaseEventHandler):
             else:
                 return self._v_handler_func(event)
         except Exception as e:
-            logger.error(f"Handler function failed: {str(e)}")
+            logger.error(f"Handler function failed: {str(e)}", exc_info=True)
             return False
 
 
@@ -213,7 +213,7 @@ class FilteredEventHandler(BaseEventHandler):
             try:
                 return self._v_filter_func(event)
             except Exception as e:
-                logger.error(f"Filter function failed: {str(e)}")
+                logger.error(f"Filter function failed: {str(e)}", exc_info=True)
                 return False
         
         return True
@@ -226,7 +226,7 @@ class FilteredEventHandler(BaseEventHandler):
             else:
                 return self._v_handler_func(event)
         except Exception as e:
-            logger.error(f"Handler function failed: {str(e)}")
+            logger.error(f"Handler function failed: {str(e)}", exc_info=True)
             return False
 
 
@@ -295,7 +295,7 @@ class BatchEventHandler(BaseEventHandler):
             else:
                 self._v_batch_handler_func(_v_batch)
         except Exception as e:
-            logger.error(f"Batch handler function failed: {str(e)}")
+            logger.error(f"Batch handler function failed: {str(e)}", exc_info=True)
     
     def get_batch_stats(self) -> Dict[str, Any]:
         """배치 통계 조회"""

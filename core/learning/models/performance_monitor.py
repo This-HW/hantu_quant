@@ -211,7 +211,7 @@ class ModelPerformanceMonitor:
                 self._logger.info("모델 성능 모니터링 데이터베이스 초기화 완료")
                 
         except Exception as e:
-            self._logger.error(f"데이터베이스 초기화 중 오류: {e}")
+            self._logger.error(f"데이터베이스 초기화 중 오류: {e}", exc_info=True)
     
     def _setup_scheduler(self):
         """스케줄러 설정"""
@@ -257,7 +257,7 @@ class ModelPerformanceMonitor:
             self._logger.debug(f"모델 성능 기록: {metrics.model_name} - 정확도 {metrics.accuracy:.3f}")
             
         except Exception as e:
-            self._logger.error(f"모델 성능 기록 중 오류: {e}")
+            self._logger.error(f"모델 성능 기록 중 오류: {e}", exc_info=True)
     
     def _save_performance_metrics(self, metrics: ModelPerformanceMetrics):
         """성능 지표 저장"""
@@ -282,7 +282,7 @@ class ModelPerformanceMonitor:
                 conn.commit()
                 
         except Exception as e:
-            self._logger.error(f"성능 지표 저장 중 오류: {e}")
+            self._logger.error(f"성능 지표 저장 중 오류: {e}", exc_info=True)
     
     def establish_baseline(self, model_name: str, model_type: ModelType):
         """모델 기준선 성능 설정
@@ -327,7 +327,7 @@ class ModelPerformanceMonitor:
             self._logger.info(f"모델 기준선 설정 완료: {model_name} (정확도 {baseline_metrics.accuracy:.3f})")
             
         except Exception as e:
-            self._logger.error(f"기준선 설정 중 오류: {e}")
+            self._logger.error(f"기준선 설정 중 오류: {e}", exc_info=True)
     
     def _save_baseline(self, baseline_metrics: ModelPerformanceMetrics):
         """기준선 저장"""
@@ -345,7 +345,7 @@ class ModelPerformanceMonitor:
                 conn.commit()
                 
         except Exception as e:
-            self._logger.error(f"기준선 저장 중 오류: {e}")
+            self._logger.error(f"기준선 저장 중 오류: {e}", exc_info=True)
     
     def _check_performance_degradation(self, current_metrics: ModelPerformanceMetrics):
         """성능 저하 검사
@@ -431,7 +431,7 @@ class ModelPerformanceMonitor:
                 self._process_alert(alert)
                 
         except Exception as e:
-            self._logger.error(f"성능 저하 검사 중 오류: {e}")
+            self._logger.error(f"성능 저하 검사 중 오류: {e}", exc_info=True)
     
     def _create_degradation_alert(self, model_name: str, degradation_type: PerformanceDegradationType,
                                 severity: str, current_perf: float, baseline_perf: float,
@@ -506,7 +506,7 @@ class ModelPerformanceMonitor:
                 analysis['confidence'] += 0.3
             
         except Exception as e:
-            self._logger.error(f"근본 원인 분석 중 오류: {e}")
+            self._logger.error(f"근본 원인 분석 중 오류: {e}", exc_info=True)
             analysis['error'] = str(e)
         
         return analysis
@@ -560,7 +560,7 @@ class ModelPerformanceMonitor:
                 try:
                     callback(alert)
                 except Exception as e:
-                    self._logger.error(f"알림 콜백 실행 중 오류: {e}")
+                    self._logger.error(f"알림 콜백 실행 중 오류: {e}", exc_info=True)
             
             self._logger.warning(
                 f"모델 성능 저하 감지: {alert.model_name} - "
@@ -568,7 +568,7 @@ class ModelPerformanceMonitor:
             )
             
         except Exception as e:
-            self._logger.error(f"알림 처리 중 오류: {e}")
+            self._logger.error(f"알림 처리 중 오류: {e}", exc_info=True)
     
     def _save_alert(self, alert: PerformanceDegradationAlert):
         """알림 저장"""
@@ -591,7 +591,7 @@ class ModelPerformanceMonitor:
                 conn.commit()
                 
         except Exception as e:
-            self._logger.error(f"알림 저장 중 오류: {e}")
+            self._logger.error(f"알림 저장 중 오류: {e}", exc_info=True)
     
     def _load_baseline(self, model_name: str):
         """기준선 로드"""
@@ -627,7 +627,7 @@ class ModelPerformanceMonitor:
                     self._baseline_performance[model_name] = baseline_metrics
                     
         except Exception as e:
-            self._logger.error(f"기준선 로드 중 오류: {e}")
+            self._logger.error(f"기준선 로드 중 오류: {e}", exc_info=True)
     
     def _get_recent_performance(self, model_name: str, days: int) -> List[ModelPerformanceMetrics]:
         """최근 성능 데이터 조회"""
@@ -667,7 +667,7 @@ class ModelPerformanceMonitor:
                 return metrics_list
                 
         except Exception as e:
-            self._logger.error(f"최근 성능 데이터 조회 중 오류: {e}")
+            self._logger.error(f"최근 성능 데이터 조회 중 오류: {e}", exc_info=True)
             return []
     
     def _run_daily_evaluation(self):
@@ -681,7 +681,7 @@ class ModelPerformanceMonitor:
             self._logger.info("일일 모델 성능 평가 완료")
             
         except Exception as e:
-            self._logger.error(f"일일 성능 평가 중 오류: {e}")
+            self._logger.error(f"일일 성능 평가 중 오류: {e}", exc_info=True)
     
     def _run_weekly_analysis(self):
         """주간 성능 분석"""
@@ -694,7 +694,7 @@ class ModelPerformanceMonitor:
             self._logger.info("주간 모델 성능 분석 완료")
             
         except Exception as e:
-            self._logger.error(f"주간 성능 분석 중 오류: {e}")
+            self._logger.error(f"주간 성능 분석 중 오류: {e}", exc_info=True)
     
     def _run_monthly_review(self):
         """월간 성능 리뷰"""
@@ -707,7 +707,7 @@ class ModelPerformanceMonitor:
             self._logger.info("월간 모델 성능 리뷰 완료")
             
         except Exception as e:
-            self._logger.error(f"월간 성능 리뷰 중 오류: {e}")
+            self._logger.error(f"월간 성능 리뷰 중 오류: {e}", exc_info=True)
     
     def get_model_performance_summary(self, model_name: str, days: int = 30) -> Dict[str, Any]:
         """모델 성능 요약 조회"""
@@ -738,7 +738,7 @@ class ModelPerformanceMonitor:
             }
             
         except Exception as e:
-            self._logger.error(f"모델 성능 요약 조회 중 오류: {e}")
+            self._logger.error(f"모델 성능 요약 조회 중 오류: {e}", exc_info=True)
             return {}
     
     def start_monitoring(self):

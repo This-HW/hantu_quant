@@ -141,7 +141,7 @@ class DataSynchronizer:
                 self.logger.info("데이터베이스 스키마 확인/업데이트 완료")
 
         except Exception as e:
-            self.logger.error(f"DB 스키마 초기화 실패: {e}")
+            self.logger.error(f"DB 스키마 초기화 실패: {e}", exc_info=True)
             raise
 
     def sync_screening_results(self, days_back: int = 30) -> int:
@@ -229,7 +229,7 @@ class DataSynchronizer:
             return synced_count
 
         except Exception as e:
-            self.logger.error(f"스크리닝 결과 동기화 실패: {e}")
+            self.logger.error(f"스크리닝 결과 동기화 실패: {e}", exc_info=True)
             return 0
 
     def _extract_fundamental_value(self, result: Dict, key: str) -> Optional[float]:
@@ -319,7 +319,7 @@ class DataSynchronizer:
             return synced_count
 
         except Exception as e:
-            self.logger.error(f"종목 선정 결과 동기화 실패: {e}")
+            self.logger.error(f"종목 선정 결과 동기화 실패: {e}", exc_info=True)
             return 0
 
     def update_performance_tracking(self, max_days_back: int = 30) -> int:
@@ -400,7 +400,7 @@ class DataSynchronizer:
             return updated_count
 
         except Exception as e:
-            self.logger.error(f"성과 추적 업데이트 실패: {e}")
+            self.logger.error(f"성과 추적 업데이트 실패: {e}", exc_info=True)
             return 0
 
     def calculate_learning_metrics(self) -> Dict[str, float]:
@@ -480,7 +480,7 @@ class DataSynchronizer:
             return metrics
 
         except Exception as e:
-            self.logger.error(f"학습 메트릭 계산 실패: {e}")
+            self.logger.error(f"학습 메트릭 계산 실패: {e}", exc_info=True)
             return {}
 
     def run_full_sync(self) -> Dict[str, int]:
@@ -502,7 +502,7 @@ class DataSynchronizer:
             return results
 
         except Exception as e:
-            self.logger.error(f"전체 데이터 동기화 실패: {e}")
+            self.logger.error(f"전체 데이터 동기화 실패: {e}", exc_info=True)
             return {'error': str(e)}
 
 # 싱글톤 인스턴스

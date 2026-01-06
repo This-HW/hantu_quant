@@ -153,7 +153,7 @@ class MultiStrategyManager:
             return regime
 
         except Exception as e:
-            self.logger.error(f"시장 체제 감지 실패: {e}")
+            self.logger.error(f"시장 체제 감지 실패: {e}", exc_info=True)
             return MarketRegime.SIDEWAYS_LOW_VOL
 
     def calculate_strategy_weights(self, regime: Optional[MarketRegime] = None) -> Dict[StrategyType, float]:
