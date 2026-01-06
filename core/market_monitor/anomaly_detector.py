@@ -138,7 +138,7 @@ class StatisticalAnalyzer:
             self._cleanup_old_data(cutoff_time)
             
         except Exception as e:
-            self._logger.error(f"과거 데이터 업데이트 실패: {e}")
+            self._logger.error(f"과거 데이터 업데이트 실패: {e}", exc_info=True)
     
     def _cleanup_old_data(self, cutoff_time: datetime):
         """오래된 데이터 정리"""
@@ -205,7 +205,7 @@ class StatisticalAnalyzer:
                 anomalies.append(anomaly)
                 
         except Exception as e:
-            self._logger.error(f"가격 이상 감지 실패: {e}")
+            self._logger.error(f"가격 이상 감지 실패: {e}", exc_info=True)
         
         return anomalies
     
@@ -249,7 +249,7 @@ class StatisticalAnalyzer:
                 anomalies.append(anomaly)
                 
         except Exception as e:
-            self._logger.error(f"거래량 이상 감지 실패: {e}")
+            self._logger.error(f"거래량 이상 감지 실패: {e}", exc_info=True)
         
         return anomalies
     
@@ -299,7 +299,7 @@ class StatisticalAnalyzer:
                 anomalies.append(anomaly)
                 
         except Exception as e:
-            self._logger.error(f"시장 이상 감지 실패: {e}")
+            self._logger.error(f"시장 이상 감지 실패: {e}", exc_info=True)
         
         return anomalies
     
@@ -342,7 +342,7 @@ class StatisticalAnalyzer:
                         anomalies.append(anomaly)
                         
         except Exception as e:
-            self._logger.error(f"상관관계 이상 감지 실패: {e}")
+            self._logger.error(f"상관관계 이상 감지 실패: {e}", exc_info=True)
         
         return anomalies
     
@@ -419,7 +419,7 @@ class StatisticalAnalyzer:
             return df
             
         except Exception as e:
-            self._logger.error(f"수익률 매트릭스 구성 실패: {e}")
+            self._logger.error(f"수익률 매트릭스 구성 실패: {e}", exc_info=True)
             return pd.DataFrame()
 
 class PatternAnalyzer:
@@ -449,7 +449,7 @@ class PatternAnalyzer:
             anomalies.extend(volume_price_anomalies)
             
         except Exception as e:
-            self._logger.error(f"패턴 분석 실패: {e}")
+            self._logger.error(f"패턴 분석 실패: {e}", exc_info=True)
         
         return anomalies
     
@@ -494,7 +494,7 @@ class PatternAnalyzer:
                 anomalies.append(anomaly)
                 
         except Exception as e:
-            self._logger.error(f"연속 패턴 감지 실패: {e}")
+            self._logger.error(f"연속 패턴 감지 실패: {e}", exc_info=True)
         
         return anomalies
     
@@ -535,7 +535,7 @@ class PatternAnalyzer:
                 anomalies.append(anomaly)
                 
         except Exception as e:
-            self._logger.error(f"동조화 패턴 감지 실패: {e}")
+            self._logger.error(f"동조화 패턴 감지 실패: {e}", exc_info=True)
         
         return anomalies
     
@@ -574,7 +574,7 @@ class PatternAnalyzer:
                     anomalies.append(anomaly)
                     
         except Exception as e:
-            self._logger.error(f"거래량-가격 불일치 감지 실패: {e}")
+            self._logger.error(f"거래량-가격 불일치 감지 실패: {e}", exc_info=True)
         
         return anomalies
 
@@ -645,7 +645,7 @@ class AnomalyDetector:
             return filtered_alerts
             
         except Exception as e:
-            self._logger.error(f"이상 감지 실패: {e}")
+            self._logger.error(f"이상 감지 실패: {e}", exc_info=True)
             return []
     
     def _convert_to_alerts(self, anomalies: List[Dict], detection_method: str) -> List[AnomalyAlert]:
@@ -691,7 +691,7 @@ class AnomalyDetector:
                 alerts.append(alert)
                 
             except Exception as e:
-                self._logger.error(f"알림 변환 실패: {e}")
+                self._logger.error(f"알림 변환 실패: {e}", exc_info=True)
         
         return alerts
     
@@ -882,7 +882,7 @@ class AnomalyDetector:
                 json.dump(alert_dict, f, ensure_ascii=False, indent=2, default=str)
                 
         except Exception as e:
-            self._logger.error(f"알림 저장 실패: {e}")
+            self._logger.error(f"알림 저장 실패: {e}", exc_info=True)
     
     def get_recent_alerts(self, hours: int = 24, severity: AnomalySeverity = None) -> List[AnomalyAlert]:
         """최근 알림 조회"""

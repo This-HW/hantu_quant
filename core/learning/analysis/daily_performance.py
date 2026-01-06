@@ -116,7 +116,7 @@ class DailyPerformanceAnalyzer:
                 return selections
             return []
         except Exception as e:
-            self._logger.error(f"선정 기록 로드 실패: {e}")
+            self._logger.error(f"선정 기록 로드 실패: {e}", exc_info=True)
             return []
     
     def _save_selections(self):
@@ -132,7 +132,7 @@ class DailyPerformanceAnalyzer:
                 json.dump(data, f, ensure_ascii=False, indent=2)
                 
         except Exception as e:
-            self._logger.error(f"선정 기록 저장 실패: {e}")
+            self._logger.error(f"선정 기록 저장 실패: {e}", exc_info=True)
     
     def _load_performance_history(self) -> List[PerformanceMetrics]:
         """성과 이력 로드"""
@@ -166,7 +166,7 @@ class DailyPerformanceAnalyzer:
                 return metrics
             return []
         except Exception as e:
-            self._logger.error(f"성과 이력 로드 실패: {e}")
+            self._logger.error(f"성과 이력 로드 실패: {e}", exc_info=True)
             return []
     
     def _save_performance_history(self):
@@ -182,7 +182,7 @@ class DailyPerformanceAnalyzer:
                 json.dump(data, f, ensure_ascii=False, indent=2)
                 
         except Exception as e:
-            self._logger.error(f"성과 이력 저장 실패: {e}")
+            self._logger.error(f"성과 이력 저장 실패: {e}", exc_info=True)
 
     def ingest_trade_summary(self, summary_path: str) -> bool:
         """매매일지 요약 파일을 읽어 성과 기록에 반영합니다.
@@ -223,7 +223,7 @@ class DailyPerformanceAnalyzer:
             self._logger.info("매매일지 요약 반영 완료")
             return True
         except Exception as e:
-            self._logger.error(f"매매일지 요약 반영 실패: {e}")
+            self._logger.error(f"매매일지 요약 반영 실패: {e}", exc_info=True)
             return False
 
     # ----- 라벨링용 시세 헬퍼 -----
@@ -350,7 +350,7 @@ class DailyPerformanceAnalyzer:
             return True
             
         except Exception as e:
-            self._logger.error(f"일일 선정 추가 실패: {e}")
+            self._logger.error(f"일일 선정 추가 실패: {e}", exc_info=True)
             return False
     
     def update_daily_performance(self, date: Optional[datetime] = None) -> List[PerformanceMetrics]:
@@ -380,7 +380,7 @@ class DailyPerformanceAnalyzer:
                 self._update_performance_record(metrics)
                 
             except Exception as e:
-                self._logger.error(f"성과 업데이트 실패 {selection.stock_code}: {e}")
+                self._logger.error(f"성과 업데이트 실패 {selection.stock_code}: {e}", exc_info=True)
         
         # 저장
         self._save_performance_history()
@@ -402,7 +402,7 @@ class DailyPerformanceAnalyzer:
             return None
             
         except Exception as e:
-            self._logger.error(f"현재가 조회 실패 {stock_code}: {e}")
+            self._logger.error(f"현재가 조회 실패 {stock_code}: {e}", exc_info=True)
             return None
     
     def _calculate_performance_metrics(self, selection: DailySelection, 

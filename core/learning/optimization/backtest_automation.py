@@ -183,14 +183,14 @@ class BacktestEngine:
             else:
                 result.status = BacktestStatus.FAILED
                 result.error_message = error
-                self._logger.error(f"백테스트 실패: {backtest_id} - {error}")
+                self._logger.error(f"백테스트 실패: {backtest_id} - {error}", exc_info=True)
             
         except Exception as e:
             result.status = BacktestStatus.FAILED
             result.error_message = str(e)
             result.end_time = datetime.now()
             result.execution_time = (result.end_time - result.start_time).total_seconds()
-            self._logger.error(f"백테스트 예외 발생: {backtest_id} - {e}")
+            self._logger.error(f"백테스트 예외 발생: {backtest_id} - {e}", exc_info=True)
         
         finally:
             # 실행 중 목록에서 제거
@@ -310,7 +310,7 @@ class BacktestEngine:
                 self._parse_output_text(result, output)
                 
         except Exception as e:
-            self._logger.error(f"백테스트 결과 파싱 실패: {e}")
+            self._logger.error(f"백테스트 결과 파싱 실패: {e}", exc_info=True)
             # 기본값 설정
             result.total_return = 0.0
             result.annual_return = 0.0
@@ -385,7 +385,7 @@ class BacktestEngine:
                 json.dump(result_dict, f, ensure_ascii=False, indent=2, default=str)
                 
         except Exception as e:
-            self._logger.error(f"백테스트 결과 저장 실패: {e}")
+            self._logger.error(f"백테스트 결과 저장 실패: {e}", exc_info=True)
 
 class ValidationSystem:
     """검증 시스템"""
@@ -588,7 +588,7 @@ class AutomationManager:
                 self._stop_automation.wait(60)  # 1분 대기
                 
             except Exception as e:
-                self._logger.error(f"자동화 루프 오류: {e}")
+                self._logger.error(f"자동화 루프 오류: {e}", exc_info=True)
                 time.sleep(60)
     
     def _check_for_new_parameters(self):
@@ -626,7 +626,7 @@ class AutomationManager:
             return automation_result
             
         except Exception as e:
-            self._logger.error(f"자동 백테스트 실행 실패: {e}")
+            self._logger.error(f"자동 백테스트 실행 실패: {e}", exc_info=True)
             return {
                 'error': str(e),
                 'automation_time': datetime.now()

@@ -239,7 +239,7 @@ class StockScreener(IStockScreener):
             return _v_passed, _v_score, _v_details
 
         except Exception as e:
-            self._logger.error(f"기본 분석 스크리닝 오류: {e}")
+            self._logger.error(f"기본 분석 스크리닝 오류: {e}", exc_info=True)
             return False, 0.0, {"error": str(e)}
 
     def screen_by_technical(self, p_stock_data: Dict) -> Tuple[bool, float, Dict]:
@@ -382,7 +382,7 @@ class StockScreener(IStockScreener):
             return _v_passed, _v_score, _v_details
 
         except Exception as e:
-            self._logger.error(f"기술적 분석 스크리닝 오류: {e}")
+            self._logger.error(f"기술적 분석 스크리닝 오류: {e}", exc_info=True)
             return False, 0.0, {"error": str(e)}
 
     def _generate_ohlcv_data(self, p_stock_data: Dict) -> Optional[pd.DataFrame]:
@@ -416,7 +416,7 @@ class StockScreener(IStockScreener):
             return _v_ohlcv_data
             
         except Exception as e:
-            self._logger.error(f"OHLCV 데이터 생성 오류: {e}")
+            self._logger.error(f"OHLCV 데이터 생성 오류: {e}", exc_info=True)
             return None
 
     def screen_by_momentum(self, p_stock_data: Dict) -> Tuple[bool, float, Dict]:
@@ -533,7 +533,7 @@ class StockScreener(IStockScreener):
             return _v_passed, _v_score, _v_details
 
         except Exception as e:
-            self._logger.error(f"모멘텀 분석 스크리닝 오류: {e}")
+            self._logger.error(f"모멘텀 분석 스크리닝 오류: {e}", exc_info=True)
             return False, 0.0, {"error": str(e)}
 
     def comprehensive_screening(self, p_stock_list: List[str]) -> List[ScreeningResult]:
@@ -613,7 +613,7 @@ class StockScreener(IStockScreener):
                 _v_results.append(_v_result)
                 
             except Exception as e:
-                self._logger.error(f"종목 {_v_stock_code} 스크리닝 오류: {e}")
+                self._logger.error(f"종목 {_v_stock_code} 스크리닝 오류: {e}", exc_info=True)
                 continue
         
         # 점수 순으로 정렬
@@ -896,7 +896,7 @@ class StockScreener(IStockScreener):
             return _v_stock_data
             
         except Exception as e:
-            self._logger.error(f"주식 데이터 수집 오류 - {p_stock_code}: {e}")
+            self._logger.error(f"주식 데이터 수집 오류 - {p_stock_code}: {e}", exc_info=True)
             return None
     
     def _get_sector_average_per(self, p_sector: str) -> float:
@@ -922,7 +922,7 @@ class StockScreener(IStockScreener):
             return _v_sector_per.get(p_sector, 15.0)
             
         except Exception as e:
-            self._logger.error(f"섹터 평균 PER 조회 오류: {e}")
+            self._logger.error(f"섹터 평균 PER 조회 오류: {e}", exc_info=True)
             return 15.0
     
     def _convert_numpy_types(self, p_obj):
@@ -993,7 +993,7 @@ class StockScreener(IStockScreener):
             return True
             
         except Exception as e:
-            self._logger.error(f"스크리닝 결과 저장 오류: {e}")
+            self._logger.error(f"스크리닝 결과 저장 오류: {e}", exc_info=True)
             return False
     
     def _check_ma_trend(self, p_stock_data: Dict) -> bool:
@@ -1113,5 +1113,5 @@ class StockScreener(IStockScreener):
             return _v_result
             
         except Exception as e:
-            self._logger.error(f"종목 스크리닝 오류 ({p_stock_code}): {e}")
+            self._logger.error(f"종목 스크리닝 오류 ({p_stock_code}): {e}", exc_info=True)
             return None 

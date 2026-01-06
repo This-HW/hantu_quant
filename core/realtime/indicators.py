@@ -202,7 +202,7 @@ class RealtimeIndicatorCalculator:
             return indicators
 
         except Exception as e:
-            logger.error(f"지표 계산 중 오류: {stock_code} - {str(e)}")
+            logger.error(f"지표 계산 중 오류: {stock_code} - {str(e)}", exc_info=True)
             return {}
 
     def _calculate_rsi(self, stock_code: str, closes: List[float]) -> Optional[float]:

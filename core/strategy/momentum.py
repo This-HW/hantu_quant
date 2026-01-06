@@ -61,7 +61,7 @@ class MomentumStrategy:
             return momentum_score
             
         except Exception as e:
-            logger.error(f"모멘텀 점수 계산 중 오류 발생: {str(e)}")
+            logger.error(f"모멘텀 점수 계산 중 오류 발생: {str(e)}", exc_info=True)
             return 0
         
     def find_candidates(self, min_volume: int = 10000, min_price: int = 5000, max_price: int = 50000) -> List[Dict]:
@@ -138,6 +138,6 @@ class MomentumStrategy:
             return candidates[:5]
             
         except Exception as e:
-            logger.error(f"[find_candidates] 후보 종목 검색 중 오류 발생: {str(e)}")
-            logger.error(f"[find_candidates] 상세 에러: {e.__class__.__name__}")
+            logger.error(f"[find_candidates] 후보 종목 검색 중 오류 발생: {str(e)}", exc_info=True)
+            logger.error(f"[find_candidates] 상세 에러: {e.__class__.__name__}", exc_info=True)
             raise 

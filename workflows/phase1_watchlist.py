@@ -85,7 +85,7 @@ class Phase1Workflow:
             return None
 
         except Exception as e:
-            logger.error(f"run_screening 오류: {e}")
+            logger.error(f"run_screening 오류: {e}", exc_info=True)
             return None
 
     def run_full_screening(self, p_stock_list: Optional[List[str]] = None, p_send_notification: bool = True) -> bool:
@@ -168,7 +168,7 @@ class Phase1Workflow:
                 return False
                 
         except Exception as e:
-            logger.error(f"전체 스크리닝 실행 오류: {e}")
+            logger.error(f"전체 스크리닝 실행 오류: {e}", exc_info=True)
             return False
     
     def add_to_watchlist(self, p_stock_code: str, p_target_price: float, 
@@ -190,7 +190,7 @@ class Phase1Workflow:
             # 종목 정보 조회 (더미 데이터)
             _v_stock_info = self._get_stock_info(p_stock_code)
             if not _v_stock_info:
-                logger.error(f"종목 정보를 찾을 수 없습니다: {p_stock_code}")
+                logger.error(f"종목 정보를 찾을 수 없습니다: {p_stock_code}", exc_info=True)
                 return False
             
             # 평가 점수 계산
@@ -212,11 +212,11 @@ class Phase1Workflow:
                 logger.info(f"감시 리스트 추가 완료: {p_stock_code} (점수: {_v_score:.1f})")
                 return True
             else:
-                logger.error(f"감시 리스트 추가 실패: {p_stock_code}")
+                logger.error(f"감시 리스트 추가 실패: {p_stock_code}", exc_info=True)
                 return False
                 
         except Exception as e:
-            logger.error(f"감시 리스트 추가 오류: {e}")
+            logger.error(f"감시 리스트 추가 오류: {e}", exc_info=True)
             return False
     
     def list_watchlist(self, p_status: str = "active", p_sector: Optional[str] = None) -> None:
@@ -261,7 +261,7 @@ class Phase1Workflow:
                     print(f"  - {sector}: {count}개")
                     
         except Exception as e:
-            logger.error(f"감시 리스트 조회 오류: {e}")
+            logger.error(f"감시 리스트 조회 오류: {e}", exc_info=True)
     
     def remove_from_watchlist(self, p_stock_code: str, p_permanent: bool = False) -> bool:
         """감시 리스트에서 종목 제거
@@ -283,11 +283,11 @@ class Phase1Workflow:
                 logger.info(f"감시 리스트 {_v_action} 완료: {p_stock_code}")
                 return True
             else:
-                logger.error(f"감시 리스트 제거 실패: {p_stock_code}")
+                logger.error(f"감시 리스트 제거 실패: {p_stock_code}", exc_info=True)
                 return False
                 
         except Exception as e:
-            logger.error(f"감시 리스트 제거 오류: {e}")
+            logger.error(f"감시 리스트 제거 오류: {e}", exc_info=True)
             return False
     
     def generate_report(self, p_output_file: Optional[str] = None) -> bool:
@@ -414,7 +414,7 @@ class Phase1Workflow:
             return True
             
         except Exception as e:
-            logger.error(f"리포트 생성 오류: {e}")
+            logger.error(f"리포트 생성 오류: {e}", exc_info=True)
             return False
     
     def _get_all_stock_codes(self) -> List[str]:
@@ -467,7 +467,7 @@ class Phase1Workflow:
             return stock_codes
             
         except Exception as e:
-            logger.error(f"전체 종목 조회 오류: {e}")
+            logger.error(f"전체 종목 조회 오류: {e}", exc_info=True)
             logger.warning("종목 리스트 파일 오류로 인해 샘플 종목으로 대체합니다")
             
             # 파일 오류 시 대표 종목들로 대체 (임시)
@@ -590,7 +590,7 @@ class Phase1Workflow:
             }
             
         except Exception as e:
-            logger.error(f"종목 정보 조회 오류 - {p_stock_code}: {e}")
+            logger.error(f"종목 정보 조회 오류 - {p_stock_code}: {e}", exc_info=True)
             return None
     
     def _load_top_stocks_from_results(self, p_top_count: int = 500) -> List[Dict]:
@@ -628,7 +628,7 @@ class Phase1Workflow:
             return _v_top_stocks
 
         except Exception as e:
-            logger.error(f"스크리닝 결과 파일 로드 오류: {e}")
+            logger.error(f"스크리닝 결과 파일 로드 오류: {e}", exc_info=True)
             return []
 
     def _process_single_stock_for_watchlist(
@@ -816,7 +816,7 @@ class Phase1Workflow:
                 logger.warning("스크리닝 완료 텔레그램 알림 전송 실패")
                 
         except Exception as e:
-            logger.error(f"스크리닝 완료 알림 전송 오류: {e}")
+            logger.error(f"스크리닝 완료 알림 전송 오류: {e}", exc_info=True)
 
     def _persist_daily_screening_partition(self, passed_stocks: List[Dict]) -> None:
         """당일 스크리닝 통과 종목을 날짜 파티션으로 저장하고, 선정 이력을 갱신"""
@@ -938,7 +938,7 @@ def main():
         logger.info("사용자에 의해 중단됨")
         sys.exit(1)
     except Exception as e:
-        logger.error(f"워크플로우 실행 오류: {e}")
+        logger.error(f"워크플로우 실행 오류: {e}", exc_info=True)
         sys.exit(1)
 
 

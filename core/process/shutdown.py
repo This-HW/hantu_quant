@@ -153,7 +153,7 @@ class GracefulShutdown:
                 callback()
 
             except Exception as e:
-                logger.error(f"Error in cleanup callback {callback.__name__}: {e}")
+                logger.error(f"Error in cleanup callback {callback.__name__}: {e}", exc_info=True)
 
         # Unregister from process registry
         if self._register_process:

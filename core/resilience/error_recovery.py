@@ -178,7 +178,7 @@ class ErrorDetector:
                 ))
             
         except Exception as e:
-            self._logger.error(f"시스템 이상 감지 중 오류: {e}")
+            self._logger.error(f"시스템 이상 감지 중 오류: {e}", exc_info=True)
         
         return anomalies
 
@@ -257,7 +257,7 @@ class RecoveryManager:
                 self._logger.info("에러 복구 데이터베이스 초기화 완료")
                 
         except Exception as e:
-            self._logger.error(f"데이터베이스 초기화 중 오류: {e}")
+            self._logger.error(f"데이터베이스 초기화 중 오류: {e}", exc_info=True)
     
     def _setup_default_rules(self):
         """기본 복구 규칙 설정"""
@@ -324,7 +324,7 @@ class RecoveryManager:
                 conn.commit()
                 
         except Exception as e:
-            self._logger.error(f"복구 규칙 저장 중 오류: {e}")
+            self._logger.error(f"복구 규칙 저장 중 오류: {e}", exc_info=True)
     
     def attempt_recovery(self, error_event: ErrorEvent) -> bool:
         """에러 복구 시도"""
@@ -371,7 +371,7 @@ class RecoveryManager:
                         self._logger.warning(f"구현되지 않은 복구 작업: {action.value}")
                         
                 except Exception as e:
-                    self._logger.error(f"복구 작업 {action.value} 실행 중 오류: {e}")
+                    self._logger.error(f"복구 작업 {action.value} 실행 중 오류: {e}", exc_info=True)
                     continue
             
             recovery_time = time.time() - recovery_start_time
@@ -392,7 +392,7 @@ class RecoveryManager:
             return recovery_success
             
         except Exception as e:
-            self._logger.error(f"복구 시도 중 오류: {e}")
+            self._logger.error(f"복구 시도 중 오류: {e}", exc_info=True)
             return False
     
     def _compare_severity(self, event_severity: ErrorSeverity, threshold: ErrorSeverity) -> bool:
@@ -443,7 +443,7 @@ class RecoveryManager:
             time.sleep(2)
             return True
         except Exception as e:
-            self._logger.error(f"프로세스 재시작 중 오류: {e}")
+            self._logger.error(f"프로세스 재시작 중 오류: {e}", exc_info=True)
             return False
     
     def _restart_service(self, error_event: ErrorEvent) -> bool:
@@ -454,7 +454,7 @@ class RecoveryManager:
             time.sleep(3)
             return True
         except Exception as e:
-            self._logger.error(f"서비스 재시작 중 오류: {e}")
+            self._logger.error(f"서비스 재시작 중 오류: {e}", exc_info=True)
             return False
     
     def _clear_cache(self, error_event: ErrorEvent) -> bool:
@@ -467,7 +467,7 @@ class RecoveryManager:
             time.sleep(1)
             return True
         except Exception as e:
-            self._logger.error(f"캐시 정리 중 오류: {e}")
+            self._logger.error(f"캐시 정리 중 오류: {e}", exc_info=True)
             return False
     
     def _reset_connection(self, error_event: ErrorEvent) -> bool:
@@ -478,7 +478,7 @@ class RecoveryManager:
             time.sleep(2)
             return True
         except Exception as e:
-            self._logger.error(f"연결 재설정 중 오류: {e}")
+            self._logger.error(f"연결 재설정 중 오류: {e}", exc_info=True)
             return False
     
     def _scale_up(self, error_event: ErrorEvent) -> bool:
@@ -489,7 +489,7 @@ class RecoveryManager:
             time.sleep(3)
             return True
         except Exception as e:
-            self._logger.error(f"스케일 업 중 오류: {e}")
+            self._logger.error(f"스케일 업 중 오류: {e}", exc_info=True)
             return False
     
     def _failover(self, error_event: ErrorEvent) -> bool:
@@ -500,7 +500,7 @@ class RecoveryManager:
             time.sleep(5)
             return True
         except Exception as e:
-            self._logger.error(f"페일오버 중 오류: {e}")
+            self._logger.error(f"페일오버 중 오류: {e}", exc_info=True)
             return False
 
 class ErrorRecoverySystem:
@@ -579,19 +579,19 @@ class ErrorRecoverySystem:
                 try:
                     handler(error_event)
                 except Exception as e:
-                    self._logger.error(f"에러 핸들러 실행 중 오류: {e}")
+                    self._logger.error(f"에러 핸들러 실행 중 오류: {e}", exc_info=True)
             
             # 자동 복구 시도
             if severity in [ErrorSeverity.HIGH, ErrorSeverity.CRITICAL]:
                 self._recovery_manager.attempt_recovery(error_event)
                 self._save_error_event(error_event)  # 복구 결과 업데이트
             
-            self._logger.error(f"에러 보고: {component} - {error_message} (심각도: {severity.value})")
+            self._logger.error(f"에러 보고: {component} - {error_message} (심각도: {severity.value})", exc_info=True)
             
             return error_event
             
         except Exception as e:
-            self._logger.error(f"에러 보고 처리 중 오류: {e}")
+            self._logger.error(f"에러 보고 처리 중 오류: {e}", exc_info=True)
             raise
     
     def _collect_system_metrics(self) -> Dict[str, Any]:
@@ -628,7 +628,7 @@ class ErrorRecoverySystem:
                 conn.commit()
                 
         except Exception as e:
-            self._logger.error(f"에러 이벤트 저장 중 오류: {e}")
+            self._logger.error(f"에러 이벤트 저장 중 오류: {e}", exc_info=True)
     
     def start_monitoring(self, interval_seconds: int = 60):
         """자동 모니터링 시작"""
@@ -653,7 +653,7 @@ class ErrorRecoverySystem:
                         )
                     
                 except Exception as e:
-                    self._logger.error(f"모니터링 중 오류: {e}")
+                    self._logger.error(f"모니터링 중 오류: {e}", exc_info=True)
                 
                 time.sleep(interval_seconds)
         
@@ -725,7 +725,7 @@ class ErrorRecoverySystem:
                 }
                 
         except Exception as e:
-            self._logger.error(f"에러 통계 조회 중 오류: {e}")
+            self._logger.error(f"에러 통계 조회 중 오류: {e}", exc_info=True)
             return {}
 
 # 글로벌 인스턴스

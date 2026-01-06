@@ -126,7 +126,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             return analysis_result
 
         except Exception as e:
-            self.logger.error(f"포괄적 학습 분석 실패: {e}")
+            self.logger.error(f"포괄적 학습 분석 실패: {e}", exc_info=True)
             return {'error': str(e), 'status': 'failed'}
 
     def analyze_screening_accuracy(self, days_back: int = 30) -> Optional[ScreeningAccuracy]:
@@ -193,7 +193,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                 )
 
         except Exception as e:
-            self.logger.error(f"스크리닝 정확도 분석 실패: {e}")
+            self.logger.error(f"스크리닝 정확도 분석 실패: {e}", exc_info=True)
             return None
 
     def analyze_selection_accuracy(self, days_back: int = 30) -> Optional[SelectionAccuracy]:
@@ -262,7 +262,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                 )
 
         except Exception as e:
-            self.logger.error(f"선정 정확도 분석 실패: {e}")
+            self.logger.error(f"선정 정확도 분석 실패: {e}", exc_info=True)
             return None
 
     def analyze_sector_performance_detailed(self) -> Dict[str, Any]:
@@ -321,7 +321,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                 }
 
         except Exception as e:
-            self.logger.error(f"섹터 성과 분석 실패: {e}")
+            self.logger.error(f"섹터 성과 분석 실패: {e}", exc_info=True)
             return {'status': 'error', 'error': str(e)}
 
     def analyze_temporal_patterns(self) -> Dict[str, Any]:
@@ -401,7 +401,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                 }
 
         except Exception as e:
-            self.logger.error(f"시간별 패턴 분석 실패: {e}")
+            self.logger.error(f"시간별 패턴 분석 실패: {e}", exc_info=True)
             return {'status': 'error', 'error': str(e)}
 
     def generate_learning_insights(
@@ -470,7 +470,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             return insights
 
         except Exception as e:
-            self.logger.error(f"학습 인사이트 생성 실패: {e}")
+            self.logger.error(f"학습 인사이트 생성 실패: {e}", exc_info=True)
             return []
 
     def adapt_parameters_enhanced(
@@ -546,7 +546,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                 }
 
         except Exception as e:
-            self.logger.error(f"강화된 파라미터 적응 실패: {e}")
+            self.logger.error(f"강화된 파라미터 적응 실패: {e}", exc_info=True)
             return {'status': 'error', 'error': str(e)}
 
     def _save_enhanced_adaptation_history(
@@ -588,7 +588,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                 json.dump(history, f, indent=2, ensure_ascii=False)
 
         except Exception as e:
-            self.logger.error(f"강화된 적응 이력 저장 실패: {e}")
+            self.logger.error(f"강화된 적응 이력 저장 실패: {e}", exc_info=True)
 
     def _save_comprehensive_analysis(self, analysis_result: Dict[str, Any]):
         """포괄적 분석 결과 저장"""
@@ -615,7 +615,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                 json.dump(results, f, indent=2, ensure_ascii=False)
 
         except Exception as e:
-            self.logger.error(f"포괄적 분석 결과 저장 실패: {e}")
+            self.logger.error(f"포괄적 분석 결과 저장 실패: {e}", exc_info=True)
 
     def _make_json_serializable(self, obj: Any) -> Any:
         """객체를 JSON 직렬화 가능하도록 변환"""
@@ -655,7 +655,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             return health
 
         except Exception as e:
-            self.logger.error(f"시스템 헬스체크 실패: {e}")
+            self.logger.error(f"시스템 헬스체크 실패: {e}", exc_info=True)
             return {'overall_status': 'error', 'error': str(e)}
 
     # 허용된 테이블 목록 (SQL 인젝션 방지용 화이트리스트)
@@ -807,7 +807,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             return maintenance_results
 
         except Exception as e:
-            self.logger.error(f"시스템 유지보수 실패: {e}")
+            self.logger.error(f"시스템 유지보수 실패: {e}", exc_info=True)
             return {'status': 'error', 'error': str(e)}
 
     def _cleanup_old_data(self) -> Dict[str, Any]:

@@ -79,7 +79,7 @@ class KISAPI(KISRestClient):
             return holdings
 
         except Exception as e:
-            logger.error(f"[get_holdings] 보유 종목 조회 중 오류 발생: {str(e)}")
+            logger.error(f"[get_holdings] 보유 종목 조회 중 오류 발생: {str(e)}", exc_info=True)
             return []
 
     # 주문 상수 (KIS 표준)
@@ -138,7 +138,7 @@ class KISAPI(KISRestClient):
             self.ws_client = KISWebSocketClient(self.config.access_token)
             return await self.ws_client.connect()
         except Exception as e:
-            logger.error(f"[connect_websocket] WebSocket 연결 중 오류 발생: {str(e)}")
+            logger.error(f"[connect_websocket] WebSocket 연결 중 오류 발생: {str(e)}", exc_info=True)
             return False
         
     def add_callback(self, tr_id: str, callback: Callable):
@@ -181,13 +181,13 @@ class KISAPI(KISRestClient):
                 
                 try:
                     if not await self.subscribe_stock(code, tr_list):
-                        logger.error(f"[start_real_time] {code} 구독 실패")
+                        logger.error(f"[start_real_time] {code} 구독 실패", exc_info=True)
                         continue
                         
                     logger.info(f"[start_real_time] {code} 구독 시작")
                     subscription_success = True
                 except Exception as e:
-                    logger.error(f"[start_real_time] {code} 구독 중 오류: {str(e)}")
+                    logger.error(f"[start_real_time] {code} 구독 중 오류: {str(e)}", exc_info=True)
                 
             # 최소 하나 이상의 종목이 구독되었는지 확인
             if not subscription_success:
@@ -201,7 +201,7 @@ class KISAPI(KISRestClient):
             return False
                 
         except Exception as e:
-            logger.error(f"[start_real_time] 실시간 데이터 수신 중 오류 발생: {str(e)}")
+            logger.error(f"[start_real_time] 실시간 데이터 수신 중 오류 발생: {str(e)}", exc_info=True)
             # 연결이 남아있다면 정리
             if self.ws_client:
                 try:
@@ -236,17 +236,17 @@ class KISAPI(KISRestClient):
 
             # 에러 응답 체크 (HTTP 에러나 재시도 실패 시)
             if response.get('error'):
-                logger.error(f"[get_stock_info] API 오류: {response.get('error')}")
+                logger.error(f"[get_stock_info] API 오류: {response.get('error')}", exc_info=True)
                 return None
 
             if response.get('rt_cd') == '0':
                 return response.get('output')
             else:
-                logger.error(f"[get_stock_info] API 오류: {response.get('msg1', '알 수 없는 오류')}")
+                logger.error(f"[get_stock_info] API 오류: {response.get('msg1', '알 수 없는 오류')}", exc_info=True)
                 return None
 
         except Exception as e:
-            logger.error(f"[get_stock_info] 종목 정보 조회 중 오류 발생: {str(e)}")
+            logger.error(f"[get_stock_info] 종목 정보 조회 중 오류 발생: {str(e)}", exc_info=True)
             return None
 
     def get_stock_history(self, stock_code: str, period: str = "D", count: int = 20) -> Optional[pd.DataFrame]:
@@ -284,7 +284,7 @@ class KISAPI(KISRestClient):
 
             # 에러 응답 체크 (HTTP 에러나 재시도 실패 시)
             if response.get('error'):
-                logger.error(f"[get_stock_history] API 오류: {response.get('error')}")
+                logger.error(f"[get_stock_history] API 오류: {response.get('error')}", exc_info=True)
                 return None
 
             if response.get('rt_cd') == '0':
@@ -317,9 +317,9 @@ class KISAPI(KISRestClient):
                 return df
 
             else:
-                logger.error(f"[get_stock_history] API 오류: {response.get('msg1', '알 수 없는 오류')}")
+                logger.error(f"[get_stock_history] API 오류: {response.get('msg1', '알 수 없는 오류')}", exc_info=True)
                 return None
                 
         except Exception as e:
-            logger.error(f"[get_stock_history] 가격 데이터 조회 중 오류 발생: {str(e)}")
+            logger.error(f"[get_stock_history] 가격 데이터 조회 중 오류 발생: {str(e)}", exc_info=True)
             return None 

@@ -476,7 +476,7 @@ class TradeLogger:
                 f.write(json.dumps(log.to_dict(), ensure_ascii=False) + '\n')
 
         except Exception as e:
-            logger.error(f"Failed to save trade log: {e}")
+            logger.error(f"Failed to save trade log: {e}", exc_info=True)
 
     def get_logs(
         self,
@@ -560,6 +560,6 @@ class TradeLogger:
             logger.info(f"Loaded {loaded} trade logs from {file_path}")
 
         except Exception as e:
-            logger.error(f"Failed to load trade logs: {e}")
+            logger.error(f"Failed to load trade logs: {e}", exc_info=True)
 
         return loaded

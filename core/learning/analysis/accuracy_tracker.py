@@ -200,7 +200,7 @@ class AccuracyTracker:
                 self._logger.info("데이터베이스 테이블 초기화 완료")
                 
         except Exception as e:
-            self._logger.error(f"데이터베이스 초기화 중 오류: {e}")
+            self._logger.error(f"데이터베이스 초기화 중 오류: {e}", exc_info=True)
     
     def _setup_scheduler(self):
         """스케줄러 설정"""
@@ -238,7 +238,7 @@ class AccuracyTracker:
                 self._logger.debug(f"일일 선정 기록: {date} - {stock_code} ({stock_name})")
                 
         except Exception as e:
-            self._logger.error(f"일일 선정 기록 중 오류: {e}")
+            self._logger.error(f"일일 선정 기록 중 오류: {e}", exc_info=True)
     
     def _get_stock_price(self, stock_code: str, date: str) -> Optional[float]:
         """특정 날짜의 주가 조회
@@ -265,7 +265,7 @@ class AccuracyTracker:
             return None
             
         except Exception as e:
-            self._logger.error(f"주가 조회 중 오류 - {stock_code} ({date}): {e}")
+            self._logger.error(f"주가 조회 중 오류 - {stock_code} ({date}): {e}", exc_info=True)
             return None
     
     def _update_performance_data(self):
@@ -309,7 +309,7 @@ class AccuracyTracker:
                 self._logger.info(f"성과 데이터 업데이트 완료: {len(selections)}개 종목")
                 
         except Exception as e:
-            self._logger.error(f"성과 데이터 업데이트 중 오류: {e}")
+            self._logger.error(f"성과 데이터 업데이트 중 오류: {e}", exc_info=True)
     
     def _get_price_after_days(self, stock_code: str, base_date: str, days: int) -> Optional[float]:
         """기준 날짜로부터 N일 후 주가 조회"""
@@ -326,7 +326,7 @@ class AccuracyTracker:
             return None
             
         except Exception as e:
-            self._logger.error(f"N일 후 주가 조회 중 오류: {e}")
+            self._logger.error(f"N일 후 주가 조회 중 오류: {e}", exc_info=True)
             return None
     
     def _run_daily_accuracy_analysis(self):
@@ -350,7 +350,7 @@ class AccuracyTracker:
             self._logger.info("일일 정확도 분석 완료")
             
         except Exception as e:
-            self._logger.error(f"일일 정확도 분석 중 오류: {e}")
+            self._logger.error(f"일일 정확도 분석 중 오류: {e}", exc_info=True)
     
     def _analyze_accuracy_for_date(self, target_date: str) -> Optional[DailyAccuracyResult]:
         """특정 날짜의 선정에 대한 정확도 분석"""
@@ -462,7 +462,7 @@ class AccuracyTracker:
                 )
                 
         except Exception as e:
-            self._logger.error(f"날짜별 정확도 분석 중 오류: {e}")
+            self._logger.error(f"날짜별 정확도 분석 중 오류: {e}", exc_info=True)
             return None
     
     def _save_accuracy_result(self, analysis_date: str, result: DailyAccuracyResult):
@@ -495,7 +495,7 @@ class AccuracyTracker:
                 self._logger.info(f"정확도 분석 결과 저장: {result.date}")
                 
         except Exception as e:
-            self._logger.error(f"정확도 결과 저장 중 오류: {e}")
+            self._logger.error(f"정확도 결과 저장 중 오류: {e}", exc_info=True)
     
     def get_recent_accuracy(self, days: int = 30) -> List[DailyAccuracyResult]:
         """최근 정확도 결과 조회
@@ -543,7 +543,7 @@ class AccuracyTracker:
                 return results
                 
         except Exception as e:
-            self._logger.error(f"최근 정확도 조회 중 오류: {e}")
+            self._logger.error(f"최근 정확도 조회 중 오류: {e}", exc_info=True)
             return []
     
     def analyze_accuracy_trend(self, days: int = 30) -> Optional[AccuracyTrend]:
@@ -597,7 +597,7 @@ class AccuracyTracker:
             )
             
         except Exception as e:
-            self._logger.error(f"정확도 트렌드 분석 중 오류: {e}")
+            self._logger.error(f"정확도 트렌드 분석 중 오류: {e}", exc_info=True)
             return None
     
     def start_auto_tracking(self):
@@ -651,7 +651,7 @@ class AccuracyTracker:
             self._logger.info(f"정확도 리포트를 {file_path}에 저장했습니다.")
             
         except Exception as e:
-            self._logger.error(f"정확도 리포트 내보내기 중 오류: {e}")
+            self._logger.error(f"정확도 리포트 내보내기 중 오류: {e}", exc_info=True)
 
 # 글로벌 인스턴스
 _accuracy_tracker_instance: Optional[AccuracyTracker] = None

@@ -199,7 +199,7 @@ class LearningOrchestrator:
         except Exception as e:
             results['success'] = False
             results['error'] = str(e)
-            logger.error(f"일일 학습 사이클 오류: {e}")
+            logger.error(f"일일 학습 사이클 오류: {e}", exc_info=True)
 
         self._save_state()
         return results
@@ -224,7 +224,7 @@ class LearningOrchestrator:
             }
 
         except Exception as e:
-            logger.error(f"레짐 체크 오류: {e}")
+            logger.error(f"레짐 체크 오류: {e}", exc_info=True)
             return {'error': str(e)}
 
     def _run_retrain_check(self) -> Dict[str, Any]:
@@ -259,7 +259,7 @@ class LearningOrchestrator:
             }
 
         except Exception as e:
-            logger.error(f"재학습 체크 오류: {e}")
+            logger.error(f"재학습 체크 오류: {e}", exc_info=True)
             return {'error': str(e)}
 
     def _run_weight_update_check(self) -> Dict[str, Any]:
@@ -304,7 +304,7 @@ class LearningOrchestrator:
                 return {'updated': False, 'reason': 'no_significant_change'}
 
         except Exception as e:
-            logger.error(f"가중치 업데이트 체크 오류: {e}")
+            logger.error(f"가중치 업데이트 체크 오류: {e}", exc_info=True)
             return {'error': str(e)}
 
     def _run_performance_eval(self) -> Dict[str, Any]:
@@ -327,7 +327,7 @@ class LearningOrchestrator:
             }
 
         except Exception as e:
-            logger.error(f"성능 평가 오류: {e}")
+            logger.error(f"성능 평가 오류: {e}", exc_info=True)
             return {'error': str(e)}
 
     def _get_model_performance(self) -> Dict[str, float]:
@@ -447,7 +447,7 @@ class LearningOrchestrator:
             task.completed_at = datetime.now().isoformat()
 
             self._trigger_callbacks('on_task_failed', task)
-            logger.error(f"작업 실패: {task.task_id} - {e}")
+            logger.error(f"작업 실패: {task.task_id} - {e}", exc_info=True)
             result = {'error': str(e)}
 
         # 완료 기록
@@ -513,7 +513,7 @@ class LearningOrchestrator:
                 time.sleep(60)
 
             except Exception as e:
-                logger.error(f"스케줄러 오류: {e}")
+                logger.error(f"스케줄러 오류: {e}", exc_info=True)
                 time.sleep(60)
 
         logger.info("스케줄러 루프 종료")

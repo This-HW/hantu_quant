@@ -396,7 +396,7 @@ class RetrainTrigger:
                 with open(state_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
         except Exception as e:
-            logger.error(f"트리거 상태 로드 실패: {e}")
+            logger.error(f"트리거 상태 로드 실패: {e}", exc_info=True)
 
         return {}
 
@@ -408,7 +408,7 @@ class RetrainTrigger:
             with open(state_file, 'w', encoding='utf-8') as f:
                 json.dump(self._state, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f"트리거 상태 저장 실패: {e}")
+            logger.error(f"트리거 상태 저장 실패: {e}", exc_info=True)
 
 
 # 싱글톤 인스턴스

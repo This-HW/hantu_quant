@@ -80,7 +80,7 @@ class ImpactAnalyzer(IImpactAnalyzer):
             return analysis
             
         except Exception as e:
-            logger.error(f"Failed to analyze impact for '{module_name}': {e}")
+            logger.error(f"Failed to analyze impact for '{module_name}': {e}", exc_info=True)
             raise
     
     def get_dependent_modules(self, module_name: str) -> List[str]:
@@ -88,7 +88,7 @@ class ImpactAnalyzer(IImpactAnalyzer):
         try:
             return self._dependency_analyzer.get_reverse_dependencies(module_name)
         except Exception as e:
-            logger.error(f"Failed to get dependent modules for '{module_name}': {e}")
+            logger.error(f"Failed to get dependent modules for '{module_name}': {e}", exc_info=True)
             raise
     
     def get_affected_modules(self, module_name: str, change_type: str) -> List[str]:
@@ -117,7 +117,7 @@ class ImpactAnalyzer(IImpactAnalyzer):
             return list(affected_modules)
             
         except Exception as e:
-            logger.error(f"Failed to get affected modules for '{module_name}': {e}")
+            logger.error(f"Failed to get affected modules for '{module_name}': {e}", exc_info=True)
             raise
     
     def calculate_change_impact(self, module_name: str, change_type: str) -> float:
@@ -146,7 +146,7 @@ class ImpactAnalyzer(IImpactAnalyzer):
             return total_impact
             
         except Exception as e:
-            logger.error(f"Failed to calculate change impact for '{module_name}': {e}")
+            logger.error(f"Failed to calculate change impact for '{module_name}': {e}", exc_info=True)
             raise
     
     def generate_impact_report(self, module_name: str, change_type: str) -> Dict[str, Any]:
@@ -187,7 +187,7 @@ class ImpactAnalyzer(IImpactAnalyzer):
             return report
             
         except Exception as e:
-            logger.error(f"Failed to generate impact report for '{module_name}': {e}")
+            logger.error(f"Failed to generate impact report for '{module_name}': {e}", exc_info=True)
             raise
     
     def predict_breaking_changes(self, module_name: str, change_type: str) -> List[str]:
@@ -214,7 +214,7 @@ class ImpactAnalyzer(IImpactAnalyzer):
             return breaking_changes
             
         except Exception as e:
-            logger.error(f"Failed to predict breaking changes for '{module_name}': {e}")
+            logger.error(f"Failed to predict breaking changes for '{module_name}': {e}", exc_info=True)
             raise
     
     def calculate_risk_score(self, module_name: str, change_type: str) -> float:
@@ -251,7 +251,7 @@ class ImpactAnalyzer(IImpactAnalyzer):
             return total_risk
             
         except Exception as e:
-            logger.error(f"Failed to calculate risk score for '{module_name}': {e}")
+            logger.error(f"Failed to calculate risk score for '{module_name}': {e}", exc_info=True)
             raise
     
     def get_impact_statistics(self) -> Dict[str, Any]:
@@ -303,7 +303,7 @@ class ImpactAnalyzer(IImpactAnalyzer):
             return dict(stats)
             
         except Exception as e:
-            logger.error(f"Failed to get impact statistics: {e}")
+            logger.error(f"Failed to get impact statistics: {e}", exc_info=True)
             raise
     
     def _perform_impact_analysis(self, module_name: str, change_type: ChangeType) -> Dict[str, Any]:

@@ -289,7 +289,7 @@ class MultiFactorScorer:
             return results
 
         except Exception as e:
-            self.logger.error(f"멀티 팩터 스코어링 오류: {e}")
+            self.logger.error(f"멀티 팩터 스코어링 오류: {e}", exc_info=True)
             return []
 
     def _calculate_momentum_factor(self, stock: Dict) -> float:

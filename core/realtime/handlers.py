@@ -132,7 +132,7 @@ class EventHandler:
                 logger.warning(f"알 수 없는 이벤트 유형: {event_type}")
 
         except Exception as e:
-            logger.error(f"이벤트 처리 중 오류 발생: {str(e)}")
+            logger.error(f"이벤트 처리 중 오류 발생: {str(e)}", exc_info=True)
 
     async def _handle_trade_event(self, data: Dict[str, Any]):
         """
@@ -160,7 +160,7 @@ class EventHandler:
                 await self._execute_trades(signals)
 
         except Exception as e:
-            logger.error(f"거래 이벤트 처리 중 오류 발생: {str(e)}")
+            logger.error(f"거래 이벤트 처리 중 오류 발생: {str(e)}", exc_info=True)
 
     async def _handle_quote_event(self, data: Dict[str, Any]):
         """
@@ -177,7 +177,7 @@ class EventHandler:
             await self._update_market_condition(analysis)
 
         except Exception as e:
-            logger.error(f"호가 이벤트 처리 중 오류 발생: {str(e)}")
+            logger.error(f"호가 이벤트 처리 중 오류 발생: {str(e)}", exc_info=True)
 
     async def _handle_tick_event(self, data: Dict[str, Any]):
         """
@@ -206,7 +206,7 @@ class EventHandler:
                 )
 
         except Exception as e:
-            logger.error(f"틱 이벤트 처리 중 오류 발생: {str(e)}")
+            logger.error(f"틱 이벤트 처리 중 오류 발생: {str(e)}", exc_info=True)
 
     def _update_history(self, stock_code: str, price: float, volume: int):
         """가격/거래량 히스토리 업데이트"""
@@ -275,7 +275,7 @@ class EventHandler:
             )
 
         except Exception as e:
-            logger.error(f"기술적 지표 업데이트 중 오류 발생: {str(e)}")
+            logger.error(f"기술적 지표 업데이트 중 오류 발생: {str(e)}", exc_info=True)
 
     async def _generate_trading_signals(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -335,7 +335,7 @@ class EventHandler:
             }
 
         except Exception as e:
-            logger.error(f"신호 생성 중 오류: {str(e)}")
+            logger.error(f"신호 생성 중 오류: {str(e)}", exc_info=True)
             return {'action': 'HOLD', 'reason': f'Error: {str(e)}'}
 
     def _generate_ta_signal(
@@ -421,7 +421,7 @@ class EventHandler:
             )
 
         except Exception as e:
-            logger.error(f"TA 신호 생성 오류: {str(e)}")
+            logger.error(f"TA 신호 생성 오류: {str(e)}", exc_info=True)
             return None
 
     def _generate_market_signal(
@@ -465,7 +465,7 @@ class EventHandler:
             )
 
         except Exception as e:
-            logger.error(f"시장 신호 생성 오류: {str(e)}")
+            logger.error(f"시장 신호 생성 오류: {str(e)}", exc_info=True)
             return None
 
     def _generate_volume_signal(self, stock_code: str) -> Optional[Signal]:
@@ -519,7 +519,7 @@ class EventHandler:
             )
 
         except Exception as e:
-            logger.error(f"거래량 신호 생성 오류: {str(e)}")
+            logger.error(f"거래량 신호 생성 오류: {str(e)}", exc_info=True)
             return None
 
     async def _execute_trades(self, signals: Dict[str, Any]):
@@ -547,7 +547,7 @@ class EventHandler:
             )
 
         except Exception as e:
-            logger.error(f"거래 실행 중 오류: {str(e)}")
+            logger.error(f"거래 실행 중 오류: {str(e)}", exc_info=True)
 
     async def _analyze_quote_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -613,7 +613,7 @@ class EventHandler:
             return result
 
         except Exception as e:
-            logger.error(f"호가 분석 중 오류: {str(e)}")
+            logger.error(f"호가 분석 중 오류: {str(e)}", exc_info=True)
             return {}
 
     async def _update_market_condition(self, analysis: Dict[str, Any]):
@@ -638,7 +638,7 @@ class EventHandler:
             )
 
         except Exception as e:
-            logger.error(f"시장 상황 업데이트 중 오류: {str(e)}")
+            logger.error(f"시장 상황 업데이트 중 오류: {str(e)}", exc_info=True)
 
     async def _analyze_volume(self, data: Dict[str, Any]) -> VolumeAnalysis:
         """
@@ -673,7 +673,7 @@ class EventHandler:
             return result
 
         except Exception as e:
-            logger.error(f"거래량 분석 중 오류: {str(e)}")
+            logger.error(f"거래량 분석 중 오류: {str(e)}", exc_info=True)
             return VolumeAnalysis()
 
     async def _analyze_volatility(self, data: Dict[str, Any]) -> VolatilityAnalysis:
@@ -740,7 +740,7 @@ class EventHandler:
             return result
 
         except Exception as e:
-            logger.error(f"변동성 분석 중 오류: {str(e)}")
+            logger.error(f"변동성 분석 중 오류: {str(e)}", exc_info=True)
             return VolatilityAnalysis()
 
     async def _detect_abnormal_trading(
@@ -817,7 +817,7 @@ class EventHandler:
             return result
 
         except Exception as e:
-            logger.error(f"이상 거래 탐지 중 오류: {str(e)}")
+            logger.error(f"이상 거래 탐지 중 오류: {str(e)}", exc_info=True)
             return AbnormalTradingResult(stock_code=data.get('symbol', ''))
 
     def get_pending_signals(self) -> List[Dict]:
@@ -844,7 +844,7 @@ class EventHandler:
             logger.debug("정리 작업 수행 완료")
 
         except Exception as e:
-            logger.error(f"정리 작업 중 오류 발생: {str(e)}")
+            logger.error(f"정리 작업 중 오류 발생: {str(e)}", exc_info=True)
 
     def __del__(self):
         """소멸자"""

@@ -257,7 +257,7 @@ class PerformanceTracker:
                 self._logger.info("성과 추적 데이터베이스 초기화 완료")
                 
         except Exception as e:
-            self._logger.error(f"데이터베이스 초기화 중 오류: {e}")
+            self._logger.error(f"데이터베이스 초기화 중 오류: {e}", exc_info=True)
     
     def record_backtest_prediction(self, prediction: BacktestPrediction) -> bool:
         """백테스트 예측 기록
@@ -304,7 +304,7 @@ class PerformanceTracker:
             return True
             
         except Exception as e:
-            self._logger.error(f"백테스트 예측 기록 중 오류: {e}")
+            self._logger.error(f"백테스트 예측 기록 중 오류: {e}", exc_info=True)
             return False
     
     def record_actual_performance(self, performance: ActualPerformance) -> bool:
@@ -348,7 +348,7 @@ class PerformanceTracker:
             return True
             
         except Exception as e:
-            self._logger.error(f"실제 성과 기록 중 오류: {e}")
+            self._logger.error(f"실제 성과 기록 중 오류: {e}", exc_info=True)
             return False
     
     def _schedule_comparison_analysis(self, prediction_id: str):
@@ -366,7 +366,7 @@ class PerformanceTracker:
             thread.start()
             
         except Exception as e:
-            self._logger.error(f"비교 분석 스케줄링 중 오류: {e}")
+            self._logger.error(f"비교 분석 스케줄링 중 오류: {e}", exc_info=True)
     
     def perform_comparison_analysis(self, prediction_id: str) -> Optional[PerformanceComparison]:
         """예측 vs 실제 비교 분석
@@ -396,7 +396,7 @@ class PerformanceTracker:
             return comparison
             
         except Exception as e:
-            self._logger.error(f"비교 분석 중 오류: {e}")
+            self._logger.error(f"비교 분석 중 오류: {e}", exc_info=True)
             return None
     
     def _get_prediction_data(self, prediction_id: str) -> Optional[Dict]:
@@ -428,7 +428,7 @@ class PerformanceTracker:
                 return None
                 
         except Exception as e:
-            self._logger.error(f"예측 데이터 조회 중 오류: {e}")
+            self._logger.error(f"예측 데이터 조회 중 오류: {e}", exc_info=True)
             return None
     
     def _get_performance_data(self, prediction_id: str) -> Optional[Dict]:
@@ -462,7 +462,7 @@ class PerformanceTracker:
                 return None
                 
         except Exception as e:
-            self._logger.error(f"실제 성과 데이터 조회 중 오류: {e}")
+            self._logger.error(f"실제 성과 데이터 조회 중 오류: {e}", exc_info=True)
             return None
     
     def _calculate_comparison_metrics(self, prediction_data: Dict, 
@@ -530,7 +530,7 @@ class PerformanceTracker:
             )
             
         except Exception as e:
-            self._logger.error(f"비교 지표 계산 중 오류: {e}")
+            self._logger.error(f"비교 지표 계산 중 오류: {e}", exc_info=True)
             raise
     
     def _calculate_prediction_accuracy(self, predicted: float, actual: float) -> float:
@@ -700,7 +700,7 @@ class PerformanceTracker:
                 conn.commit()
                 
         except Exception as e:
-            self._logger.error(f"비교 결과 저장 중 오류: {e}")
+            self._logger.error(f"비교 결과 저장 중 오류: {e}", exc_info=True)
     
     # 성과 메트릭 계산 메서드들
     def _calculate_return(self, data: List[float]) -> float:
@@ -775,7 +775,7 @@ class PerformanceTracker:
                 }
                 
         except Exception as e:
-            self._logger.error(f"추적 요약 조회 중 오류: {e}")
+            self._logger.error(f"추적 요약 조회 중 오류: {e}", exc_info=True)
             return {}
 
 # 글로벌 인스턴스

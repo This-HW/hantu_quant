@@ -149,7 +149,7 @@ class MonitoringConfigLoader:
             with open(self._config_path, 'r', encoding='utf-8') as f:
                 return yaml.safe_load(f)
         except Exception as e:
-            logger.error(f"Failed to load config: {e}")
+            logger.error(f"Failed to load config: {e}", exc_info=True)
             return None
 
     def _deep_merge(self, base: Dict, override: Dict) -> Dict:

@@ -399,7 +399,7 @@ class WeightSafety:
                         self._recent_history.append(record)
                 logger.debug(f"가중치 이력 로드: {len(self._recent_history)}개")
         except Exception as e:
-            logger.error(f"가중치 이력 로드 실패: {e}")
+            logger.error(f"가중치 이력 로드 실패: {e}", exc_info=True)
 
     def _save_history(self):
         """파일에 이력 저장"""
@@ -410,7 +410,7 @@ class WeightSafety:
             with open(history_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(f"가중치 이력 저장 실패: {e}")
+            logger.error(f"가중치 이력 저장 실패: {e}", exc_info=True)
 
 
 # 싱글톤 인스턴스

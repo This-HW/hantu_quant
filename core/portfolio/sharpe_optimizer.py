@@ -112,7 +112,7 @@ class SharpeOptimizer:
             return result_portfolio
 
         except Exception as e:
-            self.logger.error(f"샤프 비율 최적화 오류: {e}")
+            self.logger.error(f"샤프 비율 최적화 오류: {e}", exc_info=True)
             return self._equal_weight_fallback(stock_data)
 
     def _estimate_covariance_matrix(self, stock_data: List[Dict],
@@ -259,7 +259,7 @@ class SharpeOptimizer:
             return frontier_points
 
         except Exception as e:
-            self.logger.error(f"효율적 투자선 계산 오류: {e}")
+            self.logger.error(f"효율적 투자선 계산 오류: {e}", exc_info=True)
             return []
 
 

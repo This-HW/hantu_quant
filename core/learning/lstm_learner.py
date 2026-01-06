@@ -331,7 +331,7 @@ class LSTMContinuousLearner:
             return result
 
         except Exception as e:
-            logger.error(f"Retrain failed: {e}")
+            logger.error(f"Retrain failed: {e}", exc_info=True)
             return RetrainResult(
                 success=False,
                 replacement_reason=f"error: {str(e)}",
@@ -472,7 +472,7 @@ class LSTMContinuousLearner:
             return accuracy
 
         except Exception as e:
-            logger.error(f"Evaluation failed: {e}")
+            logger.error(f"Evaluation failed: {e}", exc_info=True)
             return 0.0
 
     def _replace_model(self, new_model: Any) -> None:
@@ -513,7 +513,7 @@ class LSTMContinuousLearner:
             return int(prediction), float(probability)
 
         except Exception as e:
-            logger.error(f"Prediction failed: {e}")
+            logger.error(f"Prediction failed: {e}", exc_info=True)
             return 0, 0.5
 
     def get_stats(self) -> Dict[str, Any]:

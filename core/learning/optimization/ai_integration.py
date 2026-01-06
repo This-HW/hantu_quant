@@ -183,7 +183,7 @@ class ModelRegistry:
         try:
             # 모델 파일 검증
             if not os.path.exists(model_metadata.file_path):
-                self._logger.error(f"모델 파일을 찾을 수 없음: {model_metadata.file_path}")
+                self._logger.error(f"모델 파일을 찾을 수 없음: {model_metadata.file_path}", exc_info=True)
                 return False
             
             # 레지스트리에 추가
@@ -202,7 +202,7 @@ class ModelRegistry:
             return True
             
         except Exception as e:
-            self._logger.error(f"모델 등록 실패: {e}")
+            self._logger.error(f"모델 등록 실패: {e}", exc_info=True)
             return False
     
     def get_model(self, model_id: str) -> Optional[ModelMetadata]:
@@ -260,7 +260,7 @@ class ModelRegistry:
                 json.dump(registry_data, f, ensure_ascii=False, indent=2, default=str)
                 
         except Exception as e:
-            self._logger.error(f"레지스트리 저장 실패: {e}")
+            self._logger.error(f"레지스트리 저장 실패: {e}", exc_info=True)
     
     def _load_registry(self):
         """레지스트리 로드"""
@@ -284,7 +284,7 @@ class ModelRegistry:
                 self._logger.info(f"레지스트리 로드 완료: {len(self._models)}개 모델")
                 
         except Exception as e:
-            self._logger.error(f"레지스트리 로드 실패: {e}")
+            self._logger.error(f"레지스트리 로드 실패: {e}", exc_info=True)
 
 class IntegrationManager:
     """통합 관리자"""
@@ -431,7 +431,7 @@ class IntegrationManager:
             return self._is_integrated
             
         except Exception as e:
-            self._logger.error(f"컴포넌트 초기화 실패: {e}")
+            self._logger.error(f"컴포넌트 초기화 실패: {e}", exc_info=True)
             return False
     
     def _create_mock_performance_analyzer(self):
@@ -552,7 +552,7 @@ class IntegrationManager:
                 return None
             
         except Exception as e:
-            self._logger.error(f"통합 모델 생성 실패: {e}")
+            self._logger.error(f"통합 모델 생성 실패: {e}", exc_info=True)
             return None
     
     def _serialize_component(self, component) -> Dict[str, Any]:
@@ -639,7 +639,7 @@ class IntegrationManager:
             return deployment_result
             
         except Exception as e:
-            self._logger.error(f"모델 배포 실패: {e}")
+            self._logger.error(f"모델 배포 실패: {e}", exc_info=True)
             return DeploymentResult(
                 deployment_id=deployment_id,
                 model_metadata=model_metadata,
@@ -668,7 +668,7 @@ class IntegrationManager:
             return True
             
         except Exception as e:
-            self._logger.error(f"모델 검증 실패: {e}")
+            self._logger.error(f"모델 검증 실패: {e}", exc_info=True)
             return False
     
     def _create_model_backup(self, model_metadata: ModelMetadata) -> bool:
@@ -688,7 +688,7 @@ class IntegrationManager:
             return True
             
         except Exception as e:
-            self._logger.error(f"모델 백업 실패: {e}")
+            self._logger.error(f"모델 백업 실패: {e}", exc_info=True)
             return False
     
     def _copy_model_to_deployment(self, model_metadata: ModelMetadata,
@@ -709,7 +709,7 @@ class IntegrationManager:
             return deployment_path
             
         except Exception as e:
-            self._logger.error(f"모델 배포 복사 실패: {e}")
+            self._logger.error(f"모델 배포 복사 실패: {e}", exc_info=True)
             return None
     
     def get_integration_status(self) -> Dict[str, Any]:
@@ -772,7 +772,7 @@ class IntegrationManager:
             return test_results
             
         except Exception as e:
-            self._logger.error(f"종단간 테스트 실패: {e}")
+            self._logger.error(f"종단간 테스트 실패: {e}", exc_info=True)
             test_results['error'] = str(e)
             test_results['end_time'] = datetime.now()
             return test_results
@@ -915,7 +915,7 @@ def deploy_phase4_ai_system(strategy_name: str = "momentum_strategy") -> Dict[st
         return deployment_results
         
     except Exception as e:
-        logger.error(f"❌ Phase 4 AI 시스템 배포 실패: {e}")
+        logger.error(f"❌ Phase 4 AI 시스템 배포 실패: {e}", exc_info=True)
         deployment_results['error'] = str(e)
         deployment_results['end_time'] = datetime.now()
         return deployment_results 

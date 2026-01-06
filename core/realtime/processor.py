@@ -70,13 +70,13 @@ class DataProcessor:
                 try:
                     await callback(normalized_data)
                 except Exception as e:
-                    logger.error(f"콜백 함수 실행 중 오류 발생: {str(e)}")
+                    logger.error(f"콜백 함수 실행 중 오류 발생: {str(e)}", exc_info=True)
 
             # 거래 데이터 저장
             await self._save_trade_data(normalized_data)
 
         except Exception as e:
-            logger.error(f"데이터 처리 중 오류 발생: {str(e)}")
+            logger.error(f"데이터 처리 중 오류 발생: {str(e)}", exc_info=True)
 
     def _normalize_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -98,7 +98,7 @@ class DataProcessor:
             }
             return normalized
         except Exception as e:
-            logger.error(f"데이터 정규화 중 오류 발생: {str(e)}")
+            logger.error(f"데이터 정규화 중 오류 발생: {str(e)}", exc_info=True)
             return data
 
     def _validate_data(self, data: Dict[str, Any]) -> bool:
@@ -133,7 +133,7 @@ class DataProcessor:
 
             return True
         except Exception as e:
-            logger.error(f"데이터 검증 중 오류 발생: {str(e)}")
+            logger.error(f"데이터 검증 중 오류 발생: {str(e)}", exc_info=True)
             return False
 
     async def _save_trade_data(self, data: Dict[str, Any]):
@@ -151,7 +151,7 @@ class DataProcessor:
             logger.debug(f"거래 데이터 저장: {json.dumps(data, default=str)}")
 
         except Exception as e:
-            logger.error(f"거래 데이터 저장 중 오류 발생: {str(e)}")
+            logger.error(f"거래 데이터 저장 중 오류 발생: {str(e)}", exc_info=True)
 
     def get_buffer_data(self) -> List[Dict[str, Any]]:
         """

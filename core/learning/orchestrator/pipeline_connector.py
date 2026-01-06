@@ -82,7 +82,7 @@ class PipelineConnector:
         except Exception as e:
             self._state.is_connected = False
             self._state.error = str(e)
-            logger.error(f"파이프라인 연결 실패: {e}")
+            logger.error(f"파이프라인 연결 실패: {e}", exc_info=True)
             return False
 
     def disconnect(self):
@@ -122,7 +122,7 @@ class PipelineConnector:
             return True
 
         except Exception as e:
-            logger.error(f"MultiFactorScorer 통합 실패: {e}")
+            logger.error(f"MultiFactorScorer 통합 실패: {e}", exc_info=True)
             return False
 
     def get_current_weights(self) -> Dict[str, float]:
@@ -174,7 +174,7 @@ class PipelineConnector:
             return regime_result.regime.value
 
         except Exception as e:
-            logger.error(f"레짐 업데이트 오류: {e}")
+            logger.error(f"레짐 업데이트 오류: {e}", exc_info=True)
             return None
 
     def _notify_scorers_weight_update(self, weights: Dict[str, float]):
@@ -234,7 +234,7 @@ class PipelineConnector:
             return feedback_id
 
         except Exception as e:
-            logger.error(f"선정 기록 실패: {e}")
+            logger.error(f"선정 기록 실패: {e}", exc_info=True)
             return ""
 
     def record_trade_result(self,
@@ -271,7 +271,7 @@ class PipelineConnector:
             return success
 
         except Exception as e:
-            logger.error(f"거래 결과 기록 실패: {e}")
+            logger.error(f"거래 결과 기록 실패: {e}", exc_info=True)
             return False
 
     def register_hook(self, event: str, callback: Callable):

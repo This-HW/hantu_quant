@@ -88,7 +88,7 @@ class Phase2CLI:
             return None
 
         except Exception as e:
-            logger.error(f"run_update 오류: {e}")
+            logger.error(f"run_update 오류: {e}", exc_info=True)
             return None
 
     def run_analysis(self) -> Optional[Dict]:
@@ -131,7 +131,7 @@ class Phase2CLI:
             return None
 
         except Exception as e:
-            logger.error(f"run_analysis 오류: {e}")
+            logger.error(f"run_analysis 오류: {e}", exc_info=True)
             return None
 
     def run(self):
@@ -221,7 +221,7 @@ class Phase2CLI:
                 self._handle_performance(args)
                 
         except Exception as e:
-            logger.error(f"명령어 실행 오류: {e}")
+            logger.error(f"명령어 실행 오류: {e}", exc_info=True)
             print(f"❌ 오류: {e}")
     
     def _handle_update(self, p_args):
@@ -446,7 +446,7 @@ class Phase2CLI:
             return result
             
         except Exception as e:
-            logger.error(f"단일 종목 분석 오류: {e}")
+            logger.error(f"단일 종목 분석 오류: {e}", exc_info=True)
             return None
     
     def _analyze_all_stocks(self) -> List[PriceAttractiveness]:
@@ -532,7 +532,7 @@ class Phase2CLI:
             return results
 
         except Exception as e:
-            logger.error(f"전체 종목 분석 오류: {e}")
+            logger.error(f"전체 종목 분석 오류: {e}", exc_info=True)
             return []
     
     def _get_selection_by_date(self, p_date: str) -> Optional[Dict]:
@@ -555,7 +555,7 @@ class Phase2CLI:
                 return json.load(f)
                 
         except Exception as e:
-            logger.error(f"날짜별 선정 결과 조회 오류: {e}")
+            logger.error(f"날짜별 선정 결과 조회 오류: {e}", exc_info=True)
             return None
     
     def _get_historical_data(self) -> List[Dict]:

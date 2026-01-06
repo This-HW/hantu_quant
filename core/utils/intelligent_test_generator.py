@@ -76,7 +76,7 @@ class CodeAnalyzer:
             return functions
             
         except Exception as e:
-            self._logger.error(f"파일 분석 실패 {file_path}: {e}")
+            self._logger.error(f"파일 분석 실패 {file_path}: {e}", exc_info=True)
             return {}
     
     def _analyze_function(self, node: ast.FunctionDef, source: str) -> FunctionSignature:
@@ -519,7 +519,7 @@ class IntelligentTestGenerator:
                         if test_file:
                             generated_files.append(test_file)
                     except Exception as e:
-                        self._logger.error(f"테스트 생성 실패 {file_path}: {e}")
+                        self._logger.error(f"테스트 생성 실패 {file_path}: {e}", exc_info=True)
         
         self._logger.info(f"디렉토리 테스트 생성 완료: {len(generated_files)}개 파일")
         return generated_files

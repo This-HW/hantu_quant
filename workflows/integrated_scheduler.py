@@ -94,8 +94,8 @@ class IntegratedScheduler:
             logger.info(f"✅ 통합 스케줄러 초기화 완료 (병렬 워커: {p_parallel_workers}개)")
             
         except Exception as e:
-            logger.error(f"❌ 스케줄러 초기화 실패: {e}")
-            logger.error(f"📋 상세 오류:\n{traceback.format_exc()}")
+            logger.error(f"❌ 스케줄러 초기화 실패: {e}", exc_info=True)
+            logger.error(f"📋 상세 오류:\n{traceback.format_exc()}", exc_info=True)
             raise
     
     def _load_telegram_config(self):
@@ -120,7 +120,7 @@ class IntegratedScheduler:
                 self._v_telegram_enabled = False
                 
         except Exception as e:
-            logger.error(f"텔레그램 설정 로드 실패: {e}")
+            logger.error(f"텔레그램 설정 로드 실패: {e}", exc_info=True)
             self._v_telegram_enabled = False
     
     def _send_telegram_alert(self, message: str, priority: str = "normal"):
@@ -144,7 +144,7 @@ class IntegratedScheduler:
                 if response.status_code == 200:
                     logger.info(f"텔레그램 알람 전송 성공 ({priority})")
                 else:
-                    logger.error(f"텔레그램 알람 전송 실패: {response.status_code}")
+                    logger.error(f"텔레그램 알람 전송 실패: {response.status_code}", exc_info=True)
             
             return True
             
@@ -442,7 +442,7 @@ class IntegratedScheduler:
                 
             except Exception as e:
                 logger.error(f"❌ 스케줄러 루프 오류: {e}", exc_info=True)
-                logger.error(f"📋 상세 오류:\n{traceback.format_exc()}")
+                logger.error(f"📋 상세 오류:\n{traceback.format_exc()}", exc_info=True)
                 time.sleep(60)
                 
         logger.info("⏹️ 스케줄러 루프 종료")
@@ -692,7 +692,7 @@ class IntegratedScheduler:
                 else:
                     error_msg = result.get('error', '알 수 없는 오류')
                     print(f"❌ 강화된 학습 실패: {error_msg}")
-                    logger.error(f"강화된 적응형 학습 실패: {error_msg}")
+                    logger.error(f"강화된 적응형 학습 실패: {error_msg}", exc_info=True)
 
             except ImportError as ie:
                 logger.warning(f"강화된 학습 모듈 로드 실패: {ie}")
@@ -1287,7 +1287,7 @@ class IntegratedScheduler:
                     except Exception as e:
                         logger.error(f"자동 매매 실행 오류: {e}", exc_info=True)
                         import traceback
-                        logger.error(f"상세 오류:\n{traceback.format_exc()}")
+                        logger.error(f"상세 오류:\n{traceback.format_exc()}", exc_info=True)
 
                 trading_thread = threading.Thread(target=run_trading, daemon=True)
                 trading_thread.start()
@@ -1312,14 +1312,14 @@ class IntegratedScheduler:
                 self._send_telegram_alert(alert_message, "high")
 
             except ImportError as ie:
-                logger.error(f"매매 엔진 import 실패: {ie}")
+                logger.error(f"매매 엔진 import 실패: {ie}", exc_info=True)
                 print(f"❌ 매매 엔진 import 실패: {ie}")
 
         except Exception as e:
             logger.error(f"자동 매매 시작 오류: {e}", exc_info=True)
             print(f"❌ 자동 매매 시작 오류: {e}")
             import traceback
-            logger.error(f"상세 오류:\n{traceback.format_exc()}")
+            logger.error(f"상세 오류:\n{traceback.format_exc()}", exc_info=True)
             
     def _stop_auto_trading(self):
         """자동 매매 중지"""
@@ -1373,7 +1373,7 @@ class IntegratedScheduler:
             logger.error(f"자동 매매 중지 오류: {e}", exc_info=True)
             print(f"❌ 자동 매매 중지 오류: {e}")
             import traceback
-            logger.error(f"상세 오류:\n{traceback.format_exc()}")
+            logger.error(f"상세 오류:\n{traceback.format_exc()}", exc_info=True)
             
     def _send_data_to_ai_system(self):
         """Phase 1,2 완료 후 AI 학습 시스템에 데이터 전달"""

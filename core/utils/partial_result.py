@@ -145,7 +145,7 @@ def save_failed_items(
         return filepath
 
     except Exception as e:
-        logger.error(f"실패 항목 저장 오류: {e}")
+        logger.error(f"실패 항목 저장 오류: {e}", exc_info=True)
         return None
 
 

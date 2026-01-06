@@ -54,7 +54,7 @@ class AutoMLTrigger:
                     "next_check_date": datetime.now().strftime("%Y-%m-%d")
                 }
         except Exception as e:
-            self.logger.error(f"트리거 상태 로드 실패: {e}")
+            self.logger.error(f"트리거 상태 로드 실패: {e}", exc_info=True)
             return {}
 
     def _save_trigger_state(self):
@@ -63,7 +63,7 @@ class AutoMLTrigger:
             with open(self.trigger_state_file, 'w', encoding='utf-8') as f:
                 json.dump(self.state, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            self.logger.error(f"트리거 상태 저장 실패: {e}")
+            self.logger.error(f"트리거 상태 저장 실패: {e}", exc_info=True)
 
     def check_and_trigger(self, force: bool = False) -> bool:
         """데이터 조건 체크 및 ML 학습 자동 트리거
@@ -115,7 +115,7 @@ class AutoMLTrigger:
                 return False
 
         except Exception as e:
-            self.logger.error(f"자동 ML 트리거 오류: {e}")
+            self.logger.error(f"자동 ML 트리거 오류: {e}", exc_info=True)
             return False
 
     def _check_data_conditions(self) -> Tuple[bool, Dict]:
@@ -155,7 +155,7 @@ class AutoMLTrigger:
             return len(selection_files)
 
         except Exception as e:
-            self.logger.error(f"거래일 수 카운트 오류: {e}")
+            self.logger.error(f"거래일 수 카운트 오류: {e}", exc_info=True)
             return 0
 
     def _count_selection_records(self) -> int:
@@ -179,7 +179,7 @@ class AutoMLTrigger:
             return total_selections
 
         except Exception as e:
-            self.logger.error(f"선정 기록 수 카운트 오류: {e}")
+            self.logger.error(f"선정 기록 수 카운트 오류: {e}", exc_info=True)
             return 0
 
     def _count_performance_records(self) -> int:
@@ -196,7 +196,7 @@ class AutoMLTrigger:
             return len(completed_trades)
 
         except Exception as e:
-            self.logger.error(f"성과 기록 수 카운트 오류: {e}")
+            self.logger.error(f"성과 기록 수 카운트 오류: {e}", exc_info=True)
             return 0
 
     def _calculate_current_win_rate(self) -> float:
@@ -217,7 +217,7 @@ class AutoMLTrigger:
             return win_rate
 
         except Exception as e:
-            self.logger.error(f"승률 계산 오류: {e}")
+            self.logger.error(f"승률 계산 오류: {e}", exc_info=True)
             return 0.0
 
     def _assess_data_quality(self) -> float:
@@ -247,7 +247,7 @@ class AutoMLTrigger:
             return quality_score
 
         except Exception as e:
-            self.logger.error(f"데이터 품질 평가 오류: {e}")
+            self.logger.error(f"데이터 품질 평가 오류: {e}", exc_info=True)
             return 0.0
 
     def _trigger_ml_training(self) -> bool:
@@ -282,7 +282,7 @@ class AutoMLTrigger:
             return True
 
         except Exception as e:
-            self.logger.error(f"ML 학습 트리거 실행 오류: {e}")
+            self.logger.error(f"ML 학습 트리거 실행 오류: {e}", exc_info=True)
             return False
 
     def _send_ml_trigger_notification(self):
@@ -311,7 +311,7 @@ class AutoMLTrigger:
             self.logger.info("ML 트리거 알림 전송 완료")
 
         except Exception as e:
-            self.logger.error(f"ML 트리거 알림 전송 오류: {e}")
+            self.logger.error(f"ML 트리거 알림 전송 오류: {e}", exc_info=True)
 
     def _log_conditions_status(self, conditions: Dict):
         """조건 상태 로그 출력"""
@@ -355,7 +355,7 @@ ML 학습 조건 체크 결과:
             return progress
 
         except Exception as e:
-            self.logger.error(f"ML 진행률 조회 오류: {e}")
+            self.logger.error(f"ML 진행률 조회 오류: {e}", exc_info=True)
             return {}
 
     def _estimate_days_remaining(self, conditions: Dict) -> int:
