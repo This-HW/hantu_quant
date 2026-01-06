@@ -71,9 +71,9 @@ class TradingHealthChecker:
             metrics['last_trade_time'] = trade_activity['last_time']
 
             if trade_activity['should_alert']:
-                issues.append(
-                    f"장 시간 중 {trade_activity['hours_since_trade']}시간 동안 매매가 없습니다"
-                )
+                hours = trade_activity.get('hours_since_trade')
+                hours_str = f"{hours:.1f}" if hours is not None else "N/A"
+                issues.append(f"장 시간 중 {hours_str}시간 동안 매매가 없습니다")
 
             # 3. 오류 로그 확인
             error_check = self._check_error_logs()
