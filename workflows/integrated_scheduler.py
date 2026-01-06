@@ -312,7 +312,74 @@ class IntegratedScheduler:
                 logger.debug("텔레그램 알림이 비활성화됨")
         except Exception as e:
             logger.error(f"스케줄러 시작 알림 전송 오류: {e}", exc_info=True)
-    
+
+        # 장 시간 중 재시작 시 누락된 작업 자동 실행
+        self._check_and_recover_missed_tasks()
+
+    def _check_and_recover_missed_tasks(self):
+        """장 시간 중 스케줄러 재시작 시 누락된 작업 자동 실행"""
+        try:
+            now = datetime.now()
+
+            # 주말 제외
+            if now.weekday() >= 5:
+                logger.info("주말 - 복구 작업 스킵")
+                return
+
+            # 장 시작 전이면 스킵
+            market_open = now.replace(hour=9, minute=0, second=0, microsecond=0)
+            market_close = now.replace(hour=15, minute=30, second=0, microsecond=0)
+
+            if now < market_open:
+                logger.info("장 시작 전 - 복구 작업 스킵")
+                return
+
+            if now > market_close:
+                logger.info("장 마감 후 - 복구 작업 스킵")
+                return
+
+            # 오늘 날짜 선정 파일 확인
+            today_str = now.strftime("%Y%m%d")
+            selection_file = Path(f"data/daily_selection/daily_selection_{today_str}.json")
+
+            logger.info(f"장 시간 중 재시작 감지 - 복구 작업 시작 ({now.strftime('%H:%M')})")
+            print(f"\n🔄 장 시간 중 재시작 감지 - 복구 작업 시작...")
+
+            if not selection_file.exists():
+                # Phase 1, 2가 실행되지 않음 → 전체 실행
+                print("📋 오늘 선정 파일 없음 → 스크리닝 + 선정 + 매매 시작")
+                logger.info("오늘 선정 파일 없음 - 전체 워크플로우 실행")
+
+                # 알림
+                notifier = get_telegram_notifier()
+                if notifier.is_enabled():
+                    notifier.send_message(
+                        f"*스케줄러 재시작 복구*\n`{now.strftime('%H:%M')}` 장중 재시작\n→ 스크리닝 + 선정 + 매매 실행",
+                        "high"
+                    )
+
+                # Phase 1 실행
+                print("1. 일간 스크리닝 실행...")
+                self._run_daily_screening()
+
+                # Phase 2는 _run_daily_screening에서 자동 호출됨
+
+            else:
+                print("✅ 오늘 선정 파일 존재 - 매매 엔진만 시작")
+                logger.info("오늘 선정 파일 존재 - 매매 엔진만 시작")
+
+            # 매매 엔진 시작 (선정 파일 유무와 관계없이 장중이면 실행)
+            print("2. 자동 매매 시작...")
+            self._start_auto_trading()
+
+            print("✅ 복구 작업 완료\n")
+            logger.info("장 시간 중 복구 작업 완료")
+
+        except Exception as e:
+            logger.error(f"복구 작업 실패: {e}")
+            logger.error(traceback.format_exc())
+            print(f"❌ 복구 작업 실패: {e}")
+
     def stop_scheduler(self, reason: str = "사용자 요청"):
         """통합 스케줄러 중지"""
         if not self._v_scheduler_running:
