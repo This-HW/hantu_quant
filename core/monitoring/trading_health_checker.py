@@ -100,8 +100,12 @@ class TradingHealthChecker:
 
             if not selection_status['exists']:
                 issues.append("오늘 날짜의 일일 선정 파일이 없습니다")
+                if selection_status.get('root_cause'):
+                    metrics['selection_failure_cause'] = selection_status['root_cause']
             elif selection_status['count'] == 0:
                 warnings.append("일일 선정 종목이 0개입니다")
+                if selection_status.get('root_cause'):
+                    metrics['selection_failure_cause'] = selection_status['root_cause']
 
             # 6. 계좌 잔고 확인
             balance_status = self._check_account_balance()
@@ -297,18 +301,87 @@ class TradingHealthChecker:
             selection_file = Path(f"data/daily_selection/daily_selection_{today}.json")
 
             if not selection_file.exists():
-                return {'exists': False, 'count': 0}
+                # 근본 원인 진단
+                root_cause = self._diagnose_selection_failure()
+                return {'exists': False, 'count': 0, 'root_cause': root_cause}
 
             with open(selection_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
 
             count = len(data.get('data', {}).get('selected_stocks', []))
 
-            return {'exists': True, 'count': count}
+            # 선정 종목이 0개인 경우 근본 원인 진단
+            root_cause = None
+            if count == 0:
+                root_cause = self._diagnose_selection_failure()
+
+            return {'exists': True, 'count': count, 'root_cause': root_cause}
 
         except Exception as e:
             self.logger.error(f"일일 선정 확인 실패: {e}", exc_info=True)
-            return {'exists': False, 'count': 0}
+            return {'exists': False, 'count': 0, 'root_cause': f"파일 읽기 오류: {e}"}
+
+    def _diagnose_selection_failure(self) -> Optional[str]:
+        """선정 실패의 근본 원인 진단"""
+        try:
+            today = datetime.now().strftime("%Y%m%d")
+            log_file = Path(f"logs/{today}.log")
+
+            if not log_file.exists():
+                return "로그 파일 없음 - 스케줄러 미실행 가능성"
+
+            # 오늘 로그에서 API 에러 패턴 검색
+            api_errors = []
+            phase_errors = []
+
+            with open(log_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    # API 에러 패턴
+                    if 'RetryableAPIError' in line or 'HTTP 500' in line:
+                        # 에러 코드 추출
+                        if 'EGW' in line:
+                            import re
+                            match = re.search(r'EGW\d+', line)
+                            if match:
+                                error_code = match.group()
+                                error_desc = self._get_kis_error_description(error_code)
+                                api_errors.append(f"{error_code}: {error_desc}")
+                        elif 'HTTP 500' in line:
+                            api_errors.append("HTTP 500: KIS API 서버 오류")
+
+                    # Phase 1/2 실패
+                    if '스크리닝 실패' in line or '일일 업데이트 실패' in line:
+                        phase_errors.append(line.split(' - ')[-1].strip()[:50])
+
+                    # Rate limit 에러
+                    if 'rate limit' in line.lower() or 'EGW00201' in line:
+                        api_errors.append("API 호출 제한 초과")
+
+            # 진단 결과 생성
+            if api_errors:
+                unique_errors = list(set(api_errors))[:3]
+                return f"API 에러 발생: {', '.join(unique_errors)}"
+
+            if phase_errors:
+                return f"스케줄러 실패: {phase_errors[0]}"
+
+            # 로그에서 힌트를 찾지 못한 경우
+            return "원인 미상 - 로그에서 에러를 찾지 못함"
+
+        except Exception as e:
+            self.logger.error(f"근본 원인 진단 실패: {e}", exc_info=True)
+            return None
+
+    def _get_kis_error_description(self, error_code: str) -> str:
+        """KIS API 에러 코드 설명 반환"""
+        error_map = {
+            'EGW00201': '호출 제한 초과 (Rate Limit)',
+            'EGW00203': 'OPS 라우팅 오류 (서버 과부하/점검)',
+            'EGW00121': '유효하지 않은 토큰',
+            'EGW00123': '토큰 만료',
+            'EGW00301': '시스템 점검 중',
+        }
+        return error_map.get(error_code, '알 수 없는 API 에러')
 
     def _check_account_balance(self) -> Dict:
         """계좌 잔고 확인"""
@@ -484,13 +557,18 @@ class TradingHealthChecker:
     def _format_health_alert(self, result: HealthCheckResult, recovery_results: Dict = None) -> str:
         """헬스체크 알림 메시지 포맷 (간소화)"""
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        message = f"*매매 시스템 이상* | `{timestamp}`\n\n"
+        message = f"🔴 *매매 시스템 이상* | `{timestamp}`\n\n"
 
         # 문제점
         if result.issues:
             message += "*문제:*\n"
             for issue in result.issues:
                 message += f"• {issue}\n"
+
+        # 근본 원인 (있을 경우 - 중요!)
+        if result.metrics.get('selection_failure_cause'):
+            message += f"\n🔍 *근본 원인:*\n"
+            message += f"└ `{result.metrics['selection_failure_cause']}`\n"
 
         # 복구 결과 (실패 시에만)
         if recovery_results and recovery_results.get('failed', 0) > 0:
