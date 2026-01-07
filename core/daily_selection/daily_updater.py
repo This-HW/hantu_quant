@@ -182,16 +182,27 @@ class DailyUpdater(IDailyUpdater):
         self._watchlist_manager = watchlist_manager or WatchlistManager(p_watchlist_file)
         self._price_analyzer = price_analyzer or PriceAnalyzer()
         self._market_analyzer = MarketConditionAnalyzer()
-        
+
+        # KIS API 인스턴스 (공유하여 rate limiting 적용)
+        self._kis_api = None  # lazy initialization
+
         # 필터링 기준 및 상태
         self._filtering_criteria = FilteringCriteria()
         self._scheduler_running = False
         self._scheduler_thread = None
-        
+
         # 출력 디렉토리 생성
         os.makedirs(self._output_dir, exist_ok=True)
-        
+
         self._logger.info("DailyUpdater 초기화 완료 (새 아키텍처)")
+
+    def _get_kis_api(self):
+        """KIS API 싱글톤 인스턴스 반환 (rate limiting 공유)"""
+        if self._kis_api is None:
+            from core.api.kis_api import KISAPI
+            self._kis_api = KISAPI()
+            self._logger.info("KIS API 인스턴스 초기화 완료")
+        return self._kis_api
 
     def run_daily_update(self, p_force_run: bool = False) -> bool:
         """일일 업데이트 실행 (새 인터페이스 구현)"""
@@ -405,39 +416,63 @@ class DailyUpdater(IDailyUpdater):
         except Exception:
             pass
         
-        for stock in p_watchlist_stocks:
-            # 실제로는 API에서 최신 데이터 수집
+        # API 호출 최적화: 한 번의 호출로 현재가+시가총액 조회
+        total_stocks = len(p_watchlist_stocks)
+        self._logger.info(f"API 데이터 조회 시작: {total_stocks}개 종목")
+
+        for idx, stock in enumerate(p_watchlist_stocks, 1):
+            # 단일 API 호출로 현재가와 시가총액 동시 조회
+            stock_info = self._get_stock_info_combined(stock.stock_code)
+
             _v_stock_data = {
                 "stock_code": stock.stock_code,
                 "stock_name": stock.stock_name,
-                "current_price": self._get_current_price(stock.stock_code),
+                "current_price": stock_info.get("current_price", 0.0),
                 "sector": stock.sector,
-                "market_cap": self._get_market_cap(stock.stock_code),
+                "market_cap": stock_info.get("market_cap", 0.0),
                 "volatility": self._get_volatility(stock.stock_code),
                 "sector_momentum": self._get_sector_momentum(stock.sector)
             }
             _v_stock_data_list.append(_v_stock_data)
-        
+
+            # 진행 상황 로깅 (50개마다)
+            if idx % 50 == 0:
+                self._logger.info(f"API 데이터 조회 진행: {idx}/{total_stocks}개")
+
+        self._logger.info(f"API 데이터 조회 완료: {total_stocks}개 종목")
         return _v_stock_data_list
+
+    def _get_stock_info_combined(self, p_stock_code: str) -> Dict:
+        """종목 정보 통합 조회 (현재가 + 시가총액, 단일 API 호출)"""
+        try:
+            kis = self._get_kis_api()
+            info = kis.get_stock_info(p_stock_code) or {}
+            return {
+                "current_price": float(info.get("current_price", 0.0)),
+                "market_cap": float(info.get("market_cap", 0.0)),
+            }
+        except Exception as e:
+            self._logger.warning(f"종목 정보 조회 실패 ({p_stock_code}): {e}")
+            return {"current_price": 0.0, "market_cap": 0.0}
     
     def _get_current_price(self, p_stock_code: str) -> float:
-        """현재가 조회 (실데이터: KIS API)"""
+        """현재가 조회 (실데이터: KIS API, 공유 인스턴스 사용)"""
         try:
-            from core.api.kis_api import KISAPI
-            kis = KISAPI()
+            kis = self._get_kis_api()
             info = kis.get_current_price(p_stock_code) or {}
             return float(info.get("current_price", 0.0))
-        except Exception:
+        except Exception as e:
+            self._logger.warning(f"현재가 조회 실패 ({p_stock_code}): {e}")
             return 0.0
-    
+
     def _get_market_cap(self, p_stock_code: str) -> float:
-        """시가총액 조회 (실데이터: KIS API)"""
+        """시가총액 조회 (실데이터: KIS API, 공유 인스턴스 사용)"""
         try:
-            from core.api.kis_api import KISAPI
-            kis = KISAPI()
+            kis = self._get_kis_api()
             info = kis.get_stock_info(p_stock_code) or {}
             return float(info.get("market_cap", 0.0))
-        except Exception:
+        except Exception as e:
+            self._logger.warning(f"시가총액 조회 실패 ({p_stock_code}): {e}")
             return 0.0
     
     def _get_volatility(self, p_stock_code: str) -> float:
