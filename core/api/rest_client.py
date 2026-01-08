@@ -384,29 +384,32 @@ class KISRestClient:
             
     def _get_hashkey(self, data: Dict) -> Optional[str]:
         """HASH 키 생성
-        
+
         Args:
             data: 요청 데이터
-            
+
         Returns:
             str: HASH 키
         """
         try:
+            # rate limit 적용 (EGW00203 에러 방지)
+            self._rate_limit()
+
             url = f"{self.config.base_url}/uapi/hashkey"
             headers = {
                 "content-type": "application/json",
                 "appkey": self.config.app_key,
                 "appsecret": self.config.app_secret
             }
-            
+
             response = requests.post(url, json=data, headers=headers, timeout=settings.REQUEST_TIMEOUT)
-            
+
             if response.status_code == 200:
                 return response.json()['HASH']
             else:
                 logger.error(f"[_get_hashkey] HASH 키 생성 실패 - 상태 코드: {response.status_code}", exc_info=True)
                 return None
-                
+
         except Exception as e:
             logger.error(f"[_get_hashkey] HASH 키 생성 중 오류 발생: {str(e)}", exc_info=True)
             return None
