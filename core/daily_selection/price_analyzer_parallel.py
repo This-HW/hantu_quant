@@ -35,7 +35,8 @@ class ParallelPriceAnalyzer(PriceAnalyzer):
             p_max_workers: 최대 워커 수 (None이면 CPU 코어 수)
         """
         super().__init__(p_config_file)
-        self._v_max_workers = p_max_workers or min(mp.cpu_count(), 8)
+        # API rate limit 방지를 위해 워커 수 제한 (기본값 2)
+        self._v_max_workers = p_max_workers or 2
         logger.info(f"병렬 가격 분석기 초기화 완료 - 워커 수: {self._v_max_workers}")
     
     def parallel_analyze_multiple_stocks(self, p_stock_list: List[Dict], p_batch_size: int = 20) -> List[PriceAttractiveness]:
