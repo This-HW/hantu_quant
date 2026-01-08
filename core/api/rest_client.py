@@ -7,6 +7,8 @@ import os
 import time
 import hashlib
 import requests
+import fcntl
+import tempfile
 from typing import Dict, List, Optional
 import pandas as pd
 from datetime import datetime, timedelta
@@ -24,6 +26,10 @@ from core.config import settings
 from core.config.api_config import APIConfig
 
 logger = logging.getLogger(__name__)
+
+# 글로벌 Rate Limiter (프로세스/스레드 간 공유)
+_RATE_LIMIT_LOCK_FILE = os.path.join(tempfile.gettempdir(), "hantu_api_rate_limit.lock")
+_RATE_LIMIT_TIME_FILE = os.path.join(tempfile.gettempdir(), "hantu_api_last_request.txt")
 
 
 class RetryableAPIError(Exception):
@@ -148,16 +154,49 @@ class KISRestClient:
         return {"error": f"HTTP {status_code}", "message": response.text}
     
     def _rate_limit(self):
-        """API 호출 제한 준수"""
-        current_time = time.time()
-        time_diff = current_time - self.last_request_time
-        
-        # 설정 기반 간격 계산 (기본: 초당 5건 → 0.2초)
-        min_interval = max(0.001, 1.0 / max(1, settings.RATE_LIMIT_PER_SEC))
-        if time_diff < min_interval:
-            time.sleep(min_interval - time_diff)
-            
-        self.last_request_time = time.time()
+        """API 호출 제한 준수 (글로벌 파일 락 사용)
+
+        멀티프로세스/스레드 환경에서도 안전하게 rate limit 적용
+        """
+        # 설정 기반 간격 계산 (KIS API 권장: 초당 3~5건)
+        min_interval = max(0.35, 1.0 / max(1, settings.RATE_LIMIT_PER_SEC))
+
+        try:
+            # 파일 락을 사용한 글로벌 rate limiting
+            with open(_RATE_LIMIT_LOCK_FILE, 'w') as lock_file:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                try:
+                    # 마지막 요청 시간 읽기
+                    last_request_time = 0.0
+                    if os.path.exists(_RATE_LIMIT_TIME_FILE):
+                        with open(_RATE_LIMIT_TIME_FILE, 'r') as f:
+                            try:
+                                last_request_time = float(f.read().strip())
+                            except (ValueError, OSError):
+                                pass
+
+                    current_time = time.time()
+                    time_diff = current_time - last_request_time
+
+                    if time_diff < min_interval:
+                        sleep_time = min_interval - time_diff
+                        time.sleep(sleep_time)
+
+                    # 현재 시간 저장
+                    with open(_RATE_LIMIT_TIME_FILE, 'w') as f:
+                        f.write(str(time.time()))
+
+                finally:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+        except Exception as e:
+            # 락 실패 시 로컬 rate limit 사용 (fallback)
+            logger.warning(f"글로벌 rate limit 실패, 로컬 사용: {e}")
+            current_time = time.time()
+            time_diff = current_time - self.last_request_time
+            if time_diff < min_interval:
+                time.sleep(min_interval - time_diff)
+            self.last_request_time = time.time()
 
     # ---- 내부 유틸: TR ID 해더 처리 ----
     def _resolve_tr_id(self, key: str, default_tr_id: str = "") -> str:
@@ -563,17 +602,14 @@ class KISRestClient:
             }
             
             logger.debug(f"[get_stock_list] 종목 목록 조회 요청 - URL: {url}")
-            logger.debug(f"[get_stock_list] 종목 목록 조회 요청 - 헤더: {headers}")
             logger.debug(f"[get_stock_list] 종목 목록 조회 요청 - 파라미터: {params}")
-            
-            response = requests.get(url, headers=headers, params=params, timeout=settings.REQUEST_TIMEOUT)
-            
-            if response.status_code != 200:
-                logger.error(f"[get_stock_list] HTTP 에러 발생 - 상태 코드: {response.status_code}", exc_info=True)
-                logger.error(f"[get_stock_list] 에러 응답: {response.text}", exc_info=True)
-                response.raise_for_status()
-            
-            data = response.json()
+
+            # _request() 사용하여 rate limit 적용
+            data = self._request("GET", url, headers=headers, params=params)
+
+            if "error" in data:
+                logger.error(f"[get_stock_list] API 에러: {data}", exc_info=True)
+                raise Exception(f"API 요청 실패: {data.get('error')}")
             logger.debug(f"[get_stock_list] 종목 목록 조회 응답: {data}")
             
             if data.get('rt_cd') == '0':  # 정상 응답
@@ -594,9 +630,6 @@ class KISRestClient:
                 logger.error(f"[get_stock_list] 종목 목록 조회 실패: {error_message}", exc_info=True)
                 raise Exception(f"종목 목록 조회 실패: {error_message}")
                 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"[get_stock_list] 종목 목록 조회 중 오류 발생: {str(e)}", exc_info=True)
-            raise Exception("API 요청 실패")
         except Exception as e:
             logger.error(f"[get_stock_list] 예상치 못한 오류 발생: {str(e)}", exc_info=True)
             logger.error(f"[get_stock_list] 상세 에러: {e.__class__.__name__}", exc_info=True)
