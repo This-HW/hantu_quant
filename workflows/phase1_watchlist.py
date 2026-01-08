@@ -435,7 +435,17 @@ class Phase1Workflow:
             _v_stock_list_files = list(_v_stock_dir.glob("krx_stock_list_*.json"))
             if not _v_stock_list_files:
                 logger.warning(f"종목 리스트 파일을 찾을 수 없음: {_v_stock_dir}")
-                raise FileNotFoundError("종목 리스트 파일 없음")
+                logger.info("KRX에서 종목 리스트를 자동으로 가져옵니다...")
+
+                # KRXClient를 사용해 종목 리스트 파일 생성
+                from core.api.krx_client import KRXClient
+                krx_client = KRXClient()
+                krx_client.save_stock_list()
+
+                # 파일 생성 후 다시 검색
+                _v_stock_list_files = list(_v_stock_dir.glob("krx_stock_list_*.json"))
+                if not _v_stock_list_files:
+                    raise FileNotFoundError("KRX에서 종목 리스트 가져오기 실패")
             
             _v_stock_list_file = max(_v_stock_list_files, key=lambda x: x.name)
             logger.info(f"종목 리스트 파일 사용: {_v_stock_list_file}")
