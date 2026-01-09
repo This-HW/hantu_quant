@@ -119,10 +119,16 @@ def _show_selections() -> None:
 
 def _show_criteria() -> None:
     """Display selection criteria."""
-    from core.daily_selection.selection_criteria import SelectionCriteria
+    from datetime import datetime
+    from core.daily_selection.selection_criteria import SelectionCriteria, MarketCondition
 
-    criteria = SelectionCriteria()
-    config = criteria.get_config()
+    criteria = SelectionCriteria(
+        name="Default Criteria",
+        description="기본 선정 기준",
+        market_condition=MarketCondition.SIDEWAYS,
+        created_date=datetime.now().strftime('%Y-%m-%d')
+    )
+    config = criteria.to_dict()
 
     click.echo()
     click.echo("=== Selection Criteria ===")
