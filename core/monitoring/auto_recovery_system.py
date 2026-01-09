@@ -137,20 +137,21 @@ class AutoRecoverySystem:
 
             from ..trading.trading_engine import get_trading_engine, TradingConfig
 
-            # 기존 엔진 가져오기
-            engine = get_trading_engine()
+            # 기본 설정 (싱글톤 최초 생성 시에만 적용)
+            config = TradingConfig(
+                max_positions=10,
+                position_size_method="account_pct",
+                position_size_value=0.10,
+                stop_loss_pct=0.05,
+                take_profit_pct=0.10,
+                max_trades_per_day=20
+            )
+
+            # 싱글톤 엔진 가져오기 (설정은 최초 생성 시에만 적용)
+            engine = get_trading_engine(config)
 
             # 엔진이 실행 중이 아니면 시작
             if not engine.is_running:
-                # 기본 설정으로 재시작
-                config = TradingConfig(
-                    max_positions=10,
-                    position_size_method="account_pct",
-                    position_size_value=0.10,
-                    stop_loss_pct=0.05,
-                    take_profit_pct=0.10,
-                    max_trades_per_day=20
-                )
 
                 # 비동기 함수를 동기로 실행
                 import asyncio

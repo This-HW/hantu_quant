@@ -1320,14 +1320,14 @@ class IntegratedScheduler:
 
 
     def _start_auto_trading(self):
-        """자동 매매 시작"""
+        """자동 매매 시작 (싱글톤 사용으로 중복 실행 방지)"""
         try:
             logger.info("=== 자동 매매 시작 ===")
             print(f"🚀 자동 매매 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
             # 매매 엔진 import 및 초기화
             try:
-                from core.trading.trading_engine import TradingEngine, TradingConfig
+                from core.trading.trading_engine import get_trading_engine, TradingConfig
 
                 # 기본 매매 설정 (계좌 대비 10%씩 투자)
                 config = TradingConfig(
@@ -1341,7 +1341,14 @@ class IntegratedScheduler:
                     kelly_multiplier=0.25                # 보수적 적용
                 )
 
-                trading_engine = TradingEngine(config)
+                # 싱글톤 패턴으로 매매 엔진 가져오기 (중복 생성 방지)
+                trading_engine = get_trading_engine(config)
+
+                # 이미 실행 중이면 스킵
+                if trading_engine.is_running:
+                    logger.info("자동 매매가 이미 실행 중입니다. 중복 시작 방지.")
+                    print("ℹ️ 자동 매매가 이미 실행 중입니다.")
+                    return
 
                 # 백그라운드에서 자동 매매 실행
                 def run_trading():
@@ -1362,21 +1369,8 @@ class IntegratedScheduler:
                 logger.info("자동 매매 시작 완료")
                 print("✅ 자동 매매가 백그라운드에서 시작되었습니다!")
 
-                # 텔레그램 알림 전송
-                alert_message = f"""🚀 *자동 매매 시작*
-
-⏰ 시작 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
-🤖 AI 선별 종목으로 자동매매를 시작합니다!
-
-📊 **매매 설정**:
-• 최대 보유 종목: {config.max_positions}개
-• 포지션 크기: 계좌의 {config.position_size_value*100:.0f}%
-• 손절매: {config.stop_loss_pct*100:.0f}%
-• 익절매: {config.take_profit_pct*100:.0f}%
-
-🚀 *AI가 시장을 모니터링하며 최적의 타이밍에 매매합니다!*"""
-
-                self._send_telegram_alert(alert_message, "high")
+                # 텔레그램 알림은 trading_engine.start_trading() 내부에서 전송됨
+                # 중복 알림 방지를 위해 여기서는 전송하지 않음
 
             except ImportError as ie:
                 logger.error(f"매매 엔진 import 실패: {ie}", exc_info=True)
