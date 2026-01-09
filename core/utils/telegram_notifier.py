@@ -262,18 +262,25 @@ class TelegramNotifier:
         return self.send_message(message, "emergency")
     
     def send_scheduler_started(self) -> bool:
-        """스케줄러 시작 알림 전송"""
+        """스케줄러 시작 알림 전송 (DB 연결 상태 포함)"""
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
+
+        # DB 연결 상태 확인
+        db_status = self._check_db_connection()
+
         message = f"""🚀 *한투 퀀트 스케줄러 시작*
 
 ⏰ 시작 시간: `{current_time}`
 🟢 상태: `실행 중`
 
+🗄️ *시스템 상태*:
+{db_status}
+
 📋 *예정된 작업*:
 • 06:00 - 일간 스크리닝 실행
+• 09:00 - 자동 매매 시작
+• 15:30 - 자동 매매 종료
 • 16:00 - 시장 마감 후 정리
-• 자동 - 일일 업데이트 (Phase 1 완료 후)
 
 🔔 *알림 설정*:
 • 스크리닝 완료 알림 ✅
@@ -283,8 +290,64 @@ class TelegramNotifier:
 🤖 *한투 퀀트가 24시간 시장을 모니터링합니다!*
 
 💡 스케줄러 중지: `python workflows/integrated_scheduler.py stop`"""
-        
+
         return self.send_message(message, "high")
+
+    def _check_db_connection(self) -> str:
+        """DB 연결 상태 확인"""
+        status_lines = []
+
+        # PostgreSQL 연결 확인
+        try:
+            from sqlalchemy import text
+            from core.database.session import DatabaseSession
+            from core.config import settings
+
+            db = DatabaseSession()
+            # 간단한 쿼리로 연결 테스트
+            with db.get_session() as session:
+                session.execute(text("SELECT 1"))
+
+            db_type = settings.DB_TYPE.upper() if hasattr(settings, 'DB_TYPE') else 'DB'
+            status_lines.append(f"• {db_type} 연결: ✅ 정상")
+        except Exception as e:
+            logger.warning(f"DB 연결 확인 실패: {e}")
+            status_lines.append(f"• DB 연결: ⚠️ 실패 (JSON 폴백 사용)")
+
+        # Watchlist 데이터 소스 확인
+        try:
+            from pathlib import Path
+            today_str = datetime.now().strftime("%Y%m%d")
+
+            # DB에서 watchlist 로드 시도
+            try:
+                from core.database.session import DatabaseSession
+                from core.database.models import Watchlist
+
+                db = DatabaseSession()
+                with db.get_session() as session:
+                    count = session.query(Watchlist).count()
+                    if count > 0:
+                        status_lines.append(f"• Watchlist: ✅ DB ({count}종목)")
+                    else:
+                        # DB에 데이터가 없으면 JSON 확인
+                        json_file = Path("data/watchlist/watchlist.json")
+                        if json_file.exists():
+                            status_lines.append(f"• Watchlist: ⚠️ JSON 폴백 사용")
+                        else:
+                            status_lines.append(f"• Watchlist: ❌ 데이터 없음")
+            except Exception:
+                json_file = Path("data/watchlist/watchlist.json")
+                if json_file.exists():
+                    status_lines.append(f"• Watchlist: ⚠️ JSON 폴백 사용")
+                else:
+                    status_lines.append(f"• Watchlist: ❌ 데이터 없음")
+
+        except Exception as e:
+            logger.warning(f"Watchlist 상태 확인 실패: {e}")
+            status_lines.append(f"• Watchlist: ❓ 확인 불가")
+
+        return "\n".join(status_lines) if status_lines else "• 상태 확인 불가"
     
     def send_scheduler_stopped(self, reason: str = "정상 종료") -> bool:
         """스케줄러 종료 알림 전송"""

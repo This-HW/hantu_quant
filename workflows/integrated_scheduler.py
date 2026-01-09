@@ -317,7 +317,14 @@ class IntegratedScheduler:
         self._check_and_recover_missed_tasks()
 
     def _check_and_recover_missed_tasks(self):
-        """장 시간 중 스케줄러 재시작 시 누락된 작업 자동 실행"""
+        """스케줄러 재시작 시 누락된 작업 자동 실행
+
+        복구 시나리오:
+        - 06:00 전: 스킵 (아직 스크리닝 시간 안됨)
+        - 06:00~09:00: 선정 파일 없으면 Phase 1/2만 실행 (매매는 09:00부터)
+        - 09:00~15:30: 선정 파일 없으면 Phase 1/2 + 매매 실행
+        - 15:30 이후: 스킵 (장 마감)
+        """
         try:
             now = datetime.now()
 
@@ -326,12 +333,14 @@ class IntegratedScheduler:
                 logger.info("주말 - 복구 작업 스킵")
                 return
 
-            # 장 시작 전이면 스킵
+            # 시간대 정의
+            screening_time = now.replace(hour=6, minute=0, second=0, microsecond=0)
             market_open = now.replace(hour=9, minute=0, second=0, microsecond=0)
             market_close = now.replace(hour=15, minute=30, second=0, microsecond=0)
 
-            if now < market_open:
-                logger.info("장 시작 전 - 복구 작업 스킵")
+            # 06:00 전이면 완전히 스킵 (아직 스크리닝 시간 안됨)
+            if now < screening_time:
+                logger.info("스크리닝 시간(06:00) 전 - 복구 작업 스킵")
                 return
 
             if now > market_close:
@@ -342,21 +351,38 @@ class IntegratedScheduler:
             today_str = now.strftime("%Y%m%d")
             selection_file = Path(f"data/daily_selection/daily_selection_{today_str}.json")
 
-            logger.info(f"장 시간 중 재시작 감지 - 복구 작업 시작 ({now.strftime('%H:%M')})")
-            print(f"\n🔄 장 시간 중 재시작 감지 - 복구 작업 시작...")
+            # 장 시작 전(06:00~09:00) vs 장중(09:00~15:30) 구분
+            is_market_hours = now >= market_open
+
+            if is_market_hours:
+                logger.info(f"장 시간 중 재시작 감지 - 복구 작업 시작 ({now.strftime('%H:%M')})")
+                print(f"\n🔄 장 시간 중 재시작 감지 - 복구 작업 시작...")
+            else:
+                logger.info(f"장 시작 전(06:00~09:00) 재시작 감지 - 복구 작업 시작 ({now.strftime('%H:%M')})")
+                print(f"\n🔄 장 시작 전 재시작 감지 - 복구 작업 시작...")
 
             if not selection_file.exists():
-                # Phase 1, 2가 실행되지 않음 → 전체 실행
-                print("📋 오늘 선정 파일 없음 → 스크리닝 + 선정 + 매매 시작")
-                logger.info("오늘 선정 파일 없음 - 전체 워크플로우 실행")
+                # Phase 1, 2가 실행되지 않음 → 실행
+                if is_market_hours:
+                    print("📋 오늘 선정 파일 없음 → 스크리닝 + 선정 + 매매 시작")
+                    logger.info("오늘 선정 파일 없음 - 전체 워크플로우 실행")
+                else:
+                    print("📋 오늘 선정 파일 없음 → 스크리닝 + 선정 실행 (매매는 09:00부터)")
+                    logger.info("오늘 선정 파일 없음 - Phase 1/2 실행 (장 시작 전)")
 
                 # 알림
                 notifier = get_telegram_notifier()
                 if notifier.is_enabled():
-                    notifier.send_message(
-                        f"*스케줄러 재시작 복구*\n`{now.strftime('%H:%M')}` 장중 재시작\n→ 스크리닝 + 선정 + 매매 실행",
-                        "high"
-                    )
+                    if is_market_hours:
+                        notifier.send_message(
+                            f"*스케줄러 재시작 복구*\n`{now.strftime('%H:%M')}` 장중 재시작\n→ 스크리닝 + 선정 + 매매 실행",
+                            "high"
+                        )
+                    else:
+                        notifier.send_message(
+                            f"*스케줄러 재시작 복구*\n`{now.strftime('%H:%M')}` 장 시작 전 재시작\n→ 스크리닝 + 선정 실행 (매매는 09:00부터)",
+                            "high"
+                        )
 
                 # Phase 1 실행
                 print("1. 일간 스크리닝 실행...")
@@ -365,18 +391,23 @@ class IntegratedScheduler:
                 # Phase 2는 _run_daily_screening에서 자동 호출됨
 
             else:
-                print("✅ 오늘 선정 파일 존재 - 매매 엔진만 시작")
-                logger.info("오늘 선정 파일 존재 - 매매 엔진만 시작")
+                if is_market_hours:
+                    print("✅ 오늘 선정 파일 존재 - 매매 엔진만 시작")
+                    logger.info("오늘 선정 파일 존재 - 매매 엔진만 시작")
+                else:
+                    print("✅ 오늘 선정 파일 존재 - 복구 불필요 (매매는 09:00부터)")
+                    logger.info("오늘 선정 파일 존재 - 장 시작 전이라 복구 불필요")
 
-            # 매매 엔진 시작 (선정 파일 유무와 관계없이 장중이면 실행)
-            print("2. 자동 매매 시작...")
-            self._start_auto_trading()
+            # 매매 엔진 시작 (장중이면 실행)
+            if is_market_hours:
+                print("2. 자동 매매 시작...")
+                self._start_auto_trading()
 
             print("✅ 복구 작업 완료\n")
-            logger.info("장 시간 중 복구 작업 완료")
+            logger.info("복구 작업 완료")
 
         except Exception as e:
-            logger.error(f"복구 작업 실패: {e}")
+            logger.error(f"복구 작업 실패: {e}", exc_info=True)
             logger.error(traceback.format_exc())
             print(f"❌ 복구 작업 실패: {e}")
 
