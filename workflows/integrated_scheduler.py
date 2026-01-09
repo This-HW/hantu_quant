@@ -960,7 +960,7 @@ class IntegratedScheduler:
 
             try:
                 from core.backtesting.strategy_backtester import StrategyBacktester
-                from core.daily_selection.selection_criteria import SelectionCriteria, CriteriaRange
+                from core.daily_selection.selection_criteria import SelectionCriteria, CriteriaRange, MarketCondition
                 from dataclasses import field
 
                 # 백테스터 초기화 (1억원 초기 자본)
@@ -974,6 +974,10 @@ class IntegratedScheduler:
 
                 # 현재 보수적 전략 설정
                 conservative_criteria = SelectionCriteria(
+                    name="Conservative Strategy",
+                    description="보수적 전략 - 낮은 리스크, 높은 신뢰도",
+                    market_condition=MarketCondition.SIDEWAYS,
+                    created_date=datetime.now().strftime('%Y-%m-%d'),
                     price_attractiveness=CriteriaRange(80.0, 100.0, 90.0, 0.35),
                     technical_score=CriteriaRange(70.0, 100.0, 85.0, 0.35),
                     risk_score=CriteriaRange(0.0, 25.0, 15.0, 0.4),
@@ -1000,6 +1004,10 @@ class IntegratedScheduler:
 
                 # 이전 공격적 전략 설정 (비교용)
                 aggressive_criteria = SelectionCriteria(
+                    name="Aggressive Strategy",
+                    description="공격적 전략 - 높은 리스크, 높은 수익 추구",
+                    market_condition=MarketCondition.BULL_MARKET,
+                    created_date=datetime.now().strftime('%Y-%m-%d'),
                     price_attractiveness=CriteriaRange(75.0, 100.0, 85.0, 0.3),
                     technical_score=CriteriaRange(60.0, 100.0, 80.0, 0.3),
                     risk_score=CriteriaRange(0.0, 35.0, 20.0, 0.35),
