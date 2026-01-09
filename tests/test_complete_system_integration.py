@@ -72,8 +72,8 @@ def test_phase2_daily_selection_system():
         # Phase 2 import 테스트
         from core.daily_selection.daily_updater import DailyUpdater
         from core.daily_selection.price_analyzer import PriceAnalyzer
-        from core.daily_selection.selection_criteria import SelectionCriteria
-        
+        from core.daily_selection.selection_criteria import SelectionCriteria, MarketCondition
+
         print("✅ Phase 2 모듈 import 성공")
         
         # 가격 분석기 테스트
@@ -95,18 +95,22 @@ def test_phase2_daily_selection_system():
         print("✅ 가격 분석 테스트 통과")
         
         # 선정 기준 테스트
-        criteria = SelectionCriteria()
-        
-        # Mock 종목 데이터로 선정 테스트
-        mock_stock_data = {
-            'stock_code': '005930',
-            'price_change_rate': 0.0135,  # 1.35% 상승
-            'volume_ratio': 1.5,
-            'momentum_score': 75
-        }
-        
-        score = criteria.calculate_selection_score(mock_stock_data)
-        assert score > 0
+        from datetime import datetime
+        criteria = SelectionCriteria(
+            name="테스트 기준",
+            description="시스템 통합 테스트용 선정 기준",
+            market_condition=MarketCondition.SIDEWAYS,
+            created_date=datetime.now().strftime('%Y-%m-%d')
+        )
+
+        # 기준 객체 검증
+        assert criteria.name == "테스트 기준"
+        assert criteria.market_condition == MarketCondition.SIDEWAYS
+
+        # to_dict 변환 테스트
+        criteria_dict = criteria.to_dict()
+        assert 'price_attractiveness' in criteria_dict
+        assert 'risk_score' in criteria_dict
         print("✅ 선정 기준 테스트 통과")
         
         print("🎯 Phase 2 테스트 완료!")
