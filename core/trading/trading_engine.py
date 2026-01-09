@@ -987,9 +987,22 @@ class TradingEngine:
 # 전역 인스턴스
 _trading_engine = None
 
-def get_trading_engine() -> TradingEngine:
-    """매매 엔진 싱글톤 인스턴스 반환"""
+def get_trading_engine(config: TradingConfig = None) -> TradingEngine:
+    """매매 엔진 싱글톤 인스턴스 반환
+
+    Args:
+        config: 매매 설정 (최초 생성 시에만 적용, 이후 호출에서는 무시)
+
+    Returns:
+        TradingEngine: 매매 엔진 싱글톤 인스턴스
+    """
     global _trading_engine
     if _trading_engine is None:
-        _trading_engine = TradingEngine()
+        _trading_engine = TradingEngine(config)
     return _trading_engine
+
+
+def reset_trading_engine():
+    """매매 엔진 싱글톤 초기화 (테스트용)"""
+    global _trading_engine
+    _trading_engine = None
