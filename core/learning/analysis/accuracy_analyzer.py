@@ -67,16 +67,30 @@ class AccuracyMetrics:
 
 class AccuracyAnalyzer:
     """정확도 분석 시스템"""
-    
-    def __init__(self, db_path: str = "data/performance.db"):
+
+    def __init__(self, db_path: str = "data/performance.db",
+                 use_unified_db: bool = True):
         """초기화
-        
+
         Args:
-            db_path: 성과 데이터베이스 경로
+            db_path: 성과 데이터베이스 경로 (SQLite 폴백용)
+            use_unified_db: 통합 DB 사용 여부 (기본값: True)
         """
         self._logger = logger
         self._db_path = db_path
-        
+        self._unified_db_available = False
+
+        # 통합 DB 초기화 시도
+        if use_unified_db:
+            try:
+                from core.database.unified_db import get_db, ensure_tables_exist
+                ensure_tables_exist()
+                self._unified_db_available = True
+                self._logger.info("AccuracyAnalyzer: 통합 DB 사용")
+            except Exception as e:
+                self._logger.warning(f"통합 DB 초기화 실패, SQLite 폴백 사용: {e}")
+                self._unified_db_available = False
+
         # 정확도 기준 설정
         self._accuracy_thresholds = {
             'positive': 0.0,      # 양수 수익률
@@ -84,7 +98,7 @@ class AccuracyAnalyzer:
             'excellent': 0.05,    # 5% 이상 수익
             'outstanding': 0.10   # 10% 이상 수익
         }
-        
+
         self._logger.info("AccuracyAnalyzer 초기화 완료")
     
     def analyze_accuracy(self, start_date: str, end_date: str, 

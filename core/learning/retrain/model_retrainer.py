@@ -64,9 +64,33 @@ class RetrainResult:
     error_message: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+    @property
+    def success(self) -> bool:
+        """재학습 성공 여부 (status 기반 호환 프로퍼티)"""
+        return self.status == RetrainStatus.COMPLETED
+
+    @property
+    def version(self) -> str:
+        """모델 버전 (model_version 별칭)"""
+        return self.model_version
+
+    @property
+    def metrics(self) -> Dict[str, Any]:
+        """검증 메트릭 (validation_result 기반)"""
+        if self.validation_result:
+            return {
+                'accuracy': self.validation_result.accuracy,
+                'precision': self.validation_result.precision,
+                'recall': self.validation_result.recall,
+                'f1_score': self.validation_result.f1_score,
+                'improvement': self.validation_result.improvement
+            }
+        return {}
+
     def to_dict(self) -> Dict[str, Any]:
         result = asdict(self)
         result['status'] = self.status.value
+        result['success'] = self.success  # 호환성을 위해 추가
         if self.validation_result:
             result['validation_result'] = self.validation_result.to_dict()
         return result
@@ -136,10 +160,54 @@ class ModelRetrainer:
         Returns:
             재학습 결과
         """
+        # 입력 검증
+        validation_error = self._validate_training_data(training_data)
+        if validation_error:
+            logger.warning(f"학습 데이터 검증 실패: {validation_error}")
+            return RetrainResult(
+                status=RetrainStatus.FAILED,
+                started_at=datetime.now().isoformat(),
+                completed_at=datetime.now().isoformat(),
+                training_samples=len(training_data) if training_data else 0,
+                validation_result=None,
+                model_version="",
+                previous_version=self._get_current_model_version(),
+                training_time_seconds=0,
+                error_message=validation_error
+            )
+
         if background:
             return self._start_background_training(training_data, model_trainer)
 
         return self._execute_training(training_data, model_trainer)
+
+    def _validate_training_data(self, training_data: List[Dict[str, Any]]) -> Optional[str]:
+        """학습 데이터 유효성 검증
+
+        Args:
+            training_data: 검증할 학습 데이터
+
+        Returns:
+            오류 메시지 (None이면 유효)
+        """
+        if not training_data:
+            return "학습 데이터가 비어있음"
+
+        if not isinstance(training_data, list):
+            return "학습 데이터는 리스트 형식이어야 함"
+
+        required_keys = {'predicted_class', 'actual_class'}
+        recommended_keys = {'stock_code', 'predicted_probability'}
+
+        for i, sample in enumerate(training_data[:10]):  # 처음 10개만 검증
+            if not isinstance(sample, dict):
+                return f"샘플 {i}가 딕셔너리 형식이 아님"
+
+            missing_required = required_keys - set(sample.keys())
+            if missing_required:
+                return f"샘플 {i}에 필수 키 누락: {missing_required}"
+
+        return None
 
     def _execute_training(self,
                           training_data: List[Dict[str, Any]],

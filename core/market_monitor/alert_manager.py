@@ -314,41 +314,56 @@ TelegramNotifier = SystemAlertTelegramNotifier
 
 class SystemAlertManager:
     """시스템 알림 관리자"""
-    
-    def __init__(self, db_path: str = "data/system_alerts.db"):
+
+    def __init__(self, db_path: str = "data/system_alerts.db",
+                 use_unified_db: bool = True):
         """초기화
-        
+
         Args:
-            db_path: 알림 데이터베이스 경로
+            db_path: 알림 데이터베이스 경로 (SQLite 폴백용)
+            use_unified_db: 통합 DB 사용 여부 (기본값: True)
         """
         self._logger = logger
         self._db_path = db_path
-        
+        self._unified_db_available = False
+
+        # 통합 DB 초기화 시도
+        if use_unified_db:
+            try:
+                from ..database.unified_db import get_db, ensure_tables_exist
+                ensure_tables_exist()
+                self._unified_db_available = True
+                self._logger.info("SystemAlertManager: 통합 DB 사용")
+            except Exception as e:
+                self._logger.warning(f"통합 DB 초기화 실패, SQLite 폴백 사용: {e}")
+                self._unified_db_available = False
+
         # 텔레그램 설정
         self._telegram_config: Optional[TelegramConfig] = None
         self._telegram_notifier: Optional[TelegramNotifier] = None
-        
+
         # 알림 큐
         self._alert_queue: List[SystemAlert] = []
         self._queue_lock = threading.Lock()
-        
+
         # 알림 처리 스레드
         self._processing = False
         self._processor_thread: Optional[threading.Thread] = None
-        
+
         # 알림 규칙
         self._alert_rules: Dict[str, Dict] = {}
-        
+
         # 중복 알림 방지
         self._recent_alerts: Dict[str, datetime] = {}
         self._dedupe_window = timedelta(minutes=5)  # 5분 내 중복 방지
-        
-        # 데이터베이스 초기화
-        self._init_database()
-        
+
+        # SQLite 데이터베이스 초기화 (폴백용)
+        if not self._unified_db_available:
+            self._init_database()
+
         # 기본 알림 규칙 설정
         self._setup_default_rules()
-        
+
         self._logger.info("SystemAlertManager 초기화 완료")
     
     def _init_database(self):

@@ -153,18 +153,46 @@ class AdaptiveLearningSystem:
             return {"status": "error", "message": str(e)}
             
     def _collect_trade_data(self, days: int) -> List[Dict[str, Any]]:
-        """거래 데이터 수집"""
+        """거래 데이터 수집 (DB 우선, JSON 폴백)"""
         try:
             trades = []
-            
+
+            # 1. DB에서 피드백 데이터 조회 (우선)
+            try:
+                from core.learning.models.feedback_system import get_feedback_system
+                feedback_system = get_feedback_system()
+                feedback_data = feedback_system.get_recent_feedback(days=days)
+
+                if feedback_data:
+                    for fb in feedback_data:
+                        if fb.get('is_processed') and fb.get('actual_return_7d') is not None:
+                            trades.append({
+                                'date': fb.get('prediction_date', ''),
+                                'stock_code': fb.get('stock_code', ''),
+                                'pnl': fb.get('actual_return_7d', 0) * 1000000,  # 수익률 → 금액 추정
+                                'return_rate': fb.get('actual_return_7d', 0),
+                                'is_win': fb.get('actual_class') == 1,
+                                'factor_scores': fb.get('factor_scores', {})
+                            })
+
+                    if trades:
+                        self.logger.info(f"DB에서 {len(trades)}건의 거래 데이터 수집")
+                        return trades
+
+            except ImportError:
+                self.logger.warning("FeedbackSystem을 import할 수 없음, JSON 폴백 사용")
+            except Exception as e:
+                self.logger.warning(f"DB 조회 실패, JSON 폴백 사용: {e}")
+
+            # 2. JSON 파일 폴백
             for i in range(days):
                 date = (datetime.now() - timedelta(days=i)).strftime("%Y%m%d")
                 summary_file = f"data/trades/trade_summary_{date}.json"
-                
+
                 if os.path.exists(summary_file):
                     with open(summary_file, 'r', encoding='utf-8') as f:
                         summary = json.load(f)
-                        
+
                     for detail in summary.get('details', []):
                         trades.append({
                             'date': date,
@@ -175,9 +203,12 @@ class AdaptiveLearningSystem:
                             'sell_price': detail.get('sell_price', 0),
                             'quantity': detail.get('quantity', 0)
                         })
-                        
+
+            if trades:
+                self.logger.info(f"JSON에서 {len(trades)}건의 거래 데이터 수집")
+
             return trades
-            
+
         except Exception as e:
             self.logger.error(f"거래 데이터 수집 실패: {e}", exc_info=True)
             return []

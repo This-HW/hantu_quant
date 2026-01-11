@@ -184,17 +184,30 @@ class ErrorDetector:
 
 class RecoveryManager:
     """복구 관리자"""
-    
-    def __init__(self, db_path: str = "data/error_recovery.db"):
+
+    def __init__(self, db_path: str = "data/error_recovery.db",
+                 use_unified_db: bool = True):
         self._logger = logger
         self._db_path = db_path
-        
+        self._unified_db_available = False
+
+        # 통합 DB 초기화 시도
+        if use_unified_db:
+            try:
+                from ..database.unified_db import get_db, ensure_tables_exist
+                ensure_tables_exist()
+                self._unified_db_available = True
+                self._logger.info("RecoveryManager: 통합 DB 사용")
+            except Exception as e:
+                self._logger.warning(f"통합 DB 초기화 실패, SQLite 폴백 사용: {e}")
+                self._unified_db_available = False
+
         # 복구 규칙
         self._recovery_rules: List[RecoveryRule] = []
-        
+
         # 복구 작업 이력
         self._recovery_attempts: Dict[str, List[datetime]] = {}
-        
+
         # 복구 액션 매핑
         self._recovery_actions = {
             RecoveryAction.RESTART_PROCESS: self._restart_process,
@@ -204,13 +217,14 @@ class RecoveryManager:
             RecoveryAction.SCALE_UP: self._scale_up,
             RecoveryAction.FAILOVER: self._failover,
         }
-        
-        # 데이터베이스 초기화
-        self._init_database()
-        
+
+        # SQLite 데이터베이스 초기화 (폴백용)
+        if not self._unified_db_available:
+            self._init_database()
+
         # 기본 복구 규칙 설정
         self._setup_default_rules()
-        
+
         self._logger.info("RecoveryManager 초기화 완료")
     
     def _init_database(self):
