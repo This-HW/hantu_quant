@@ -64,9 +64,33 @@ class RetrainResult:
     error_message: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+    @property
+    def success(self) -> bool:
+        """재학습 성공 여부 (status 기반 호환 프로퍼티)"""
+        return self.status == RetrainStatus.COMPLETED
+
+    @property
+    def version(self) -> str:
+        """모델 버전 (model_version 별칭)"""
+        return self.model_version
+
+    @property
+    def metrics(self) -> Dict[str, Any]:
+        """검증 메트릭 (validation_result 기반)"""
+        if self.validation_result:
+            return {
+                'accuracy': self.validation_result.accuracy,
+                'precision': self.validation_result.precision,
+                'recall': self.validation_result.recall,
+                'f1_score': self.validation_result.f1_score,
+                'improvement': self.validation_result.improvement
+            }
+        return {}
+
     def to_dict(self) -> Dict[str, Any]:
         result = asdict(self)
         result['status'] = self.status.value
+        result['success'] = self.success  # 호환성을 위해 추가
         if self.validation_result:
             result['validation_result'] = self.validation_result.to_dict()
         return result
