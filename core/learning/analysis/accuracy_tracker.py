@@ -87,30 +87,45 @@ class AccuracyTrend:
 
 class AccuracyTracker:
     """일일 선정 정확도 자동 추적 시스템"""
-    
-    def __init__(self, db_path: str = "data/accuracy_tracking.db"):
+
+    def __init__(self, db_path: str = "data/accuracy_tracking.db",
+                 use_unified_db: bool = True):
         """초기화
-        
+
         Args:
-            db_path: 추적 데이터베이스 경로
+            db_path: 추적 데이터베이스 경로 (SQLite 폴백용)
+            use_unified_db: 통합 DB 사용 여부 (기본값: True)
         """
         self._logger = logger
         self._db_path = db_path
         self._running = False
         self._scheduler_thread: Optional[threading.Thread] = None
-        
+        self._unified_db_available = False
+
+        # 통합 DB 초기화 시도
+        if use_unified_db:
+            try:
+                from core.database.unified_db import get_db, ensure_tables_exist
+                ensure_tables_exist()
+                self._unified_db_available = True
+                self._logger.info("AccuracyTracker: 통합 DB 사용")
+            except Exception as e:
+                self._logger.warning(f"통합 DB 초기화 실패, SQLite 폴백 사용: {e}")
+                self._unified_db_available = False
+
         # API 클라이언트 (주가 데이터 조회용)
-        self._api_client: Optional[KISApiClient] = None
-        
-        # 데이터베이스 초기화
-        self._init_database()
-        
+        self._api_client: Optional[KISAPI] = None
+
+        # SQLite 데이터베이스 초기화 (폴백용)
+        if not self._unified_db_available:
+            self._init_database()
+
         # 스케줄러 설정
         self._setup_scheduler()
-        
+
         self._logger.info("AccuracyTracker 초기화 완료")
     
-    def set_api_client(self, api_client: KISApiClient):
+    def set_api_client(self, api_client: KISAPI):
         """API 클라이언트 설정"""
         self._api_client = api_client
     
@@ -214,7 +229,7 @@ class AccuracyTracker:
                              sector: str, selection_price: float,
                              selection_reason: str = "", confidence_score: float = 0.0):
         """일일 선정 종목 기록
-        
+
         Args:
             date: 선정 날짜 (YYYY-MM-DD)
             stock_code: 종목 코드
@@ -224,19 +239,60 @@ class AccuracyTracker:
             selection_reason: 선정 이유
             confidence_score: 신뢰도 점수 (0-1)
         """
+        if self._unified_db_available:
+            self._record_daily_selection_unified(
+                date, stock_code, stock_name, sector, selection_price,
+                selection_reason, confidence_score
+            )
+        else:
+            self._record_daily_selection_sqlite(
+                date, stock_code, stock_name, sector, selection_price,
+                selection_reason, confidence_score
+            )
+
+    def _record_daily_selection_unified(self, date: str, stock_code: str, stock_name: str,
+                                        sector: str, selection_price: float,
+                                        selection_reason: str, confidence_score: float):
+        """통합 DB에 일일 선정 종목 기록"""
+        try:
+            from core.database.unified_db import get_session
+            from core.database.models import DailySelection
+            from datetime import datetime
+
+            with get_session() as session:
+                selection = DailySelection(
+                    selection_date=datetime.strptime(date, '%Y-%m-%d').date(),
+                    stock_code=stock_code,
+                    stock_name=stock_name,
+                    sector=sector,
+                    selection_price=selection_price,
+                    selection_reason=selection_reason,
+                    confidence_score=confidence_score,
+                )
+                session.merge(selection)
+
+            self._logger.debug(f"일일 선정 기록 (통합 DB): {date} - {stock_code} ({stock_name})")
+
+        except Exception as e:
+            self._logger.error(f"일일 선정 기록 중 오류 (통합 DB): {e}", exc_info=True)
+
+    def _record_daily_selection_sqlite(self, date: str, stock_code: str, stock_name: str,
+                                       sector: str, selection_price: float,
+                                       selection_reason: str, confidence_score: float):
+        """SQLite에 일일 선정 종목 기록"""
         try:
             with sqlite3.connect(self._db_path) as conn:
                 conn.execute('''
-                    INSERT OR REPLACE INTO daily_selections 
+                    INSERT OR REPLACE INTO daily_selections
                     (selection_date, stock_code, stock_name, sector, selection_price,
                      selection_reason, confidence_score)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 ''', (date, stock_code, stock_name, sector, selection_price,
                       selection_reason, confidence_score))
-                
+
                 conn.commit()
                 self._logger.debug(f"일일 선정 기록: {date} - {stock_code} ({stock_name})")
-                
+
         except Exception as e:
             self._logger.error(f"일일 선정 기록 중 오류: {e}", exc_info=True)
     

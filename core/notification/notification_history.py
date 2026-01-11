@@ -53,17 +53,34 @@ class NotificationHistoryDB:
     """
     알림 이력 데이터베이스
 
-    SQLite 기반으로 알림 발송 이력을 저장하고 조회합니다.
+    SQLite/PostgreSQL 기반으로 알림 발송 이력을 저장하고 조회합니다.
     """
 
-    def __init__(self, db_path: str = "data/notification_history.db"):
+    def __init__(self, db_path: str = "data/notification_history.db",
+                 use_unified_db: bool = True):
         """
         Args:
-            db_path: 데이터베이스 파일 경로
+            db_path: 데이터베이스 파일 경로 (SQLite 폴백용)
+            use_unified_db: 통합 DB 사용 여부 (기본값: True)
         """
         self._db_path = db_path
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        self._init_db()
+        self._unified_db_available = False
+
+        # 통합 DB 초기화 시도
+        if use_unified_db:
+            try:
+                from core.database.unified_db import get_db, ensure_tables_exist
+                ensure_tables_exist()
+                self._unified_db_available = True
+                logger.info("NotificationHistoryDB: 통합 DB 사용")
+            except Exception as e:
+                logger.warning(f"통합 DB 초기화 실패, SQLite 폴백 사용: {e}")
+                self._unified_db_available = False
+
+        # SQLite 초기화 (폴백용)
+        if not self._unified_db_available:
+            Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+            self._init_db()
 
     def _init_db(self) -> None:
         """데이터베이스 초기화"""
@@ -141,6 +158,42 @@ class NotificationHistoryDB:
         Returns:
             저장된 ID
         """
+        if self._unified_db_available:
+            return self._save_unified(entry)
+        return self._save_sqlite(entry)
+
+    def _save_unified(self, entry: NotificationHistoryEntry) -> int:
+        """통합 DB에 알림 이력 저장"""
+        try:
+            from core.database.unified_db import get_session
+            from core.database.models import NotificationHistory
+
+            with get_session() as session:
+                notification = NotificationHistory(
+                    alert_id=entry.alert_id,
+                    alert_type=entry.alert_type,
+                    level=entry.level,
+                    title=entry.title,
+                    message=entry.message,
+                    channel=entry.channel,
+                    recipient=entry.recipient,
+                    status=entry.status,
+                    error_message=entry.error_message,
+                    trace_id=entry.trace_id or get_trace_id(),
+                    created_at=entry.created_at or datetime.now(),
+                    sent_at=entry.sent_at,
+                    response_data=entry.response_data,
+                )
+                session.add(notification)
+                session.flush()
+                return notification.id if notification.id else 0
+
+        except Exception as e:
+            logger.error(f"알림 이력 저장 중 오류 (통합 DB): {e}", exc_info=True)
+            return 0
+
+    def _save_sqlite(self, entry: NotificationHistoryEntry) -> int:
+        """SQLite에 알림 이력 저장"""
         with self._get_connection() as conn:
             cursor = conn.execute("""
                 INSERT INTO notification_history (

@@ -103,44 +103,59 @@ class MarketRegime:
 
 class StrategyReporter:
     """전략별 성과 리포트 생성기"""
-    
-    def __init__(self, db_path: str = "data/strategy_performance.db"):
+
+    def __init__(self, db_path: str = "data/strategy_performance.db",
+                 use_unified_db: bool = True):
         """초기화
-        
+
         Args:
-            db_path: 성과 데이터베이스 경로
+            db_path: 성과 데이터베이스 경로 (SQLite 폴백용)
+            use_unified_db: 통합 DB 사용 여부 (기본값: True)
         """
         self._logger = logger
         self._db_path = db_path
         self._running = False
         self._scheduler_thread: Optional[threading.Thread] = None
-        
+        self._unified_db_available = False
+
+        # 통합 DB 초기화 시도
+        if use_unified_db:
+            try:
+                from core.database.unified_db import get_db, ensure_tables_exist
+                ensure_tables_exist()
+                self._unified_db_available = True
+                self._logger.info("StrategyReporter: 통합 DB 사용")
+            except Exception as e:
+                self._logger.warning(f"통합 DB 초기화 실패, SQLite 폴백 사용: {e}")
+                self._unified_db_available = False
+
         # 전략 목록
         self._strategies = [
             'momentum_strategy',
-            'value_strategy', 
+            'value_strategy',
             'growth_strategy',
             'dividend_strategy',
             'technical_strategy',
             'fundamental_strategy'
         ]
-        
+
         # 벤치마크 (KOSPI, KOSDAQ)
         self._benchmarks = ['KOSPI', 'KOSDAQ']
-        
+
         # 시장 환경 분류를 위한 임계값
         self._regime_thresholds = {
             'bull_threshold': 0.05,    # 월간 5% 이상 상승
             'bear_threshold': -0.05,   # 월간 5% 이상 하락
             'volatility_threshold': 0.2 # 변동성 20% 이상
         }
-        
-        # 데이터베이스 초기화
-        self._init_database()
-        
+
+        # SQLite 데이터베이스 초기화 (폴백용)
+        if not self._unified_db_available:
+            self._init_database()
+
         # 스케줄러 설정
         self._setup_scheduler()
-        
+
         self._logger.info("StrategyReporter 초기화 완료")
     
     def _init_database(self):
@@ -252,7 +267,7 @@ class StrategyReporter:
                                    daily_return: float, cumulative_return: float,
                                    portfolio_value: float, benchmark_return: float):
         """일별 전략 수익률 기록
-        
+
         Args:
             strategy_name: 전략명
             date: 날짜 (YYYY-MM-DD)
@@ -261,9 +276,52 @@ class StrategyReporter:
             portfolio_value: 포트폴리오 가치
             benchmark_return: 벤치마크 수익률 (%)
         """
+        if self._unified_db_available:
+            self._record_daily_strategy_return_unified(
+                strategy_name, date, daily_return, cumulative_return,
+                portfolio_value, benchmark_return
+            )
+        else:
+            self._record_daily_strategy_return_sqlite(
+                strategy_name, date, daily_return, cumulative_return,
+                portfolio_value, benchmark_return
+            )
+
+    def _record_daily_strategy_return_unified(self, strategy_name: str, date: str,
+                                              daily_return: float, cumulative_return: float,
+                                              portfolio_value: float, benchmark_return: float):
+        """통합 DB에 일별 전략 수익률 기록"""
+        try:
+            from core.database.unified_db import get_session
+            from core.database.models import DailyStrategyReturn
+            from datetime import datetime
+
+            active_return = daily_return - benchmark_return
+
+            with get_session() as session:
+                ret = DailyStrategyReturn(
+                    strategy_name=strategy_name,
+                    date=datetime.strptime(date, '%Y-%m-%d').date(),
+                    daily_return=daily_return,
+                    cumulative_return=cumulative_return,
+                    portfolio_value=portfolio_value,
+                    benchmark_return=benchmark_return,
+                    active_return=active_return,
+                )
+                session.merge(ret)
+
+            self._logger.debug(f"일별 전략 수익률 기록 (통합 DB): {strategy_name} - {date}")
+
+        except Exception as e:
+            self._logger.error(f"일별 전략 수익률 기록 중 오류 (통합 DB): {e}", exc_info=True)
+
+    def _record_daily_strategy_return_sqlite(self, strategy_name: str, date: str,
+                                             daily_return: float, cumulative_return: float,
+                                             portfolio_value: float, benchmark_return: float):
+        """SQLite에 일별 전략 수익률 기록"""
         try:
             active_return = daily_return - benchmark_return
-            
+
             with sqlite3.connect(self._db_path) as conn:
                 conn.execute('''
                     INSERT OR REPLACE INTO daily_strategy_returns
@@ -272,10 +330,10 @@ class StrategyReporter:
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 ''', (strategy_name, date, daily_return, cumulative_return,
                       portfolio_value, benchmark_return, active_return))
-                
+
                 conn.commit()
                 self._logger.debug(f"일별 전략 수익률 기록: {strategy_name} - {date}")
-                
+
         except Exception as e:
             self._logger.error(f"일별 전략 수익률 기록 중 오류: {e}", exc_info=True)
     
