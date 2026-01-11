@@ -103,10 +103,17 @@ class FeedbackSystem:
                         absolute_error REAL,
                         feedback_date TEXT,
                         is_processed BOOLEAN DEFAULT FALSE,
+                        factor_scores TEXT,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
+
+                # 기존 테이블에 factor_scores 컬럼 추가 (마이그레이션)
+                try:
+                    cursor.execute("ALTER TABLE feedback_data ADD COLUMN factor_scores TEXT")
+                except sqlite3.OperationalError:
+                    pass  # 컬럼이 이미 존재함
                 
                 # 모델 성능 추적 테이블
                 cursor.execute("""
@@ -158,7 +165,12 @@ class FeedbackSystem:
                     try:
                         # 앙상블 결과로 기록
                         prediction_id = f"{prediction.stock_code}_{prediction.prediction_date}_ensemble"
-                        
+
+                        # factor_scores JSON 직렬화 (있는 경우)
+                        factor_scores_json = None
+                        if hasattr(prediction, 'factor_scores') and prediction.factor_scores:
+                            factor_scores_json = json.dumps(prediction.factor_scores, ensure_ascii=False)
+
                         feedback_data = FeedbackData(
                             prediction_id=prediction_id,
                             stock_code=prediction.stock_code,
@@ -167,42 +179,46 @@ class FeedbackSystem:
                             predicted_class=prediction.ensemble_prediction,
                             model_name="ensemble"
                         )
-                        
+
                         # 데이터베이스에 삽입
                         cursor.execute("""
                             INSERT OR REPLACE INTO feedback_data (
                                 prediction_id, stock_code, prediction_date,
-                                predicted_probability, predicted_class, model_name
-                            ) VALUES (?, ?, ?, ?, ?, ?)
+                                predicted_probability, predicted_class, model_name,
+                                factor_scores
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?)
                         """, (
                             feedback_data.prediction_id,
                             feedback_data.stock_code,
                             feedback_data.prediction_date,
                             feedback_data.predicted_probability,
                             feedback_data.predicted_class,
-                            feedback_data.model_name
+                            feedback_data.model_name,
+                            factor_scores_json
                         ))
-                        
+
                         recorded_count += 1
-                        
+
                         # 개별 모델 예측도 기록
                         for model_name, model_pred in prediction.model_predictions.items():
                             model_prediction_id = f"{prediction.stock_code}_{prediction.prediction_date}_{model_name}"
-                            
+
                             cursor.execute("""
                                 INSERT OR REPLACE INTO feedback_data (
                                     prediction_id, stock_code, prediction_date,
-                                    predicted_probability, predicted_class, model_name
-                                ) VALUES (?, ?, ?, ?, ?, ?)
+                                    predicted_probability, predicted_class, model_name,
+                                    factor_scores
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                             """, (
                                 model_prediction_id,
                                 model_pred.stock_code,
                                 model_pred.prediction_date,
                                 model_pred.success_probability,
                                 model_pred.predicted_class,
-                                model_name
+                                model_name,
+                                factor_scores_json  # 동일한 factor_scores 사용
                             ))
-                        
+
                     except Exception as e:
                         self._logger.warning(f"예측 기록 실패: {prediction.stock_code} - {e}")
                 
@@ -604,9 +620,10 @@ class FeedbackSystem:
                 cursor = conn.cursor()
 
                 cursor.execute("""
-                    SELECT stock_code, prediction_date, predicted_value,
-                           actual_value, prediction_type, model_name,
-                           is_processed, predicted_class, actual_class
+                    SELECT stock_code, prediction_date, predicted_probability,
+                           predicted_class, model_name, actual_return_7d,
+                           actual_class, prediction_error, absolute_error,
+                           feedback_date, is_processed, factor_scores
                     FROM feedback_data
                     WHERE prediction_date >= ?
                     ORDER BY prediction_date DESC
@@ -614,7 +631,22 @@ class FeedbackSystem:
                 """, (cutoff_date,))
 
                 rows = cursor.fetchall()
-                return [dict(row) for row in rows]
+
+                # factor_scores JSON 역직렬화
+                result = []
+                for row in rows:
+                    row_dict = dict(row)
+                    factor_scores_raw = row_dict.get('factor_scores')
+                    if factor_scores_raw:
+                        try:
+                            row_dict['factor_scores'] = json.loads(factor_scores_raw)
+                        except (json.JSONDecodeError, TypeError):
+                            row_dict['factor_scores'] = {}
+                    else:
+                        row_dict['factor_scores'] = {}
+                    result.append(row_dict)
+
+                return result
 
         except Exception as e:
             self._logger.error(f"최근 피드백 조회 오류: {e}", exc_info=True)

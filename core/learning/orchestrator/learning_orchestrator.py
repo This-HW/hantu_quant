@@ -279,12 +279,14 @@ class LearningOrchestrator:
             factor_scores = []
 
             for fb in recent_feedback:
+                actual_return = fb.get('actual_return_7d') or 0
                 performance_data.append({
-                    'stock_code': fb.stock_code,
-                    'pnl_ratio': fb.actual_return or 0,
-                    'return': fb.actual_return or 0
+                    'stock_code': fb.get('stock_code', ''),
+                    'pnl_ratio': actual_return,
+                    'return': actual_return,
+                    'is_win': fb.get('actual_class') == 1
                 })
-                factor_scores.append(fb.factor_scores or {})
+                factor_scores.append(fb.get('factor_scores') or {})
 
             # 가중치 업데이트 시도
             result = self._weight_calculator.update_from_performance(
@@ -337,13 +339,42 @@ class LearningOrchestrator:
             success_rate = self._retrain_history.get_success_rate(30)
             improvement = self._retrain_history.get_average_improvement(30)
 
+            # win_rate, sharpe_ratio 계산을 위해 피드백 데이터 조회
+            from core.learning.models.feedback_system import get_feedback_system
+            feedback_system = get_feedback_system()
+            recent_feedback = feedback_system.get_recent_feedback(days=30)
+
+            # win_rate 계산
+            win_rate = 0.0
+            if recent_feedback:
+                processed = [fb for fb in recent_feedback if fb.get('is_processed')]
+                if processed:
+                    wins = sum(1 for fb in processed if fb.get('actual_class') == 1)
+                    win_rate = wins / len(processed)
+
+            # sharpe_ratio 계산 (일별 수익률 기준)
+            sharpe_ratio = 0.0
+            returns = [fb.get('actual_return_7d') or 0 for fb in recent_feedback
+                       if fb.get('actual_return_7d') is not None]
+            if len(returns) >= 5:
+                import math
+                mean_return = sum(returns) / len(returns)
+                variance = sum((r - mean_return) ** 2 for r in returns) / len(returns)
+                std_return = math.sqrt(variance) if variance > 0 else 0
+                if std_return > 0:
+                    # 연간화 (7일 수익률 기준, 약 52주)
+                    sharpe_ratio = (mean_return / std_return) * math.sqrt(52)
+
             return {
                 'accuracy': success_rate,
                 'improvement': improvement,
-                'recent_performance': success_rate
+                'recent_performance': success_rate,
+                'win_rate': win_rate,
+                'sharpe_ratio': sharpe_ratio
             }
-        except Exception:
-            return {'accuracy': 0.0, 'improvement': 0.0}
+        except Exception as e:
+            logger.warning(f"모델 성능 조회 일부 실패: {e}", exc_info=True)
+            return {'accuracy': 0.0, 'improvement': 0.0, 'win_rate': 0.0, 'sharpe_ratio': 0.0}
 
     def enqueue_task(self,
                     task_type: LearningTaskType,
@@ -472,10 +503,16 @@ class LearningOrchestrator:
             from core.learning.models.feedback_system import get_feedback_system
             feedback_system = get_feedback_system()
 
-            training_data = feedback_system.get_recent_feedback(days=90)
+            raw_feedback = feedback_system.get_recent_feedback(days=90)
+
+            if len(raw_feedback) < 30:
+                return {'error': 'insufficient_training_data'}
+
+            # 피드백 데이터를 학습 데이터 형식으로 변환
+            training_data = self._convert_feedback_to_training_data(raw_feedback)
 
             if len(training_data) < 30:
-                return {'error': 'insufficient_training_data'}
+                return {'error': 'insufficient_processed_training_data'}
 
             # 재학습 실행
             result = self._model_retrainer.retrain(
@@ -490,7 +527,46 @@ class LearningOrchestrator:
             }
 
         except Exception as e:
+            logger.error(f"모델 재학습 실행 오류: {e}", exc_info=True)
             return {'error': str(e)}
+
+    def _convert_feedback_to_training_data(
+        self, feedback_list: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """피드백 데이터를 학습 데이터 형식으로 변환
+
+        Args:
+            feedback_list: get_recent_feedback() 결과
+
+        Returns:
+            ModelRetrainer가 기대하는 학습 데이터 형식
+        """
+        training_data = []
+
+        for fb in feedback_list:
+            # 처리되지 않은 피드백은 건너뜀
+            if not fb.get('is_processed'):
+                continue
+
+            # actual_class가 없는 경우 건너뜀
+            actual_class = fb.get('actual_class')
+            if actual_class is None:
+                continue
+
+            training_sample = {
+                'stock_code': fb.get('stock_code', ''),
+                'prediction_date': fb.get('prediction_date', ''),
+                'predicted_probability': fb.get('predicted_probability', 0.5),
+                'predicted_class': fb.get('predicted_class', 0),
+                'actual_class': actual_class,
+                'actual_return': fb.get('actual_return_7d', 0),
+                'is_win': actual_class == 1,
+                'factor_scores': fb.get('factor_scores', {})
+            }
+
+            training_data.append(training_sample)
+
+        return training_data
 
     def _scheduler_loop(self):
         """스케줄러 루프 (D.1.2)"""
