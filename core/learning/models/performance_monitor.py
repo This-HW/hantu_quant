@@ -105,18 +105,32 @@ class PerformanceDegradationAlert:
 
 class ModelPerformanceMonitor:
     """AI 모델 성능 모니터"""
-    
-    def __init__(self, db_path: str = "data/model_performance.db"):
+
+    def __init__(self, db_path: str = "data/model_performance.db",
+                 use_unified_db: bool = True):
         """초기화
-        
+
         Args:
-            db_path: 성능 데이터베이스 경로
+            db_path: 성능 데이터베이스 경로 (SQLite 폴백용)
+            use_unified_db: 통합 DB 사용 여부 (기본값: True)
         """
         self._logger = logger
         self._db_path = db_path
         self._running = False
         self._monitor_thread: Optional[threading.Thread] = None
-        
+        self._unified_db_available = False
+
+        # 통합 DB 초기화 시도
+        if use_unified_db:
+            try:
+                from core.database.unified_db import get_db, ensure_tables_exist
+                ensure_tables_exist()
+                self._unified_db_available = True
+                self._logger.info("ModelPerformanceMonitor: 통합 DB 사용")
+            except Exception as e:
+                self._logger.warning(f"통합 DB 초기화 실패, SQLite 폴백 사용: {e}")
+                self._unified_db_available = False
+
         # 성능 임계값 설정
         self._performance_thresholds = {
             'accuracy_drop_warning': 0.05,    # 5% 정확도 하락 시 경고
@@ -125,22 +139,23 @@ class ModelPerformanceMonitor:
             'sharpe_ratio_low': 1.0,          # 샤프 비율 낮음
             'max_drawdown_high': 0.2,         # 최대 낙폭 20% 이상
         }
-        
+
         # 모델별 기준선 성능
         self._baseline_performance: Dict[str, ModelPerformanceMetrics] = {}
-        
+
         # 성능 이력
         self._performance_history: Dict[str, List[ModelPerformanceMetrics]] = {}
-        
+
         # 알림 콜백
         self._alert_callbacks: List[callable] = []
-        
-        # 데이터베이스 초기화
-        self._init_database()
-        
+
+        # SQLite 데이터베이스 초기화 (폴백용)
+        if not self._unified_db_available:
+            self._init_database()
+
         # 스케줄러 설정
         self._setup_scheduler()
-        
+
         self._logger.info("ModelPerformanceMonitor 초기화 완료")
     
     def _init_database(self):
