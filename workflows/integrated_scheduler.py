@@ -210,8 +210,9 @@ class IntegratedScheduler:
         # ML 학습 조건 체크: 매일 19:00 (B단계 자동 트리거용)
         schedule.every().day.at("19:00").do(self._check_ml_trigger)
 
-        # [방안 B] 주간 백테스트: 매주 금요일 20:00
-        schedule.every().friday.at("20:00").do(self._run_weekly_backtest)
+        # [방안 B] 주간 백테스트: 매주 금요일 16:00
+        # Note: 백테스트 결과는 17:00 가중치 조정(scheduler.py)에 반영됨
+        schedule.every().friday.at("16:00").do(self._run_weekly_backtest)
 
         # 헬스체크: 장 시간 중 10분마다 실행 (평일만)
         schedule.every().monday.at("09:10").do(self._run_health_check)
