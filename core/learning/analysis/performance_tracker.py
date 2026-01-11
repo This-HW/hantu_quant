@@ -128,16 +128,30 @@ class PerformanceComparison:
 
 class PerformanceTracker:
     """백테스트 vs 실제 성과 추적기"""
-    
-    def __init__(self, db_path: str = "data/performance_tracking.db"):
+
+    def __init__(self, db_path: str = "data/performance_tracking.db",
+                 use_unified_db: bool = True):
         """초기화
-        
+
         Args:
-            db_path: 성과 추적 데이터베이스 경로
+            db_path: 성과 추적 데이터베이스 경로 (SQLite 폴백용)
+            use_unified_db: 통합 DB 사용 여부 (기본값: True)
         """
         self._logger = logger
         self._db_path = db_path
-        
+        self._unified_db_available = False
+
+        # 통합 DB 초기화 시도
+        if use_unified_db:
+            try:
+                from core.database.unified_db import get_db, ensure_tables_exist
+                ensure_tables_exist()
+                self._unified_db_available = True
+                self._logger.info("PerformanceTracker: 통합 DB 사용")
+            except Exception as e:
+                self._logger.warning(f"통합 DB 초기화 실패, SQLite 폴백 사용: {e}")
+                self._unified_db_available = False
+
         # 추적 설정
         self._tracking_config = {
             'tracking_period_days': 30,     # 추적 기간
@@ -145,10 +159,10 @@ class PerformanceTracker:
             'comparison_delay_hours': 24,   # 비교 지연 시간
             'auto_analysis': True,          # 자동 분석 여부
         }
-        
+
         # 캐시된 예측
         self._active_predictions: Dict[str, BacktestPrediction] = {}
-        
+
         # 성과 메트릭 계산기
         self._metric_calculators = {
             PerformanceMetric.RETURN: self._calculate_return,
@@ -157,10 +171,11 @@ class PerformanceTracker:
             PerformanceMetric.MAX_DRAWDOWN: self._calculate_max_drawdown,
             PerformanceMetric.WIN_RATE: self._calculate_win_rate,
         }
-        
-        # 데이터베이스 초기화
-        self._init_database()
-        
+
+        # SQLite 데이터베이스 초기화 (폴백용)
+        if not self._unified_db_available:
+            self._init_database()
+
         self._logger.info("PerformanceTracker 초기화 완료")
     
     def _init_database(self):
@@ -261,19 +276,59 @@ class PerformanceTracker:
     
     def record_backtest_prediction(self, prediction: BacktestPrediction) -> bool:
         """백테스트 예측 기록
-        
+
         Args:
             prediction: 백테스트 예측 데이터
-            
+
         Returns:
             기록 성공 여부
         """
+        # 신뢰도 확인
+        if prediction.model_confidence < self._tracking_config['min_confidence_threshold']:
+            self._logger.debug(f"신뢰도 부족으로 예측 기록 스킵: {prediction.model_confidence}")
+            return False
+
+        if self._unified_db_available:
+            return self._record_backtest_prediction_unified(prediction)
+        return self._record_backtest_prediction_sqlite(prediction)
+
+    def _record_backtest_prediction_unified(self, prediction: BacktestPrediction) -> bool:
+        """통합 DB에 백테스트 예측 기록"""
         try:
-            # 신뢰도 확인
-            if prediction.model_confidence < self._tracking_config['min_confidence_threshold']:
-                self._logger.debug(f"신뢰도 부족으로 예측 기록 스킵: {prediction.model_confidence}")
-                return False
-            
+            from core.database.unified_db import get_session
+            from core.database.models import BacktestPrediction as BacktestPredictionModel
+            from datetime import datetime
+
+            with get_session() as session:
+                db_prediction = BacktestPredictionModel(
+                    prediction_id=prediction.prediction_id,
+                    strategy_name=prediction.strategy_name,
+                    prediction_date=datetime.strptime(prediction.prediction_date, '%Y-%m-%d').date(),
+                    target_stocks=json.dumps(prediction.target_stocks),
+                    predicted_returns=json.dumps(prediction.predicted_returns),
+                    predicted_weights=json.dumps(prediction.predicted_weights),
+                    expected_return=prediction.expected_return,
+                    expected_volatility=prediction.expected_volatility,
+                    expected_sharpe_ratio=prediction.expected_sharpe_ratio,
+                    expected_max_drawdown=prediction.expected_max_drawdown,
+                    model_confidence=prediction.model_confidence,
+                    feature_importance=json.dumps(prediction.feature_importance),
+                    market_conditions=json.dumps(prediction.market_conditions),
+                )
+                session.merge(db_prediction)
+
+            # 메모리 캐시
+            self._active_predictions[prediction.prediction_id] = prediction
+            self._logger.info(f"백테스트 예측 기록 (통합 DB): {prediction.prediction_id}")
+            return True
+
+        except Exception as e:
+            self._logger.error(f"백테스트 예측 기록 중 오류 (통합 DB): {e}", exc_info=True)
+            return False
+
+    def _record_backtest_prediction_sqlite(self, prediction: BacktestPrediction) -> bool:
+        """SQLite에 백테스트 예측 기록"""
+        try:
             # 데이터베이스 저장
             with sqlite3.connect(self._db_path) as conn:
                 conn.execute('''
@@ -296,26 +351,73 @@ class PerformanceTracker:
                     json.dumps(prediction.market_conditions)
                 ))
                 conn.commit()
-            
+
             # 메모리 캐시
             self._active_predictions[prediction.prediction_id] = prediction
-            
+
             self._logger.info(f"백테스트 예측 기록: {prediction.prediction_id}")
             return True
-            
+
         except Exception as e:
             self._logger.error(f"백테스트 예측 기록 중 오류: {e}", exc_info=True)
             return False
     
     def record_actual_performance(self, performance: ActualPerformance) -> bool:
         """실제 성과 기록
-        
+
         Args:
             performance: 실제 성과 데이터
-            
+
         Returns:
             기록 성공 여부
         """
+        if self._unified_db_available:
+            result = self._record_actual_performance_unified(performance)
+        else:
+            result = self._record_actual_performance_sqlite(performance)
+
+        # 자동 비교 분석
+        if result and self._tracking_config['auto_analysis']:
+            self._schedule_comparison_analysis(performance.prediction_id)
+
+        return result
+
+    def _record_actual_performance_unified(self, performance: ActualPerformance) -> bool:
+        """통합 DB에 실제 성과 기록"""
+        try:
+            from core.database.unified_db import get_session
+            from core.database.models import ActualPerformance as ActualPerformanceModel
+            from datetime import datetime
+
+            with get_session() as session:
+                db_performance = ActualPerformanceModel(
+                    performance_id=performance.performance_id,
+                    prediction_id=performance.prediction_id,
+                    execution_date=datetime.strptime(performance.execution_date, '%Y-%m-%d').date(),
+                    completion_date=datetime.strptime(performance.completion_date, '%Y-%m-%d').date(),
+                    executed_stocks=json.dumps(performance.executed_stocks),
+                    actual_returns=json.dumps(performance.actual_returns),
+                    actual_weights=json.dumps(performance.actual_weights),
+                    actual_return=performance.actual_return,
+                    actual_volatility=performance.actual_volatility,
+                    actual_sharpe_ratio=performance.actual_sharpe_ratio,
+                    actual_max_drawdown=performance.actual_max_drawdown,
+                    execution_costs=performance.execution_costs,
+                    slippage=performance.slippage,
+                    market_impact=performance.market_impact,
+                    status=performance.status.value,
+                )
+                session.merge(db_performance)
+
+            self._logger.info(f"실제 성과 기록 (통합 DB): {performance.performance_id}")
+            return True
+
+        except Exception as e:
+            self._logger.error(f"실제 성과 기록 중 오류 (통합 DB): {e}", exc_info=True)
+            return False
+
+    def _record_actual_performance_sqlite(self, performance: ActualPerformance) -> bool:
+        """SQLite에 실제 성과 기록"""
         try:
             # 데이터베이스 저장
             with sqlite3.connect(self._db_path) as conn:
@@ -339,14 +441,10 @@ class PerformanceTracker:
                     performance.market_impact, performance.status.value
                 ))
                 conn.commit()
-            
-            # 자동 비교 분석
-            if self._tracking_config['auto_analysis']:
-                self._schedule_comparison_analysis(performance.prediction_id)
-            
+
             self._logger.info(f"실제 성과 기록: {performance.performance_id}")
             return True
-            
+
         except Exception as e:
             self._logger.error(f"실제 성과 기록 중 오류: {e}", exc_info=True)
             return False
@@ -401,6 +499,45 @@ class PerformanceTracker:
     
     def _get_prediction_data(self, prediction_id: str) -> Optional[Dict]:
         """예측 데이터 조회"""
+        if self._unified_db_available:
+            return self._get_prediction_data_unified(prediction_id)
+        return self._get_prediction_data_sqlite(prediction_id)
+
+    def _get_prediction_data_unified(self, prediction_id: str) -> Optional[Dict]:
+        """통합 DB에서 예측 데이터 조회"""
+        try:
+            from core.database.unified_db import get_session
+            from core.database.models import BacktestPrediction as BacktestPredictionModel
+
+            with get_session() as session:
+                row = session.query(BacktestPredictionModel).filter_by(
+                    prediction_id=prediction_id
+                ).first()
+
+                if row:
+                    return {
+                        'prediction_id': row.prediction_id,
+                        'strategy_name': row.strategy_name,
+                        'prediction_date': row.prediction_date.isoformat() if row.prediction_date else None,
+                        'target_stocks': json.loads(row.target_stocks) if row.target_stocks else [],
+                        'predicted_returns': json.loads(row.predicted_returns) if row.predicted_returns else {},
+                        'predicted_weights': json.loads(row.predicted_weights) if row.predicted_weights else {},
+                        'expected_return': row.expected_return,
+                        'expected_volatility': row.expected_volatility,
+                        'expected_sharpe_ratio': row.expected_sharpe_ratio,
+                        'expected_max_drawdown': row.expected_max_drawdown,
+                        'model_confidence': row.model_confidence,
+                        'feature_importance': json.loads(row.feature_importance) if row.feature_importance else {},
+                        'market_conditions': json.loads(row.market_conditions) if row.market_conditions else {}
+                    }
+                return None
+
+        except Exception as e:
+            self._logger.error(f"예측 데이터 조회 중 오류 (통합 DB): {e}", exc_info=True)
+            return None
+
+    def _get_prediction_data_sqlite(self, prediction_id: str) -> Optional[Dict]:
+        """SQLite에서 예측 데이터 조회"""
         try:
             with sqlite3.connect(self._db_path) as conn:
                 cursor = conn.execute(
@@ -408,7 +545,7 @@ class PerformanceTracker:
                     (prediction_id,)
                 )
                 row = cursor.fetchone()
-                
+
                 if row:
                     return {
                         'prediction_id': row[1],
@@ -426,13 +563,54 @@ class PerformanceTracker:
                         'market_conditions': json.loads(row[13]) if row[13] else {}
                     }
                 return None
-                
+
         except Exception as e:
             self._logger.error(f"예측 데이터 조회 중 오류: {e}", exc_info=True)
             return None
     
     def _get_performance_data(self, prediction_id: str) -> Optional[Dict]:
         """실제 성과 데이터 조회"""
+        if self._unified_db_available:
+            return self._get_performance_data_unified(prediction_id)
+        return self._get_performance_data_sqlite(prediction_id)
+
+    def _get_performance_data_unified(self, prediction_id: str) -> Optional[Dict]:
+        """통합 DB에서 실제 성과 데이터 조회"""
+        try:
+            from core.database.unified_db import get_session
+            from core.database.models import ActualPerformance as ActualPerformanceModel
+
+            with get_session() as session:
+                row = session.query(ActualPerformanceModel).filter_by(
+                    prediction_id=prediction_id
+                ).first()
+
+                if row:
+                    return {
+                        'performance_id': row.performance_id,
+                        'prediction_id': row.prediction_id,
+                        'execution_date': row.execution_date.isoformat() if row.execution_date else None,
+                        'completion_date': row.completion_date.isoformat() if row.completion_date else None,
+                        'executed_stocks': json.loads(row.executed_stocks) if row.executed_stocks else [],
+                        'actual_returns': json.loads(row.actual_returns) if row.actual_returns else {},
+                        'actual_weights': json.loads(row.actual_weights) if row.actual_weights else {},
+                        'actual_return': row.actual_return,
+                        'actual_volatility': row.actual_volatility,
+                        'actual_sharpe_ratio': row.actual_sharpe_ratio,
+                        'actual_max_drawdown': row.actual_max_drawdown,
+                        'execution_costs': row.execution_costs,
+                        'slippage': row.slippage,
+                        'market_impact': row.market_impact,
+                        'status': row.status
+                    }
+                return None
+
+        except Exception as e:
+            self._logger.error(f"실제 성과 데이터 조회 중 오류 (통합 DB): {e}", exc_info=True)
+            return None
+
+    def _get_performance_data_sqlite(self, prediction_id: str) -> Optional[Dict]:
+        """SQLite에서 실제 성과 데이터 조회"""
         try:
             with sqlite3.connect(self._db_path) as conn:
                 cursor = conn.execute(
@@ -440,7 +618,7 @@ class PerformanceTracker:
                     (prediction_id,)
                 )
                 row = cursor.fetchone()
-                
+
                 if row:
                     return {
                         'performance_id': row[1],
@@ -460,7 +638,7 @@ class PerformanceTracker:
                         'status': row[15]
                     }
                 return None
-                
+
         except Exception as e:
             self._logger.error(f"실제 성과 데이터 조회 중 오류: {e}", exc_info=True)
             return None

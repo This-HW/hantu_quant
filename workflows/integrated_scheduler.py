@@ -195,8 +195,9 @@ class IntegratedScheduler:
         # Phase 4: AI 학습 시스템 (일일 성과 분석: 매일 17:00)
         schedule.every().day.at("17:00").do(self._run_daily_performance_analysis)
 
-        # Phase 4: 강화된 적응형 학습 (매일 18:30 - 포괄적 분석)
-        schedule.every().day.at("18:30").do(self._run_enhanced_adaptive_learning)
+        # Phase 4: 강화된 적응형 학습 (주말 - 대량 데이터 분석)
+        # 토요일 20:00에 실행하여 주간 데이터 기반 포괄적 분석
+        schedule.every().saturday.at("20:00").do(self._run_enhanced_adaptive_learning)
 
         # Phase 4: 주간 깊이 학습 (매주 토요일 22:00)
         schedule.every().saturday.at("22:00").do(self._run_weekly_adaptive_learning)
@@ -207,11 +208,13 @@ class IntegratedScheduler:
         # Phase 5: 자동 유지보수 (매주 일요일 새벽 3시)
         schedule.every().sunday.at("03:00").do(self._run_auto_maintenance)
 
-        # ML 학습 조건 체크: 매일 19:00 (B단계 자동 트리거용)
-        schedule.every().day.at("19:00").do(self._check_ml_trigger)
+        # ML 학습 조건 체크: 주말에만 실행 (B단계 자동 트리거용)
+        # 일요일 10:00에 실행하여 주간 데이터 축적 후 ML 학습 조건 체크
+        schedule.every().sunday.at("10:00").do(self._check_ml_trigger)
 
-        # [방안 B] 주간 백테스트: 매주 금요일 20:00
-        schedule.every().friday.at("20:00").do(self._run_weekly_backtest)
+        # [방안 B] 주간 백테스트: 매주 금요일 16:00
+        # Note: 백테스트 결과는 17:00 가중치 조정(scheduler.py)에 반영됨
+        schedule.every().friday.at("16:00").do(self._run_weekly_backtest)
 
         # 헬스체크: 장 시간 중 10분마다 실행 (평일만)
         schedule.every().monday.at("09:10").do(self._run_health_check)
@@ -291,9 +294,9 @@ class IntegratedScheduler:
         print("├─ 매매 헬스체크: 장 시간 중 30분마다 (평일)")
         print("├─ 마감 후 정리: 매일 16:00")
         print("├─ AI 성과 분석: 매일 17:00")
-        print("├─ 강화된 적응형 학습: 매일 18:30 (포괄적 분석)")
+        print("├─ 강화된 적응형 학습: 매주 토요일 20:00 (대량 데이터 분석)")
         print("├─ 주간 깊이 학습: 매주 토요일 22:00")
-        print("├─ ML 학습 조건 체크: 매일 19:00 (B단계 자동 트리거)")
+        print("├─ ML 학습 조건 체크: 매주 일요일 10:00 (B단계 자동 트리거)")
         print("├─ 시스템 모니터링: 24시간 실시간")
         print("└─ 자동 유지보수: 매주 일요일 03:00")
         

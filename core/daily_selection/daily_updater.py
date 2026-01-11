@@ -83,8 +83,10 @@ class DailySelectionLegacy:
     market_cap: float
     priority: int
     position_size: float        # 포트폴리오 비중
-    confidence: float           # 신뢰도
-    
+    confidence: float           # 신뢰도 (0-1)
+    predicted_class: int = 1    # 예측 분류 (0: 실패예상, 1: 성공예상) - Phase 4 학습용
+    model_name: str = "ensemble"  # 예측 모델명
+
     def to_dict(self) -> Dict:
         """딕셔너리로 변환"""
         return asdict(self)
@@ -702,6 +704,9 @@ class DailyUpdater(IDailyUpdater):
             _v_position_size = self._calculate_position_size(stock, len(p_selected_stocks))
             _v_total_weight += _v_position_size
             
+            # predicted_class 계산: expected_return > 0이면 성공(1), 아니면 실패(0)
+            _v_predicted_class = 1 if stock.expected_return > 0 else 0
+
             # DailySelection 객체 생성
             _v_selection = DailySelection(
                 stock_code=stock.stock_code,
@@ -720,7 +725,9 @@ class DailyUpdater(IDailyUpdater):
                 market_cap=0.0,  # 실제로는 stock에서 가져옴
                 priority=i + 1,
                 position_size=_v_position_size,
-                confidence=stock.confidence
+                confidence=stock.confidence,
+                predicted_class=_v_predicted_class,
+                model_name="ensemble"
             )
             
             _v_daily_selections.append(_v_selection)
