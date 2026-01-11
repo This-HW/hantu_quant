@@ -4,6 +4,9 @@
 - 스크리닝/선정 정확도 측정
 - 가상 거래 데이터 활용
 - 자동 유지보수 기능
+
+PostgreSQL 통합 DB 지원 (T-002): use_unified_db=True로 SQLAlchemy 기반 통합 DB 사용
+SQLite 폴백: 통합 DB 연결 실패 시 기존 SQLite 사용
 """
 
 import json
@@ -15,6 +18,8 @@ from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, asdict
 from pathlib import Path
 import logging
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from ..utils.log_utils import get_logger
 from ..data_pipeline.data_synchronizer import get_data_synchronizer
@@ -58,12 +63,33 @@ class LearningInsight:
     suggested_action: Optional[str] = None
 
 class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
-    """강화된 적응형 학습 시스템"""
+    """강화된 적응형 학습 시스템
 
-    def __init__(self, data_dir: str = "data/learning"):
+    PostgreSQL 통합 DB 지원 (T-002):
+    - use_unified_db=True: SQLAlchemy 기반 통합 DB 사용
+    - 통합 DB 연결 실패 시 자동으로 SQLite 폴백
+    """
+
+    def __init__(self, data_dir: str = "data/learning", use_unified_db: bool = True):
         super().__init__(data_dir)
         self.data_synchronizer = get_data_synchronizer()
         self.db_path = "data/learning/learning_data.db"
+        self._unified_db_available = False
+
+        # 통합 DB 사용 시도
+        if use_unified_db:
+            try:
+                from ..database.unified_db import get_db, ensure_tables_exist
+                from ..database.models import (
+                    ScreeningHistory, SelectionHistory,
+                    DailyTracking, LearningMetrics
+                )
+                ensure_tables_exist()
+                self._unified_db_available = True
+                self.logger.info("통합 DB 연결 성공 (PostgreSQL/SQLAlchemy)")
+            except Exception as e:
+                self.logger.warning(f"통합 DB 연결 실패, SQLite 폴백 사용: {e}")
+                self._unified_db_available = False
 
         # 학습 설정
         self.evaluation_window = 10  # 평가 기간 (일)
