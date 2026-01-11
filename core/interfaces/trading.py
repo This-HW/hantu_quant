@@ -463,7 +463,9 @@ class DailySelection:
     market_cap: float
     priority: int
     position_size: float
-    confidence: float
+    confidence: float           # 신뢰도 (0-1)
+    predicted_class: int = 1    # 예측 분류 (0: 실패예상, 1: 성공예상) - Phase 4 학습용
+    model_name: str = "ensemble"  # 예측 모델명
 
     def to_dict(self) -> Dict:
         return asdict(self)

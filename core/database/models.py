@@ -254,6 +254,15 @@ class TradeHistory(Base):
     signal_source = Column(String(50))  # 신호 출처
     daily_selection_id = Column(Integer, ForeignKey('daily_selections.id'))
 
+    # Phase 2 예측 정보 (학습 피드백용)
+    entry_price = Column(Float)  # Phase 2 진입가
+    target_price = Column(Float)  # Phase 2 목표가
+    stop_loss_price = Column(Float)  # Phase 2 손절가
+    expected_return = Column(Float)  # Phase 2 예상 수익률 (%)
+    predicted_probability = Column(Float)  # Phase 2 신뢰도 (0-1)
+    predicted_class = Column(Integer)  # 예측 분류 (0: 실패, 1: 성공)
+    model_name = Column(String(50))  # 예측 모델명
+
     # 상태
     status = Column(String(20), default='pending')  # pending, filled, cancelled, rejected
     error_message = Column(Text)
@@ -284,4 +293,264 @@ class TradeHistory(Base):
             'filled_price': self.filled_price,
             'amount': self.amount,
             'status': self.status,
+            # Phase 2 예측 정보
+            'entry_price': self.entry_price,
+            'target_price': self.target_price,
+            'stop_loss_price': self.stop_loss_price,
+            'expected_return': self.expected_return,
+            'predicted_probability': self.predicted_probability,
+            'predicted_class': self.predicted_class,
+            'model_name': self.model_name,
         }
+
+
+# ============================================================
+# Phase 4: 학습 시스템 통합 테이블
+# ============================================================
+
+class FeedbackData(Base):
+    """예측 피드백 데이터 (Phase 4 학습용)"""
+    __tablename__ = 'feedback_data'
+
+    id = Column(Integer, primary_key=True)
+    prediction_id = Column(String(100), unique=True, nullable=False)
+    stock_code = Column(String(20), nullable=False)
+    prediction_date = Column(Date, nullable=False)
+
+    # 예측 정보
+    predicted_probability = Column(Float, nullable=False)
+    predicted_class = Column(Integer, nullable=False)  # 0: 실패, 1: 성공
+    model_name = Column(String(50), nullable=False)
+
+    # 실제 결과
+    actual_return_7d = Column(Float)
+    actual_class = Column(Integer)  # 0: 실패, 1: 성공
+
+    # 피드백 메트릭
+    prediction_error = Column(Float)
+    absolute_error = Column(Float)
+    feedback_date = Column(Date)
+    is_processed = Column(Integer, default=0)  # Boolean as Integer for compatibility
+
+    # 추가 정보
+    factor_scores = Column(Text)  # JSON 형태로 저장
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    __table_args__ = (
+        Index('ix_feedback_prediction_id', 'prediction_id'),
+        Index('ix_feedback_stock_code', 'stock_code'),
+        Index('ix_feedback_prediction_date', 'prediction_date'),
+        Index('ix_feedback_model_name', 'model_name'),
+    )
+
+    def to_dict(self):
+        return {
+            'prediction_id': self.prediction_id,
+            'stock_code': self.stock_code,
+            'prediction_date': self.prediction_date.isoformat() if self.prediction_date else None,
+            'predicted_probability': self.predicted_probability,
+            'predicted_class': self.predicted_class,
+            'model_name': self.model_name,
+            'actual_return_7d': self.actual_return_7d,
+            'actual_class': self.actual_class,
+            'prediction_error': self.prediction_error,
+            'is_processed': bool(self.is_processed),
+            'factor_scores': self.factor_scores,
+        }
+
+
+class ModelPerformanceHistory(Base):
+    """모델 성능 히스토리"""
+    __tablename__ = 'model_performance_history'
+
+    id = Column(Integer, primary_key=True)
+    model_name = Column(String(50), nullable=False)
+    evaluation_date = Column(Date, nullable=False)
+
+    # 성능 메트릭
+    accuracy = Column(Float)
+    precision_score = Column(Float)
+    recall_score = Column(Float)
+    f1_score = Column(Float)
+    auc_score = Column(Float)
+    feedback_count = Column(Integer)
+
+    created_at = Column(DateTime, default=datetime.now)
+
+    __table_args__ = (
+        Index('ix_model_perf_model_name', 'model_name'),
+        Index('ix_model_perf_eval_date', 'evaluation_date'),
+    )
+
+
+class ScreeningResult(Base):
+    """스크리닝 결과 (Phase 1)"""
+    __tablename__ = 'screening_results'
+
+    id = Column(Integer, primary_key=True)
+    screening_date = Column(Date, nullable=False)
+    stock_code = Column(String(20), nullable=False)
+    stock_name = Column(String(100))
+
+    # 스코어
+    total_score = Column(Float)
+    fundamental_score = Column(Float)
+    technical_score = Column(Float)
+    momentum_score = Column(Float)
+
+    # 통과 여부
+    passed = Column(Integer, default=0)  # Boolean
+
+    # 재무 지표
+    roe = Column(Float)
+    per = Column(Float)
+    pbr = Column(Float)
+    debt_ratio = Column(Float)
+
+    created_at = Column(DateTime, default=datetime.now)
+
+    __table_args__ = (
+        Index('ix_screening_date', 'screening_date'),
+        Index('ix_screening_stock_code', 'stock_code'),
+    )
+
+
+class SelectionResult(Base):
+    """선정 결과 (Phase 2)"""
+    __tablename__ = 'selection_results'
+
+    id = Column(Integer, primary_key=True)
+    selection_date = Column(Date, nullable=False)
+    stock_code = Column(String(20), nullable=False)
+    stock_name = Column(String(100))
+
+    # 스코어
+    total_score = Column(Float)
+    technical_score = Column(Float)
+    volume_score = Column(Float)
+    pattern_score = Column(Float)
+    risk_score = Column(Float)
+
+    # 거래 정보
+    entry_price = Column(Float)
+    target_price = Column(Float)
+    stop_loss = Column(Float)
+    expected_return = Column(Float)
+    confidence = Column(Float)
+
+    # 신호
+    signal = Column(String(20))  # buy, sell, hold
+    selection_reason = Column(Text)
+    market_condition = Column(String(50))
+
+    # 결과 (7일 후 업데이트)
+    actual_return_7d = Column(Float)
+    is_success = Column(Integer)  # 0: 실패, 1: 성공
+
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    __table_args__ = (
+        Index('ix_selection_date', 'selection_date'),
+        Index('ix_selection_stock_code', 'stock_code'),
+    )
+
+
+class NotificationHistory(Base):
+    """알림 이력"""
+    __tablename__ = 'notification_history'
+
+    id = Column(Integer, primary_key=True)
+    alert_id = Column(String(50))
+    alert_type = Column(String(50))
+    level = Column(String(20))  # info, warning, error, critical
+    title = Column(String(200))
+    message = Column(Text)
+    channel = Column(String(20))  # telegram, email
+    recipient = Column(String(100))
+    status = Column(String(20))  # sent, failed, filtered
+    error_message = Column(Text)
+    trace_id = Column(String(50))
+    created_at = Column(DateTime, default=datetime.now)
+    sent_at = Column(DateTime)
+    response_data = Column(Text)
+
+    __table_args__ = (
+        Index('ix_notification_alert_id', 'alert_id'),
+        Index('ix_notification_created_at', 'created_at'),
+        Index('ix_notification_status', 'status'),
+    )
+
+
+class SystemAlert(Base):
+    """시스템 알림"""
+    __tablename__ = 'system_alerts'
+
+    id = Column(Integer, primary_key=True)
+    alert_type = Column(String(50), nullable=False)
+    level = Column(String(20), nullable=False)  # info, warning, error, critical
+    title = Column(String(200))
+    message = Column(Text)
+    source = Column(String(100))  # 발생 소스
+    is_resolved = Column(Integer, default=0)
+    resolved_at = Column(DateTime)
+    resolution_note = Column(Text)
+    created_at = Column(DateTime, default=datetime.now)
+
+    __table_args__ = (
+        Index('ix_system_alert_type', 'alert_type'),
+        Index('ix_system_alert_level', 'level'),
+        Index('ix_system_alert_created_at', 'created_at'),
+    )
+
+
+class PerformanceTracking(Base):
+    """성과 추적"""
+    __tablename__ = 'performance_tracking'
+
+    id = Column(Integer, primary_key=True)
+    tracking_date = Column(Date, nullable=False)
+    stock_code = Column(String(20))
+
+    # 일일 성과
+    daily_return = Column(Float)
+    cumulative_return = Column(Float)
+    win_rate = Column(Float)
+    trade_count = Column(Integer)
+
+    # 리스크 메트릭
+    max_drawdown = Column(Float)
+    sharpe_ratio = Column(Float)
+    volatility = Column(Float)
+
+    created_at = Column(DateTime, default=datetime.now)
+
+    __table_args__ = (
+        Index('ix_perf_tracking_date', 'tracking_date'),
+    )
+
+
+class AccuracyTracking(Base):
+    """정확도 추적"""
+    __tablename__ = 'accuracy_tracking'
+
+    id = Column(Integer, primary_key=True)
+    tracking_date = Column(Date, nullable=False)
+    model_name = Column(String(50))
+    prediction_type = Column(String(50))  # screening, selection
+
+    # 정확도 메트릭
+    total_predictions = Column(Integer)
+    correct_predictions = Column(Integer)
+    accuracy = Column(Float)
+    precision_score = Column(Float)
+    recall_score = Column(Float)
+    f1_score = Column(Float)
+
+    created_at = Column(DateTime, default=datetime.now)
+
+    __table_args__ = (
+        Index('ix_accuracy_tracking_date', 'tracking_date'),
+        Index('ix_accuracy_model_name', 'model_name'),
+    )
