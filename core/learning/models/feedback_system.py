@@ -48,33 +48,53 @@ class FeedbackData:
         return asdict(self)
 
 class FeedbackSystem:
-    """피드백 시스템"""
-    
-    def __init__(self, db_path: str = "data/feedback.db", 
-                 performance_db_path: str = "data/performance.db"):
+    """피드백 시스템
+
+    통합 DB (PostgreSQL/SQLite) 사용을 우선하고,
+    실패 시 로컬 SQLite로 폴백합니다.
+    """
+
+    def __init__(self, db_path: str = "data/feedback.db",
+                 performance_db_path: str = "data/performance.db",
+                 use_unified_db: bool = True):
         """초기화
-        
+
         Args:
-            db_path: 피드백 데이터베이스 경로
-            performance_db_path: 성과 데이터베이스 경로
+            db_path: 피드백 데이터베이스 경로 (폴백용)
+            performance_db_path: 성과 데이터베이스 경로 (폴백용)
+            use_unified_db: 통합 DB 사용 여부 (기본값: True)
         """
         self._logger = logger
         self._db_path = db_path
         self._performance_db_path = performance_db_path
-        
-        # 데이터베이스 초기화
-        self._init_database()
-        
+        self._use_unified_db = use_unified_db
+        self._unified_db_available = False
+
+        # 통합 DB 사용 시도
+        if use_unified_db:
+            try:
+                from core.database.unified_db import get_db, ensure_tables_exist
+                ensure_tables_exist()
+                self._unified_db_available = True
+                self._logger.info("통합 DB (PostgreSQL/SQLite) 연결 성공")
+            except Exception as e:
+                self._logger.warning(f"통합 DB 연결 실패, 로컬 SQLite 사용: {e}")
+                self._unified_db_available = False
+
+        # 폴백: 로컬 SQLite 데이터베이스 초기화
+        if not self._unified_db_available:
+            self._init_database()
+
         # 성공 기준 설정
         self._success_threshold = 0.05  # 5% 이상 수익 시 성공
-        
+
         # 재학습 기준
         self._retrain_criteria = {
             'min_feedback_count': 100,      # 최소 피드백 수
             'accuracy_drop_threshold': 0.1,  # 정확도 하락 기준
             'days_since_last_train': 30     # 마지막 학습 후 경과일
         }
-        
+
         self._logger.info("FeedbackSystem 초기화 완료")
     
     def _init_database(self):
@@ -146,18 +166,23 @@ class FeedbackSystem:
     
     def record_predictions(self, predictions: List[PredictionResult]) -> bool:
         """예측 결과 기록
-        
+
         Args:
             predictions: 예측 결과 리스트
-            
+
         Returns:
             bool: 기록 성공 여부
         """
         try:
             self._logger.info(f"예측 결과 기록 시작: {len(predictions)}개")
-            
+
+            # 통합 DB 사용 시
+            if self._unified_db_available:
+                return self._record_predictions_unified(predictions)
+
+            # 폴백: SQLite 사용
             recorded_count = 0
-            
+
             with sqlite3.connect(self._db_path) as conn:
                 cursor = conn.cursor()
                 
@@ -230,7 +255,52 @@ class FeedbackSystem:
         except Exception as e:
             self._logger.error(f"예측 결과 기록 오류: {e}", exc_info=True)
             return False
-    
+
+    def _record_predictions_unified(self, predictions: List[PredictionResult]) -> bool:
+        """통합 DB를 사용한 예측 결과 기록"""
+        try:
+            from core.database.unified_db import save_feedback
+            from datetime import datetime
+
+            recorded_count = 0
+            for prediction in predictions:
+                try:
+                    prediction_id = f"{prediction.stock_code}_{prediction.prediction_date}_ensemble"
+
+                    # factor_scores JSON 직렬화
+                    factor_scores_json = None
+                    if hasattr(prediction, 'factor_scores') and prediction.factor_scores:
+                        factor_scores_json = json.dumps(prediction.factor_scores, ensure_ascii=False)
+
+                    # 날짜 파싱
+                    if isinstance(prediction.prediction_date, str):
+                        pred_date = datetime.strptime(prediction.prediction_date, "%Y-%m-%d").date()
+                    else:
+                        pred_date = prediction.prediction_date
+
+                    success = save_feedback(
+                        prediction_id=prediction_id,
+                        stock_code=prediction.stock_code,
+                        prediction_date=pred_date,
+                        predicted_probability=prediction.ensemble_probability,
+                        predicted_class=prediction.ensemble_prediction,
+                        model_name="ensemble",
+                        factor_scores=factor_scores_json
+                    )
+
+                    if success:
+                        recorded_count += 1
+
+                except Exception as e:
+                    self._logger.warning(f"예측 기록 실패 (통합DB): {prediction.stock_code} - {e}")
+
+            self._logger.info(f"예측 결과 기록 완료 (통합DB): {recorded_count}개")
+            return recorded_count > 0
+
+        except Exception as e:
+            self._logger.error(f"예측 결과 기록 오류 (통합DB): {e}", exc_info=True)
+            return False
+
     def update_feedback_from_performance(self, start_date: Optional[str] = None) -> bool:
         """성과 데이터로부터 피드백 업데이트
         
@@ -613,6 +683,12 @@ class FeedbackSystem:
             List[Dict[str, Any]]: 최근 피드백 목록
         """
         try:
+            # 통합 DB 사용 시
+            if self._unified_db_available:
+                from core.database.unified_db import get_recent_feedback as get_feedback_unified
+                return get_feedback_unified(days=days, limit=100)
+
+            # 폴백: SQLite 사용
             cutoff_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
 
             with sqlite3.connect(self._db_path) as conn:

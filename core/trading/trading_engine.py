@@ -598,7 +598,7 @@ class TradingEngine:
                 self.positions[stock_code] = position
                 self.daily_trades += 1
                 
-                # 매매일지 기록
+                # 매매일지 기록 (Phase 2 예측 메타데이터 포함)
                 self.journal.log_order(
                     stock_code=stock_code,
                     stock_name=stock_name,
@@ -610,7 +610,14 @@ class TradingEngine:
                         "strategy": "daily_selection",
                         "order_id": result.get("order_id"),
                         "target_price": position.target_price,
-                        "stop_loss": position.stop_loss
+                        "stop_loss": position.stop_loss,
+                        # Phase 2 예측 정보 (Phase 4 학습용)
+                        "entry_price": stock_data.get("entry_price", current_price),
+                        "expected_return": stock_data.get("expected_return", 0),
+                        "predicted_probability": stock_data.get("confidence", 0.5),
+                        "predicted_class": stock_data.get("predicted_class", 1),
+                        "model_name": stock_data.get("model_name", "ensemble"),
+                        "price_attractiveness": stock_data.get("price_attractiveness", 0)
                     }
                 )
                 
