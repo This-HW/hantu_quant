@@ -23,23 +23,113 @@ from tenacity import (
 )
 
 from core.config import settings
-from core.config.api_config import APIConfig
+from core.config.api_config import APIConfig, KISErrorCode
 
 logger = logging.getLogger(__name__)
 
 # 글로벌 Rate Limiter (프로세스/스레드 간 공유)
 _RATE_LIMIT_LOCK_FILE = os.path.join(tempfile.gettempdir(), "hantu_api_rate_limit.lock")
 _RATE_LIMIT_TIME_FILE = os.path.join(tempfile.gettempdir(), "hantu_api_last_request.txt")
+_RATE_LIMIT_BACKOFF_FILE = os.path.join(tempfile.gettempdir(), "hantu_api_backoff.txt")
+
+# 적응형 Rate Limit 상수
+_DEFAULT_MIN_INTERVAL = 0.35  # 기본 최소 간격 (초)
+_MAX_BACKOFF_MULTIPLIER = 5.0  # 최대 백오프 배수
+_BACKOFF_DECAY_RATE = 0.9  # 성공 시 백오프 감소율
+
+
+def _get_backoff_multiplier() -> float:
+    """현재 백오프 배수 읽기"""
+    try:
+        if os.path.exists(_RATE_LIMIT_BACKOFF_FILE):
+            with open(_RATE_LIMIT_BACKOFF_FILE, 'r') as f:
+                content = f.read().strip()
+                if content:
+                    return min(float(content), _MAX_BACKOFF_MULTIPLIER)
+    except (ValueError, OSError):
+        pass
+    return 1.0
+
+
+def _set_backoff_multiplier(multiplier: float) -> None:
+    """백오프 배수 설정"""
+    try:
+        with open(_RATE_LIMIT_BACKOFF_FILE, 'w') as f:
+            f.write(str(min(multiplier, _MAX_BACKOFF_MULTIPLIER)))
+    except OSError:
+        pass
+
+
+def _increase_backoff() -> float:
+    """Rate Limit 에러 시 백오프 증가 (x2)"""
+    current = _get_backoff_multiplier()
+    new_multiplier = min(current * 2.0, _MAX_BACKOFF_MULTIPLIER)
+    _set_backoff_multiplier(new_multiplier)
+    logger.warning(f"Rate Limit 감지 - 백오프 배수 증가: {current:.1f} -> {new_multiplier:.1f}")
+    return new_multiplier
+
+
+def _decrease_backoff() -> float:
+    """성공 시 백오프 점진적 감소"""
+    current = _get_backoff_multiplier()
+    if current > 1.0:
+        new_multiplier = max(current * _BACKOFF_DECAY_RATE, 1.0)
+        _set_backoff_multiplier(new_multiplier)
+        if new_multiplier < current:
+            logger.debug(f"백오프 배수 감소: {current:.2f} -> {new_multiplier:.2f}")
+        return new_multiplier
+    return 1.0
 
 
 class RetryableAPIError(Exception):
     """재시도 가능한 API 에러 (5xx, Timeout, ConnectionError)"""
-    pass
+    def __init__(self, message: str, kis_error_code: str = None, wait_seconds: float = None):
+        super().__init__(message)
+        self.kis_error_code = kis_error_code
+        self.wait_seconds = wait_seconds  # 에러별 권장 대기 시간
 
 
 class NonRetryableAPIError(Exception):
     """재시도 불가능한 API 에러 (4xx, 인증 실패)"""
     pass
+
+
+def _extract_kis_error_code(response_text: str) -> Optional[str]:
+    """응답에서 KIS 에러 코드 추출
+
+    Args:
+        response_text: API 응답 텍스트
+
+    Returns:
+        str: KIS 에러 코드 (EGW로 시작) 또는 None
+    """
+    import re
+    # EGW로 시작하는 에러 코드 추출 (예: EGW00203, EGW00201)
+    match = re.search(r'EGW\d+', response_text)
+    return match.group() if match else None
+
+
+def _get_wait_time_for_kis_error(error_code: str) -> float:
+    """KIS 에러 코드에 따른 대기 시간 반환
+
+    Args:
+        error_code: KIS 에러 코드
+
+    Returns:
+        float: 권장 대기 시간 (초)
+    """
+    if error_code == KISErrorCode.OPS_ROUTING_ERROR:
+        # EGW00203: 서버 과부하/점검 - 긴 대기 필요
+        return 15.0
+    elif error_code == KISErrorCode.RATE_LIMIT:
+        # EGW00201: Rate Limit - 중간 대기
+        return 5.0
+    elif error_code == KISErrorCode.SERVICE_ERROR:
+        # EGW00500: 서비스 오류 - 표준 대기
+        return 10.0
+    else:
+        # 기본 대기 시간
+        return 3.0
 
 class KISRestClient:
     """REST API 기본 클라이언트"""
@@ -137,12 +227,51 @@ class KISRestClient:
 
         # 성공 응답
         if status_code == 200:
-            return response.json()
+            result = response.json()
+            # 성공 응답이지만 KIS 에러 코드가 있는 경우 (rt_cd != '0')
+            if result.get('rt_cd') == '1':
+                kis_error_code = result.get('msg_cd', '')
+                if kis_error_code in KISErrorCode.RETRYABLE_ERRORS:
+                    # Rate Limit 에러 시 적응형 백오프 증가
+                    if kis_error_code == KISErrorCode.RATE_LIMIT:
+                        _increase_backoff()
+                    wait_time = _get_wait_time_for_kis_error(kis_error_code)
+                    logger.warning(
+                        f"KIS API 에러 (재시도 예정): {kis_error_code}, {result.get('msg1', '')} - {wait_time}초 대기"
+                    )
+                    time.sleep(wait_time)  # 에러 코드별 대기 시간 적용
+                    raise RetryableAPIError(
+                        f"KIS Error {kis_error_code}: {result.get('msg1', '')}",
+                        kis_error_code=kis_error_code,
+                        wait_seconds=wait_time
+                    )
+            # 성공 시 백오프 점진적 감소
+            _decrease_backoff()
+            return result
 
         # 5xx 서버 에러 → 재시도
         if 500 <= status_code < 600:
-            logger.warning(f"API 서버 에러 (재시도 예정): {status_code}, {response.text}")
-            raise RetryableAPIError(f"HTTP {status_code}: {response.text}")
+            kis_error_code = _extract_kis_error_code(response.text)
+            wait_time = _get_wait_time_for_kis_error(kis_error_code) if kis_error_code else 3.0
+
+            if kis_error_code == KISErrorCode.OPS_ROUTING_ERROR:
+                logger.warning(
+                    f"KIS OPS 라우팅 에러 (EGW00203) - 서버 과부하/점검 중, {wait_time}초 후 재시도"
+                )
+            elif kis_error_code == KISErrorCode.RATE_LIMIT:
+                _increase_backoff()  # Rate Limit 시 적응형 백오프 증가
+                logger.warning(
+                    f"KIS Rate Limit 에러 (EGW00201) - 호출 제한 초과, {wait_time}초 후 재시도"
+                )
+            else:
+                logger.warning(f"API 서버 에러 (재시도 예정): {status_code}, {response.text}")
+
+            time.sleep(wait_time)  # 에러 코드별 대기 시간 적용
+            raise RetryableAPIError(
+                f"HTTP {status_code}: {response.text}",
+                kis_error_code=kis_error_code,
+                wait_seconds=wait_time
+            )
 
         # 4xx 클라이언트 에러 → 재시도 불가
         if 400 <= status_code < 500:
@@ -154,12 +283,17 @@ class KISRestClient:
         return {"error": f"HTTP {status_code}", "message": response.text}
     
     def _rate_limit(self):
-        """API 호출 제한 준수 (글로벌 파일 락 사용)
+        """API 호출 제한 준수 (글로벌 파일 락 사용 + 적응형 백오프)
 
         멀티프로세스/스레드 환경에서도 안전하게 rate limit 적용
+        Rate Limit 에러 발생 시 자동으로 간격 증가
         """
         # 설정 기반 간격 계산 (KIS API 권장: 초당 3~5건)
-        min_interval = max(0.35, 1.0 / max(1, settings.RATE_LIMIT_PER_SEC))
+        base_interval = max(_DEFAULT_MIN_INTERVAL, 1.0 / max(1, settings.RATE_LIMIT_PER_SEC))
+
+        # 적응형 백오프 적용
+        backoff_multiplier = _get_backoff_multiplier()
+        min_interval = base_interval * backoff_multiplier
 
         try:
             # 파일 락을 사용한 글로벌 rate limiting
@@ -180,6 +314,8 @@ class KISRestClient:
 
                     if time_diff < min_interval:
                         sleep_time = min_interval - time_diff
+                        if backoff_multiplier > 1.0:
+                            logger.debug(f"적응형 Rate Limit 적용: {sleep_time:.2f}초 대기 (백오프: {backoff_multiplier:.1f}x)")
                         time.sleep(sleep_time)
 
                     # 현재 시간 저장

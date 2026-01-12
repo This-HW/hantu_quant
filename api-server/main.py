@@ -443,8 +443,11 @@ def load_latest_watchlist_data() -> List[WatchlistItem]:
         except Exception as e:
             logger.error(f"DB watchlist load failed: {e}", exc_info=True)
 
-    # 2. Fallback to JSON file (WARNING: This should not happen in production)
-    logger.error("Using JSON fallback for watchlist - DB data not available")
+    # 2. Fallback to JSON file
+    if DB_SERVICE_AVAILABLE:
+        logger.warning("DB에 watchlist 데이터 없음 - JSON 파일로 폴백")
+    else:
+        logger.info("DB 서비스 미사용 - JSON 파일에서 watchlist 로드")
     try:
         project_root = Path(__file__).parent.parent
         watchlist_path = project_root / "data" / "watchlist" / "watchlist.json"
@@ -529,8 +532,11 @@ def load_latest_daily_selection_data() -> List[DailySelection]:
         except Exception as e:
             logger.error(f"DB daily selection load failed: {e}", exc_info=True)
 
-    # 2. Fallback to JSON file (WARNING: This should not happen in production)
-    logger.error("Using JSON fallback for daily selections - DB data not available")
+    # 2. Fallback to JSON file
+    if DB_SERVICE_AVAILABLE:
+        logger.warning("DB에 daily selection 데이터 없음 - JSON 파일로 폴백")
+    else:
+        logger.info("DB 서비스 미사용 - JSON 파일에서 daily selection 로드")
     try:
         project_root = Path(__file__).parent.parent
         daily_dir = project_root / "data" / "daily_selection"
