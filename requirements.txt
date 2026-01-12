@@ -1,5 +1,5 @@
 click>=8.1.0
-requests==2.31.0
+requests==2.32.5
 pykrx>=1.0.0  # KRX 데이터 조회 (종목 리스트, 시세)
 tenacity>=8.2.0
 pydantic>=2.0.0
