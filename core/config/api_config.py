@@ -44,7 +44,11 @@ class KISErrorCode:
     TOKEN_EXPIRED = "EGW00123"  # 토큰 만료
     TOKEN_INVALID = "EGW00121"  # 유효하지 않은 토큰
     RATE_LIMIT = "EGW00201"     # 호출 제한 초과
+    OPS_ROUTING_ERROR = "EGW00203"  # OPS 라우팅 오류 (서버 과부하/점검)
     SERVICE_ERROR = "EGW00500"  # 서비스 오류
+
+    # 재시도 가능한 에러 코드 목록
+    RETRYABLE_ERRORS = [RATE_LIMIT, OPS_ROUTING_ERROR, SERVICE_ERROR]
 
 
 class APIConfig:
@@ -450,6 +454,38 @@ class APIConfig:
         error_code = response.get('msg_cd', '') or response.get('rt_cd', '')
         return error_code == KISErrorCode.RATE_LIMIT
 
+    @staticmethod
+    def is_ops_routing_error(response: Dict) -> bool:
+        """OPS 라우팅 에러인지 확인 (서버 과부하/점검)
+
+        Args:
+            response: API 응답 딕셔너리
+
+        Returns:
+            bool: OPS 라우팅 에러 여부
+        """
+        if not isinstance(response, dict):
+            return False
+
+        error_code = response.get('msg_cd', '') or response.get('rt_cd', '')
+        return error_code == KISErrorCode.OPS_ROUTING_ERROR
+
+    @staticmethod
+    def is_retryable_kis_error(response: Dict) -> bool:
+        """재시도 가능한 KIS 에러인지 확인
+
+        Args:
+            response: API 응답 딕셔너리
+
+        Returns:
+            bool: 재시도 가능 여부
+        """
+        if not isinstance(response, dict):
+            return False
+
+        error_code = response.get('msg_cd', '') or response.get('rt_cd', '')
+        return error_code in KISErrorCode.RETRYABLE_ERRORS
+
     def handle_api_error(self, response: Dict) -> bool:
         """API 에러 처리 및 복구 시도
 
@@ -464,8 +500,13 @@ class APIConfig:
             return self.refresh_token(force=True)
 
         if self.is_rate_limit_error(response):
-            logger.warning("[handle_api_error] Rate Limit 에러, 1초 대기")
-            time.sleep(1)
+            logger.warning("[handle_api_error] Rate Limit 에러 (EGW00201), 2초 대기")
+            time.sleep(2)
             return True
 
-        return False 
+        if self.is_ops_routing_error(response):
+            logger.warning("[handle_api_error] OPS 라우팅 에러 (EGW00203), 서버 과부하/점검 - 10초 대기")
+            time.sleep(10)
+            return True
+
+        return False
