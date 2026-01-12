@@ -291,26 +291,41 @@ class MemoryTracker:
 
 class APICallTracker:
     """API 호출 추적기"""
-    
-    def __init__(self, db_path: str = "data/api_tracking.db"):
+
+    def __init__(self, db_path: str = "data/api_tracking.db",
+                 use_unified_db: bool = True):
         """초기화
-        
+
         Args:
-            db_path: API 추적 데이터베이스 경로
+            db_path: API 추적 데이터베이스 경로 (SQLite 폴백용)
+            use_unified_db: 통합 DB 사용 여부 (기본값: True)
         """
         self._logger = logger
         self._db_path = db_path
-        
+        self._unified_db_available = False
+
+        # 통합 DB 초기화 시도
+        if use_unified_db:
+            try:
+                from ..database.unified_db import get_db, ensure_tables_exist
+                ensure_tables_exist()
+                self._unified_db_available = True
+                self._logger.info("APICallTracker: 통합 DB 사용")
+            except Exception as e:
+                self._logger.warning(f"통합 DB 초기화 실패, SQLite 폴백 사용: {e}")
+                self._unified_db_available = False
+
         # 메모리 내 호출 기록 (최근 1시간)
         self._call_history: deque = deque(maxlen=10000)
-        
+
         # 통계 캐시
         self._stats_cache: Dict[str, APIStatistics] = {}
         self._cache_expiry: Dict[str, datetime] = {}
-        
-        # 데이터베이스 초기화
-        self._init_database()
-        
+
+        # SQLite 데이터베이스 초기화 (폴백용)
+        if not self._unified_db_available:
+            self._init_database()
+
         self._logger.info("APICallTracker 초기화 완료")
     
     def _init_database(self):
