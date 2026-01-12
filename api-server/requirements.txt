@@ -6,7 +6,7 @@ python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
 python-dotenv==1.0.0
 sqlalchemy==2.0.45
-alembic==1.13.0
+alembic==1.16.5
 aiofiles==25.1.0
 websockets==12.0
 redis==5.0.1
