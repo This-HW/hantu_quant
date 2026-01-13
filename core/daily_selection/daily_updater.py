@@ -543,10 +543,9 @@ class DailyUpdater(IDailyUpdater):
         """
         try:
             from core.daily_selection.trend_follower import get_trend_follower
-            from core.api.kis_api import KISAPI
 
             trend_follower = get_trend_follower()
-            api = KISAPI()
+            api = self._get_kis_api()  # 싱글톤 사용하여 rate limiting 공유
 
             # 종목별 가격 데이터 수집
             market_data = {}
@@ -585,10 +584,9 @@ class DailyUpdater(IDailyUpdater):
         """
         try:
             from core.strategy.multi_strategy_manager import MultiStrategyManager
-            from core.api.kis_api import KISAPI
 
             multi_strategy = MultiStrategyManager()
-            api = KISAPI()
+            api = self._get_kis_api()  # 싱글톤 사용하여 rate limiting 공유
 
             # 시장 지수 데이터 가져오기 (KOSPI)
             market_index_data = api.get_stock_history("0001", period="D", count=60)  # KOSPI 지수
