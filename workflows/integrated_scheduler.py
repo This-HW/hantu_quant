@@ -195,6 +195,13 @@ class IntegratedScheduler:
         # Phase 4: AI 학습 시스템 (일일 성과 분석: 매일 17:00)
         schedule.every().day.at("17:00").do(self._run_daily_performance_analysis)
 
+        # 재무 데이터 수집 배치 (평일 03:00, 새벽 시간대)
+        schedule.every().monday.at("03:00").do(self._run_fundamental_data_collection)
+        schedule.every().tuesday.at("03:00").do(self._run_fundamental_data_collection)
+        schedule.every().wednesday.at("03:00").do(self._run_fundamental_data_collection)
+        schedule.every().thursday.at("03:00").do(self._run_fundamental_data_collection)
+        schedule.every().friday.at("03:00").do(self._run_fundamental_data_collection)
+
         # Phase 4: 강화된 적응형 학습 (주말 - 대량 데이터 분석)
         # 토요일 20:00에 실행하여 주간 데이터 기반 포괄적 분석
         schedule.every().saturday.at("20:00").do(self._run_enhanced_adaptive_learning)
@@ -669,7 +676,43 @@ class IntegratedScheduler:
         except Exception as e:
             logger.error(f"시장 마감 후 정리 오류: {e}", exc_info=True)
             print(f"❌ 시장 마감 후 정리 오류: {e}")
-    
+
+    def _run_fundamental_data_collection(self):
+        """재무 데이터 수집 배치 (pykrx 사용, 장 마감 후 실행)"""
+        try:
+            logger.info("=== 재무 데이터 수집 배치 시작 ===")
+            print(f"📈 재무 데이터 수집 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+            from core.api.krx_client import KRXClient
+
+            krx_client = KRXClient()
+
+            # 전체 종목 재무 데이터 수집 및 저장
+            saved_count = krx_client.save_market_fundamentals()
+
+            if saved_count > 0:
+                logger.info(f"재무 데이터 수집 완료: {saved_count}개 종목")
+                print(f"✅ 재무 데이터 수집 완료: {saved_count}개 종목")
+
+                # 텔레그램 알림 (선택)
+                try:
+                    notifier = get_telegram_notifier()
+                    if notifier.is_enabled():
+                        notifier.send_message(
+                            f"📈 재무 데이터 수집 완료\n"
+                            f"- 종목 수: {saved_count}개\n"
+                            f"- 시간: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                        )
+                except Exception as e:
+                    logger.warning(f"텔레그램 알림 실패: {e}")
+            else:
+                logger.warning("재무 데이터 수집 실패: 저장된 종목 없음")
+                print("⚠️ 재무 데이터 수집 실패")
+
+        except Exception as e:
+            logger.error(f"재무 데이터 수집 오류: {e}", exc_info=True)
+            print(f"❌ 재무 데이터 수집 오류: {e}")
+
     def _run_daily_performance_analysis(self):
         """일일 성과 분석 실행 (Phase 4) - 실제 성과 데이터 사용"""
         try:
