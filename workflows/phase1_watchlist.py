@@ -495,42 +495,41 @@ class Phase1Workflow:
             ]
     
     def _get_stock_info(self, p_stock_code: str) -> Optional[Dict]:
-        """종목 정보 조회 (전체 종목 리스트 파일 사용)
-        
+        """종목 정보 조회 (종목 리스트 + 재무 데이터 파일 사용)
+
         Args:
             p_stock_code: 종목 코드
-            
+
         Returns:
-            종목 정보 딕셔너리
+            종목 정보 딕셔너리 (실제 재무 데이터 포함)
         """
         try:
             # 전체 종목 리스트 파일 로드
             _v_stock_name = None
             _v_market = None
             _v_sector = "기타"
-            
+
             from pathlib import Path
-            import glob
-            
+
             # 프로젝트 루트 경로 기준으로 절대 경로 생성
             _v_project_root = Path(__file__).parent.parent
             _v_stock_dir = _v_project_root / "data" / "stock"
-            
+
             # 가장 최신 종목 리스트 파일 찾기
             _v_stock_list_files = list(_v_stock_dir.glob("krx_stock_list_*.json"))
             if _v_stock_list_files:
-                _v_stock_list_file = max(_v_stock_list_files, key=lambda x: x.name)  # 가장 최신 파일
-                
+                _v_stock_list_file = max(_v_stock_list_files, key=lambda x: x.name)
+
                 try:
                     with open(_v_stock_list_file, 'r', encoding='utf-8') as f:
                         _v_stock_list = json.load(f)
-            
+
                     # 종목 코드로 검색
                     for stock in _v_stock_list:
                         if stock.get("ticker") == p_stock_code:
                             _v_stock_name = stock.get("name", f"종목{p_stock_code}")
                             _v_market = stock.get("market", "기타")
-                            
+
                             # 시장 명칭 통일
                             if _v_market == "코스닥":
                                 _v_market = "KOSDAQ"
@@ -538,25 +537,25 @@ class Phase1Workflow:
                                 _v_market = "KOSPI"
                             else:
                                 _v_market = "기타"
-                            
+
                             break
-                            
+
                     logger.debug(f"종목 정보 로드 성공: {p_stock_code} → {_v_stock_name} ({_v_market})")
-                            
+
                 except Exception as e:
                     logger.warning(f"종목 리스트 파일 로드 실패: {e}")
             else:
                 logger.warning(f"종목 리스트 파일을 찾을 수 없음: {_v_stock_dir}")
-            
+
             # 종목 정보가 없으면 기본값 사용
             if not _v_stock_name:
                 _v_stock_name = f"종목{p_stock_code}"
                 _v_market = "KOSPI" if p_stock_code.startswith(('0', '1', '2', '3')) else "KOSDAQ"
                 logger.warning(f"종목 정보 없음, 기본값 사용: {p_stock_code} → {_v_stock_name} ({_v_market})")
-            
+
             # 섹터 추정 (기본 매핑 사용)
             _v_sector_map = {
-                "005930": "반도체", "000660": "반도체", 
+                "005930": "반도체", "000660": "반도체",
                 "035420": "인터넷", "035720": "인터넷",
                 "005380": "자동차", "000270": "자동차",
                 "068270": "바이오", "207940": "바이오",
@@ -568,46 +567,101 @@ class Phase1Workflow:
                 "028260": "건설", "009150": "전자"
             }
             _v_sector = _v_sector_map.get(p_stock_code, "기타")
-            
+
+            # 재무 데이터 로드 (저장된 파일에서)
+            _v_fundamental = self._load_fundamental_data(p_stock_code, _v_stock_dir)
+
             return {
                 "stock_code": p_stock_code,
                 "stock_name": _v_stock_name,
                 "sector": _v_sector,
                 "market": _v_market,
-                "market_cap": 1000000000000,  # 임시값 (추후 실제 데이터로 교체)
-                "current_price": 50000,       # 임시값 (추후 실제 데이터로 교체)
-                # 재무 데이터 (임시값, 추후 실제 데이터로 교체)
-                "roe": 12.5,
-                "per": 15.2,
-                "pbr": 1.1,
-                "debt_ratio": 45.2,
-                "revenue_growth": 8.5,
-                "operating_margin": 12.3,
-                # 기술적 데이터 (임시값, 추후 실제 데이터로 교체)
-                "ma_20": 49000,
-                "ma_60": 48000,
-                "ma_120": 47000,
-                "rsi": 45.2,
-                "volume_ratio": 1.8,
-                "price_momentum_1m": 5.2,
-                "volatility": 0.25,
-                # 모멘텀 데이터 (임시값, 추후 실제 데이터로 교체)
-                "relative_strength": 0.1,
-                "price_momentum_3m": 8.3,
-                "price_momentum_6m": 15.7,
-                "volume_momentum": 0.2,
-                "sector_momentum": 0.05
+                "market_cap": 1000000000000,  # 시가총액은 별도 조회 필요
+                "current_price": 50000,       # 현재가는 실시간 조회 필요
+                # 재무 데이터 (실제 데이터 또는 기본값)
+                "roe": _v_fundamental.get("roe", 0.0),
+                "per": _v_fundamental.get("per", 0.0),
+                "pbr": _v_fundamental.get("pbr", 0.0),
+                "eps": _v_fundamental.get("eps", 0.0),
+                "bps": _v_fundamental.get("bps", 0.0),
+                "debt_ratio": 50.0,  # 부채비율은 별도 소스 필요
+                "revenue_growth": 0.0,
+                "operating_margin": 0.0,
+                # 기술적 데이터 (실시간 조회 필요 - Phase 2에서 처리)
+                "ma_20": 0,
+                "ma_60": 0,
+                "ma_120": 0,
+                "rsi": 50.0,
+                "volume_ratio": 1.0,
+                "price_momentum_1m": 0.0,
+                "volatility": 0.0,
+                # 모멘텀 데이터
+                "relative_strength": 0.0,
+                "price_momentum_3m": 0.0,
+                "price_momentum_6m": 0.0,
+                "volume_momentum": 0.0,
+                "sector_momentum": 0.0
             }
-            
+
         except Exception as e:
             logger.error(f"종목 정보 조회 오류 - {p_stock_code}: {e}", exc_info=True)
             return None
+
+    def _load_fundamental_data(self, p_stock_code: str, p_stock_dir) -> Dict:
+        """저장된 재무 데이터 파일에서 종목 재무 정보 로드
+
+        Args:
+            p_stock_code: 종목 코드
+            p_stock_dir: 데이터 디렉토리 경로
+
+        Returns:
+            재무 데이터 딕셔너리
+        """
+        try:
+            import pandas as pd
+
+            # 가장 최신 재무 데이터 파일 찾기
+            _v_fundamental_files = list(p_stock_dir.glob("krx_fundamentals_*.json"))
+
+            if not _v_fundamental_files:
+                logger.debug(f"재무 데이터 파일 없음, 기본값 사용: {p_stock_code}")
+                return {}
+
+            _v_latest_file = max(_v_fundamental_files, key=lambda x: x.name)
+
+            # JSON 파일 로드
+            _v_df = pd.read_json(_v_latest_file)
+
+            if _v_df.empty:
+                return {}
+
+            # 종목 코드로 검색
+            _v_stock_data = _v_df[_v_df['ticker'] == p_stock_code]
+
+            if _v_stock_data.empty:
+                logger.debug(f"종목 {p_stock_code} 재무 데이터 없음")
+                return {}
+
+            _v_row = _v_stock_data.iloc[0]
+
+            return {
+                'per': float(_v_row.get('PER', 0)) if pd.notna(_v_row.get('PER')) else 0.0,
+                'pbr': float(_v_row.get('PBR', 0)) if pd.notna(_v_row.get('PBR')) else 0.0,
+                'eps': float(_v_row.get('EPS', 0)) if pd.notna(_v_row.get('EPS')) else 0.0,
+                'bps': float(_v_row.get('BPS', 0)) if pd.notna(_v_row.get('BPS')) else 0.0,
+                'roe': float(_v_row.get('ROE', 0)) if pd.notna(_v_row.get('ROE')) else 0.0,
+                'div': float(_v_row.get('DIV', 0)) if pd.notna(_v_row.get('DIV')) else 0.0,
+            }
+
+        except Exception as e:
+            logger.warning(f"재무 데이터 로드 실패 - {p_stock_code}: {e}")
+            return {}
     
-    def _load_top_stocks_from_results(self, p_top_count: int = 500) -> List[Dict]:
+    def _load_top_stocks_from_results(self, p_top_count: int = 100) -> List[Dict]:
         """스크리닝 결과 파일에서 상위 종목 로드
 
         Args:
-            p_top_count: 가져올 상위 종목 수 (기본값: 500)
+            p_top_count: 가져올 상위 종목 수 (기본값: 100, API 호출 제한 고려)
 
         Returns:
             상위 종목 리스트 (실패 시 빈 리스트)
@@ -716,10 +770,10 @@ class Phase1Workflow:
         """
         _v_added_count = 0
 
-        # 통과 종목이 없으면 상위 점수 종목들을 선택
+        # 통과 종목이 없으면 상위 점수 종목들을 선택 (최대 100개로 제한)
         if not p_passed_stocks:
             logger.info("통과 종목이 없으므로 상위 점수 종목들을 감시 리스트에 추가합니다.")
-            p_passed_stocks = self._load_top_stocks_from_results(p_top_count=500)
+            p_passed_stocks = self._load_top_stocks_from_results(p_top_count=100)
             if not p_passed_stocks:
                 return 0
 
