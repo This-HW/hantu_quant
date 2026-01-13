@@ -59,6 +59,50 @@ class Indicator(Base):
     # 관계 설정
     stock = relationship('Stock', back_populates='indicators')
 
+
+class StockFundamental(Base):
+    """종목 재무 데이터 (pykrx에서 수집)"""
+    __tablename__ = 'stock_fundamentals'
+
+    id = Column(Integer, primary_key=True)
+    stock_code = Column(String(20), nullable=False)
+    date = Column(Date, nullable=False)  # 데이터 기준일
+
+    # 재무 지표
+    per = Column(Float)  # 주가수익비율
+    pbr = Column(Float)  # 주가순자산비율
+    eps = Column(Float)  # 주당순이익
+    bps = Column(Float)  # 주당순자산
+    div = Column(Float)  # 배당수익률
+    dps = Column(Float)  # 주당배당금
+    roe = Column(Float)  # 자기자본이익률 (계산값)
+
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    __table_args__ = (
+        Index('ix_fundamental_stock_code', 'stock_code'),
+        Index('ix_fundamental_date', 'date'),
+        Index('ix_fundamental_stock_date', 'stock_code', 'date', unique=True),
+    )
+
+    def __repr__(self):
+        return f"<StockFundamental(code='{self.stock_code}', date={self.date}, per={self.per})>"
+
+    def to_dict(self):
+        return {
+            'stock_code': self.stock_code,
+            'date': self.date.isoformat() if self.date else None,
+            'per': self.per,
+            'pbr': self.pbr,
+            'eps': self.eps,
+            'bps': self.bps,
+            'div': self.div,
+            'dps': self.dps,
+            'roe': self.roe,
+        }
+
+
 class Trade(Base):
     """거래 내역"""
     __tablename__ = 'trades'
