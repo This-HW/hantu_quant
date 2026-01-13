@@ -195,12 +195,12 @@ class IntegratedScheduler:
         # Phase 4: AI 학습 시스템 (일일 성과 분석: 매일 17:00)
         schedule.every().day.at("17:00").do(self._run_daily_performance_analysis)
 
-        # 재무 데이터 수집 배치 (평일 18:00, 장 마감 후)
-        schedule.every().monday.at("18:00").do(self._run_fundamental_data_collection)
-        schedule.every().tuesday.at("18:00").do(self._run_fundamental_data_collection)
-        schedule.every().wednesday.at("18:00").do(self._run_fundamental_data_collection)
-        schedule.every().thursday.at("18:00").do(self._run_fundamental_data_collection)
-        schedule.every().friday.at("18:00").do(self._run_fundamental_data_collection)
+        # 재무 데이터 수집 배치 (평일 03:00, 새벽 시간대)
+        schedule.every().monday.at("03:00").do(self._run_fundamental_data_collection)
+        schedule.every().tuesday.at("03:00").do(self._run_fundamental_data_collection)
+        schedule.every().wednesday.at("03:00").do(self._run_fundamental_data_collection)
+        schedule.every().thursday.at("03:00").do(self._run_fundamental_data_collection)
+        schedule.every().friday.at("03:00").do(self._run_fundamental_data_collection)
 
         # Phase 4: 강화된 적응형 학습 (주말 - 대량 데이터 분석)
         # 토요일 20:00에 실행하여 주간 데이터 기반 포괄적 분석
