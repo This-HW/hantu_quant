@@ -608,16 +608,34 @@ class Phase1Workflow:
             return None
 
     def _load_fundamental_data(self, p_stock_code: str, p_stock_dir) -> Dict:
-        """저장된 재무 데이터 파일에서 종목 재무 정보 로드
+        """DB에서 종목 재무 정보 로드 (파일 폴백)
 
         Args:
             p_stock_code: 종목 코드
-            p_stock_dir: 데이터 디렉토리 경로
+            p_stock_dir: 데이터 디렉토리 경로 (파일 폴백용)
 
         Returns:
             재무 데이터 딕셔너리
         """
         try:
+            # 1. DB에서 먼저 조회 시도
+            from core.api.krx_client import KRXClient
+            krx_client = KRXClient()
+            db_data = krx_client.load_fundamentals_from_db(p_stock_code)
+
+            if db_data:
+                logger.debug(f"DB에서 재무 데이터 로드 성공: {p_stock_code}")
+                return {
+                    'per': float(db_data.get('per', 0)) if db_data.get('per') is not None else 0.0,
+                    'pbr': float(db_data.get('pbr', 0)) if db_data.get('pbr') is not None else 0.0,
+                    'eps': float(db_data.get('eps', 0)) if db_data.get('eps') is not None else 0.0,
+                    'bps': float(db_data.get('bps', 0)) if db_data.get('bps') is not None else 0.0,
+                    'roe': float(db_data.get('roe', 0)) if db_data.get('roe') is not None else 0.0,
+                    'div': float(db_data.get('div', 0)) if db_data.get('div') is not None else 0.0,
+                }
+
+            # 2. DB에 없으면 파일에서 폴백 로드
+            logger.debug(f"DB에 재무 데이터 없음, 파일에서 로드 시도: {p_stock_code}")
             import pandas as pd
 
             # 가장 최신 재무 데이터 파일 찾기
