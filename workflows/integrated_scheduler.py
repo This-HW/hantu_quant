@@ -195,12 +195,12 @@ class IntegratedScheduler:
         # Phase 4: AI 학습 시스템 (일일 성과 분석: 매일 17:00)
         schedule.every().day.at("17:00").do(self._run_daily_performance_analysis)
 
-        # 재무 데이터 수집 배치 (평일 03:00, 새벽 시간대)
-        schedule.every().monday.at("03:00").do(self._run_fundamental_data_collection)
-        schedule.every().tuesday.at("03:00").do(self._run_fundamental_data_collection)
-        schedule.every().wednesday.at("03:00").do(self._run_fundamental_data_collection)
-        schedule.every().thursday.at("03:00").do(self._run_fundamental_data_collection)
-        schedule.every().friday.at("03:00").do(self._run_fundamental_data_collection)
+        # 재무 데이터 수집 배치 (평일 05:30, KIS API 점검 종료 후 & Phase 1 전)
+        schedule.every().monday.at("05:30").do(self._run_fundamental_data_collection)
+        schedule.every().tuesday.at("05:30").do(self._run_fundamental_data_collection)
+        schedule.every().wednesday.at("05:30").do(self._run_fundamental_data_collection)
+        schedule.every().thursday.at("05:30").do(self._run_fundamental_data_collection)
+        schedule.every().friday.at("05:30").do(self._run_fundamental_data_collection)
 
         # Phase 4: 강화된 적응형 학습 (주말 - 대량 데이터 분석)
         # 토요일 20:00에 실행하여 주간 데이터 기반 포괄적 분석
@@ -678,7 +678,7 @@ class IntegratedScheduler:
             print(f"❌ 시장 마감 후 정리 오류: {e}")
 
     def _run_fundamental_data_collection(self):
-        """재무 데이터 수집 배치 (pykrx 사용, 장 마감 후 실행)"""
+        """재무 데이터 수집 배치 (KIS API 사용, Phase 1 스크리닝 전 실행)"""
         try:
             logger.info("=== 재무 데이터 수집 배치 시작 ===")
             print(f"📈 재무 데이터 수집 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
