@@ -28,10 +28,10 @@ logger = get_logger(__name__)
 
 class Phase2CLI:
     """Phase 2 CLI 메인 클래스"""
-    
+
     def __init__(self, p_parallel_workers: int = 4):
         """초기화
-        
+
         Args:
             p_parallel_workers: 병렬 처리 워커 수 (기본값: 4)
         """
@@ -41,8 +41,17 @@ class Phase2CLI:
         self._v_criteria_manager = SelectionCriteriaManager()
         self._v_watchlist_manager = WatchlistManager()
         self._v_parallel_workers = p_parallel_workers
-        
+        self._v_kis_api = None  # KIS API 싱글톤 인스턴스
+
         logger.info(f"Phase 2 CLI 초기화 완료 (병렬 워커: {p_parallel_workers}개)")
+
+    def _get_kis_api(self):
+        """KIS API 싱글톤 인스턴스 반환 (rate limiting 공유)"""
+        if self._v_kis_api is None:
+            from core.api.kis_api import KISAPI
+            self._v_kis_api = KISAPI()
+            logger.info("KIS API 인스턴스 초기화 완료")
+        return self._v_kis_api
 
     def run_update(self) -> Optional[Dict]:
         """일일 업데이트 실행 (CLI 인터페이스용)
@@ -414,9 +423,8 @@ class Phase2CLI:
                 print(f"❌ 종목 {p_stock_code}이 감시 리스트에 없습니다")
                 return None
 
-            # 실데이터 조회 (KIS 현재가 + 최근 일봉)
-            from core.api.kis_api import KISAPI
-            kis = KISAPI()
+            # 실데이터 조회 (KIS 현재가 + 최근 일봉) - 싱글톤 사용
+            kis = self._get_kis_api()
             price_info = kis.get_current_price(target_stock.stock_code) or {}
             try:
                 df = kis.get_stock_history(target_stock.stock_code, period="D", count=60)
@@ -465,9 +473,8 @@ class Phase2CLI:
             # 부분 실패 허용 결과 추적
             _v_partial_result = PartialResult[dict](min_success_rate=0.9)
 
-            # KIS 현재가 및 최근 일봉 조회(순차; API 한도 고려). 병목이면 배치 설계
-            from core.api.kis_api import KISAPI
-            kis = KISAPI()
+            # KIS 현재가 및 최근 일봉 조회(순차; API 한도 고려) - 싱글톤 사용
+            kis = self._get_kis_api()
             stock_data_list = []
 
             for stock in watchlist_stocks:
