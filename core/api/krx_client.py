@@ -1,14 +1,24 @@
 import logging
 import pandas as pd
+import time
 from pathlib import Path
 from datetime import datetime, timedelta, date as date_type
 from typing import Optional, Dict, List
-from pykrx.website.krx.market.core import (
-    상장종목검색, 상폐종목검색, 전체지수기본정보
-)
-from pykrx import stock
+
+# pykrx 임포트 (폴백용, 2025년 12월 KRX 로그인 필수화로 현재 사용 불가)
+try:
+    from pykrx.website.krx.market.core import (
+        상장종목검색, 상폐종목검색, 전체지수기본정보
+    )
+    from pykrx import stock
+    PYKRX_AVAILABLE = True
+except ImportError:
+    PYKRX_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
+# 데이터 소스 우선순위 설정
+DEFAULT_DATA_SOURCE = "kis"  # "kis" 또는 "pykrx"
 
 
 class KRXClient:
@@ -103,6 +113,114 @@ class KRXClient:
             logger.error(f"[get_stock_info] 상세 에러: {e.__class__.__name__}", exc_info=True)
             raise
 
+    def get_fundamental_from_kis(self, stock_code: str) -> Optional[Dict]:
+        """KIS API로 개별 종목 재무 데이터 조회
+
+        Args:
+            stock_code: 종목코드 (6자리)
+
+        Returns:
+            dict: 재무 데이터 (PER, PBR, EPS, BPS 등)
+        """
+        try:
+            from core.api.kis_api import KISAPI
+
+            kis = KISAPI()
+            info = kis.get_stock_info(stock_code)
+
+            if not info:
+                logger.debug(f"[get_fundamental_from_kis] {stock_code} 조회 실패")
+                return None
+
+            # KIS API 응답에서 재무 데이터 추출
+            per = float(info.get('per', 0)) if info.get('per') else 0.0
+            pbr = float(info.get('pbr', 0)) if info.get('pbr') else 0.0
+            eps = float(info.get('eps', 0)) if info.get('eps') else 0.0
+            bps = float(info.get('bps', 0)) if info.get('bps') else 0.0
+
+            # ROE 계산: ROE = EPS / BPS * 100
+            roe = (eps / bps * 100) if bps > 0 else 0.0
+
+            return {
+                'ticker': stock_code,
+                'per': per,
+                'pbr': pbr,
+                'eps': eps,
+                'bps': bps,
+                'div': 0.0,  # KIS API에서 미제공
+                'dps': 0.0,  # KIS API에서 미제공
+                'roe': roe,
+            }
+
+        except Exception as e:
+            logger.warning(f"[get_fundamental_from_kis] {stock_code} 조회 오류: {e}")
+            return None
+
+    def collect_fundamentals_via_kis(
+        self,
+        stock_codes: Optional[List[str]] = None,
+        batch_size: int = 50,
+        delay_between_batches: float = 1.0
+    ) -> pd.DataFrame:
+        """KIS API로 전체 종목 재무 데이터 배치 수집
+
+        Args:
+            stock_codes: 종목코드 리스트 (None이면 전체 종목)
+            batch_size: 배치당 처리 종목 수
+            delay_between_batches: 배치 간 대기 시간 (초)
+
+        Returns:
+            DataFrame: 재무 데이터
+        """
+        try:
+            # 종목 리스트 준비
+            if stock_codes is None:
+                stock_list_files = list(self.stock_dir.glob('krx_stock_list_*.json'))
+                if stock_list_files:
+                    latest_file = max(stock_list_files, key=lambda x: x.name)
+                    stock_list = pd.read_json(latest_file)
+                    stock_codes = stock_list['ticker'].tolist()
+                else:
+                    logger.error("[collect_fundamentals_via_kis] 종목 리스트 파일 없음")
+                    return pd.DataFrame()
+
+            logger.info(f"[collect_fundamentals_via_kis] KIS API로 {len(stock_codes)}개 종목 수집 시작")
+
+            results = []
+            failed_count = 0
+            total = len(stock_codes)
+
+            for i in range(0, total, batch_size):
+                batch = stock_codes[i:i + batch_size]
+                batch_num = i // batch_size + 1
+                total_batches = (total + batch_size - 1) // batch_size
+
+                logger.info(f"[collect_fundamentals_via_kis] 배치 {batch_num}/{total_batches} 처리 중...")
+
+                for code in batch:
+                    data = self.get_fundamental_from_kis(code)
+                    if data:
+                        results.append(data)
+                    else:
+                        failed_count += 1
+
+                # 배치 간 대기 (Rate Limit 방지)
+                if i + batch_size < total:
+                    time.sleep(delay_between_batches)
+
+            logger.info(
+                f"[collect_fundamentals_via_kis] 수집 완료 - "
+                f"성공: {len(results)}, 실패: {failed_count}"
+            )
+
+            if results:
+                return pd.DataFrame(results)
+            return pd.DataFrame()
+
+        except Exception as e:
+            logger.error(f"[collect_fundamentals_via_kis] 배치 수집 오류: {e}", exc_info=True)
+            return pd.DataFrame()
+
     def _get_valid_trading_date(self, target_date: str, max_days_back: int = 14) -> Optional[str]:
         """유효한 거래일 찾기 (주말/휴일 고려)
 
@@ -132,13 +250,54 @@ class KRXClient:
     def get_market_fundamentals(
         self,
         date: Optional[str] = None,
-        market: str = "ALL"
+        market: str = "ALL",
+        source: Optional[str] = None
     ) -> pd.DataFrame:
         """전체 종목 재무 데이터 조회 (PER, PBR, EPS, BPS, DIV, ROE)
 
         Args:
             date: 조회 일자 (YYYYMMDD 형식, 기본값: 최근 거래일)
             market: "ALL"(전체), "KOSPI", "KOSDAQ"
+            source: 데이터 소스 ("kis" 또는 "pykrx", 기본값: DEFAULT_DATA_SOURCE)
+
+        Returns:
+            DataFrame: 재무 데이터
+        """
+        if source is None:
+            source = DEFAULT_DATA_SOURCE
+
+        # 1. KIS API 시도 (기본)
+        if source == "kis":
+            logger.info("[get_market_fundamentals] KIS API로 재무 데이터 수집 시도")
+            df = self.collect_fundamentals_via_kis()
+            if not df.empty:
+                # 컬럼명 통일 (대문자)
+                df = df.rename(columns={
+                    'per': 'PER', 'pbr': 'PBR', 'eps': 'EPS',
+                    'bps': 'BPS', 'div': 'DIV', 'dps': 'DPS', 'roe': 'ROE'
+                })
+                logger.info(f"[get_market_fundamentals] KIS API 성공 - {len(df)}개 종목")
+                return df
+            else:
+                logger.warning("[get_market_fundamentals] KIS API 실패, pykrx로 폴백")
+
+        # 2. pykrx 시도 (폴백)
+        if not PYKRX_AVAILABLE:
+            logger.warning("[get_market_fundamentals] pykrx 사용 불가")
+            return pd.DataFrame()
+
+        return self._get_market_fundamentals_pykrx(date, market)
+
+    def _get_market_fundamentals_pykrx(
+        self,
+        date: Optional[str] = None,
+        market: str = "ALL"
+    ) -> pd.DataFrame:
+        """pykrx로 재무 데이터 조회 (폴백용)
+
+        Args:
+            date: 조회 일자 (YYYYMMDD 형식)
+            market: 시장 구분
 
         Returns:
             DataFrame: 재무 데이터
@@ -152,7 +311,7 @@ class KRXClient:
             valid_date = self._get_valid_trading_date(date)
             if valid_date:
                 date = valid_date
-                logger.info(f"[get_market_fundamentals] 유효한 거래일 사용: {date}")
+                logger.info(f"[_get_market_fundamentals_pykrx] 유효한 거래일 사용: {date}")
 
             # pykrx에서 재무 데이터 조회 (에러 발생 시 이전 날짜로 재시도)
             df = pd.DataFrame()
@@ -164,18 +323,18 @@ class KRXClient:
                     df = stock.get_market_fundamental(try_date, market=market)
                     if not df.empty and len(df.columns) > 0:
                         if i > 0:
-                            logger.info(f"[get_market_fundamentals] {date} 실패, {try_date} 사용")
+                            logger.info(f"[_get_market_fundamentals_pykrx] {date} 실패, {try_date} 사용")
                         break
                 except Exception as e:
                     last_error = e
-                    logger.debug(f"[get_market_fundamentals] {try_date} 조회 실패: {e}")
+                    logger.debug(f"[_get_market_fundamentals_pykrx] {try_date} 조회 실패: {e}")
                     continue
 
             if df.empty:
                 if last_error:
-                    logger.warning(f"[get_market_fundamentals] 재무 데이터 조회 실패: {last_error}")
+                    logger.warning(f"[_get_market_fundamentals_pykrx] 재무 데이터 조회 실패: {last_error}")
                 else:
-                    logger.warning(f"[get_market_fundamentals] 재무 데이터 조회 실패: 데이터 없음")
+                    logger.warning(f"[_get_market_fundamentals_pykrx] 재무 데이터 조회 실패: 데이터 없음")
                 return pd.DataFrame()
 
             # 인덱스(종목코드)를 컬럼으로 변환
@@ -194,15 +353,15 @@ class KRXClient:
             else:
                 df['ROE'] = 0.0
 
-            logger.info(f"[get_market_fundamentals] 재무 데이터 조회 성공 - {len(df)}개 종목")
+            logger.info(f"[_get_market_fundamentals_pykrx] 재무 데이터 조회 성공 - {len(df)}개 종목")
             return df
 
         except Exception as e:
-            logger.error(f"[get_market_fundamentals] 재무 데이터 조회 오류: {e}", exc_info=True)
+            logger.error(f"[_get_market_fundamentals_pykrx] 재무 데이터 조회 오류: {e}", exc_info=True)
             return pd.DataFrame()
 
     def get_stock_fundamental(self, ticker: str, date: Optional[str] = None) -> Optional[Dict]:
-        """개별 종목 재무 데이터 조회
+        """개별 종목 재무 데이터 조회 (KIS API 우선)
 
         Args:
             ticker: 종목코드 (6자리)
@@ -212,28 +371,39 @@ class KRXClient:
             dict: 재무 데이터 (PER, PBR, EPS, BPS, DIV, DPS, ROE)
         """
         try:
-            df = self.get_market_fundamentals(date=date)
+            # 1. KIS API로 개별 종목 조회 시도 (빠름)
+            if DEFAULT_DATA_SOURCE == "kis":
+                kis_data = self.get_fundamental_from_kis(ticker)
+                if kis_data:
+                    logger.debug(f"[get_stock_fundamental] KIS API로 {ticker} 조회 성공")
+                    return kis_data
 
-            if df.empty:
-                return None
+            # 2. pykrx 폴백 (전체 데이터에서 필터링)
+            if PYKRX_AVAILABLE:
+                df = self._get_market_fundamentals_pykrx(date=date)
 
-            stock_data = df[df['ticker'] == ticker]
+                if df.empty:
+                    return None
 
-            if stock_data.empty:
-                logger.warning(f"[get_stock_fundamental] 종목 {ticker} 데이터 없음")
-                return None
+                stock_data = df[df['ticker'] == ticker]
 
-            row = stock_data.iloc[0]
-            return {
-                'ticker': ticker,
-                'per': float(row.get('PER', 0)) if pd.notna(row.get('PER')) else 0.0,
-                'pbr': float(row.get('PBR', 0)) if pd.notna(row.get('PBR')) else 0.0,
-                'eps': float(row.get('EPS', 0)) if pd.notna(row.get('EPS')) else 0.0,
-                'bps': float(row.get('BPS', 0)) if pd.notna(row.get('BPS')) else 0.0,
-                'div': float(row.get('DIV', 0)) if pd.notna(row.get('DIV')) else 0.0,
-                'dps': float(row.get('DPS', 0)) if pd.notna(row.get('DPS')) else 0.0,
-                'roe': float(row.get('ROE', 0)) if pd.notna(row.get('ROE')) else 0.0,
-            }
+                if stock_data.empty:
+                    logger.warning(f"[get_stock_fundamental] 종목 {ticker} 데이터 없음")
+                    return None
+
+                row = stock_data.iloc[0]
+                return {
+                    'ticker': ticker,
+                    'per': float(row.get('PER', 0)) if pd.notna(row.get('PER')) else 0.0,
+                    'pbr': float(row.get('PBR', 0)) if pd.notna(row.get('PBR')) else 0.0,
+                    'eps': float(row.get('EPS', 0)) if pd.notna(row.get('EPS')) else 0.0,
+                    'bps': float(row.get('BPS', 0)) if pd.notna(row.get('BPS')) else 0.0,
+                    'div': float(row.get('DIV', 0)) if pd.notna(row.get('DIV')) else 0.0,
+                    'dps': float(row.get('DPS', 0)) if pd.notna(row.get('DPS')) else 0.0,
+                    'roe': float(row.get('ROE', 0)) if pd.notna(row.get('ROE')) else 0.0,
+                }
+
+            return None
 
         except Exception as e:
             logger.error(f"[get_stock_fundamental] 종목 {ticker} 재무 데이터 조회 오류: {e}", exc_info=True)
