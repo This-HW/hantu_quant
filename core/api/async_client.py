@@ -123,9 +123,9 @@ class AsyncKISClient:
         # 토큰 유효성 확인
         self.config.ensure_valid_token()
 
+        # 시세 조회 API (inquire-price)는 모의/실전 동일한 tr_id 사용
+        # 참고: 거래 API (order, balance)만 모의/실전 tr_id가 다름 (TTTC.../VTTC...)
         tr_id = "FHKST01010100"
-        if self.config.server == "virtual":
-            tr_id = "V" + tr_id[1:]
 
         return {
             "content-type": "application/json; charset=utf-8",
