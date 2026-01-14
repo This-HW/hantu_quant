@@ -23,7 +23,7 @@ from tenacity import (
 )
 
 from core.config import settings
-from core.config.api_config import APIConfig, KISErrorCode
+from core.config.api_config import APIConfig, KISErrorCode, KISEndpoint
 
 logger = logging.getLogger(__name__)
 
@@ -350,7 +350,67 @@ class KISRestClient:
         if tr_id:
             headers['tr_id'] = tr_id
         return headers
-    
+
+    def request_endpoint(
+        self,
+        endpoint: dict,
+        params: Dict = None,
+        data: Dict = None,
+        order_type: str = None
+    ) -> Dict:
+        """KISEndpoint 레지스트리 기반 API 호출
+
+        EGW00203 에러 방지를 위해 tr_id와 필수 파라미터를 자동으로 처리합니다.
+
+        Args:
+            endpoint: KISEndpoint.INQUIRE_PRICE 등의 엔드포인트 정의
+            params: GET 파라미터 (시세 조회 등)
+            data: POST 바디 (주문 등)
+            order_type: 주문 시 "buy" 또는 "sell"
+
+        Returns:
+            Dict: API 응답
+
+        Usage:
+            # 현재가 조회
+            result = client.request_endpoint(
+                KISEndpoint.INQUIRE_PRICE,
+                params={"FID_COND_MRKT_DIV_CODE": "J", "FID_INPUT_ISCD": "005930"}
+            )
+
+            # 잔고 조회
+            result = client.request_endpoint(
+                KISEndpoint.INQUIRE_BALANCE,
+                params={"CANO": "12345678", "ACNT_PRDT_CD": "01", ...}
+            )
+        """
+        try:
+            if not self.config.ensure_valid_token():
+                raise Exception("API 토큰이 유효하지 않습니다")
+
+            # 엔드포인트 정보 추출
+            path = endpoint.get("path", "")
+            method = endpoint.get("method", "GET")
+            tr_id = KISEndpoint.get_tr_id(endpoint, self.config.server, order_type)
+
+            # 필수 파라미터 검증
+            check_params = params if method == "GET" else data
+            if check_params and not KISEndpoint.validate_params(endpoint, check_params):
+                logger.error(f"[request_endpoint] 필수 파라미터 누락: {endpoint.get('name')}")
+                return {"error": "필수 파라미터 누락", "endpoint": endpoint.get("name")}
+
+            # URL 및 헤더 생성
+            url = f"{self.config.base_url}{path}"
+            headers = self.config.get_headers()
+            headers['tr_id'] = tr_id
+
+            # API 호출
+            return self._request(method, url, headers=headers, params=params, data=data)
+
+        except Exception as e:
+            logger.error(f"[request_endpoint] 오류: {e}", exc_info=True)
+            return {"error": str(e)}
+
     def get_current_price(self, stock_code: str) -> Optional[Dict]:
         """현재가 조회
         

@@ -218,38 +218,23 @@ class KISAPI(KISRestClient):
             self.ws_client = None
             
     def get_stock_info(self, stock_code: str) -> Optional[Dict]:
-        """종목 정보 조회"""
-        try:
-            if not self.config.ensure_valid_token():
-                raise Exception("API 토큰이 유효하지 않습니다")
+        """종목 정보 조회
 
-            # API 요청 설정
-            url = f"{self.config.base_url}/uapi/domestic-stock/v1/quotations/inquire-price"
-            headers = self.config.get_headers()
-            # tr_id 추가 (필수) - inquire-price API
-            headers['tr_id'] = 'FHKST01010100'
+        Note:
+            KISRestClient.get_stock_info()를 호출합니다.
+            API 호출 로직은 rest_client.py에서 중앙 관리됩니다.
+        """
+        # 부모 클래스(KISRestClient)의 메서드 호출
+        result = super().get_stock_info(stock_code)
 
-            params = {
-                "FID_COND_MRKT_DIV_CODE": "J",
-                "FID_INPUT_ISCD": stock_code
-            }
-
-            response = self._request("GET", url, headers=headers, params=params)
-
-            # 에러 응답 체크 (HTTP 에러나 재시도 실패 시)
-            if response.get('error'):
-                logger.error(f"[get_stock_info] API 오류: {response.get('error')}", exc_info=True)
-                return None
-
-            if response.get('rt_cd') == '0':
-                return response.get('output')
-            else:
-                logger.error(f"[get_stock_info] API 오류: {response.get('msg1', '알 수 없는 오류')}", exc_info=True)
-                return None
-
-        except Exception as e:
-            logger.error(f"[get_stock_info] 종목 정보 조회 중 오류 발생: {str(e)}", exc_info=True)
-            return None
+        # get_stock_info는 dict를 반환하므로 그대로 반환
+        # rest_client의 get_stock_info가 이미 output 필드를 추출하지 않으므로
+        # 여기서 output만 추출해서 반환 (기존 동작 유지)
+        if result and isinstance(result, dict):
+            # rest_client.get_stock_info는 전체 정보를 반환
+            # 여기서는 output 부분만 필요한 경우를 위해 그대로 반환
+            return result
+        return None
 
     def get_stock_history(self, stock_code: str, period: str = "D", count: int = 20) -> Optional[pd.DataFrame]:
         """과거 주가 데이터 조회
@@ -261,56 +246,61 @@ class KISAPI(KISRestClient):
 
         Returns:
             DataFrame: OHLCV 데이터
+
+        Note:
+            KISRestClient.get_daily_chart()를 호출합니다.
+            API 호출 로직은 rest_client.py에서 중앙 관리됩니다.
         """
+        # 부모 클래스(KISRestClient)의 메서드 호출
+        # get_daily_chart는 이미 DataFrame을 반환하고 컬럼명도 변환됨
+        df = super().get_daily_chart(stock_code, period_days=count)
+
+        if df is not None and not df.empty:
+            # rest_client.get_daily_chart는 이미 date, open, high, low, close, volume 컬럼을 가짐
+            # 인덱스가 date로 설정되어 있으므로 리셋
+            if df.index.name == 'date':
+                df = df.reset_index()
+            return df
+
+        return None
+
+    def _get_stock_history_legacy(self, stock_code: str, period: str = "D", count: int = 20) -> Optional[pd.DataFrame]:
+        """과거 주가 데이터 조회 (레거시 - 직접 API 호출)
+
+        기존 코드와의 호환성을 위해 유지합니다.
+        새 코드에서는 get_stock_history()를 사용하세요.
+        """
+        from core.config.api_config import KISEndpoint
+
         try:
-            if not self.config.ensure_valid_token():
-                raise Exception("API 토큰이 유효하지 않습니다")
-
-            # API 요청 설정
-            url = f"{self.config.base_url}/uapi/domestic-stock/v1/quotations/inquire-daily-price"
-            headers = self.config.get_headers()
-            # tr_id 추가 (필수) - inquire-daily-price API
-            headers['tr_id'] = 'FHKST01010400'
-
             params = {
                 "FID_COND_MRKT_DIV_CODE": "J",
                 "FID_INPUT_ISCD": stock_code,
                 "FID_PERIOD_DIV_CODE": period,
-                "FID_ORG_ADJ_PRC": "0",  # 수정주가 여부
-                "FID_INPUT_DATE_1": "",  # 조회시작일자
-                "FID_INPUT_DATE_2": "",  # 조회종료일자
-                "FID_INPUT_HOUR_1": "",  # 시작시간
-                "FID_INPUT_HOUR_2": "",  # 종료시간
-                "FID_DAY_CNT": str(count)  # 조회건수
+                "FID_ORG_ADJ_PRC": "0",
             }
-            
-            response = self._request("GET", url, headers=headers, params=params)
 
-            # 에러 응답 체크 (HTTP 에러나 재시도 실패 시)
+            response = self.request_endpoint(KISEndpoint.INQUIRE_DAILY_PRICE, params=params)
+
             if response.get('error'):
-                logger.error(f"[get_stock_history] API 오류: {response.get('error')}", exc_info=True)
+                logger.error(f"[_get_stock_history_legacy] API 오류: {response.get('error')}", exc_info=True)
                 return None
 
             if response.get('rt_cd') == '0':
                 output = response.get('output', [])
                 if not output:
-                    logger.warning(f"[get_stock_history] 가격 데이터가 없습니다 - {stock_code}")
                     return None
 
-                # DataFrame 생성
                 df = pd.DataFrame(output)
-
-                # 컬럼명 변경
                 df = df.rename(columns={
-                    'stck_bsop_date': 'date',  # 일자
-                    'stck_oprc': 'open',  # 시가
-                    'stck_hgpr': 'high',  # 고가
-                    'stck_lwpr': 'low',  # 저가
-                    'stck_clpr': 'close',  # 종가
-                    'acml_vol': 'volume'  # 거래량
+                    'stck_bsop_date': 'date',
+                    'stck_oprc': 'open',
+                    'stck_hgpr': 'high',
+                    'stck_lwpr': 'low',
+                    'stck_clpr': 'close',
+                    'acml_vol': 'volume'
                 })
 
-                # 데이터 타입 변환
                 numeric_columns = ['open', 'high', 'low', 'close', 'volume']
                 for col in numeric_columns:
                     df[col] = pd.to_numeric(df[col])
