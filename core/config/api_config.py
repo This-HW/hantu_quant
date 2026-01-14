@@ -51,6 +51,143 @@ class KISErrorCode:
     RETRYABLE_ERRORS = [RATE_LIMIT, OPS_ROUTING_ERROR, SERVICE_ERROR]
 
 
+class KISEndpoint:
+    """KIS API 엔드포인트 레지스트리
+
+    모든 API 엔드포인트의 path, tr_id, 필수 파라미터를 중앙에서 관리합니다.
+    EGW00203 에러 방지를 위해 tr_id와 필수 파라미터를 명시적으로 정의합니다.
+
+    사용법:
+        endpoint = KISEndpoint.INQUIRE_PRICE
+        tr_id = endpoint["tr_id"]
+        path = endpoint["path"]
+    """
+
+    # ========== 시세 조회 API (모의/실전 동일 tr_id) ==========
+
+    INQUIRE_PRICE = {
+        "name": "주식현재가 시세",
+        "path": "/uapi/domestic-stock/v1/quotations/inquire-price",
+        "tr_id": "FHKST01010100",
+        "method": "GET",
+        "required_params": ["FID_COND_MRKT_DIV_CODE", "FID_INPUT_ISCD"],
+    }
+
+    INQUIRE_DAILY_PRICE = {
+        "name": "주식현재가 일자별",
+        "path": "/uapi/domestic-stock/v1/quotations/inquire-daily-price",
+        "tr_id": "FHKST01010400",
+        "method": "GET",
+        "required_params": ["FID_COND_MRKT_DIV_CODE", "FID_INPUT_ISCD", "FID_PERIOD_DIV_CODE", "FID_ORG_ADJ_PRC"],
+    }
+
+    INQUIRE_TIME_ITEMCHARTPRICE = {
+        "name": "주식당일분봉조회",
+        "path": "/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice",
+        "tr_id": "FHKST03010200",
+        "method": "GET",
+        "required_params": ["FID_COND_MRKT_DIV_CODE", "FID_INPUT_ISCD", "FID_INPUT_HOUR_1", "FID_PW_DATA_INCU_YN"],
+    }
+
+    INQUIRE_ASKING_PRICE = {
+        "name": "주식현재가 호가/예상체결",
+        "path": "/uapi/domestic-stock/v1/quotations/inquire-asking-price-exp-ccn",
+        "tr_id": "FHKST01010200",
+        "method": "GET",
+        "required_params": ["FID_COND_MRKT_DIV_CODE", "FID_INPUT_ISCD"],
+    }
+
+    INQUIRE_CCNL = {
+        "name": "주식현재가 체결",
+        "path": "/uapi/domestic-stock/v1/quotations/inquire-ccnl",
+        "tr_id": "FHKST01010300",
+        "method": "GET",
+        "required_params": ["FID_COND_MRKT_DIV_CODE", "FID_INPUT_ISCD"],
+    }
+
+    INQUIRE_INVESTOR = {
+        "name": "주식현재가 투자자",
+        "path": "/uapi/domestic-stock/v1/quotations/inquire-investor",
+        "tr_id": "FHKST01010900",
+        "method": "GET",
+        "required_params": ["FID_COND_MRKT_DIV_CODE", "FID_INPUT_ISCD"],
+    }
+
+    INQUIRE_MEMBER = {
+        "name": "주식현재가 회원사",
+        "path": "/uapi/domestic-stock/v1/quotations/inquire-member",
+        "tr_id": "FHKST01010600",
+        "method": "GET",
+        "required_params": ["FID_COND_MRKT_DIV_CODE", "FID_INPUT_ISCD"],
+    }
+
+    # ========== 거래 API (모의/실전 다른 tr_id) ==========
+
+    INQUIRE_BALANCE = {
+        "name": "주식잔고조회",
+        "path": "/uapi/domestic-stock/v1/trading/inquire-balance",
+        "tr_id": {"virtual": "VTTC8434R", "prod": "TTTC8434R"},
+        "method": "GET",
+        "required_params": ["CANO", "ACNT_PRDT_CD"],
+    }
+
+    ORDER_CASH = {
+        "name": "주식주문(현금)",
+        "path": "/uapi/domestic-stock/v1/trading/order-cash",
+        "tr_id": {
+            "virtual": {"buy": "VTTC0012U", "sell": "VTTC0011U"},
+            "prod": {"buy": "TTTC0012U", "sell": "TTTC0011U"},
+        },
+        "method": "POST",
+        "required_params": ["CANO", "ACNT_PRDT_CD", "PDNO", "ORD_DVSN", "ORD_QTY", "ORD_UNPR"],
+    }
+
+    @classmethod
+    def get_tr_id(cls, endpoint: dict, server: str = "virtual", order_type: str = None) -> str:
+        """엔드포인트에서 tr_id 추출
+
+        Args:
+            endpoint: 엔드포인트 정의 딕셔너리
+            server: "virtual" 또는 "prod"
+            order_type: 주문 시 "buy" 또는 "sell"
+
+        Returns:
+            str: tr_id
+        """
+        tr_id = endpoint.get("tr_id")
+
+        if isinstance(tr_id, str):
+            # 시세 조회 API - 모의/실전 동일
+            return tr_id
+        elif isinstance(tr_id, dict):
+            # 거래 API - 모의/실전 다름
+            server_tr_id = tr_id.get(server, tr_id.get("virtual"))
+            if isinstance(server_tr_id, dict):
+                # 주문 API - buy/sell 구분
+                return server_tr_id.get(order_type, server_tr_id.get("buy"))
+            return server_tr_id
+
+        return ""
+
+    @classmethod
+    def validate_params(cls, endpoint: dict, params: dict) -> bool:
+        """필수 파라미터 검증
+
+        Args:
+            endpoint: 엔드포인트 정의 딕셔너리
+            params: 요청 파라미터
+
+        Returns:
+            bool: 모든 필수 파라미터가 있으면 True
+        """
+        required = endpoint.get("required_params", [])
+        for param in required:
+            if param not in params or params[param] is None:
+                logger.warning(f"필수 파라미터 누락: {param} (endpoint: {endpoint.get('name', 'unknown')})")
+                return False
+        return True
+
+
 class APIConfig:
     """API 설정 관리 클래스 (싱글톤)"""
     
