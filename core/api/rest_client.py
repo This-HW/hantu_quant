@@ -822,7 +822,14 @@ class KISRestClient:
     def get_minute_bars(self, stock_code: str, time_unit: int = 1, count: int = 60) -> Optional[pd.DataFrame]:
         """주식당일분봉조회 (inquire-time-itemchartprice)
         TR: FHKST03010200 (모의/실전 동일)
-        [미검증] 파라미터는 KIS 문서에 따라 추가 조정 필요 가능
+
+        Args:
+            stock_code: 종목코드
+            time_unit: 시간 단위 (분) - 현재 미사용, 향후 확장용
+            count: 조회 건수 - 현재 미사용, 최대 30건
+
+        Returns:
+            분봉 데이터 DataFrame 또는 None
         """
         try:
             if not self.config.ensure_valid_token():
@@ -830,13 +837,21 @@ class KISRestClient:
 
             url = f"{self.config.base_url}/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice"
             headers = self._headers_with_tr_id(default_tr_id="FHKST03010200", key="inquire_time_itemchartprice")
+
+            # 현재 시간 기준으로 입력 시간 설정 (HHMMSS 형식)
+            current_time = datetime.now().strftime("%H%M%S")
+
             params = {
-                "FID_COND_MRKT_DIV_CODE": "J",
-                "FID_INPUT_ISCD": stock_code,
-                # [미검증] 실제 스펙의 시간단위/카운트 파라미터는 문서에 맞춰 조정 필요
+                "FID_COND_MRKT_DIV_CODE": "J",           # 시장 구분 (J: KRX)
+                "FID_INPUT_ISCD": stock_code,            # 종목코드
+                "FID_INPUT_HOUR_1": current_time,        # 입력 시간 (필수)
+                "FID_PW_DATA_INCU_YN": "Y",              # 과거 데이터 포함 여부 (필수)
             }
             res = self._request("GET", url, headers=headers, params=params)
-            output = res.get("output", []) if isinstance(res, dict) else []
+            output = res.get("output2", []) if isinstance(res, dict) else []
+            if not output:
+                # output2가 없으면 output 확인
+                output = res.get("output", []) if isinstance(res, dict) else []
             if not output:
                 return None
             df = pd.DataFrame(output)
