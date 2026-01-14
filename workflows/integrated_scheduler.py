@@ -329,11 +329,13 @@ class IntegratedScheduler:
     def _check_and_recover_missed_tasks(self):
         """스케줄러 재시작 시 누락된 작업 자동 실행
 
-        복구 시나리오:
-        - 06:00 전: 스킵 (아직 스크리닝 시간 안됨)
-        - 06:00~09:00: 선정 파일 없으면 Phase 1/2만 실행 (매매는 09:00부터)
-        - 09:00~15:30: 선정 파일 없으면 Phase 1/2 + 매매 실행
-        - 15:30 이후: 스킵 (장 마감)
+        복구 시나리오 (평일만):
+        - 05:30~06:00: 재무 데이터 수집 실행
+        - 06:00~09:00: 재무 + Phase 1/2 실행 (매매는 09:00부터)
+        - 09:00~15:30: 재무 + Phase 1/2 + 매매 실행
+        - 15:30~16:00: 시장 마감 정리 실행
+        - 16:00~17:00: 시장 마감 정리 + 일일 성과 분석 실행
+        - 17:00 이후: 모든 정리 작업 실행
         """
         try:
             now = datetime.now()
@@ -344,77 +346,78 @@ class IntegratedScheduler:
                 return
 
             # 시간대 정의
+            fundamental_time = now.replace(hour=5, minute=30, second=0, microsecond=0)
             screening_time = now.replace(hour=6, minute=0, second=0, microsecond=0)
             market_open = now.replace(hour=9, minute=0, second=0, microsecond=0)
             market_close = now.replace(hour=15, minute=30, second=0, microsecond=0)
+            cleanup_time = now.replace(hour=16, minute=0, second=0, microsecond=0)
+            performance_time = now.replace(hour=17, minute=0, second=0, microsecond=0)
 
-            # 06:00 전이면 완전히 스킵 (아직 스크리닝 시간 안됨)
-            if now < screening_time:
-                logger.info("스크리닝 시간(06:00) 전 - 복구 작업 스킵")
-                return
-
-            if now > market_close:
-                logger.info("장 마감 후 - 복구 작업 스킵")
-                return
-
-            # 오늘 날짜 선정 파일 확인
+            # 오늘 날짜 파일 확인
             today_str = now.strftime("%Y%m%d")
             selection_file = Path(f"data/daily_selection/daily_selection_{today_str}.json")
+            fundamental_file = Path(f"data/stock/krx_fundamentals_{today_str}.json")
 
-            # 장 시작 전(06:00~09:00) vs 장중(09:00~15:30) 구분
-            is_market_hours = now >= market_open
+            recovered_tasks = []
 
-            if is_market_hours:
-                logger.info(f"장 시간 중 재시작 감지 - 복구 작업 시작 ({now.strftime('%H:%M')})")
-                print(f"\n🔄 장 시간 중 재시작 감지 - 복구 작업 시작...")
-            else:
-                logger.info(f"장 시작 전(06:00~09:00) 재시작 감지 - 복구 작업 시작 ({now.strftime('%H:%M')})")
-                print(f"\n🔄 장 시작 전 재시작 감지 - 복구 작업 시작...")
+            # === 05:30 이전: 복구 불필요 ===
+            if now < fundamental_time:
+                logger.info("재무 수집 시간(05:30) 전 - 복구 작업 스킵")
+                return
 
-            if not selection_file.exists():
-                # Phase 1, 2가 실행되지 않음 → 실행
-                if is_market_hours:
-                    print("📋 오늘 선정 파일 없음 → 스크리닝 + 선정 + 매매 시작")
-                    logger.info("오늘 선정 파일 없음 - 전체 워크플로우 실행")
-                else:
-                    print("📋 오늘 선정 파일 없음 → 스크리닝 + 선정 실행 (매매는 09:00부터)")
-                    logger.info("오늘 선정 파일 없음 - Phase 1/2 실행 (장 시작 전)")
+            # === 05:30~17:00+: 시간대별 복구 로직 ===
+            logger.info(f"재시작 감지 - 복구 작업 시작 ({now.strftime('%H:%M')})")
+            print(f"\n🔄 스케줄러 재시작 감지 ({now.strftime('%H:%M')}) - 복구 작업 시작...")
 
-                # 알림
-                notifier = get_telegram_notifier()
-                if notifier.is_enabled():
-                    if is_market_hours:
-                        notifier.send_message(
-                            f"*스케줄러 재시작 복구*\n`{now.strftime('%H:%M')}` 장중 재시작\n→ 스크리닝 + 선정 + 매매 실행",
-                            "high"
-                        )
-                    else:
-                        notifier.send_message(
-                            f"*스케줄러 재시작 복구*\n`{now.strftime('%H:%M')}` 장 시작 전 재시작\n→ 스크리닝 + 선정 실행 (매매는 09:00부터)",
-                            "high"
-                        )
+            notifier = get_telegram_notifier()
 
-                # Phase 1 실행
-                print("1. 일간 스크리닝 실행...")
+            # 1. 재무 데이터 수집 (05:30 이후, 파일 없으면 실행)
+            if now >= fundamental_time and not fundamental_file.exists():
+                print("📈 재무 데이터 수집 실행...")
+                self._run_fundamental_data_collection()
+                recovered_tasks.append("재무 데이터 수집")
+
+            # 2. Phase 1/2 스크리닝 (06:00 이후, 선정 파일 없으면 실행)
+            if now >= screening_time and not selection_file.exists():
+                print("📋 일간 스크리닝 실행...")
                 self._run_daily_screening()
-
+                recovered_tasks.append("일간 스크리닝")
                 # Phase 2는 _run_daily_screening에서 자동 호출됨
 
-            else:
-                if is_market_hours:
-                    print("✅ 오늘 선정 파일 존재 - 매매 엔진만 시작")
-                    logger.info("오늘 선정 파일 존재 - 매매 엔진만 시작")
-                else:
-                    print("✅ 오늘 선정 파일 존재 - 복구 불필요 (매매는 09:00부터)")
-                    logger.info("오늘 선정 파일 존재 - 장 시작 전이라 복구 불필요")
-
-            # 매매 엔진 시작 (장중이면 실행)
-            if is_market_hours:
-                print("2. 자동 매매 시작...")
+            # 3. 자동 매매 (09:00~15:30 장중이면 시작)
+            if now >= market_open and now < market_close:
+                print("🤖 자동 매매 시작...")
                 self._start_auto_trading()
+                recovered_tasks.append("자동 매매 시작")
+            elif now >= market_close and selection_file.exists():
+                # 장 마감 후지만 선정 파일 있으면 정리 작업 가능
+                pass
 
-            print("✅ 복구 작업 완료\n")
-            logger.info("복구 작업 완료")
+            # 4. 시장 마감 정리 (16:00 이후)
+            if now >= cleanup_time:
+                print("🏁 시장 마감 정리 실행...")
+                self._run_market_close_tasks()
+                recovered_tasks.append("시장 마감 정리")
+
+            # 5. 일일 성과 분석 (17:00 이후)
+            if now >= performance_time:
+                print("📊 일일 성과 분석 실행...")
+                self._run_daily_performance_analysis()
+                recovered_tasks.append("일일 성과 분석")
+
+            # 복구 결과 알림
+            if recovered_tasks:
+                if notifier.is_enabled():
+                    task_list = "\n• ".join(recovered_tasks)
+                    notifier.send_message(
+                        f"*스케줄러 재시작 복구*\n`{now.strftime('%H:%M')}` 재시작\n\n*복구된 작업:*\n• {task_list}",
+                        "high"
+                    )
+                print(f"✅ 복구 작업 완료: {', '.join(recovered_tasks)}\n")
+            else:
+                print("✅ 복구 필요 없음 - 모든 작업 이미 완료됨\n")
+
+            logger.info(f"복구 작업 완료: {recovered_tasks if recovered_tasks else '없음'}")
 
         except Exception as e:
             logger.error(f"복구 작업 실패: {e}", exc_info=True)
