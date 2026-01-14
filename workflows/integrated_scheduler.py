@@ -195,12 +195,10 @@ class IntegratedScheduler:
         # Phase 4: AI 학습 시스템 (일일 성과 분석: 매일 17:00)
         schedule.every().day.at("17:00").do(self._run_daily_performance_analysis)
 
-        # 재무 데이터 수집 배치 (평일 05:30, KIS API 점검 종료 후 & Phase 1 전)
-        schedule.every().monday.at("05:30").do(self._run_fundamental_data_collection)
-        schedule.every().tuesday.at("05:30").do(self._run_fundamental_data_collection)
-        schedule.every().wednesday.at("05:30").do(self._run_fundamental_data_collection)
-        schedule.every().thursday.at("05:30").do(self._run_fundamental_data_collection)
-        schedule.every().friday.at("05:30").do(self._run_fundamental_data_collection)
+        # 재무 데이터 수집 배치 (주말 1회, 토요일 10:00)
+        # 재무 데이터는 분기/연간 단위로 변경되므로 주 1회 수집으로 충분
+        # 평일에는 DB에 저장된 최신 데이터를 재사용
+        schedule.every().saturday.at("10:00").do(self._run_fundamental_data_collection)
 
         # Phase 4: 강화된 적응형 학습 (주말 - 대량 데이터 분석)
         # 토요일 20:00에 실행하여 주간 데이터 기반 포괄적 분석
@@ -330,12 +328,13 @@ class IntegratedScheduler:
         """스케줄러 재시작 시 누락된 작업 자동 실행
 
         복구 시나리오 (평일만):
-        - 05:30~06:00: 재무 데이터 수집 실행
-        - 06:00~09:00: 재무 + Phase 1/2 실행 (매매는 09:00부터)
-        - 09:00~15:30: 재무 + Phase 1/2 + 매매 실행
+        - 06:00~09:00: Phase 1/2 실행 (매매는 09:00부터)
+        - 09:00~15:30: Phase 1/2 + 매매 실행
         - 15:30~16:00: 시장 마감 정리 실행
         - 16:00~17:00: 시장 마감 정리 + 일일 성과 분석 실행
         - 17:00 이후: 모든 정리 작업 실행
+
+        Note: 재무 데이터는 주말(토요일 10:00)에 수집하며, 평일에는 DB 데이터 재사용
         """
         try:
             now = datetime.now()
@@ -346,7 +345,6 @@ class IntegratedScheduler:
                 return
 
             # 시간대 정의
-            fundamental_time = now.replace(hour=5, minute=30, second=0, microsecond=0)
             screening_time = now.replace(hour=6, minute=0, second=0, microsecond=0)
             market_open = now.replace(hour=9, minute=0, second=0, microsecond=0)
             market_close = now.replace(hour=15, minute=30, second=0, microsecond=0)
@@ -356,28 +354,34 @@ class IntegratedScheduler:
             # 오늘 날짜 파일 확인
             today_str = now.strftime("%Y%m%d")
             selection_file = Path(f"data/daily_selection/daily_selection_{today_str}.json")
-            fundamental_file = Path(f"data/stock/krx_fundamentals_{today_str}.json")
 
             recovered_tasks = []
 
-            # === 05:30 이전: 복구 불필요 ===
-            if now < fundamental_time:
-                logger.info("재무 수집 시간(05:30) 전 - 복구 작업 스킵")
+            # === 06:00 이전: 복구 불필요 ===
+            if now < screening_time:
+                logger.info("스크리닝 시간(06:00) 전 - 복구 작업 스킵")
                 return
 
-            # === 05:30~17:00+: 시간대별 복구 로직 ===
+            # === 06:00~17:00+: 시간대별 복구 로직 ===
             logger.info(f"재시작 감지 - 복구 작업 시작 ({now.strftime('%H:%M')})")
             print(f"\n🔄 스케줄러 재시작 감지 ({now.strftime('%H:%M')}) - 복구 작업 시작...")
 
             notifier = get_telegram_notifier()
 
-            # 1. 재무 데이터 수집 (05:30 이후, 파일 없으면 실행)
-            if now >= fundamental_time and not fundamental_file.exists():
-                print("📈 재무 데이터 수집 실행...")
-                self._run_fundamental_data_collection()
-                recovered_tasks.append("재무 데이터 수집")
+            # 재무 데이터는 주말(토요일)에 수집하므로, 평일에는 DB 데이터 확인만 수행
+            try:
+                from core.api.krx_client import KRXClient
+                krx_client = KRXClient()
+                fundamentals_df = krx_client.load_market_fundamentals()
+                if fundamentals_df.empty:
+                    logger.warning("재무 데이터 없음 - 토요일 수집 후 사용 가능")
+                    print("⚠️ 재무 데이터 없음 (토요일에 자동 수집됩니다)")
+                else:
+                    logger.info(f"재무 데이터 확인 완료: {len(fundamentals_df)}개 종목")
+            except Exception as e:
+                logger.warning(f"재무 데이터 확인 실패: {e}")
 
-            # 2. Phase 1/2 스크리닝 (06:00 이후, 선정 파일 없으면 실행)
+            # 1. Phase 1/2 스크리닝 (06:00 이후, 선정 파일 없으면 실행)
             if now >= screening_time and not selection_file.exists():
                 print("📋 일간 스크리닝 실행...")
                 self._run_daily_screening()
