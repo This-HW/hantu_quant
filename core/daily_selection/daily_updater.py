@@ -432,8 +432,13 @@ class DailyUpdater(IDailyUpdater):
                 "current_price": stock_info.get("current_price", 0.0),
                 "sector": stock.sector,
                 "market_cap": stock_info.get("market_cap", 0.0),
-                "volatility": self._get_volatility(stock.stock_code),
-                "sector_momentum": self._get_sector_momentum(stock.sector)
+                "volatility": stock_info.get("volatility", 0.15),  # 일봉 데이터 기반 실제 변동성
+                "sector_momentum": self._get_sector_momentum(stock.sector),
+                "recent_close_prices": stock_info.get("recent_close_prices", []),
+                "recent_volumes": stock_info.get("recent_volumes", []),
+                "volume": stock_info.get("volume", 0),
+                "avg_volume": stock_info.get("avg_volume", 0),
+                "volume_ratio": stock_info.get("volume_ratio", 1.0),
             }
             _v_stock_data_list.append(_v_stock_data)
 
@@ -445,17 +450,52 @@ class DailyUpdater(IDailyUpdater):
         return _v_stock_data_list
 
     def _get_stock_info_combined(self, p_stock_code: str) -> Dict:
-        """종목 정보 통합 조회 (현재가 + 시가총액, 단일 API 호출)"""
+        """종목 정보 통합 조회 (현재가 + 시가총액 + 일봉 데이터)"""
+        result = {
+            "current_price": 0.0,
+            "market_cap": 0.0,
+            "recent_close_prices": [],
+            "recent_volumes": [],
+            "volume": 0,
+            "avg_volume": 0,
+            "volume_ratio": 1.0,
+            "volatility": 0.15,  # 기본값 15%
+        }
         try:
             kis = self._get_kis_api()
+
+            # 1. 현재가 + 시가총액 조회
             info = kis.get_stock_info(p_stock_code) or {}
-            return {
-                "current_price": float(info.get("current_price", 0.0)),
-                "market_cap": float(info.get("market_cap", 0.0)),
-            }
+            result["current_price"] = float(info.get("current_price", 0.0))
+            result["market_cap"] = float(info.get("market_cap", 0.0))
+
+            # 2. 일봉 데이터 조회 (최근 30일)
+            df_history = kis.get_stock_history(p_stock_code, period="D", count=30)
+            if df_history is not None and not df_history.empty:
+                # close, volume 컬럼 추출 (오래된 순서로 정렬)
+                df_sorted = df_history.sort_values(by="date", ascending=True)
+                result["recent_close_prices"] = df_sorted["close"].tolist()
+                result["recent_volumes"] = df_sorted["volume"].tolist()
+
+                # 거래량 관련 지표 계산
+                volumes = result["recent_volumes"]
+                if volumes:
+                    result["volume"] = volumes[-1] if volumes else 0  # 최근 거래량
+                    result["avg_volume"] = sum(volumes) / len(volumes) if volumes else 0  # 평균 거래량
+                    if result["avg_volume"] > 0:
+                        result["volume_ratio"] = result["volume"] / result["avg_volume"]  # 거래량 비율
+
+                # 변동성 계산 (일간 수익률의 표준편차)
+                prices = result["recent_close_prices"]
+                if len(prices) >= 2:
+                    import numpy as np
+                    returns = np.diff(prices) / np.array(prices[:-1])
+                    result["volatility"] = float(np.std(returns)) if len(returns) > 0 else 0.15
+
+            return result
         except Exception as e:
-            self._logger.warning(f"종목 정보 조회 실패 ({p_stock_code}): {e}")
-            return {"current_price": 0.0, "market_cap": 0.0}
+            self._logger.warning(f"종목 정보 조회 실패 ({p_stock_code}): {e}", exc_info=True)
+            return result
     
     def _get_current_price(self, p_stock_code: str) -> float:
         """현재가 조회 (실데이터: KIS API, 공유 인스턴스 사용)"""
