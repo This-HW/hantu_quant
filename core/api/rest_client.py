@@ -706,10 +706,10 @@ class KISRestClient:
 
     def get_stock_list(self, market_type: str = "J") -> List[Dict]:
         """주식 종목 목록 조회
-        
+
         Args:
             market_type: "J"(전체), "0"(코스피), "1"(코스닥)
-            
+
         Returns:
             List[Dict]: 종목 목록
             [
@@ -726,20 +726,16 @@ class KISRestClient:
         try:
             if not self.config.ensure_valid_token():
                 raise Exception("토큰 갱신 실패")
-                
+
             url = f"{self.config.base_url}/uapi/domestic-stock/v1/quotations/inquire-price"
-            headers = {
-                "content-type": "application/json; charset=utf-8",
-                "authorization": f"Bearer {self.config.access_token}",
-                "appkey": self.config.app_key,
-                "appsecret": self.config.app_secret,
-                "tr_id": "FHKST03010100"  # 주식현재가 시세
-            }
+            # 헤더 생성 방식 일관성 유지 (_headers_with_tr_id 사용)
+            # tr_id: FHKST01010100 (inquire-price API 공식 tr_id)
+            headers = self._headers_with_tr_id(default_tr_id="FHKST01010100", key="inquire_price")
             params = {
                 "FID_COND_MRKT_DIV_CODE": market_type,  # J:전체, 0:코스피, 1:코스닥
                 "FID_INPUT_ISCD": ""
             }
-            
+
             logger.debug(f"[get_stock_list] 종목 목록 조회 요청 - URL: {url}")
             logger.debug(f"[get_stock_list] 종목 목록 조회 요청 - 파라미터: {params}")
 
