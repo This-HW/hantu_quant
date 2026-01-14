@@ -222,16 +222,18 @@ class KISAPI(KISRestClient):
         try:
             if not self.config.ensure_valid_token():
                 raise Exception("API 토큰이 유효하지 않습니다")
-                
+
             # API 요청 설정
             url = f"{self.config.base_url}/uapi/domestic-stock/v1/quotations/inquire-price"
             headers = self.config.get_headers()
-            
+            # tr_id 추가 (필수) - inquire-price API
+            headers['tr_id'] = 'FHKST01010100'
+
             params = {
                 "FID_COND_MRKT_DIV_CODE": "J",
                 "FID_INPUT_ISCD": stock_code
             }
-            
+
             response = self._request("GET", url, headers=headers, params=params)
 
             # 에러 응답 체크 (HTTP 에러나 재시도 실패 시)
@@ -251,23 +253,25 @@ class KISAPI(KISRestClient):
 
     def get_stock_history(self, stock_code: str, period: str = "D", count: int = 20) -> Optional[pd.DataFrame]:
         """과거 주가 데이터 조회
-        
+
         Args:
             stock_code: 종목코드
             period: 기간 구분 (D: 일봉, W: 주봉, M: 월봉)
             count: 조회 건수
-            
+
         Returns:
             DataFrame: OHLCV 데이터
         """
         try:
             if not self.config.ensure_valid_token():
                 raise Exception("API 토큰이 유효하지 않습니다")
-                
+
             # API 요청 설정
             url = f"{self.config.base_url}/uapi/domestic-stock/v1/quotations/inquire-daily-price"
             headers = self.config.get_headers()
-            
+            # tr_id 추가 (필수) - inquire-daily-price API
+            headers['tr_id'] = 'FHKST01010400'
+
             params = {
                 "FID_COND_MRKT_DIV_CODE": "J",
                 "FID_INPUT_ISCD": stock_code,
