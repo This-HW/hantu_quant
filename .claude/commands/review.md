@@ -4,48 +4,44 @@ argument-hint: [파일 경로 또는 빈칸(git diff)]
 allowed-tools: Read, Glob, Grep, Bash, Task
 ---
 
-# 코드 리뷰
+# 코드 리뷰 실행
 
-대상: $ARGUMENTS
+**즉시 실행하세요. 설명하지 말고 바로 실행합니다.**
 
----
+## 1단계: 리뷰 대상 파악
 
-## 리뷰 대상 확인
+$ARGUMENTS가 있으면:
+- 해당 파일/디렉토리를 읽어서 리뷰
 
-인자가 없으면 최근 git 변경사항을 리뷰합니다:
-```bash
-git diff HEAD
+$ARGUMENTS가 없으면:
+- `git diff HEAD`로 변경사항 확인
+- 변경사항이 없으면 `git diff HEAD~1`로 마지막 커밋 확인
+
+## 2단계: 코드 리뷰 실행
+
+Task tool로 review-code 에이전트 호출:
+
+```
+subagent_type: general-purpose
+prompt: |
+  다음 코드를 리뷰해주세요:
+  [1단계에서 확인한 코드/diff]
+
+  리뷰 형식:
+  ## 전체 평가: [A/B/C/D/F]
+
+  ## Critical (즉시 수정 필요)
+  ## Warning (권장 수정)
+  ## Suggestion (개선 제안)
+
+  ## 권장 조치
 ```
 
-인자가 있으면 해당 파일/디렉토리를 리뷰합니다.
+## 3단계: 보안 검토 (해당 시)
 
----
+코드가 다음을 포함하면 보안 검토도 실행:
+- 인증/인가, 사용자 입력, API, DB 쿼리
 
-## 실행
+## 4단계: 결과 요약
 
-### 1단계: 코드 리뷰
-`review-code` subagent를 사용하여:
-- 코드 품질 검토
-- 베스트 프랙티스 확인
-- 개선점 식별
-
-### 2단계: 보안 검토 (선택)
-변경이 다음을 포함하면 `security-scan` subagent도 실행:
-- 인증/인가 관련 코드
-- 사용자 입력 처리
-- API 엔드포인트
-- 데이터베이스 쿼리
-
----
-
-## 출력 형식
-
-### 리뷰 요약
-- 검토 범위: [파일 수, 라인 수]
-- 전체 평가: [A/B/C/D/F]
-
-### 피드백
-[Critical → Warning → Suggestion 순으로]
-
-### 권장 조치
-[우선순위순 개선사항]
+리뷰 결과를 사용자에게 요약 보고
