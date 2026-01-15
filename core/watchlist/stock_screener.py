@@ -952,28 +952,39 @@ class StockScreener(IStockScreener):
             return p_obj
 
     def save_screening_results(self, p_results: List[Dict], p_filename: Optional[str] = None) -> bool:
-        """스크리닝 결과 저장
-        
+        """스크리닝 결과 저장 (DB 우선, 실패 시 JSON 폴백)
+
         Args:
             p_results: 스크리닝 결과 리스트
             p_filename: 저장할 파일명 (선택사항)
-            
+
         Returns:
             저장 성공 여부
         """
         try:
+            _v_screening_date = datetime.now().date()
+
+            # === 1. DB에 저장 시도 ===
+            db_saved = self._save_screening_to_db(p_results, _v_screening_date)
+            if db_saved:
+                self._logger.info(f"스크리닝 결과 DB 저장 완료: {len(p_results)}건")
+                return True
+
+            # === 2. DB 실패 시에만 JSON 폴백 저장 ===
+            self._logger.warning("스크리닝 결과 DB 저장 실패 - JSON 폴백 저장")
+
             if not p_filename:
                 _v_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 p_filename = f"screening_results_{_v_timestamp}.json"
-            
+
             _v_filepath = os.path.join("data/watchlist", p_filename)
-            
+
             # 디렉토리 생성
             os.makedirs(os.path.dirname(_v_filepath), exist_ok=True)
-            
+
             # NumPy 타입을 Python 기본 타입으로 변환
             _v_converted_results = self._convert_numpy_types(p_results)
-            
+
             _v_save_data = {
                 "timestamp": datetime.now().isoformat(),
                 "version": "1.0.0",
@@ -982,18 +993,68 @@ class StockScreener(IStockScreener):
                 "results": _v_converted_results,
                 "metadata": {
                     "source": "stock_screener",
-                    "criteria": self._convert_numpy_types(getattr(self, '_v_screening_criteria', {}))
+                    "criteria": self._convert_numpy_types(getattr(self, '_v_screening_criteria', {})),
+                    "db_fallback": True
                 }
             }
-            
+
             with open(_v_filepath, 'w', encoding='utf-8') as f:
                 json.dump(_v_save_data, f, ensure_ascii=False, indent=2)
-            
-            self._logger.info(f"스크리닝 결과 저장 완료: {_v_filepath}")
+
+            self._logger.info(f"스크리닝 결과 JSON 폴백 저장 완료: {_v_filepath}")
             return True
-            
+
         except Exception as e:
             self._logger.error(f"스크리닝 결과 저장 오류: {e}", exc_info=True)
+            return False
+
+    def _save_screening_to_db(self, p_results: List[Dict], p_screening_date) -> bool:
+        """스크리닝 결과를 DB에 저장
+
+        Args:
+            p_results: 스크리닝 결과 리스트
+            p_screening_date: 스크리닝 날짜
+
+        Returns:
+            저장 성공 여부
+        """
+        try:
+            from core.database.session import DatabaseSession
+            from core.database.models import ScreeningResult
+
+            db = DatabaseSession()
+            with db.get_session() as session:
+                # 기존 데이터 삭제 (같은 날짜)
+                session.query(ScreeningResult).filter(
+                    ScreeningResult.screening_date == p_screening_date
+                ).delete()
+
+                # 새 데이터 저장
+                saved_count = 0
+                for result in p_results:
+                    screening_record = ScreeningResult(
+                        screening_date=p_screening_date,
+                        stock_code=result.get('stock_code', ''),
+                        stock_name=result.get('stock_name', ''),
+                        total_score=result.get('total_score', 0.0),
+                        fundamental_score=result.get('fundamental_score', 0.0),
+                        technical_score=result.get('technical_score', 0.0),
+                        momentum_score=result.get('momentum_score', 0.0),
+                        passed=1 if result.get('overall_passed', False) else 0,
+                        roe=result.get('roe'),
+                        per=result.get('per'),
+                        pbr=result.get('pbr'),
+                        debt_ratio=result.get('debt_ratio')
+                    )
+                    session.add(screening_record)
+                    saved_count += 1
+
+                session.commit()
+                self._logger.info(f"DB 저장 완료: {saved_count}건")
+                return True
+
+        except Exception as e:
+            self._logger.error(f"스크리닝 결과 DB 저장 실패: {e}", exc_info=True)
             return False
     
     def _check_ma_trend(self, p_stock_data: Dict) -> bool:

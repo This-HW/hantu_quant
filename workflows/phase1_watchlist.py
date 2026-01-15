@@ -901,58 +901,64 @@ class Phase1Workflow:
             logger.error(f"스크리닝 완료 알림 전송 오류: {e}", exc_info=True)
 
     def _persist_daily_screening_partition(self, passed_stocks: List[Dict]) -> None:
-        """당일 스크리닝 통과 종목을 날짜 파티션으로 저장하고, 선정 이력을 갱신"""
+        """당일 스크리닝 통과 종목 파티션 저장 (DB 우선, JSON 폴백)
+
+        Note: 스크리닝 결과는 이미 stock_screener.save_screening_results()에서 DB에 저장됨.
+        이 함수는 DB 저장 실패 시에만 JSON 폴백으로 저장.
+        """
         from datetime import datetime
         from pathlib import Path
         import json
+
         try:
             today_key = datetime.now().strftime("%Y%m%d")
-            out_dir = Path("data/watchlist")
-            out_dir.mkdir(parents=True, exist_ok=True)
-            part_file = out_dir / f"screening_{today_key}.json"
+            today_date = datetime.now().date()
 
-            payload = {
-                "date": datetime.now().strftime("%Y-%m-%d"),
-                "timestamp": datetime.now().isoformat(),
-                "passed_count": len(passed_stocks),
-                "stocks": [
-                    {
-                        "stock_code": s.get("stock_code"),
-                        "stock_name": s.get("stock_name"),
-                        "sector": s.get("sector", ""),
-                        "overall_score": s.get("overall_score", 0.0),
-                    }
-                    for s in passed_stocks
-                ],
-            }
-            with part_file.open("w", encoding="utf-8") as f:
-                json.dump(payload, f, ensure_ascii=False, indent=2)
+            # === 1. DB에 이미 저장되었는지 확인 ===
+            db_has_data = False
+            try:
+                from core.database.session import DatabaseSession
+                from core.database.models import ScreeningResult
 
-            # 선정 이력 갱신
-            hist_file = out_dir / "history.json"
-            history = {}
-            if hist_file.exists():
-                try:
-                    history = json.loads(hist_file.read_text(encoding="utf-8"))
-                except Exception:
-                    history = {}
+                db = DatabaseSession()
+                with db.get_session() as session:
+                    count = session.query(ScreeningResult).filter(
+                        ScreeningResult.screening_date == today_date,
+                        ScreeningResult.passed == 1
+                    ).count()
+                    db_has_data = count > 0
+                    if db_has_data:
+                        logger.info(f"스크리닝 파티션 DB 확인: {count}건 (JSON 저장 스킵)")
+            except Exception as e:
+                logger.warning(f"DB 확인 실패: {e}")
 
-            for s in passed_stocks:
-                code = s.get("stock_code")
-                if not code:
-                    continue
-                h = history.get(code, {"days_selected": 0, "dates": []})
-                if today_key not in h.get("dates", []):
-                    h["dates"].append(today_key)
-                    h["days_selected"] = int(h.get("days_selected", 0)) + 1
-                history[code] = h
+            # === 2. DB에 없으면 JSON 폴백 저장 ===
+            if not db_has_data:
+                out_dir = Path("data/watchlist")
+                out_dir.mkdir(parents=True, exist_ok=True)
+                part_file = out_dir / f"screening_{today_key}.json"
 
-            with hist_file.open("w", encoding="utf-8") as f:
-                json.dump(history, f, ensure_ascii=False, indent=2)
+                payload = {
+                    "date": datetime.now().strftime("%Y-%m-%d"),
+                    "timestamp": datetime.now().isoformat(),
+                    "passed_count": len(passed_stocks),
+                    "stocks": [
+                        {
+                            "stock_code": s.get("stock_code"),
+                            "stock_name": s.get("stock_name"),
+                            "sector": s.get("sector", ""),
+                            "overall_score": s.get("overall_score", 0.0),
+                        }
+                        for s in passed_stocks
+                    ],
+                    "db_fallback": True
+                }
+                with part_file.open("w", encoding="utf-8") as f:
+                    json.dump(payload, f, ensure_ascii=False, indent=2)
+                logger.info(f"스크리닝 파티션 JSON 폴백 저장: {part_file}")
 
-            logger.info(f"당일 스크리닝 파티션 저장 및 이력 갱신 완료: {part_file}")
         except Exception as e:
-            logger.warning(f"스크리닝 파티션 저장/이력 갱신 실패: {e}")
+            logger.warning(f"스크리닝 파티션 저장 실패: {e}")
 
 
 def main():

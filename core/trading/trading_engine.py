@@ -138,23 +138,61 @@ class TradingEngine:
             return False
             
     def _load_daily_selection(self) -> List[Dict[str, Any]]:
-        """일일 선정 종목 로드"""
+        """일일 선정 종목 로드 (DB 우선, JSON 폴백)"""
         today = datetime.now().strftime("%Y%m%d")
+        today_date = datetime.now().date()
+
+        # === 1. DB에서 먼저 로드 시도 ===
+        try:
+            from core.database.session import DatabaseSession
+            from core.database.models import SelectionResult
+
+            db = DatabaseSession()
+            with db.get_session() as session:
+                results = session.query(SelectionResult).filter(
+                    SelectionResult.selection_date == today_date
+                ).all()
+
+                if results:
+                    selected_stocks = []
+                    for r in results:
+                        selected_stocks.append({
+                            'stock_code': r.stock_code,
+                            'stock_name': r.stock_name,
+                            'total_score': r.total_score,
+                            'technical_score': r.technical_score,
+                            'volume_score': r.volume_score,
+                            'entry_price': r.entry_price,
+                            'target_price': r.target_price,
+                            'stop_loss': r.stop_loss,
+                            'signal': r.signal,
+                            'confidence': r.confidence
+                        })
+                    self.logger.info(f"일일 선정 종목 DB 로드: {len(selected_stocks)}개")
+                    return selected_stocks
+
+        except Exception as e:
+            self.logger.warning(f"DB 로드 실패, JSON 폴백: {e}")
+
+        # === 2. JSON 파일에서 폴백 로드 ===
         selection_file = Path(f"data/daily_selection/daily_selection_{today}.json")
-        
+
         if not selection_file.exists():
             self.logger.warning(f"일일 선정 파일이 없습니다: {selection_file}")
             return []
-            
+
         try:
             with open(selection_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                
+
             selected_stocks = data.get('data', {}).get('selected_stocks', [])
-            self.logger.info(f"일일 선정 종목 로드: {len(selected_stocks)}개")
-            
+            # stocks 키도 확인 (호환성)
+            if not selected_stocks:
+                selected_stocks = data.get('stocks', [])
+            self.logger.info(f"일일 선정 종목 JSON 로드: {len(selected_stocks)}개")
+
             return selected_stocks
-            
+
         except Exception as e:
             self.logger.error(f"일일 선정 종목 로드 실패: {e}", exc_info=True)
             return []

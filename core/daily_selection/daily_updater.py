@@ -23,25 +23,6 @@ from core.daily_selection.price_analyzer import PriceAnalyzer, PriceAttractivene
 from core.utils.log_utils import get_logger
 from core.utils.telegram_notifier import get_telegram_notifier
 from core.interfaces.trading import IDailyUpdater, PriceAttractiveness, DailySelection
-from core.daily_selection.selection_tracker import get_selection_tracker
-
-
-def _get_db_session():
-    """DB 세션 lazy import (순환 import 방지)"""
-    try:
-        from core.database.unified_db import get_session
-        return get_session
-    except ImportError:
-        return None
-
-
-def _get_selection_result_model():
-    """SelectionResult 모델 lazy import"""
-    try:
-        from core.database.models import SelectionResult
-        return SelectionResult
-    except ImportError:
-        return None
 
 # 새로운 아키텍처 imports - 사용 가능할 때만 import
 try:
@@ -68,90 +49,20 @@ logger = get_logger(__name__)
 
 @dataclass
 class FilteringCriteria:
-    """필터링 기준 데이터 클래스 (개선: 점수 기반 통합 필터링)"""
-    # 기본 임계값 (완화됨)
-    price_attractiveness: float = 38.0      # 가격 매력도 점수 기준 (46 → 38, 완화)
-    volume_threshold: float = 1.2           # 평균 거래량 대비 배수 (1.5 → 1.2)
-    volatility_range: tuple = (0.05, 0.5)   # 변동성 범위 (5-50%, 확장)
-    market_cap_min: float = 5000000000      # 최소 시가총액 (50억원, 완화)
-    liquidity_score: float = 8.0            # 유동성 점수 기준 (10 → 8)
-    risk_score_max: float = 55.0            # 최대 리스크 점수 (43 → 55, 완화)
-    sector_limit: int = 3                   # 섹터별 최대 종목 수
-    total_limit: int = 10                   # 전체 최대 종목 수 (목표: 5-10개)
-    confidence_min: float = 0.45            # 최소 신뢰도 (0.62 → 0.45, 완화)
+    """필터링 기준 데이터 클래스 (A단계: 강화된 기준 적용 - 현실적 조정)"""
+    price_attractiveness: float = 46.0      # 가격 매력도 점수 기준 (상위 30%) [A단계]
+    volume_threshold: float = 1.5           # 평균 거래량 대비 배수
+    volatility_range: tuple = (0.1, 0.4)    # 변동성 범위 (10-40%)
+    market_cap_min: float = 10000000000     # 최소 시가총액 (100억원)
+    liquidity_score: float = 10.0           # 유동성 점수 기준
+    risk_score_max: float = 43.0            # 최대 리스크 점수 (중위수 기준) [A단계]
+    sector_limit: int = 3                   # 섹터별 최대 종목 수 [A단계]
+    total_limit: int = 20                   # 전체 최대 종목 수 (95 → 20) [A단계]
+    confidence_min: float = 0.62            # 최소 신뢰도 (상위 40%) [A단계]
 
-    # 기술적 지표 기준 (완화됨)
-    min_relative_strength: float = 0.4      # 시장 대비 상위 60% (0.6 → 0.4)
-    min_technical_score: float = 30.0       # 기술적 점수 최소값 (40 → 30)
-
-    # 점수 기반 통합 필터링 (신규)
-    use_score_based_filter: bool = True     # 점수 기반 필터링 활성화
-    min_composite_score: float = 0.55       # 최소 복합 점수 (55% 이상이면 통과)
-
-
-# 시장 레짐별 필터 프리셋
-REGIME_FILTER_PRESETS = {
-    "bull_market": {
-        "price_attractiveness": 35.0,       # 상승장: 적극적
-        "confidence_min": 0.40,
-        "risk_score_max": 60.0,
-        "min_technical_score": 25.0,
-        "total_limit": 10,
-        "min_composite_score": 0.50,
-        "use_score_based_filter": True,     # 점수 기반 필터링 사용
-        "liquidity_score": 6.0,             # 유동성 기준 완화
-    },
-    "bear_market": {
-        "price_attractiveness": 50.0,       # 하락장: 보수적
-        "confidence_min": 0.55,
-        "risk_score_max": 40.0,
-        "min_technical_score": 40.0,
-        "total_limit": 5,
-        "min_composite_score": 0.65,
-        "use_score_based_filter": True,     # 점수 기반 필터링 사용
-        "liquidity_score": 12.0,            # 유동성 기준 강화
-    },
-    "sideways": {
-        "price_attractiveness": 40.0,       # 횡보장: 중립
-        "confidence_min": 0.45,
-        "risk_score_max": 50.0,
-        "min_technical_score": 32.0,
-        "total_limit": 8,
-        "min_composite_score": 0.55,
-        "use_score_based_filter": True,     # 점수 기반 필터링 사용
-        "liquidity_score": 8.0,
-    },
-    "volatile": {
-        "price_attractiveness": 45.0,       # 변동성장: 신중
-        "confidence_min": 0.50,
-        "risk_score_max": 45.0,
-        "min_technical_score": 35.0,
-        "total_limit": 6,
-        "min_composite_score": 0.60,
-        "use_score_based_filter": True,     # 점수 기반 필터링 사용
-        "liquidity_score": 10.0,
-    },
-    "recovery": {
-        "price_attractiveness": 38.0,       # 회복장: 기회 포착
-        "confidence_min": 0.42,
-        "risk_score_max": 55.0,
-        "min_technical_score": 28.0,
-        "total_limit": 10,
-        "min_composite_score": 0.52,
-        "use_score_based_filter": True,     # 점수 기반 필터링 사용
-        "liquidity_score": 7.0,
-    },
-    "neutral": {
-        "price_attractiveness": 38.0,       # 기본값
-        "confidence_min": 0.45,
-        "risk_score_max": 55.0,
-        "min_technical_score": 30.0,
-        "total_limit": 10,
-        "min_composite_score": 0.55,
-        "use_score_based_filter": True,     # 점수 기반 필터링 사용
-        "liquidity_score": 8.0,
-    }
-}
+    # A단계 추가: 상대 강도 필터
+    min_relative_strength: float = 0.6      # 시장 대비 상위 40%
+    min_technical_score: float = 40.0       # 기술적 점수 최소값
 
 @dataclass
 class DailySelectionLegacy:
@@ -276,9 +187,6 @@ class DailyUpdater(IDailyUpdater):
 
         # KIS API 인스턴스 (공유하여 rate limiting 적용)
         self._kis_api = None  # lazy initialization
-
-        # 적응형 필터 튜너 (학습 기반 임계값 조정)
-        self._adaptive_tuner = None  # lazy initialization
 
         # 필터링 기준 및 상태
         self._filtering_criteria = FilteringCriteria()
@@ -458,73 +366,31 @@ class DailyUpdater(IDailyUpdater):
             schedule.run_pending()
             time.sleep(60)  # 1분마다 체크
 
-    def _get_adaptive_tuner(self):
-        """적응형 필터 튜너 싱글톤 인스턴스 반환"""
-        if self._adaptive_tuner is None:
-            try:
-                from core.daily_selection.adaptive_filter_tuner import get_adaptive_filter_tuner
-                self._adaptive_tuner = get_adaptive_filter_tuner()
-                self._logger.info("적응형 필터 튜너 초기화 완료")
-            except Exception as e:
-                self._logger.warning(f"적응형 필터 튜너 로드 실패: {e}")
-                self._adaptive_tuner = None
-        return self._adaptive_tuner
-
     def _adjust_criteria_by_market(self, p_market_condition: str):
-        """시장 상황에 따른 필터링 기준 동적 조정
-
-        우선순위:
-        1. 학습 기반 최적 임계값 (충분한 데이터가 있을 때)
-        2. 시장 레짐별 프리셋 (기본값)
-
+        """시장 상황에 따른 필터링 기준 조정
+        
         Args:
-            p_market_condition: 시장 상황 (bull_market, bear_market, sideways, volatile, recovery, neutral)
+            p_market_condition: 시장 상황
         """
-        # 기본 기준으로 초기화
-        self._filtering_criteria = FilteringCriteria()
-
-        # 1. 학습 기반 임계값 시도
-        learned_thresholds = None
-        tuner = self._get_adaptive_tuner()
-        if tuner and tuner.can_learn():
-            learned_thresholds = tuner.get_optimal_thresholds(p_market_condition)
-            if learned_thresholds:
-                self._filtering_criteria.price_attractiveness = learned_thresholds.price_attractiveness
-                self._filtering_criteria.confidence_min = learned_thresholds.confidence_min
-                self._filtering_criteria.risk_score_max = learned_thresholds.risk_score_max
-                self._filtering_criteria.min_technical_score = learned_thresholds.min_technical_score
-                self._filtering_criteria.liquidity_score = learned_thresholds.liquidity_score
-                self._filtering_criteria.min_composite_score = learned_thresholds.min_composite_score
-
-                self._logger.info(
-                    f"🧠 학습 기반 임계값 적용 - 시장상황: {p_market_condition} | "
-                    f"매력도>{learned_thresholds.price_attractiveness:.1f}, "
-                    f"신뢰도>{learned_thresholds.confidence_min:.2f}, "
-                    f"리스크<{learned_thresholds.risk_score_max:.1f}"
-                )
-                return
-
-        # 2. 학습 데이터 부족 시 시장 레짐별 프리셋 적용
-        preset = REGIME_FILTER_PRESETS.get(p_market_condition, REGIME_FILTER_PRESETS["neutral"])
-
-        # 프리셋 값 적용 (모든 필드)
-        self._filtering_criteria.price_attractiveness = preset["price_attractiveness"]
-        self._filtering_criteria.confidence_min = preset["confidence_min"]
-        self._filtering_criteria.risk_score_max = preset["risk_score_max"]
-        self._filtering_criteria.min_technical_score = preset["min_technical_score"]
-        self._filtering_criteria.total_limit = preset["total_limit"]
-        self._filtering_criteria.min_composite_score = preset["min_composite_score"]
-        self._filtering_criteria.use_score_based_filter = preset.get("use_score_based_filter", True)
-        self._filtering_criteria.liquidity_score = preset.get("liquidity_score", 8.0)
-
-        self._logger.info(
-            f"📋 프리셋 기반 임계값 적용 - 시장상황: {p_market_condition} | "
-            f"매력도>{preset['price_attractiveness']:.0f}, "
-            f"신뢰도>{preset['confidence_min']:.2f}, "
-            f"리스크<{preset['risk_score_max']:.0f}, "
-            f"목표종목: {preset['total_limit']}개, "
-            f"점수필터: {'ON' if preset.get('use_score_based_filter', True) else 'OFF'}"
-        )
+        if p_market_condition == "bull_market":
+            # 상승장: 기준 완화
+            self._filtering_criteria.price_attractiveness = 65.0
+            self._filtering_criteria.volume_threshold = 1.3
+            self._filtering_criteria.risk_score_max = 50.0
+            self._filtering_criteria.total_limit = 20
+            
+        elif p_market_condition == "bear_market":
+            # 하락장: 기준 강화
+            self._filtering_criteria.price_attractiveness = 80.0
+            self._filtering_criteria.volume_threshold = 2.0
+            self._filtering_criteria.risk_score_max = 30.0
+            self._filtering_criteria.total_limit = 10
+            
+        else:  # sideways
+            # 횡보장: 기본 기준 유지 (총량 제한 없음)
+            self._filtering_criteria = FilteringCriteria()
+        
+        self._logger.info(f"필터링 기준 조정 완료 - 시장상황: {p_market_condition}")
     
     def _prepare_stock_data(self, p_watchlist_stocks: List) -> List[Dict]:
         """감시 리스트 종목을 분석용 데이터로 변환
@@ -566,8 +432,13 @@ class DailyUpdater(IDailyUpdater):
                 "current_price": stock_info.get("current_price", 0.0),
                 "sector": stock.sector,
                 "market_cap": stock_info.get("market_cap", 0.0),
-                "volatility": self._get_volatility(stock.stock_code),
-                "sector_momentum": self._get_sector_momentum(stock.sector)
+                "volatility": stock_info.get("volatility", 0.15),  # 일봉 데이터 기반 실제 변동성
+                "sector_momentum": self._get_sector_momentum(stock.sector),
+                "recent_close_prices": stock_info.get("recent_close_prices", []),
+                "recent_volumes": stock_info.get("recent_volumes", []),
+                "volume": stock_info.get("volume", 0),
+                "avg_volume": stock_info.get("avg_volume", 0),
+                "volume_ratio": stock_info.get("volume_ratio", 1.0),
             }
             _v_stock_data_list.append(_v_stock_data)
 
@@ -579,17 +450,52 @@ class DailyUpdater(IDailyUpdater):
         return _v_stock_data_list
 
     def _get_stock_info_combined(self, p_stock_code: str) -> Dict:
-        """종목 정보 통합 조회 (현재가 + 시가총액, 단일 API 호출)"""
+        """종목 정보 통합 조회 (현재가 + 시가총액 + 일봉 데이터)"""
+        result = {
+            "current_price": 0.0,
+            "market_cap": 0.0,
+            "recent_close_prices": [],
+            "recent_volumes": [],
+            "volume": 0,
+            "avg_volume": 0,
+            "volume_ratio": 1.0,
+            "volatility": 0.15,  # 기본값 15%
+        }
         try:
             kis = self._get_kis_api()
+
+            # 1. 현재가 + 시가총액 조회
             info = kis.get_stock_info(p_stock_code) or {}
-            return {
-                "current_price": float(info.get("current_price", 0.0)),
-                "market_cap": float(info.get("market_cap", 0.0)),
-            }
+            result["current_price"] = float(info.get("current_price", 0.0))
+            result["market_cap"] = float(info.get("market_cap", 0.0))
+
+            # 2. 일봉 데이터 조회 (최근 30일)
+            df_history = kis.get_stock_history(p_stock_code, period="D", count=30)
+            if df_history is not None and not df_history.empty:
+                # close, volume 컬럼 추출 (오래된 순서로 정렬)
+                df_sorted = df_history.sort_values(by="date", ascending=True)
+                result["recent_close_prices"] = df_sorted["close"].tolist()
+                result["recent_volumes"] = df_sorted["volume"].tolist()
+
+                # 거래량 관련 지표 계산
+                volumes = result["recent_volumes"]
+                if volumes:
+                    result["volume"] = volumes[-1] if volumes else 0  # 최근 거래량
+                    result["avg_volume"] = sum(volumes) / len(volumes) if volumes else 0  # 평균 거래량
+                    if result["avg_volume"] > 0:
+                        result["volume_ratio"] = result["volume"] / result["avg_volume"]  # 거래량 비율
+
+                # 변동성 계산 (일간 수익률의 표준편차)
+                prices = result["recent_close_prices"]
+                if len(prices) >= 2:
+                    import numpy as np
+                    returns = np.diff(prices) / np.array(prices[:-1])
+                    result["volatility"] = float(np.std(returns)) if len(returns) > 0 else 0.15
+
+            return result
         except Exception as e:
-            self._logger.warning(f"종목 정보 조회 실패 ({p_stock_code}): {e}")
-            return {"current_price": 0.0, "market_cap": 0.0}
+            self._logger.warning(f"종목 정보 조회 실패 ({p_stock_code}): {e}", exc_info=True)
+            return result
     
     def _get_current_price(self, p_stock_code: str) -> float:
         """현재가 조회 (실데이터: KIS API, 공유 인스턴스 사용)"""
@@ -667,13 +573,7 @@ class DailyUpdater(IDailyUpdater):
         return _v_filtered_stocks
 
     def _apply_trend_filter(self, p_results: List[PriceAttractivenessLegacy]) -> List[PriceAttractivenessLegacy]:
-        """추세 추종 필터 적용 (개선: Adaptive Minimum Data)
-
-        데이터 길이에 따라 다른 분석 방식 적용:
-        - 60일+: 전체 분석 (ma5, ma20, ma60)
-        - 30-59일: 중간 분석 (ma5, ma20만)
-        - 20-29일: 간이 분석 (ma5, ma10만)
-        - 10-19일: 최소 분석 (ma5만, 모멘텀 중심)
+        """추세 추종 필터 적용 (방안 A 통합)
 
         Args:
             p_results: 분석 결과 리스트
@@ -685,44 +585,18 @@ class DailyUpdater(IDailyUpdater):
             from core.daily_selection.trend_follower import get_trend_follower
 
             trend_follower = get_trend_follower()
-            api = self._get_kis_api()
+            api = self._get_kis_api()  # 싱글톤 사용하여 rate limiting 공유
 
-            # 종목별 가격 데이터 수집 (최소 10일, 최대 60일 시도)
+            # 종목별 가격 데이터 수집
             market_data = {}
-            data_stats = {"60+": 0, "30-59": 0, "20-29": 0, "10-19": 0, "<10": 0}
-
             for result in p_results:
                 try:
-                    # 60일 데이터 요청 시도
                     df = api.get_stock_history(result.stock_code, period="D", count=60)
-
-                    if df is not None and len(df) >= 10:  # 최소 10일 데이터만 있으면 OK
+                    if df is not None and len(df) >= 60:
                         market_data[result.stock_code] = df
-
-                        # 통계 수집
-                        data_len = len(df)
-                        if data_len >= 60:
-                            data_stats["60+"] += 1
-                        elif data_len >= 30:
-                            data_stats["30-59"] += 1
-                        elif data_len >= 20:
-                            data_stats["20-29"] += 1
-                        else:
-                            data_stats["10-19"] += 1
-                    else:
-                        data_stats["<10"] += 1
-
                 except Exception as e:
                     self._logger.debug(f"종목 {result.stock_code} 가격 데이터 수집 실패: {e}")
-                    data_stats["<10"] += 1
                     continue
-
-            # 데이터 통계 로깅
-            self._logger.info(
-                f"가격 데이터 수집 결과: 60일+={data_stats['60+']}, "
-                f"30-59일={data_stats['30-59']}, 20-29일={data_stats['20-29']}, "
-                f"10-19일={data_stats['10-19']}, 10일미만(제외)={data_stats['<10']}"
-            )
 
             # 추세 추종 필터 적용
             stocks_dict = [{'stock_code': r.stock_code, 'stock_name': r.stock_name} for r in p_results]
@@ -805,11 +679,7 @@ class DailyUpdater(IDailyUpdater):
             return p_results  # 실패 시 원본 리스트 반환
 
     def _passes_basic_filters(self, p_result: PriceAttractivenessLegacy) -> bool:
-        """기본 필터링 조건 확인 (개선: 점수 기반 통합 필터링)
-
-        AND 조건 누적 탈락 문제 해결:
-        - 기존: 5개 필터 모두 통과 필요 → 누적 탈락률 90%
-        - 개선: 각 필터를 점수화하여 복합 점수 55% 이상이면 통과
+        """기본 필터링 조건 확인 (A단계: 강화된 기준 적용)
 
         Args:
             p_result: 분석 결과
@@ -817,148 +687,56 @@ class DailyUpdater(IDailyUpdater):
         Returns:
             필터링 통과 여부
         """
-        # 점수 기반 통합 필터링 사용 여부 확인
-        if self._filtering_criteria.use_score_based_filter:
-            return self._score_based_filter(p_result)
-        else:
-            return self._legacy_and_filter(p_result)
+        # 디버깅 로그 추가
+        self._logger.info(f"필터링 검사: {p_result.stock_code} - "
+                         f"total_score={p_result.total_score}, "
+                         f"risk_score={p_result.risk_score}, "
+                         f"confidence={p_result.confidence}, "
+                         f"technical_score={p_result.technical_score}")
 
-    def _score_based_filter(self, p_result: PriceAttractivenessLegacy) -> bool:
-        """점수 기반 통합 필터링 (개선된 방식)
-
-        각 필터 항목을 0-100 점수로 변환 후 가중 합산
-        복합 점수가 min_composite_score 이상이면 통과
-
-        Args:
-            p_result: 분석 결과
-
-        Returns:
-            필터링 통과 여부
-        """
-        scores = {}
-        weights = {
-            'price_attractiveness': 0.30,  # 가격 매력도 30%
-            'risk': 0.25,                   # 리스크 25%
-            'confidence': 0.20,             # 신뢰도 20%
-            'technical': 0.15,              # 기술적 점수 15%
-            'volume': 0.10,                 # 거래량 10%
-        }
-
-        # 1. 가격 매력도 점수화 (0-100)
-        # 기준값의 80%면 50점, 100%면 80점, 120%면 100점
-        threshold = self._filtering_criteria.price_attractiveness
-        ratio = p_result.total_score / max(threshold, 1)
-        scores['price_attractiveness'] = min(100, max(0, (ratio - 0.8) * 250))
-
-        # 2. 리스크 점수화 (낮을수록 좋음, 역수)
-        # 기준값의 80%면 100점, 100%면 70점, 120%면 40점
-        risk_threshold = self._filtering_criteria.risk_score_max
-        risk_ratio = p_result.risk_score / max(risk_threshold, 1)
-        scores['risk'] = min(100, max(0, (1.4 - risk_ratio) * 100))
-
-        # 3. 신뢰도 점수화 (0-100)
-        conf_threshold = self._filtering_criteria.confidence_min
-        conf_ratio = p_result.confidence / max(conf_threshold, 0.01)
-        scores['confidence'] = min(100, max(0, (conf_ratio - 0.8) * 250))
-
-        # 4. 기술적 점수화 (이미 0-100)
-        tech_threshold = self._filtering_criteria.min_technical_score
-        tech_ratio = p_result.technical_score / max(tech_threshold, 1)
-        scores['technical'] = min(100, max(0, (tech_ratio - 0.8) * 250))
-
-        # 5. 거래량 점수화 (이미 0-100)
-        vol_threshold = self._filtering_criteria.liquidity_score
-        vol_ratio = p_result.volume_score / max(vol_threshold, 1)
-        scores['volume'] = min(100, max(0, (vol_ratio - 0.8) * 250))
-
-        # 가중 합산
-        composite_score = sum(scores[k] * weights[k] for k in weights)
-        normalized_score = composite_score / 100  # 0-1 범위로 정규화
-
-        # 로깅
-        self._logger.debug(
-            f"점수 기반 필터 - {p_result.stock_code}: "
-            f"매력도={scores['price_attractiveness']:.0f}, "
-            f"리스크={scores['risk']:.0f}, "
-            f"신뢰도={scores['confidence']:.0f}, "
-            f"기술={scores['technical']:.0f}, "
-            f"거래량={scores['volume']:.0f} → "
-            f"복합점수={normalized_score:.2f}"
-        )
-
-        # 통과 여부 판단
-        passed = normalized_score >= self._filtering_criteria.min_composite_score
-
-        if passed:
-            self._logger.info(
-                f"✅ {p_result.stock_code} ({p_result.stock_name}) 점수 기반 필터 통과! "
-                f"복합점수: {normalized_score:.2f} >= {self._filtering_criteria.min_composite_score:.2f}"
-            )
-        else:
-            self._logger.debug(
-                f"❌ {p_result.stock_code} 점수 기반 필터 미달: "
-                f"복합점수 {normalized_score:.2f} < {self._filtering_criteria.min_composite_score:.2f}"
-            )
-
-        return passed
-
-    def _legacy_and_filter(self, p_result: PriceAttractivenessLegacy) -> bool:
-        """기존 AND 필터링 방식 (호환성 유지용)
-
-        Args:
-            p_result: 분석 결과
-
-        Returns:
-            필터링 통과 여부
-        """
-        # 디버깅 로그
-        self._logger.debug(f"AND 필터 검사: {p_result.stock_code} - "
-                          f"total_score={p_result.total_score}, "
-                          f"risk_score={p_result.risk_score}, "
-                          f"confidence={p_result.confidence}, "
-                          f"technical_score={p_result.technical_score}")
-
-        # 가격 매력도 점수
+        # 가격 매력도 점수 (A단계: 75점 이상)
         if p_result.total_score < self._filtering_criteria.price_attractiveness:
+            self._logger.info(f"❌ {p_result.stock_code} 가격매력도 필터링 실패: {p_result.total_score} < {self._filtering_criteria.price_attractiveness}")
             return False
 
-        # 리스크 점수
+        # 리스크 점수 (A단계: 35점 이하)
         if p_result.risk_score > self._filtering_criteria.risk_score_max:
+            self._logger.info(f"❌ {p_result.stock_code} 리스크 필터링 실패: {p_result.risk_score} > {self._filtering_criteria.risk_score_max}")
             return False
 
-        # 신뢰도
+        # 신뢰도 (A단계: 0.65 이상)
         if p_result.confidence < self._filtering_criteria.confidence_min:
+            self._logger.info(f"❌ {p_result.stock_code} 신뢰도 필터링 실패: {p_result.confidence} < {self._filtering_criteria.confidence_min}")
             return False
 
-        # 기술적 점수
+        # 기술적 점수 (A단계: 60점 이상)
         if p_result.technical_score < self._filtering_criteria.min_technical_score:
+            self._logger.info(f"❌ {p_result.stock_code} 기술적 점수 필터링 실패: {p_result.technical_score} < {self._filtering_criteria.min_technical_score}")
             return False
 
         # 거래량 점수
         if p_result.volume_score < self._filtering_criteria.liquidity_score:
+            self._logger.info(f"❌ {p_result.stock_code} 거래량 필터링 실패: {p_result.volume_score} < {self._filtering_criteria.liquidity_score}")
             return False
 
-        self._logger.info(f"✅ {p_result.stock_code} AND 필터 통과!")
+        self._logger.info(f"✅ {p_result.stock_code} 모든 필터링 통과!")
         return True
     
     def _create_daily_trading_list(self, p_selected_stocks: List[PriceAttractivenessLegacy],
                                  p_market_condition: str, p_market_indicators: MarketIndicators) -> Dict:
         """일일 매매 리스트 생성
-
+        
         Args:
             p_selected_stocks: 선정된 종목 리스트
             p_market_condition: 시장 상황
             p_market_indicators: 시장 지표
-
+            
         Returns:
             일일 매매 리스트 데이터
         """
         _v_daily_selections = []
         _v_total_weight = 0.0
-
-        # 학습 데이터 수집을 위한 선정 추적기
-        _v_selection_tracker = get_selection_tracker()
-
+        
         for i, stock in enumerate(p_selected_stocks):
             # 포지션 사이징 계산
             _v_position_size = self._calculate_position_size(stock, len(p_selected_stocks))
@@ -991,28 +769,7 @@ class DailyUpdater(IDailyUpdater):
             )
             
             _v_daily_selections.append(_v_selection)
-
-            # 학습 데이터용 선정 기록 (selection_tracker에 저장)
-            try:
-                _v_selection_metrics = {
-                    "total_score": stock.total_score,
-                    "technical_score": stock.technical_score,
-                    "risk_score": stock.risk_score,
-                    "confidence": stock.confidence,
-                    "volume_score": stock.volume_score,
-                    "composite_score": getattr(stock, 'ensemble_score', stock.total_score) / 100,
-                }
-                _v_selection_tracker.record_selection(
-                    stock_code=stock.stock_code,
-                    stock_name=stock.stock_name,
-                    metrics=_v_selection_metrics,
-                    market_condition=p_market_condition,
-                    entry_price=stock.entry_price,
-                    ranking=i + 1
-                )
-            except Exception as e:
-                self._logger.debug(f"선정 추적 기록 실패 ({stock.stock_code}): {e}")
-
+        
         # 포지션 사이즈 정규화
         if _v_total_weight > 0:
             for selection in _v_daily_selections:
@@ -1074,7 +831,7 @@ class DailyUpdater(IDailyUpdater):
         return min(_v_adjusted_weight, 0.2)
     
     def _save_daily_list(self, p_daily_list: Dict) -> bool:
-        """일일 매매 리스트 저장 (DB + JSON 병행)
+        """일일 매매 리스트 저장 (DB 우선, 실패 시 JSON 폴백)
 
         Args:
             p_daily_list: 일일 매매 리스트 데이터
@@ -1084,9 +841,26 @@ class DailyUpdater(IDailyUpdater):
         """
         try:
             _v_date = datetime.now().strftime("%Y%m%d")
+            _v_selection_date = datetime.now().date()
+
+            # === 1. DB에 저장 시도 ===
+            db_saved = self._save_selection_to_db(p_daily_list, _v_selection_date)
+            if db_saved:
+                self._logger.info(f"선정 결과 DB 저장 완료")
+                return True
+
+            # === 2. DB 실패 시에만 JSON 폴백 저장 ===
+            self._logger.warning("선정 결과 DB 저장 실패 - JSON 폴백 저장")
+
             _v_file_path = os.path.join(self._output_dir, f"daily_selection_{_v_date}.json")
 
-            # 1. JSON 파일 저장 (백업용)
+            # 폴백 여부를 metadata에 추가
+            if "metadata" in p_daily_list:
+                p_daily_list["metadata"]["db_fallback"] = True
+
+            # 디렉토리 생성
+            os.makedirs(self._output_dir, exist_ok=True)
+
             with open(_v_file_path, 'w', encoding='utf-8') as f:
                 json.dump(p_daily_list, f, ensure_ascii=False, indent=2)
 
@@ -1095,89 +869,67 @@ class DailyUpdater(IDailyUpdater):
             with open(_v_latest_path, 'w', encoding='utf-8') as f:
                 json.dump(p_daily_list, f, ensure_ascii=False, indent=2)
 
-            self._logger.info(f"일일 매매 리스트 JSON 저장 완료: {_v_file_path}")
-
-            # 2. DB 저장
-            db_saved = self._save_daily_list_to_db(p_daily_list)
-            if db_saved:
-                self._logger.info("일일 매매 리스트 DB 저장 완료")
-
+            self._logger.info(f"일일 매매 리스트 JSON 폴백 저장 완료: {_v_file_path}")
             return True
 
         except Exception as e:
             self._logger.error(f"일일 매매 리스트 저장 실패: {e}", exc_info=True)
             return False
 
-    def _save_daily_list_to_db(self, p_daily_list: Dict) -> bool:
-        """일일 매매 리스트를 DB에 저장"""
-        get_session = _get_db_session()
-        SelectionResult = _get_selection_result_model()
+    def _save_selection_to_db(self, p_daily_list: Dict, p_selection_date) -> bool:
+        """선정 결과를 DB에 저장
 
-        if not get_session or not SelectionResult:
-            self._logger.debug("DB 저장 불가 - 모듈 로드 실패")
-            return False
+        Args:
+            p_daily_list: 일일 매매 리스트 데이터
+            p_selection_date: 선정 날짜
 
+        Returns:
+            저장 성공 여부
+        """
         try:
-            from datetime import datetime as dt
+            from core.database.session import DatabaseSession
+            from core.database.models import SelectionResult
 
-            market_date = p_daily_list.get("market_date")
-            market_condition = p_daily_list.get("market_condition")
-            selected_stocks = p_daily_list.get("data", {}).get("selected_stocks", [])
+            db = DatabaseSession()
+            with db.get_session() as session:
+                # 기존 데이터 삭제 (같은 날짜)
+                session.query(SelectionResult).filter(
+                    SelectionResult.selection_date == p_selection_date
+                ).delete()
 
-            selection_date = dt.strptime(market_date, "%Y-%m-%d").date() if market_date else dt.now().date()
-
-            with get_session() as session:
+                # 새 데이터 저장
                 saved_count = 0
-                for stock in selected_stocks:
-                    # 기존 레코드 확인
-                    existing = session.query(SelectionResult).filter(
-                        SelectionResult.selection_date == selection_date,
-                        SelectionResult.stock_code == stock.get("stock_code")
-                    ).first()
+                stocks = p_daily_list.get("stocks", [])
+                market_condition = p_daily_list.get("market_condition", "")
 
-                    if existing:
-                        # 업데이트
-                        existing.total_score = stock.get("price_attractiveness")
-                        existing.technical_score = stock.get("technical_score")
-                        existing.volume_score = stock.get("volume_score")
-                        existing.risk_score = stock.get("risk_score")
-                        existing.entry_price = stock.get("entry_price")
-                        existing.target_price = stock.get("target_price")
-                        existing.stop_loss = stock.get("stop_loss")
-                        existing.expected_return = stock.get("expected_return")
-                        existing.confidence = stock.get("confidence")
-                        existing.signal = stock.get("signal", "buy")
-                        existing.selection_reason = stock.get("selection_reason")
-                        existing.market_condition = market_condition
-                    else:
-                        # 새 레코드 생성
-                        selection_record = SelectionResult(
-                            selection_date=selection_date,
-                            stock_code=stock.get("stock_code"),
-                            stock_name=stock.get("stock_name"),
-                            total_score=stock.get("price_attractiveness"),
-                            technical_score=stock.get("technical_score"),
-                            volume_score=stock.get("volume_score"),
-                            pattern_score=stock.get("pattern_score"),
-                            risk_score=stock.get("risk_score"),
-                            entry_price=stock.get("entry_price"),
-                            target_price=stock.get("target_price"),
-                            stop_loss=stock.get("stop_loss"),
-                            expected_return=stock.get("expected_return"),
-                            confidence=stock.get("confidence"),
-                            signal=stock.get("signal", "buy"),
-                            selection_reason=stock.get("selection_reason"),
-                            market_condition=market_condition,
-                        )
-                        session.add(selection_record)
+                for stock in stocks:
+                    selection_record = SelectionResult(
+                        selection_date=p_selection_date,
+                        stock_code=stock.get('stock_code', ''),
+                        stock_name=stock.get('stock_name', ''),
+                        total_score=stock.get('total_score', 0.0),
+                        technical_score=stock.get('technical_score', 0.0),
+                        volume_score=stock.get('volume_score', 0.0),
+                        pattern_score=stock.get('pattern_score', 0.0),
+                        risk_score=stock.get('risk_score', 0.0),
+                        entry_price=stock.get('entry_price'),
+                        target_price=stock.get('target_price'),
+                        stop_loss=stock.get('stop_loss'),
+                        expected_return=stock.get('expected_return'),
+                        confidence=stock.get('confidence'),
+                        signal=stock.get('signal', 'buy'),
+                        selection_reason=stock.get('selection_reason', ''),
+                        market_condition=market_condition
+                    )
+                    session.add(selection_record)
                     saved_count += 1
 
                 session.commit()
-                self._logger.info(f"DB에 {saved_count}개 선정 결과 저장")
+                self._logger.info(f"선정 결과 DB 저장 완료: {saved_count}건")
                 return True
 
         except Exception as e:
-            self._logger.error(f"DB 선정 결과 저장 실패: {e}", exc_info=True)
+            self._logger.error(f"선정 결과 DB 저장 실패: {e}", exc_info=True)
             return False
     
     def _send_notification(self, p_daily_list: Dict):
@@ -1211,12 +963,53 @@ class DailyUpdater(IDailyUpdater):
         Returns:
             최신 일일 매매 리스트 (없으면 None)
         """
-        # 1. DB에서 조회 시도
-        db_result = self._get_latest_selection_from_db()
-        if db_result:
-            return db_result
+        # === 1. DB에서 먼저 로드 시도 ===
+        try:
+            from core.database.session import DatabaseSession
+            from core.database.models import SelectionResult
 
-        # 2. JSON 파일에서 조회 (폴백)
+            db = DatabaseSession()
+            with db.get_session() as session:
+                # 가장 최근 날짜의 선정 결과 조회
+                from sqlalchemy import func
+                latest_date = session.query(func.max(SelectionResult.selection_date)).scalar()
+
+                if latest_date:
+                    results = session.query(SelectionResult).filter(
+                        SelectionResult.selection_date == latest_date
+                    ).all()
+
+                    if results:
+                        stocks = []
+                        for r in results:
+                            stocks.append({
+                                'stock_code': r.stock_code,
+                                'stock_name': r.stock_name,
+                                'total_score': r.total_score,
+                                'technical_score': r.technical_score,
+                                'volume_score': r.volume_score,
+                                'entry_price': r.entry_price,
+                                'target_price': r.target_price,
+                                'stop_loss': r.stop_loss,
+                                'signal': r.signal,
+                                'confidence': r.confidence,
+                                'selection_reason': r.selection_reason
+                            })
+
+                        self._logger.info(f"최신 선정 결과 DB 로드: {len(stocks)}개 ({latest_date})")
+                        return {
+                            'market_date': str(latest_date),
+                            'stocks': stocks,
+                            'metadata': {
+                                'total_selected': len(stocks),
+                                'source': 'database'
+                            }
+                        }
+
+        except Exception as e:
+            self._logger.warning(f"DB 로드 실패, JSON 폴백: {e}")
+
+        # === 2. JSON 파일에서 폴백 로드 ===
         try:
             _v_latest_path = os.path.join(self._output_dir, "latest_selection.json")
 
@@ -1229,61 +1022,7 @@ class DailyUpdater(IDailyUpdater):
         except Exception as e:
             self._logger.error(f"최신 선정 결과 조회 실패: {e}", exc_info=True)
             return None
-
-    def _get_latest_selection_from_db(self) -> Optional[Dict]:
-        """DB에서 최신 선정 결과 조회"""
-        get_session = _get_db_session()
-        SelectionResult = _get_selection_result_model()
-
-        if not get_session or not SelectionResult:
-            return None
-
-        try:
-            from datetime import datetime as dt
-            today = dt.now().date()
-
-            with get_session() as session:
-                records = session.query(SelectionResult).filter(
-                    SelectionResult.selection_date == today
-                ).order_by(SelectionResult.total_score.desc()).all()
-
-                if not records:
-                    return None
-
-                selected_stocks = []
-                for r in records:
-                    selected_stocks.append({
-                        "stock_code": r.stock_code,
-                        "stock_name": r.stock_name,
-                        "price_attractiveness": r.total_score,
-                        "technical_score": r.technical_score,
-                        "volume_score": r.volume_score,
-                        "risk_score": r.risk_score,
-                        "entry_price": r.entry_price,
-                        "target_price": r.target_price,
-                        "stop_loss": r.stop_loss,
-                        "expected_return": r.expected_return,
-                        "confidence": r.confidence,
-                        "signal": r.signal,
-                        "selection_reason": r.selection_reason,
-                    })
-
-                return {
-                    "timestamp": dt.now().isoformat(),
-                    "market_date": today.strftime("%Y-%m-%d"),
-                    "market_condition": records[0].market_condition if records else "neutral",
-                    "data": {"selected_stocks": selected_stocks},
-                    "metadata": {
-                        "total_selected": len(selected_stocks),
-                        "avg_attractiveness": sum(s["price_attractiveness"] or 0 for s in selected_stocks) / max(len(selected_stocks), 1),
-                        "source": "database"
-                    }
-                }
-
-        except Exception as e:
-            self._logger.debug(f"DB 최신 선정 결과 조회 실패: {e}")
-            return None
-
+    
     def get_selection_history(self, p_days: int = 7) -> List[Dict]:
         """선정 이력 조회 (DB 우선, JSON 폴백)
 
@@ -1293,75 +1032,53 @@ class DailyUpdater(IDailyUpdater):
         Returns:
             선정 이력 리스트
         """
-        # 1. DB에서 조회 시도
-        db_history = self._get_selection_history_from_db(p_days)
-        if db_history:
-            return db_history
-
-        # 2. JSON 파일에서 조회 (폴백)
-        return self._get_selection_history_from_json(p_days)
-
-    def _get_selection_history_from_db(self, p_days: int) -> List[Dict]:
-        """DB에서 선정 이력 조회"""
-        get_session = _get_db_session()
-        SelectionResult = _get_selection_result_model()
-
-        if not get_session or not SelectionResult:
-            return []
-
+        # === 1. DB에서 먼저 로드 시도 ===
         try:
-            from datetime import datetime as dt
-            start_date = (dt.now() - timedelta(days=p_days)).date()
+            from core.database.session import DatabaseSession
+            from core.database.models import SelectionResult
+            from sqlalchemy import func
 
-            with get_session() as session:
-                records = session.query(SelectionResult).filter(
+            db = DatabaseSession()
+            with db.get_session() as session:
+                # 최근 p_days일간의 고유한 날짜 조회
+                start_date = (datetime.now() - timedelta(days=p_days)).date()
+                dates = session.query(SelectionResult.selection_date).filter(
                     SelectionResult.selection_date >= start_date
-                ).order_by(SelectionResult.selection_date.desc(), SelectionResult.total_score.desc()).all()
+                ).distinct().order_by(SelectionResult.selection_date.desc()).all()
 
-                if not records:
-                    return []
+                if dates:
+                    _v_history = []
+                    for (date_val,) in dates:
+                        results = session.query(SelectionResult).filter(
+                            SelectionResult.selection_date == date_val
+                        ).all()
 
-                # 날짜별로 그룹화
-                from collections import defaultdict
-                date_groups = defaultdict(list)
-                for r in records:
-                    date_key = r.selection_date.strftime("%Y-%m-%d")
-                    date_groups[date_key].append({
-                        "stock_code": r.stock_code,
-                        "stock_name": r.stock_name,
-                        "price_attractiveness": r.total_score,
-                        "technical_score": r.technical_score,
-                        "volume_score": r.volume_score,
-                        "risk_score": r.risk_score,
-                        "entry_price": r.entry_price,
-                        "target_price": r.target_price,
-                        "stop_loss": r.stop_loss,
-                        "expected_return": r.expected_return,
-                        "confidence": r.confidence,
-                        "actual_return_7d": r.actual_return_7d,
-                        "is_success": r.is_success,
-                    })
+                        stocks = []
+                        for r in results:
+                            stocks.append({
+                                'stock_code': r.stock_code,
+                                'stock_name': r.stock_name,
+                                'total_score': r.total_score,
+                                'technical_score': r.technical_score,
+                                'signal': r.signal
+                            })
 
-                history = []
-                for date_str, stocks in sorted(date_groups.items(), reverse=True):
-                    history.append({
-                        "market_date": date_str,
-                        "data": {"selected_stocks": stocks},
-                        "metadata": {
-                            "total_selected": len(stocks),
-                            "avg_attractiveness": sum(s["price_attractiveness"] or 0 for s in stocks) / max(len(stocks), 1),
-                            "source": "database"
-                        }
-                    })
+                        _v_history.append({
+                            'market_date': str(date_val),
+                            'stocks': stocks,
+                            'metadata': {
+                                'total_selected': len(stocks),
+                                'source': 'database'
+                            }
+                        })
 
-                return history
+                    self._logger.info(f"선정 이력 DB 로드: {len(_v_history)}일치")
+                    return _v_history
 
         except Exception as e:
-            self._logger.debug(f"DB 선정 이력 조회 실패: {e}")
-            return []
+            self._logger.warning(f"DB 이력 로드 실패, JSON 폴백: {e}")
 
-    def _get_selection_history_from_json(self, p_days: int) -> List[Dict]:
-        """JSON 파일에서 선정 이력 조회 (폴백)"""
+        # === 2. JSON 파일에서 폴백 로드 ===
         _v_history = []
 
         try:
@@ -1377,7 +1094,7 @@ class DailyUpdater(IDailyUpdater):
             return _v_history
 
         except Exception as e:
-            self._logger.error(f"선정 이력 JSON 조회 실패: {e}", exc_info=True)
+            self._logger.error(f"선정 이력 조회 실패: {e}", exc_info=True)
             return []
     
     def update_filtering_criteria(self, p_criteria: FilteringCriteria):
