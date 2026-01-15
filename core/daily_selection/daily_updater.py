@@ -79,6 +79,8 @@ REGIME_FILTER_PRESETS = {
         "min_technical_score": 25.0,
         "total_limit": 10,
         "min_composite_score": 0.50,
+        "use_score_based_filter": True,     # 점수 기반 필터링 사용
+        "liquidity_score": 6.0,             # 유동성 기준 완화
     },
     "bear_market": {
         "price_attractiveness": 50.0,       # 하락장: 보수적
@@ -87,6 +89,8 @@ REGIME_FILTER_PRESETS = {
         "min_technical_score": 40.0,
         "total_limit": 5,
         "min_composite_score": 0.65,
+        "use_score_based_filter": True,     # 점수 기반 필터링 사용
+        "liquidity_score": 12.0,            # 유동성 기준 강화
     },
     "sideways": {
         "price_attractiveness": 40.0,       # 횡보장: 중립
@@ -95,6 +99,8 @@ REGIME_FILTER_PRESETS = {
         "min_technical_score": 32.0,
         "total_limit": 8,
         "min_composite_score": 0.55,
+        "use_score_based_filter": True,     # 점수 기반 필터링 사용
+        "liquidity_score": 8.0,
     },
     "volatile": {
         "price_attractiveness": 45.0,       # 변동성장: 신중
@@ -103,6 +109,8 @@ REGIME_FILTER_PRESETS = {
         "min_technical_score": 35.0,
         "total_limit": 6,
         "min_composite_score": 0.60,
+        "use_score_based_filter": True,     # 점수 기반 필터링 사용
+        "liquidity_score": 10.0,
     },
     "recovery": {
         "price_attractiveness": 38.0,       # 회복장: 기회 포착
@@ -111,6 +119,8 @@ REGIME_FILTER_PRESETS = {
         "min_technical_score": 28.0,
         "total_limit": 10,
         "min_composite_score": 0.52,
+        "use_score_based_filter": True,     # 점수 기반 필터링 사용
+        "liquidity_score": 7.0,
     },
     "neutral": {
         "price_attractiveness": 38.0,       # 기본값
@@ -119,6 +129,8 @@ REGIME_FILTER_PRESETS = {
         "min_technical_score": 30.0,
         "total_limit": 10,
         "min_composite_score": 0.55,
+        "use_score_based_filter": True,     # 점수 기반 필터링 사용
+        "liquidity_score": 8.0,
     }
 }
 
@@ -476,20 +488,23 @@ class DailyUpdater(IDailyUpdater):
         # 2. 학습 데이터 부족 시 시장 레짐별 프리셋 적용
         preset = REGIME_FILTER_PRESETS.get(p_market_condition, REGIME_FILTER_PRESETS["neutral"])
 
-        # 프리셋 값 적용
+        # 프리셋 값 적용 (모든 필드)
         self._filtering_criteria.price_attractiveness = preset["price_attractiveness"]
         self._filtering_criteria.confidence_min = preset["confidence_min"]
         self._filtering_criteria.risk_score_max = preset["risk_score_max"]
         self._filtering_criteria.min_technical_score = preset["min_technical_score"]
         self._filtering_criteria.total_limit = preset["total_limit"]
         self._filtering_criteria.min_composite_score = preset["min_composite_score"]
+        self._filtering_criteria.use_score_based_filter = preset.get("use_score_based_filter", True)
+        self._filtering_criteria.liquidity_score = preset.get("liquidity_score", 8.0)
 
         self._logger.info(
             f"📋 프리셋 기반 임계값 적용 - 시장상황: {p_market_condition} | "
             f"매력도>{preset['price_attractiveness']:.0f}, "
             f"신뢰도>{preset['confidence_min']:.2f}, "
             f"리스크<{preset['risk_score_max']:.0f}, "
-            f"목표종목: {preset['total_limit']}개"
+            f"목표종목: {preset['total_limit']}개, "
+            f"점수필터: {'ON' if preset.get('use_score_based_filter', True) else 'OFF'}"
         )
     
     def _prepare_stock_data(self, p_watchlist_stocks: List) -> List[Dict]:
