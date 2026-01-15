@@ -25,6 +25,24 @@ from core.utils.telegram_notifier import get_telegram_notifier
 from core.interfaces.trading import IDailyUpdater, PriceAttractiveness, DailySelection
 from core.daily_selection.selection_tracker import get_selection_tracker
 
+
+def _get_db_session():
+    """DB 세션 lazy import (순환 import 방지)"""
+    try:
+        from core.database.unified_db import get_session
+        return get_session
+    except ImportError:
+        return None
+
+
+def _get_selection_result_model():
+    """SelectionResult 모델 lazy import"""
+    try:
+        from core.database.models import SelectionResult
+        return SelectionResult
+    except ImportError:
+        return None
+
 # 새로운 아키텍처 imports - 사용 가능할 때만 import
 try:
     from core.plugins.decorators import plugin
@@ -1056,31 +1074,110 @@ class DailyUpdater(IDailyUpdater):
         return min(_v_adjusted_weight, 0.2)
     
     def _save_daily_list(self, p_daily_list: Dict) -> bool:
-        """일일 매매 리스트 저장
-        
+        """일일 매매 리스트 저장 (DB + JSON 병행)
+
         Args:
             p_daily_list: 일일 매매 리스트 데이터
-            
+
         Returns:
             저장 성공 여부
         """
         try:
             _v_date = datetime.now().strftime("%Y%m%d")
             _v_file_path = os.path.join(self._output_dir, f"daily_selection_{_v_date}.json")
-            
+
+            # 1. JSON 파일 저장 (백업용)
             with open(_v_file_path, 'w', encoding='utf-8') as f:
                 json.dump(p_daily_list, f, ensure_ascii=False, indent=2)
-            
+
             # 최신 파일 링크 생성
             _v_latest_path = os.path.join(self._output_dir, "latest_selection.json")
             with open(_v_latest_path, 'w', encoding='utf-8') as f:
                 json.dump(p_daily_list, f, ensure_ascii=False, indent=2)
-            
-            self._logger.info(f"일일 매매 리스트 저장 완료: {_v_file_path}")
+
+            self._logger.info(f"일일 매매 리스트 JSON 저장 완료: {_v_file_path}")
+
+            # 2. DB 저장
+            db_saved = self._save_daily_list_to_db(p_daily_list)
+            if db_saved:
+                self._logger.info("일일 매매 리스트 DB 저장 완료")
+
             return True
-            
+
         except Exception as e:
             self._logger.error(f"일일 매매 리스트 저장 실패: {e}", exc_info=True)
+            return False
+
+    def _save_daily_list_to_db(self, p_daily_list: Dict) -> bool:
+        """일일 매매 리스트를 DB에 저장"""
+        get_session = _get_db_session()
+        SelectionResult = _get_selection_result_model()
+
+        if not get_session or not SelectionResult:
+            self._logger.debug("DB 저장 불가 - 모듈 로드 실패")
+            return False
+
+        try:
+            from datetime import datetime as dt
+
+            market_date = p_daily_list.get("market_date")
+            market_condition = p_daily_list.get("market_condition")
+            selected_stocks = p_daily_list.get("data", {}).get("selected_stocks", [])
+
+            selection_date = dt.strptime(market_date, "%Y-%m-%d").date() if market_date else dt.now().date()
+
+            with get_session() as session:
+                saved_count = 0
+                for stock in selected_stocks:
+                    # 기존 레코드 확인
+                    existing = session.query(SelectionResult).filter(
+                        SelectionResult.selection_date == selection_date,
+                        SelectionResult.stock_code == stock.get("stock_code")
+                    ).first()
+
+                    if existing:
+                        # 업데이트
+                        existing.total_score = stock.get("price_attractiveness")
+                        existing.technical_score = stock.get("technical_score")
+                        existing.volume_score = stock.get("volume_score")
+                        existing.risk_score = stock.get("risk_score")
+                        existing.entry_price = stock.get("entry_price")
+                        existing.target_price = stock.get("target_price")
+                        existing.stop_loss = stock.get("stop_loss")
+                        existing.expected_return = stock.get("expected_return")
+                        existing.confidence = stock.get("confidence")
+                        existing.signal = stock.get("signal", "buy")
+                        existing.selection_reason = stock.get("selection_reason")
+                        existing.market_condition = market_condition
+                    else:
+                        # 새 레코드 생성
+                        selection_record = SelectionResult(
+                            selection_date=selection_date,
+                            stock_code=stock.get("stock_code"),
+                            stock_name=stock.get("stock_name"),
+                            total_score=stock.get("price_attractiveness"),
+                            technical_score=stock.get("technical_score"),
+                            volume_score=stock.get("volume_score"),
+                            pattern_score=stock.get("pattern_score"),
+                            risk_score=stock.get("risk_score"),
+                            entry_price=stock.get("entry_price"),
+                            target_price=stock.get("target_price"),
+                            stop_loss=stock.get("stop_loss"),
+                            expected_return=stock.get("expected_return"),
+                            confidence=stock.get("confidence"),
+                            signal=stock.get("signal", "buy"),
+                            selection_reason=stock.get("selection_reason"),
+                            market_condition=market_condition,
+                        )
+                        session.add(selection_record)
+                    saved_count += 1
+
+                session.commit()
+                self._logger.info(f"DB에 {saved_count}개 선정 결과 저장")
+                return True
+
+        except Exception as e:
+            self._logger.error(f"DB 선정 결과 저장 실패: {e}", exc_info=True)
             return False
     
     def _send_notification(self, p_daily_list: Dict):
@@ -1109,49 +1206,178 @@ class DailyUpdater(IDailyUpdater):
             self._logger.error(f"알림 발송 실패: {e}", exc_info=True)
     
     def get_latest_selection(self) -> Optional[Dict]:
-        """최신 일일 선정 결과 조회
-        
+        """최신 일일 선정 결과 조회 (DB 우선, JSON 폴백)
+
         Returns:
             최신 일일 매매 리스트 (없으면 None)
         """
+        # 1. DB에서 조회 시도
+        db_result = self._get_latest_selection_from_db()
+        if db_result:
+            return db_result
+
+        # 2. JSON 파일에서 조회 (폴백)
         try:
             _v_latest_path = os.path.join(self._output_dir, "latest_selection.json")
-            
+
             if not os.path.exists(_v_latest_path):
                 return None
-            
+
             with open(_v_latest_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
-                
+
         except Exception as e:
             self._logger.error(f"최신 선정 결과 조회 실패: {e}", exc_info=True)
             return None
-    
+
+    def _get_latest_selection_from_db(self) -> Optional[Dict]:
+        """DB에서 최신 선정 결과 조회"""
+        get_session = _get_db_session()
+        SelectionResult = _get_selection_result_model()
+
+        if not get_session or not SelectionResult:
+            return None
+
+        try:
+            from datetime import datetime as dt
+            today = dt.now().date()
+
+            with get_session() as session:
+                records = session.query(SelectionResult).filter(
+                    SelectionResult.selection_date == today
+                ).order_by(SelectionResult.total_score.desc()).all()
+
+                if not records:
+                    return None
+
+                selected_stocks = []
+                for r in records:
+                    selected_stocks.append({
+                        "stock_code": r.stock_code,
+                        "stock_name": r.stock_name,
+                        "price_attractiveness": r.total_score,
+                        "technical_score": r.technical_score,
+                        "volume_score": r.volume_score,
+                        "risk_score": r.risk_score,
+                        "entry_price": r.entry_price,
+                        "target_price": r.target_price,
+                        "stop_loss": r.stop_loss,
+                        "expected_return": r.expected_return,
+                        "confidence": r.confidence,
+                        "signal": r.signal,
+                        "selection_reason": r.selection_reason,
+                    })
+
+                return {
+                    "timestamp": dt.now().isoformat(),
+                    "market_date": today.strftime("%Y-%m-%d"),
+                    "market_condition": records[0].market_condition if records else "neutral",
+                    "data": {"selected_stocks": selected_stocks},
+                    "metadata": {
+                        "total_selected": len(selected_stocks),
+                        "avg_attractiveness": sum(s["price_attractiveness"] or 0 for s in selected_stocks) / max(len(selected_stocks), 1),
+                        "source": "database"
+                    }
+                }
+
+        except Exception as e:
+            self._logger.debug(f"DB 최신 선정 결과 조회 실패: {e}")
+            return None
+
     def get_selection_history(self, p_days: int = 7) -> List[Dict]:
-        """선정 이력 조회
-        
+        """선정 이력 조회 (DB 우선, JSON 폴백)
+
         Args:
             p_days: 조회할 일수
-            
+
         Returns:
             선정 이력 리스트
         """
+        # 1. DB에서 조회 시도
+        db_history = self._get_selection_history_from_db(p_days)
+        if db_history:
+            return db_history
+
+        # 2. JSON 파일에서 조회 (폴백)
+        return self._get_selection_history_from_json(p_days)
+
+    def _get_selection_history_from_db(self, p_days: int) -> List[Dict]:
+        """DB에서 선정 이력 조회"""
+        get_session = _get_db_session()
+        SelectionResult = _get_selection_result_model()
+
+        if not get_session or not SelectionResult:
+            return []
+
+        try:
+            from datetime import datetime as dt
+            start_date = (dt.now() - timedelta(days=p_days)).date()
+
+            with get_session() as session:
+                records = session.query(SelectionResult).filter(
+                    SelectionResult.selection_date >= start_date
+                ).order_by(SelectionResult.selection_date.desc(), SelectionResult.total_score.desc()).all()
+
+                if not records:
+                    return []
+
+                # 날짜별로 그룹화
+                from collections import defaultdict
+                date_groups = defaultdict(list)
+                for r in records:
+                    date_key = r.selection_date.strftime("%Y-%m-%d")
+                    date_groups[date_key].append({
+                        "stock_code": r.stock_code,
+                        "stock_name": r.stock_name,
+                        "price_attractiveness": r.total_score,
+                        "technical_score": r.technical_score,
+                        "volume_score": r.volume_score,
+                        "risk_score": r.risk_score,
+                        "entry_price": r.entry_price,
+                        "target_price": r.target_price,
+                        "stop_loss": r.stop_loss,
+                        "expected_return": r.expected_return,
+                        "confidence": r.confidence,
+                        "actual_return_7d": r.actual_return_7d,
+                        "is_success": r.is_success,
+                    })
+
+                history = []
+                for date_str, stocks in sorted(date_groups.items(), reverse=True):
+                    history.append({
+                        "market_date": date_str,
+                        "data": {"selected_stocks": stocks},
+                        "metadata": {
+                            "total_selected": len(stocks),
+                            "avg_attractiveness": sum(s["price_attractiveness"] or 0 for s in stocks) / max(len(stocks), 1),
+                            "source": "database"
+                        }
+                    })
+
+                return history
+
+        except Exception as e:
+            self._logger.debug(f"DB 선정 이력 조회 실패: {e}")
+            return []
+
+    def _get_selection_history_from_json(self, p_days: int) -> List[Dict]:
+        """JSON 파일에서 선정 이력 조회 (폴백)"""
         _v_history = []
-        
+
         try:
             for i in range(p_days):
                 _v_date = (datetime.now() - timedelta(days=i)).strftime("%Y%m%d")
                 _v_file_path = os.path.join(self._output_dir, f"daily_selection_{_v_date}.json")
-                
+
                 if os.path.exists(_v_file_path):
                     with open(_v_file_path, 'r', encoding='utf-8') as f:
                         _v_data = json.load(f)
                         _v_history.append(_v_data)
-            
+
             return _v_history
-            
+
         except Exception as e:
-            self._logger.error(f"선정 이력 조회 실패: {e}", exc_info=True)
+            self._logger.error(f"선정 이력 JSON 조회 실패: {e}", exc_info=True)
             return []
     
     def update_filtering_criteria(self, p_criteria: FilteringCriteria):
