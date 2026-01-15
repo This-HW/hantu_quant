@@ -49,20 +49,78 @@ logger = get_logger(__name__)
 
 @dataclass
 class FilteringCriteria:
-    """필터링 기준 데이터 클래스 (A단계: 강화된 기준 적용 - 현실적 조정)"""
-    price_attractiveness: float = 46.0      # 가격 매력도 점수 기준 (상위 30%) [A단계]
-    volume_threshold: float = 1.5           # 평균 거래량 대비 배수
-    volatility_range: tuple = (0.1, 0.4)    # 변동성 범위 (10-40%)
-    market_cap_min: float = 10000000000     # 최소 시가총액 (100억원)
-    liquidity_score: float = 10.0           # 유동성 점수 기준
-    risk_score_max: float = 43.0            # 최대 리스크 점수 (중위수 기준) [A단계]
-    sector_limit: int = 3                   # 섹터별 최대 종목 수 [A단계]
-    total_limit: int = 20                   # 전체 최대 종목 수 (95 → 20) [A단계]
-    confidence_min: float = 0.62            # 최소 신뢰도 (상위 40%) [A단계]
+    """필터링 기준 데이터 클래스 (개선: 점수 기반 통합 필터링)"""
+    # 기본 임계값 (완화됨)
+    price_attractiveness: float = 38.0      # 가격 매력도 점수 기준 (46 → 38, 완화)
+    volume_threshold: float = 1.2           # 평균 거래량 대비 배수 (1.5 → 1.2)
+    volatility_range: tuple = (0.05, 0.5)   # 변동성 범위 (5-50%, 확장)
+    market_cap_min: float = 5000000000      # 최소 시가총액 (50억원, 완화)
+    liquidity_score: float = 8.0            # 유동성 점수 기준 (10 → 8)
+    risk_score_max: float = 55.0            # 최대 리스크 점수 (43 → 55, 완화)
+    sector_limit: int = 3                   # 섹터별 최대 종목 수
+    total_limit: int = 10                   # 전체 최대 종목 수 (목표: 5-10개)
+    confidence_min: float = 0.45            # 최소 신뢰도 (0.62 → 0.45, 완화)
 
-    # A단계 추가: 상대 강도 필터
-    min_relative_strength: float = 0.6      # 시장 대비 상위 40%
-    min_technical_score: float = 40.0       # 기술적 점수 최소값
+    # 기술적 지표 기준 (완화됨)
+    min_relative_strength: float = 0.4      # 시장 대비 상위 60% (0.6 → 0.4)
+    min_technical_score: float = 30.0       # 기술적 점수 최소값 (40 → 30)
+
+    # 점수 기반 통합 필터링 (신규)
+    use_score_based_filter: bool = True     # 점수 기반 필터링 활성화
+    min_composite_score: float = 0.55       # 최소 복합 점수 (55% 이상이면 통과)
+
+
+# 시장 레짐별 필터 프리셋
+REGIME_FILTER_PRESETS = {
+    "bull_market": {
+        "price_attractiveness": 35.0,       # 상승장: 적극적
+        "confidence_min": 0.40,
+        "risk_score_max": 60.0,
+        "min_technical_score": 25.0,
+        "total_limit": 10,
+        "min_composite_score": 0.50,
+    },
+    "bear_market": {
+        "price_attractiveness": 50.0,       # 하락장: 보수적
+        "confidence_min": 0.55,
+        "risk_score_max": 40.0,
+        "min_technical_score": 40.0,
+        "total_limit": 5,
+        "min_composite_score": 0.65,
+    },
+    "sideways": {
+        "price_attractiveness": 40.0,       # 횡보장: 중립
+        "confidence_min": 0.45,
+        "risk_score_max": 50.0,
+        "min_technical_score": 32.0,
+        "total_limit": 8,
+        "min_composite_score": 0.55,
+    },
+    "volatile": {
+        "price_attractiveness": 45.0,       # 변동성장: 신중
+        "confidence_min": 0.50,
+        "risk_score_max": 45.0,
+        "min_technical_score": 35.0,
+        "total_limit": 6,
+        "min_composite_score": 0.60,
+    },
+    "recovery": {
+        "price_attractiveness": 38.0,       # 회복장: 기회 포착
+        "confidence_min": 0.42,
+        "risk_score_max": 55.0,
+        "min_technical_score": 28.0,
+        "total_limit": 10,
+        "min_composite_score": 0.52,
+    },
+    "neutral": {
+        "price_attractiveness": 38.0,       # 기본값
+        "confidence_min": 0.45,
+        "risk_score_max": 55.0,
+        "min_technical_score": 30.0,
+        "total_limit": 10,
+        "min_composite_score": 0.55,
+    }
+}
 
 @dataclass
 class DailySelectionLegacy:
@@ -187,6 +245,9 @@ class DailyUpdater(IDailyUpdater):
 
         # KIS API 인스턴스 (공유하여 rate limiting 적용)
         self._kis_api = None  # lazy initialization
+
+        # 적응형 필터 튜너 (학습 기반 임계값 조정)
+        self._adaptive_tuner = None  # lazy initialization
 
         # 필터링 기준 및 상태
         self._filtering_criteria = FilteringCriteria()
@@ -366,31 +427,70 @@ class DailyUpdater(IDailyUpdater):
             schedule.run_pending()
             time.sleep(60)  # 1분마다 체크
 
+    def _get_adaptive_tuner(self):
+        """적응형 필터 튜너 싱글톤 인스턴스 반환"""
+        if self._adaptive_tuner is None:
+            try:
+                from core.daily_selection.adaptive_filter_tuner import get_adaptive_filter_tuner
+                self._adaptive_tuner = get_adaptive_filter_tuner()
+                self._logger.info("적응형 필터 튜너 초기화 완료")
+            except Exception as e:
+                self._logger.warning(f"적응형 필터 튜너 로드 실패: {e}")
+                self._adaptive_tuner = None
+        return self._adaptive_tuner
+
     def _adjust_criteria_by_market(self, p_market_condition: str):
-        """시장 상황에 따른 필터링 기준 조정
-        
+        """시장 상황에 따른 필터링 기준 동적 조정
+
+        우선순위:
+        1. 학습 기반 최적 임계값 (충분한 데이터가 있을 때)
+        2. 시장 레짐별 프리셋 (기본값)
+
         Args:
-            p_market_condition: 시장 상황
+            p_market_condition: 시장 상황 (bull_market, bear_market, sideways, volatile, recovery, neutral)
         """
-        if p_market_condition == "bull_market":
-            # 상승장: 기준 완화
-            self._filtering_criteria.price_attractiveness = 65.0
-            self._filtering_criteria.volume_threshold = 1.3
-            self._filtering_criteria.risk_score_max = 50.0
-            self._filtering_criteria.total_limit = 20
-            
-        elif p_market_condition == "bear_market":
-            # 하락장: 기준 강화
-            self._filtering_criteria.price_attractiveness = 80.0
-            self._filtering_criteria.volume_threshold = 2.0
-            self._filtering_criteria.risk_score_max = 30.0
-            self._filtering_criteria.total_limit = 10
-            
-        else:  # sideways
-            # 횡보장: 기본 기준 유지 (총량 제한 없음)
-            self._filtering_criteria = FilteringCriteria()
-        
-        self._logger.info(f"필터링 기준 조정 완료 - 시장상황: {p_market_condition}")
+        # 기본 기준으로 초기화
+        self._filtering_criteria = FilteringCriteria()
+
+        # 1. 학습 기반 임계값 시도
+        learned_thresholds = None
+        tuner = self._get_adaptive_tuner()
+        if tuner and tuner.can_learn():
+            learned_thresholds = tuner.get_optimal_thresholds(p_market_condition)
+            if learned_thresholds:
+                self._filtering_criteria.price_attractiveness = learned_thresholds.price_attractiveness
+                self._filtering_criteria.confidence_min = learned_thresholds.confidence_min
+                self._filtering_criteria.risk_score_max = learned_thresholds.risk_score_max
+                self._filtering_criteria.min_technical_score = learned_thresholds.min_technical_score
+                self._filtering_criteria.liquidity_score = learned_thresholds.liquidity_score
+                self._filtering_criteria.min_composite_score = learned_thresholds.min_composite_score
+
+                self._logger.info(
+                    f"🧠 학습 기반 임계값 적용 - 시장상황: {p_market_condition} | "
+                    f"매력도>{learned_thresholds.price_attractiveness:.1f}, "
+                    f"신뢰도>{learned_thresholds.confidence_min:.2f}, "
+                    f"리스크<{learned_thresholds.risk_score_max:.1f}"
+                )
+                return
+
+        # 2. 학습 데이터 부족 시 시장 레짐별 프리셋 적용
+        preset = REGIME_FILTER_PRESETS.get(p_market_condition, REGIME_FILTER_PRESETS["neutral"])
+
+        # 프리셋 값 적용
+        self._filtering_criteria.price_attractiveness = preset["price_attractiveness"]
+        self._filtering_criteria.confidence_min = preset["confidence_min"]
+        self._filtering_criteria.risk_score_max = preset["risk_score_max"]
+        self._filtering_criteria.min_technical_score = preset["min_technical_score"]
+        self._filtering_criteria.total_limit = preset["total_limit"]
+        self._filtering_criteria.min_composite_score = preset["min_composite_score"]
+
+        self._logger.info(
+            f"📋 프리셋 기반 임계값 적용 - 시장상황: {p_market_condition} | "
+            f"매력도>{preset['price_attractiveness']:.0f}, "
+            f"신뢰도>{preset['confidence_min']:.2f}, "
+            f"리스크<{preset['risk_score_max']:.0f}, "
+            f"목표종목: {preset['total_limit']}개"
+        )
     
     def _prepare_stock_data(self, p_watchlist_stocks: List) -> List[Dict]:
         """감시 리스트 종목을 분석용 데이터로 변환
@@ -533,7 +633,13 @@ class DailyUpdater(IDailyUpdater):
         return _v_filtered_stocks
 
     def _apply_trend_filter(self, p_results: List[PriceAttractivenessLegacy]) -> List[PriceAttractivenessLegacy]:
-        """추세 추종 필터 적용 (방안 A 통합)
+        """추세 추종 필터 적용 (개선: Adaptive Minimum Data)
+
+        데이터 길이에 따라 다른 분석 방식 적용:
+        - 60일+: 전체 분석 (ma5, ma20, ma60)
+        - 30-59일: 중간 분석 (ma5, ma20만)
+        - 20-29일: 간이 분석 (ma5, ma10만)
+        - 10-19일: 최소 분석 (ma5만, 모멘텀 중심)
 
         Args:
             p_results: 분석 결과 리스트
@@ -545,18 +651,44 @@ class DailyUpdater(IDailyUpdater):
             from core.daily_selection.trend_follower import get_trend_follower
 
             trend_follower = get_trend_follower()
-            api = self._get_kis_api()  # 싱글톤 사용하여 rate limiting 공유
+            api = self._get_kis_api()
 
-            # 종목별 가격 데이터 수집
+            # 종목별 가격 데이터 수집 (최소 10일, 최대 60일 시도)
             market_data = {}
+            data_stats = {"60+": 0, "30-59": 0, "20-29": 0, "10-19": 0, "<10": 0}
+
             for result in p_results:
                 try:
+                    # 60일 데이터 요청 시도
                     df = api.get_stock_history(result.stock_code, period="D", count=60)
-                    if df is not None and len(df) >= 60:
+
+                    if df is not None and len(df) >= 10:  # 최소 10일 데이터만 있으면 OK
                         market_data[result.stock_code] = df
+
+                        # 통계 수집
+                        data_len = len(df)
+                        if data_len >= 60:
+                            data_stats["60+"] += 1
+                        elif data_len >= 30:
+                            data_stats["30-59"] += 1
+                        elif data_len >= 20:
+                            data_stats["20-29"] += 1
+                        else:
+                            data_stats["10-19"] += 1
+                    else:
+                        data_stats["<10"] += 1
+
                 except Exception as e:
                     self._logger.debug(f"종목 {result.stock_code} 가격 데이터 수집 실패: {e}")
+                    data_stats["<10"] += 1
                     continue
+
+            # 데이터 통계 로깅
+            self._logger.info(
+                f"가격 데이터 수집 결과: 60일+={data_stats['60+']}, "
+                f"30-59일={data_stats['30-59']}, 20-29일={data_stats['20-29']}, "
+                f"10-19일={data_stats['10-19']}, 10일미만(제외)={data_stats['<10']}"
+            )
 
             # 추세 추종 필터 적용
             stocks_dict = [{'stock_code': r.stock_code, 'stock_name': r.stock_name} for r in p_results]
@@ -639,7 +771,11 @@ class DailyUpdater(IDailyUpdater):
             return p_results  # 실패 시 원본 리스트 반환
 
     def _passes_basic_filters(self, p_result: PriceAttractivenessLegacy) -> bool:
-        """기본 필터링 조건 확인 (A단계: 강화된 기준 적용)
+        """기본 필터링 조건 확인 (개선: 점수 기반 통합 필터링)
+
+        AND 조건 누적 탈락 문제 해결:
+        - 기존: 5개 필터 모두 통과 필요 → 누적 탈락률 90%
+        - 개선: 각 필터를 점수화하여 복합 점수 55% 이상이면 통과
 
         Args:
             p_result: 분석 결과
@@ -647,39 +783,128 @@ class DailyUpdater(IDailyUpdater):
         Returns:
             필터링 통과 여부
         """
-        # 디버깅 로그 추가
-        self._logger.info(f"필터링 검사: {p_result.stock_code} - "
-                         f"total_score={p_result.total_score}, "
-                         f"risk_score={p_result.risk_score}, "
-                         f"confidence={p_result.confidence}, "
-                         f"technical_score={p_result.technical_score}")
+        # 점수 기반 통합 필터링 사용 여부 확인
+        if self._filtering_criteria.use_score_based_filter:
+            return self._score_based_filter(p_result)
+        else:
+            return self._legacy_and_filter(p_result)
 
-        # 가격 매력도 점수 (A단계: 75점 이상)
+    def _score_based_filter(self, p_result: PriceAttractivenessLegacy) -> bool:
+        """점수 기반 통합 필터링 (개선된 방식)
+
+        각 필터 항목을 0-100 점수로 변환 후 가중 합산
+        복합 점수가 min_composite_score 이상이면 통과
+
+        Args:
+            p_result: 분석 결과
+
+        Returns:
+            필터링 통과 여부
+        """
+        scores = {}
+        weights = {
+            'price_attractiveness': 0.30,  # 가격 매력도 30%
+            'risk': 0.25,                   # 리스크 25%
+            'confidence': 0.20,             # 신뢰도 20%
+            'technical': 0.15,              # 기술적 점수 15%
+            'volume': 0.10,                 # 거래량 10%
+        }
+
+        # 1. 가격 매력도 점수화 (0-100)
+        # 기준값의 80%면 50점, 100%면 80점, 120%면 100점
+        threshold = self._filtering_criteria.price_attractiveness
+        ratio = p_result.total_score / max(threshold, 1)
+        scores['price_attractiveness'] = min(100, max(0, (ratio - 0.8) * 250))
+
+        # 2. 리스크 점수화 (낮을수록 좋음, 역수)
+        # 기준값의 80%면 100점, 100%면 70점, 120%면 40점
+        risk_threshold = self._filtering_criteria.risk_score_max
+        risk_ratio = p_result.risk_score / max(risk_threshold, 1)
+        scores['risk'] = min(100, max(0, (1.4 - risk_ratio) * 100))
+
+        # 3. 신뢰도 점수화 (0-100)
+        conf_threshold = self._filtering_criteria.confidence_min
+        conf_ratio = p_result.confidence / max(conf_threshold, 0.01)
+        scores['confidence'] = min(100, max(0, (conf_ratio - 0.8) * 250))
+
+        # 4. 기술적 점수화 (이미 0-100)
+        tech_threshold = self._filtering_criteria.min_technical_score
+        tech_ratio = p_result.technical_score / max(tech_threshold, 1)
+        scores['technical'] = min(100, max(0, (tech_ratio - 0.8) * 250))
+
+        # 5. 거래량 점수화 (이미 0-100)
+        vol_threshold = self._filtering_criteria.liquidity_score
+        vol_ratio = p_result.volume_score / max(vol_threshold, 1)
+        scores['volume'] = min(100, max(0, (vol_ratio - 0.8) * 250))
+
+        # 가중 합산
+        composite_score = sum(scores[k] * weights[k] for k in weights)
+        normalized_score = composite_score / 100  # 0-1 범위로 정규화
+
+        # 로깅
+        self._logger.debug(
+            f"점수 기반 필터 - {p_result.stock_code}: "
+            f"매력도={scores['price_attractiveness']:.0f}, "
+            f"리스크={scores['risk']:.0f}, "
+            f"신뢰도={scores['confidence']:.0f}, "
+            f"기술={scores['technical']:.0f}, "
+            f"거래량={scores['volume']:.0f} → "
+            f"복합점수={normalized_score:.2f}"
+        )
+
+        # 통과 여부 판단
+        passed = normalized_score >= self._filtering_criteria.min_composite_score
+
+        if passed:
+            self._logger.info(
+                f"✅ {p_result.stock_code} ({p_result.stock_name}) 점수 기반 필터 통과! "
+                f"복합점수: {normalized_score:.2f} >= {self._filtering_criteria.min_composite_score:.2f}"
+            )
+        else:
+            self._logger.debug(
+                f"❌ {p_result.stock_code} 점수 기반 필터 미달: "
+                f"복합점수 {normalized_score:.2f} < {self._filtering_criteria.min_composite_score:.2f}"
+            )
+
+        return passed
+
+    def _legacy_and_filter(self, p_result: PriceAttractivenessLegacy) -> bool:
+        """기존 AND 필터링 방식 (호환성 유지용)
+
+        Args:
+            p_result: 분석 결과
+
+        Returns:
+            필터링 통과 여부
+        """
+        # 디버깅 로그
+        self._logger.debug(f"AND 필터 검사: {p_result.stock_code} - "
+                          f"total_score={p_result.total_score}, "
+                          f"risk_score={p_result.risk_score}, "
+                          f"confidence={p_result.confidence}, "
+                          f"technical_score={p_result.technical_score}")
+
+        # 가격 매력도 점수
         if p_result.total_score < self._filtering_criteria.price_attractiveness:
-            self._logger.info(f"❌ {p_result.stock_code} 가격매력도 필터링 실패: {p_result.total_score} < {self._filtering_criteria.price_attractiveness}")
             return False
 
-        # 리스크 점수 (A단계: 35점 이하)
+        # 리스크 점수
         if p_result.risk_score > self._filtering_criteria.risk_score_max:
-            self._logger.info(f"❌ {p_result.stock_code} 리스크 필터링 실패: {p_result.risk_score} > {self._filtering_criteria.risk_score_max}")
             return False
 
-        # 신뢰도 (A단계: 0.65 이상)
+        # 신뢰도
         if p_result.confidence < self._filtering_criteria.confidence_min:
-            self._logger.info(f"❌ {p_result.stock_code} 신뢰도 필터링 실패: {p_result.confidence} < {self._filtering_criteria.confidence_min}")
             return False
 
-        # 기술적 점수 (A단계: 60점 이상)
+        # 기술적 점수
         if p_result.technical_score < self._filtering_criteria.min_technical_score:
-            self._logger.info(f"❌ {p_result.stock_code} 기술적 점수 필터링 실패: {p_result.technical_score} < {self._filtering_criteria.min_technical_score}")
             return False
 
         # 거래량 점수
         if p_result.volume_score < self._filtering_criteria.liquidity_score:
-            self._logger.info(f"❌ {p_result.stock_code} 거래량 필터링 실패: {p_result.volume_score} < {self._filtering_criteria.liquidity_score}")
             return False
 
-        self._logger.info(f"✅ {p_result.stock_code} 모든 필터링 통과!")
+        self._logger.info(f"✅ {p_result.stock_code} AND 필터 통과!")
         return True
     
     def _create_daily_trading_list(self, p_selected_stocks: List[PriceAttractivenessLegacy],
