@@ -295,13 +295,32 @@ class TradingHealthChecker:
             return {'connected': False, 'error': str(e)}
 
     def _check_daily_selection(self) -> Dict:
-        """일일 선정 파일 확인"""
+        """일일 선정 확인 (DB 우선, JSON 폴백)"""
         try:
             today = datetime.now().strftime("%Y%m%d")
+            today_date = datetime.now().date()
+
+            # === 1. DB에서 먼저 확인 ===
+            try:
+                from core.database.session import DatabaseSession
+                from core.database.models import SelectionResult
+
+                db = DatabaseSession()
+                with db.get_session() as session:
+                    count = session.query(SelectionResult).filter(
+                        SelectionResult.selection_date == today_date
+                    ).count()
+
+                    if count > 0:
+                        return {'exists': True, 'count': count, 'root_cause': None, 'source': 'database'}
+
+            except Exception as e:
+                self.logger.warning(f"DB 확인 실패, JSON 폴백: {e}")
+
+            # === 2. JSON 파일에서 폴백 확인 ===
             selection_file = Path(f"data/daily_selection/daily_selection_{today}.json")
 
             if not selection_file.exists():
-                # 근본 원인 진단
                 root_cause = self._diagnose_selection_failure()
                 return {'exists': False, 'count': 0, 'root_cause': root_cause}
 
@@ -309,17 +328,18 @@ class TradingHealthChecker:
                 data = json.load(f)
 
             count = len(data.get('data', {}).get('selected_stocks', []))
+            if count == 0:
+                count = len(data.get('stocks', []))
 
-            # 선정 종목이 0개인 경우 근본 원인 진단
             root_cause = None
             if count == 0:
                 root_cause = self._diagnose_selection_failure()
 
-            return {'exists': True, 'count': count, 'root_cause': root_cause}
+            return {'exists': True, 'count': count, 'root_cause': root_cause, 'source': 'json'}
 
         except Exception as e:
             self.logger.error(f"일일 선정 확인 실패: {e}", exc_info=True)
-            return {'exists': False, 'count': 0, 'root_cause': f"파일 읽기 오류: {e}"}
+            return {'exists': False, 'count': 0, 'root_cause': f"확인 오류: {e}"}
 
     def _diagnose_selection_failure(self) -> Optional[str]:
         """선정 실패의 근본 원인 진단"""
