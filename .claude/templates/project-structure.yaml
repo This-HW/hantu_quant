@@ -1,0 +1,317 @@
+# =============================================================================
+# 프로젝트 구조 템플릿 (Project Structure Template)
+# =============================================================================
+#
+# 이 파일은 프로젝트 초기화 시 .claude/project-structure.yaml로 복사됩니다.
+# 프로젝트 특성에 맞게 수정하여 사용하세요.
+#
+# 참고:
+# - Feature-Sliced Design: https://feature-sliced.design/
+# - Domain-Driven Design: https://medium.com/unil-ci-software-engineering/clean-ddd-lessons-project-structure-and-naming-conventions-00d0b9c57610
+# - Monorepo Best Practices: https://feature-sliced.design/blog/frontend-monorepo-explained
+
+# =============================================================================
+# 프로젝트 메타 정보
+# =============================================================================
+meta:
+  name: ""                    # 프로젝트 이름
+  type: "single"              # single | monorepo
+  primary_language: ""        # typescript | python | go | rust | java
+  framework: ""               # react | nextjs | fastapi | gin | etc.
+
+# =============================================================================
+# 소스 코드 구조 (Feature-Sliced + DDD 기반)
+# =============================================================================
+source:
+  root: "src/"
+
+  # ---------------------------------------------------------------------------
+  # 레이어 정의 (상위 → 하위, 상위는 하위만 참조 가능)
+  # ---------------------------------------------------------------------------
+  layers:
+    # App Layer - 앱 초기화, 라우팅, 프로바이더
+    app:
+      path: "src/app/"
+      description: "앱 초기화, 라우팅, 글로벌 설정"
+      can_import: ["pages", "widgets", "features", "entities", "shared"]
+      segments:
+        - providers/     # 전역 프로바이더 (React Context, DI Container)
+        - routes/        # 라우팅 설정
+        - styles/        # 글로벌 스타일
+        - config/        # 앱 설정
+
+    # Pages Layer - 페이지 단위 컴포넌트
+    pages:
+      path: "src/pages/"
+      description: "페이지 단위 (URL 라우트 매핑)"
+      can_import: ["widgets", "features", "entities", "shared"]
+      structure: "flat"  # flat | nested
+      segments:
+        - ui/            # 페이지 UI 컴포넌트
+        - model/         # 페이지 로컬 상태
+        - api/           # 페이지 전용 API 호출
+
+    # Widgets Layer - 독립적인 UI 블록
+    widgets:
+      path: "src/widgets/"
+      description: "독립적인 UI 블록 (Header, Sidebar, Footer 등)"
+      can_import: ["features", "entities", "shared"]
+      segments:
+        - ui/
+        - model/
+
+    # Features Layer - 비즈니스 기능 단위
+    features:
+      path: "src/features/"
+      description: "사용자에게 가치를 주는 기능 단위"
+      can_import: ["entities", "shared"]
+      segments:
+        - ui/            # 기능 UI
+        - model/         # 기능 상태/로직
+        - api/           # 기능 API
+        - lib/           # 기능 유틸리티
+
+    # Entities Layer - 비즈니스 엔티티
+    entities:
+      path: "src/entities/"
+      description: "비즈니스 도메인 엔티티 (User, Product, Order 등)"
+      can_import: ["shared"]
+      segments:
+        - ui/            # 엔티티 표현 컴포넌트
+        - model/         # 엔티티 타입, 스키마
+        - api/           # 엔티티 CRUD API
+        - lib/           # 엔티티 유틸리티
+
+    # Shared Layer - 공유 리소스
+    shared:
+      path: "src/shared/"
+      description: "프로젝트 전반에서 재사용되는 코드"
+      can_import: []     # 아무것도 import 불가 (최하위)
+      segments:
+        - ui/            # 공통 UI 컴포넌트 (Button, Input, Modal)
+        - api/           # API 클라이언트, 인터셉터
+        - lib/           # 유틸리티 함수
+        - config/        # 상수, 환경변수
+        - types/         # 공통 타입 정의
+        - hooks/         # 공통 훅 (React)
+        - styles/        # 공통 스타일, 테마
+
+  # ---------------------------------------------------------------------------
+  # 인프라스트럭처 (DDD Infrastructure Layer)
+  # ---------------------------------------------------------------------------
+  infrastructure:
+    database:
+      path: "src/infrastructure/database/"
+      description: "DB 연결, 마이그레이션, 리포지토리 구현"
+      segments:
+        - migrations/    # DB 마이그레이션 파일
+        - repositories/  # 리포지토리 구현체
+        - seeds/         # 시드 데이터
+
+    external:
+      path: "src/infrastructure/external/"
+      description: "외부 서비스 연동 (결제, 알림, 스토리지)"
+      segments:
+        - payment/       # 결제 서비스
+        - notification/  # 알림 서비스
+        - storage/       # 파일 스토리지
+
+# =============================================================================
+# 문서 구조 (Documentation Structure)
+# =============================================================================
+docs:
+  root: "docs/"
+  index: "docs/README.md"    # 문서 인덱스 (자동 업데이트)
+
+  categories:
+    # 아키텍처 문서
+    architecture:
+      path: "docs/architecture/"
+      description: "시스템 설계, 구조, 다이어그램"
+      templates:
+        - adr.md         # Architecture Decision Record
+        - system.md      # 시스템 아키텍처
+      naming: "kebab-case"
+
+    # API 문서
+    api:
+      path: "docs/api/"
+      description: "API 명세, 엔드포인트 문서"
+      format: "openapi"  # openapi | markdown | graphql
+      auto_generate: true
+
+    # 가이드
+    guides:
+      path: "docs/guides/"
+      description: "설치, 사용법, 튜토리얼"
+      segments:
+        - getting-started/
+        - development/
+        - deployment/
+
+    # 레퍼런스
+    references:
+      path: "docs/references/"
+      description: "참고 자료, 외부 문서 링크"
+
+    # 회의록/결정사항
+    decisions:
+      path: "docs/decisions/"
+      description: "ADR, 기술 결정 기록"
+      naming: "NNNN-title.md"  # 예: 0001-use-typescript.md
+
+  # 루트에 허용되는 문서
+  root_allowed:
+    - README.md
+    - CHANGELOG.md
+    - CONTRIBUTING.md
+    - LICENSE
+    - CODE_OF_CONDUCT.md
+
+  # 금지 패턴
+  forbidden:
+    - "src/**/*.md"          # 소스 안에 문서 금지
+    - "**/notes.md"          # notes.md 금지
+    - "**/temp*.md"          # temp 문서 금지
+    - "**/*.txt"             # txt 파일 금지
+
+# =============================================================================
+# 테스트 구조 (Test Structure)
+# =============================================================================
+tests:
+  root: "tests/"
+
+  # 테스트 유형별 구조
+  categories:
+    # 단위 테스트 - 소스와 같은 구조로 미러링
+    unit:
+      path: "tests/unit/"
+      description: "단위 테스트"
+      mirror_source: true    # src/ 구조를 미러링
+      naming: "*.test.ts"    # 또는 *.spec.ts
+      retention: "permanent" # permanent | temporary
+
+    # 통합 테스트
+    integration:
+      path: "tests/integration/"
+      description: "통합 테스트"
+      retention: "permanent"
+      naming: "*.integration.test.ts"
+
+    # E2E 테스트
+    e2e:
+      path: "tests/e2e/"
+      description: "End-to-End 테스트"
+      retention: "permanent"
+      naming: "*.e2e.test.ts"
+
+    # 임시 테스트 (디버깅/실험용) - 자동 삭제 대상
+    scratch:
+      path: "tests/scratch/"
+      description: "임시 테스트 (PR 머지 전 삭제)"
+      retention: "temporary"
+      auto_delete_on: "merge"  # merge | manual
+      max_age_days: 7          # 7일 후 경고
+
+  # 테스트 유틸리티 (재사용)
+  shared:
+    path: "tests/__helpers__/"
+    description: "테스트 유틸리티, 픽스처, 목"
+    retention: "permanent"
+    segments:
+      - fixtures/        # 테스트 데이터
+      - mocks/           # 목 객체
+      - factories/       # 팩토리 함수
+      - utils/           # 테스트 유틸리티
+
+# =============================================================================
+# 설정 파일 구조 (Config Structure)
+# =============================================================================
+config:
+  root: "./"
+
+  # 허용되는 루트 레벨 설정 파일
+  root_allowed:
+    - package.json
+    - tsconfig.json
+    - pyproject.toml
+    - go.mod
+    - Cargo.toml
+    - .env.example        # .env는 gitignore
+    - .gitignore
+    - .prettierrc
+    - .eslintrc.*
+    - docker-compose.yml
+    - Dockerfile
+    - Makefile
+
+  # 설정 전용 폴더
+  directories:
+    config:
+      path: "config/"
+      description: "환경별 설정"
+      segments:
+        - development/
+        - staging/
+        - production/
+
+    scripts:
+      path: "scripts/"
+      description: "빌드, 배포, 유틸리티 스크립트"
+
+# =============================================================================
+# Monorepo 구조 (type: monorepo인 경우만 적용)
+# =============================================================================
+monorepo:
+  # 앱 (배포 단위)
+  apps:
+    path: "apps/"
+    description: "배포 가능한 애플리케이션"
+    examples:
+      - apps/web/          # 웹 프론트엔드
+      - apps/api/          # API 서버
+      - apps/admin/        # 어드민 패널
+      - apps/mobile/       # 모바일 앱
+
+  # 패키지 (공유 라이브러리)
+  packages:
+    path: "packages/"
+    description: "공유 라이브러리, 내부 패키지"
+    examples:
+      - packages/ui/           # 공유 UI 컴포넌트
+      - packages/utils/        # 공유 유틸리티
+      - packages/types/        # 공유 타입
+      - packages/config/       # 공유 설정 (eslint, tsconfig)
+      - packages/database/     # DB 스키마, 클라이언트
+
+  # 도구
+  tools:
+    path: "tools/"
+    description: "빌드, CI/CD 도구"
+
+# =============================================================================
+# 네이밍 규칙 (Naming Conventions)
+# =============================================================================
+naming:
+  files:
+    components: "PascalCase"     # Button.tsx, UserProfile.tsx
+    hooks: "camelCase"           # useAuth.ts, useFetch.ts
+    utilities: "camelCase"       # formatDate.ts, parseJson.ts
+    constants: "SCREAMING_SNAKE" # API_ENDPOINTS.ts
+    types: "PascalCase"          # User.ts, ApiResponse.ts
+    tests: "*.test.ts"           # Button.test.ts
+
+  folders:
+    features: "kebab-case"       # add-to-cart, user-profile
+    entities: "PascalCase"       # User, Product, Order
+    pages: "kebab-case"          # home, product-detail
+    shared: "kebab-case"         # ui, api, lib
+
+  # 금지 패턴
+  forbidden:
+    - "temp*"
+    - "test*" # tests/ 폴더 제외
+    - "backup*"
+    - "*_old"
+    - "*_copy"
+    - "*.bak"

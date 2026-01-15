@@ -1,0 +1,141 @@
+# Hantu Quant 프로젝트 구조 규칙
+# Claude Code가 파일 생성/수정 시 이 규칙을 따릅니다
+
+version: "1.0"
+project_type: python-app
+framework: fastapi
+
+# 허용된 디렉토리 구조
+allowed_paths:
+  # 핵심 코드
+  - pattern: "core/**/*.py"
+    description: "핵심 비즈니스 로직"
+  - pattern: "core/**/tests/*.py"
+    description: "모듈별 테스트"
+
+  # API 서버
+  - pattern: "api-server/**/*.py"
+    description: "FastAPI 서버 코드"
+
+  # CLI
+  - pattern: "cli/**/*.py"
+    description: "CLI 도구"
+
+  # 워크플로우
+  - pattern: "workflows/**/*.py"
+    description: "실행 워크플로우"
+
+  # 테스트
+  - pattern: "tests/**/*.py"
+    description: "테스트 코드"
+  - pattern: "tests/scratch/**/*.py"
+    description: "임시 테스트 (PR 전 삭제)"
+    temporary: true
+    max_age_days: 7
+
+  # 문서
+  - pattern: "docs/**/*.md"
+    description: "문서"
+  - pattern: "docs/planning/**/*.md"
+    description: "기획 문서"
+  - pattern: "docs/design/**/*.md"
+    description: "설계 문서"
+
+  # 배포/인프라
+  - pattern: "deploy/**/*"
+    description: "배포 설정"
+  - pattern: "scripts/**/*.py"
+    description: "유틸리티 스크립트"
+  - pattern: "scripts/**/*.sh"
+    description: "쉘 스크립트"
+
+  # 설정
+  - pattern: "config/**/*"
+    description: "설정 파일"
+
+# 금지된 패턴
+forbidden_patterns:
+  # 임시/백업 파일
+  - pattern: "**/*_old.*"
+    reason: "백업 파일 금지"
+  - pattern: "**/*_backup.*"
+    reason: "백업 파일 금지"
+  - pattern: "**/temp_*"
+    reason: "임시 파일 금지"
+  - pattern: "**/tmp_*"
+    reason: "임시 파일 금지"
+
+  # 루트 금지 파일
+  - pattern: "/*.py"
+    reason: "루트에 Python 파일 금지 (main.py, setup.py 제외)"
+    exceptions:
+      - main.py
+      - setup.py
+      - conftest.py
+
+  # 중복 문서
+  - pattern: "**/notes.md"
+    reason: "산발적 문서 금지"
+  - pattern: "**/TODO.md"
+    reason: "TODO는 코드 주석이나 이슈로"
+
+  # 시크릿 파일
+  - pattern: "**/*.key"
+    reason: "키 파일 금지"
+  - pattern: "**/credentials.json"
+    reason: "인증 파일 금지"
+
+# 네이밍 규칙
+naming_conventions:
+  files:
+    python: "snake_case"        # my_module.py
+    test: "test_*.py"           # test_my_module.py
+
+  directories:
+    default: "snake_case"       # my_package/
+
+  classes: "PascalCase"         # MyClass
+  functions: "snake_case"       # my_function
+  constants: "UPPER_SNAKE"      # MY_CONSTANT
+  variables: "snake_case"       # my_variable
+
+# 레이어 의존성 (상위 → 하위만 참조)
+layer_dependencies:
+  - name: "api-server"
+    can_import: ["core", "cli"]
+  - name: "cli"
+    can_import: ["core"]
+  - name: "workflows"
+    can_import: ["core"]
+  - name: "core"
+    can_import: []  # 외부 의존성만
+
+# 문서 구조
+documentation:
+  index: "docs/README.md"
+  categories:
+    - path: "docs/design/"
+      description: "설계 문서"
+    - path: "docs/planning/"
+      description: "기획 문서"
+    - path: "docs/guides/"
+      description: "가이드"
+    - path: "docs/hantu_api/"
+      description: "API 문서"
+
+# 테스트 구조
+testing:
+  unit: "tests/unit/"
+  integration: "tests/integration/"
+  e2e: "tests/e2e/"
+  scratch: "tests/scratch/"
+  helpers:
+    fixtures: "tests/fixtures/"
+    mocks: "tests/mocks/"
+
+# PR 체크리스트
+pr_checklist:
+  - "tests/scratch/ 비어있는지 확인"
+  - "모든 테스트 통과"
+  - "린트 에러 없음"
+  - ".env 파일 변경 시 .env.example 업데이트"
