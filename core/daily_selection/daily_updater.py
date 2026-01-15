@@ -23,6 +23,7 @@ from core.daily_selection.price_analyzer import PriceAnalyzer, PriceAttractivene
 from core.utils.log_utils import get_logger
 from core.utils.telegram_notifier import get_telegram_notifier
 from core.interfaces.trading import IDailyUpdater, PriceAttractiveness, DailySelection
+from core.daily_selection.selection_tracker import get_selection_tracker
 
 # 새로운 아키텍처 imports - 사용 가능할 때만 import
 try:
@@ -925,18 +926,21 @@ class DailyUpdater(IDailyUpdater):
     def _create_daily_trading_list(self, p_selected_stocks: List[PriceAttractivenessLegacy],
                                  p_market_condition: str, p_market_indicators: MarketIndicators) -> Dict:
         """일일 매매 리스트 생성
-        
+
         Args:
             p_selected_stocks: 선정된 종목 리스트
             p_market_condition: 시장 상황
             p_market_indicators: 시장 지표
-            
+
         Returns:
             일일 매매 리스트 데이터
         """
         _v_daily_selections = []
         _v_total_weight = 0.0
-        
+
+        # 학습 데이터 수집을 위한 선정 추적기
+        _v_selection_tracker = get_selection_tracker()
+
         for i, stock in enumerate(p_selected_stocks):
             # 포지션 사이징 계산
             _v_position_size = self._calculate_position_size(stock, len(p_selected_stocks))
@@ -969,7 +973,28 @@ class DailyUpdater(IDailyUpdater):
             )
             
             _v_daily_selections.append(_v_selection)
-        
+
+            # 학습 데이터용 선정 기록 (selection_tracker에 저장)
+            try:
+                _v_selection_metrics = {
+                    "total_score": stock.total_score,
+                    "technical_score": stock.technical_score,
+                    "risk_score": stock.risk_score,
+                    "confidence": stock.confidence,
+                    "volume_score": stock.volume_score,
+                    "composite_score": getattr(stock, 'ensemble_score', stock.total_score) / 100,
+                }
+                _v_selection_tracker.record_selection(
+                    stock_code=stock.stock_code,
+                    stock_name=stock.stock_name,
+                    metrics=_v_selection_metrics,
+                    market_condition=p_market_condition,
+                    entry_price=stock.entry_price,
+                    ranking=i + 1
+                )
+            except Exception as e:
+                self._logger.debug(f"선정 추적 기록 실패 ({stock.stock_code}): {e}")
+
         # 포지션 사이즈 정규화
         if _v_total_weight > 0:
             for selection in _v_daily_selections:
