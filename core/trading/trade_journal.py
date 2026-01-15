@@ -12,6 +12,16 @@ from core.utils.log_utils import get_logger
 logger = get_logger(__name__)
 
 
+def _get_selection_tracker():
+    """SelectionTracker lazy import (순환 import 방지)"""
+    try:
+        from core.daily_selection.selection_tracker import get_selection_tracker
+        return get_selection_tracker()
+    except ImportError:
+        logger.warning("selection_tracker를 import할 수 없습니다")
+        return None
+
+
 @dataclass
 class TradeEvent:
     timestamp: str
@@ -166,6 +176,18 @@ class TradeJournal:
         logger.info(
             f"[Journal] 일일 요약: 손익 {realized_pnl:,.0f}, 거래 {total_trades}건, 승률 {win_rate*100:.1f}%"
         )
+
+        # 학습 데이터 생성: 거래 결과를 selection_tracker로 전달
+        if trade_details:
+            try:
+                tracker = _get_selection_tracker()
+                if tracker:
+                    processed = tracker.process_trade_results(summary)
+                    if processed > 0:
+                        logger.info(f"[Journal] 학습 데이터 생성: {processed}건 → adaptive_filter_tuner")
+            except Exception as e:
+                logger.warning(f"학습 데이터 생성 실패: {e}")
+
         return summary
 
     def get_all_trades(self, days: int = 365) -> List[Dict[str, Any]]:
