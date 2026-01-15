@@ -831,7 +831,7 @@ class DailyUpdater(IDailyUpdater):
         return min(_v_adjusted_weight, 0.2)
     
     def _save_daily_list(self, p_daily_list: Dict) -> bool:
-        """일일 매매 리스트 저장 (DB + JSON 백업)
+        """일일 매매 리스트 저장 (DB 우선, 실패 시 JSON 폴백)
 
         Args:
             p_daily_list: 일일 매매 리스트 데이터
@@ -843,19 +843,23 @@ class DailyUpdater(IDailyUpdater):
             _v_date = datetime.now().strftime("%Y%m%d")
             _v_selection_date = datetime.now().date()
 
-            # === 1. DB에 먼저 저장 ===
+            # === 1. DB에 저장 시도 ===
             db_saved = self._save_selection_to_db(p_daily_list, _v_selection_date)
             if db_saved:
                 self._logger.info(f"선정 결과 DB 저장 완료")
-            else:
-                self._logger.warning("선정 결과 DB 저장 실패 - JSON 백업으로 진행")
+                return True
 
-            # === 2. JSON 백업 저장 ===
+            # === 2. DB 실패 시에만 JSON 폴백 저장 ===
+            self._logger.warning("선정 결과 DB 저장 실패 - JSON 폴백 저장")
+
             _v_file_path = os.path.join(self._output_dir, f"daily_selection_{_v_date}.json")
 
-            # db_saved 여부를 metadata에 추가
+            # 폴백 여부를 metadata에 추가
             if "metadata" in p_daily_list:
-                p_daily_list["metadata"]["db_saved"] = db_saved
+                p_daily_list["metadata"]["db_fallback"] = True
+
+            # 디렉토리 생성
+            os.makedirs(self._output_dir, exist_ok=True)
 
             with open(_v_file_path, 'w', encoding='utf-8') as f:
                 json.dump(p_daily_list, f, ensure_ascii=False, indent=2)
@@ -865,7 +869,7 @@ class DailyUpdater(IDailyUpdater):
             with open(_v_latest_path, 'w', encoding='utf-8') as f:
                 json.dump(p_daily_list, f, ensure_ascii=False, indent=2)
 
-            self._logger.info(f"일일 매매 리스트 JSON 백업 완료: {_v_file_path}")
+            self._logger.info(f"일일 매매 리스트 JSON 폴백 저장 완료: {_v_file_path}")
             return True
 
         except Exception as e:
@@ -954,47 +958,141 @@ class DailyUpdater(IDailyUpdater):
             self._logger.error(f"알림 발송 실패: {e}", exc_info=True)
     
     def get_latest_selection(self) -> Optional[Dict]:
-        """최신 일일 선정 결과 조회
-        
+        """최신 일일 선정 결과 조회 (DB 우선, JSON 폴백)
+
         Returns:
             최신 일일 매매 리스트 (없으면 None)
         """
+        # === 1. DB에서 먼저 로드 시도 ===
+        try:
+            from core.database.session import DatabaseSession
+            from core.database.models import SelectionResult
+
+            db = DatabaseSession()
+            with db.get_session() as session:
+                # 가장 최근 날짜의 선정 결과 조회
+                from sqlalchemy import func
+                latest_date = session.query(func.max(SelectionResult.selection_date)).scalar()
+
+                if latest_date:
+                    results = session.query(SelectionResult).filter(
+                        SelectionResult.selection_date == latest_date
+                    ).all()
+
+                    if results:
+                        stocks = []
+                        for r in results:
+                            stocks.append({
+                                'stock_code': r.stock_code,
+                                'stock_name': r.stock_name,
+                                'total_score': r.total_score,
+                                'technical_score': r.technical_score,
+                                'volume_score': r.volume_score,
+                                'entry_price': r.entry_price,
+                                'target_price': r.target_price,
+                                'stop_loss': r.stop_loss,
+                                'signal': r.signal,
+                                'confidence': r.confidence,
+                                'selection_reason': r.selection_reason
+                            })
+
+                        self._logger.info(f"최신 선정 결과 DB 로드: {len(stocks)}개 ({latest_date})")
+                        return {
+                            'market_date': str(latest_date),
+                            'stocks': stocks,
+                            'metadata': {
+                                'total_selected': len(stocks),
+                                'source': 'database'
+                            }
+                        }
+
+        except Exception as e:
+            self._logger.warning(f"DB 로드 실패, JSON 폴백: {e}")
+
+        # === 2. JSON 파일에서 폴백 로드 ===
         try:
             _v_latest_path = os.path.join(self._output_dir, "latest_selection.json")
-            
+
             if not os.path.exists(_v_latest_path):
                 return None
-            
+
             with open(_v_latest_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
-                
+
         except Exception as e:
             self._logger.error(f"최신 선정 결과 조회 실패: {e}", exc_info=True)
             return None
     
     def get_selection_history(self, p_days: int = 7) -> List[Dict]:
-        """선정 이력 조회
-        
+        """선정 이력 조회 (DB 우선, JSON 폴백)
+
         Args:
             p_days: 조회할 일수
-            
+
         Returns:
             선정 이력 리스트
         """
+        # === 1. DB에서 먼저 로드 시도 ===
+        try:
+            from core.database.session import DatabaseSession
+            from core.database.models import SelectionResult
+            from sqlalchemy import func
+
+            db = DatabaseSession()
+            with db.get_session() as session:
+                # 최근 p_days일간의 고유한 날짜 조회
+                start_date = (datetime.now() - timedelta(days=p_days)).date()
+                dates = session.query(SelectionResult.selection_date).filter(
+                    SelectionResult.selection_date >= start_date
+                ).distinct().order_by(SelectionResult.selection_date.desc()).all()
+
+                if dates:
+                    _v_history = []
+                    for (date_val,) in dates:
+                        results = session.query(SelectionResult).filter(
+                            SelectionResult.selection_date == date_val
+                        ).all()
+
+                        stocks = []
+                        for r in results:
+                            stocks.append({
+                                'stock_code': r.stock_code,
+                                'stock_name': r.stock_name,
+                                'total_score': r.total_score,
+                                'technical_score': r.technical_score,
+                                'signal': r.signal
+                            })
+
+                        _v_history.append({
+                            'market_date': str(date_val),
+                            'stocks': stocks,
+                            'metadata': {
+                                'total_selected': len(stocks),
+                                'source': 'database'
+                            }
+                        })
+
+                    self._logger.info(f"선정 이력 DB 로드: {len(_v_history)}일치")
+                    return _v_history
+
+        except Exception as e:
+            self._logger.warning(f"DB 이력 로드 실패, JSON 폴백: {e}")
+
+        # === 2. JSON 파일에서 폴백 로드 ===
         _v_history = []
-        
+
         try:
             for i in range(p_days):
                 _v_date = (datetime.now() - timedelta(days=i)).strftime("%Y%m%d")
                 _v_file_path = os.path.join(self._output_dir, f"daily_selection_{_v_date}.json")
-                
+
                 if os.path.exists(_v_file_path):
                     with open(_v_file_path, 'r', encoding='utf-8') as f:
                         _v_data = json.load(f)
                         _v_history.append(_v_data)
-            
+
             return _v_history
-            
+
         except Exception as e:
             self._logger.error(f"선정 이력 조회 실패: {e}", exc_info=True)
             return []
