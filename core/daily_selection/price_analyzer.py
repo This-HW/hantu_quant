@@ -257,7 +257,8 @@ class PriceAttractivenessLegacy:
     market_condition: str           # 시장 상황
     sector_momentum: float          # 섹터 모멘텀
     sector: str = ""                # 섹터
-    
+    ensemble_score: float = 0.0     # 앙상블 점수 (멀티 전략 평가시 사용)
+
     def to_dict(self) -> Dict:
         """딕셔너리로 변환"""
         return asdict(self)
