@@ -381,8 +381,23 @@ class IntegratedScheduler:
             except Exception as e:
                 logger.warning(f"재무 데이터 확인 실패: {e}")
 
-            # 1. Phase 1/2 스크리닝 (06:00 이후, 선정 파일 없으면 실행)
-            if now >= screening_time and not selection_file.exists():
+            # 1. Phase 1/2 스크리닝 (06:00 이후)
+            # 파일이 존재하면 생성 시간 확인 - 오늘 스크리닝 시간 이후에 생성되었는지 체크
+            screening_needed = False
+            if now >= screening_time:
+                if not selection_file.exists():
+                    screening_needed = True
+                    logger.info("선정 파일 없음 - 스크리닝 필요")
+                else:
+                    # 파일 생성 시간 확인
+                    file_mtime = datetime.fromtimestamp(selection_file.stat().st_mtime)
+                    if file_mtime < screening_time:
+                        screening_needed = True
+                        logger.info(f"선정 파일이 오래됨 (생성: {file_mtime.strftime('%Y-%m-%d %H:%M')}) - 스크리닝 필요")
+                    else:
+                        logger.info(f"선정 파일 정상 (생성: {file_mtime.strftime('%Y-%m-%d %H:%M')}) - 스크리닝 스킵")
+
+            if screening_needed:
                 print("📋 일간 스크리닝 실행...")
                 self._run_daily_screening()
                 recovered_tasks.append("일간 스크리닝")
