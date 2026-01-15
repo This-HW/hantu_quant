@@ -251,11 +251,38 @@ class AutoRecoverySystem:
             )
 
     def _recover_daily_selection(self, issue: str) -> Tuple[bool, RecoveryAction]:
-        """일일 선정 파일 복구"""
+        """일일 선정 복구 (DB 우선 확인)"""
         try:
-            self.logger.info("일일 선정 파일 복구 시도")
+            self.logger.info("일일 선정 복구 시도")
 
             today = datetime.now().strftime("%Y%m%d")
+            today_date = datetime.now().date()
+
+            # === 1. DB에 이미 데이터가 있는지 확인 ===
+            try:
+                from core.database.session import DatabaseSession
+                from core.database.models import SelectionResult
+
+                db = DatabaseSession()
+                with db.get_session() as session:
+                    count = session.query(SelectionResult).filter(
+                        SelectionResult.selection_date == today_date
+                    ).count()
+
+                    if count > 0:
+                        self.logger.info(f"DB에 오늘 선정 데이터 존재: {count}건 - 복구 불필요")
+                        return True, RecoveryAction(
+                            issue_type="daily_selection",
+                            action_name="db_data_exists",
+                            description=f"DB에 오늘 선정 데이터가 이미 존재합니다 ({count}건)",
+                            timestamp=datetime.now().isoformat(),
+                            success=True
+                        )
+
+            except Exception as e:
+                self.logger.warning(f"DB 확인 실패: {e}")
+
+            # === 2. JSON 파일 기반 복구 (DB 실패 시 폴백) ===
             today_file = Path(f"data/daily_selection/daily_selection_{today}.json")
             latest_file = Path("data/daily_selection/latest_selection.json")
 
