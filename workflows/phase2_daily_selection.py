@@ -543,24 +543,65 @@ class Phase2CLI:
             return []
     
     def _get_selection_by_date(self, p_date: str) -> Optional[Dict]:
-        """특정 날짜 선정 결과 조회
-        
+        """특정 날짜 선정 결과 조회 (DB 우선, JSON 폴백)
+
         Args:
             p_date: 조회 날짜 (YYYY-MM-DD)
-            
+
         Returns:
             선정 결과 데이터
         """
+        # === 1. DB에서 먼저 로드 시도 ===
+        try:
+            from core.database.session import DatabaseSession
+            from core.database.models import SelectionResult
+            from datetime import datetime as dt
+
+            target_date = dt.strptime(p_date, "%Y-%m-%d").date()
+
+            db = DatabaseSession()
+            with db.get_session() as session:
+                results = session.query(SelectionResult).filter(
+                    SelectionResult.selection_date == target_date
+                ).all()
+
+                if results:
+                    stocks = []
+                    for r in results:
+                        stocks.append({
+                            'stock_code': r.stock_code,
+                            'stock_name': r.stock_name,
+                            'total_score': r.total_score,
+                            'technical_score': r.technical_score,
+                            'volume_score': r.volume_score,
+                            'signal': r.signal,
+                            'confidence': r.confidence
+                        })
+
+                    logger.info(f"날짜별 선정 결과 DB 로드: {p_date}, {len(stocks)}건")
+                    return {
+                        'market_date': p_date,
+                        'stocks': stocks,
+                        'metadata': {
+                            'total_selected': len(stocks),
+                            'source': 'database'
+                        }
+                    }
+
+        except Exception as e:
+            logger.warning(f"DB 로드 실패, JSON 폴백: {e}")
+
+        # === 2. JSON 파일에서 폴백 로드 ===
         try:
             date_str = p_date.replace("-", "")
             file_path = f"data/daily_selection/daily_selection_{date_str}.json"
-            
+
             if not os.path.exists(file_path):
                 return None
-            
+
             with open(file_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
-                
+
         except Exception as e:
             logger.error(f"날짜별 선정 결과 조회 오류: {e}", exc_info=True)
             return None
