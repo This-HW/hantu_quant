@@ -952,7 +952,7 @@ class StockScreener(IStockScreener):
             return p_obj
 
     def save_screening_results(self, p_results: List[Dict], p_filename: Optional[str] = None) -> bool:
-        """스크리닝 결과 저장 (DB + JSON 백업)
+        """스크리닝 결과 저장 (DB 우선, 실패 시 JSON 폴백)
 
         Args:
             p_results: 스크리닝 결과 리스트
@@ -964,14 +964,15 @@ class StockScreener(IStockScreener):
         try:
             _v_screening_date = datetime.now().date()
 
-            # === 1. DB에 먼저 저장 ===
+            # === 1. DB에 저장 시도 ===
             db_saved = self._save_screening_to_db(p_results, _v_screening_date)
             if db_saved:
                 self._logger.info(f"스크리닝 결과 DB 저장 완료: {len(p_results)}건")
-            else:
-                self._logger.warning("스크리닝 결과 DB 저장 실패 - JSON 백업으로 진행")
+                return True
 
-            # === 2. JSON 백업 저장 ===
+            # === 2. DB 실패 시에만 JSON 폴백 저장 ===
+            self._logger.warning("스크리닝 결과 DB 저장 실패 - JSON 폴백 저장")
+
             if not p_filename:
                 _v_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 p_filename = f"screening_results_{_v_timestamp}.json"
@@ -993,14 +994,14 @@ class StockScreener(IStockScreener):
                 "metadata": {
                     "source": "stock_screener",
                     "criteria": self._convert_numpy_types(getattr(self, '_v_screening_criteria', {})),
-                    "db_saved": db_saved
+                    "db_fallback": True
                 }
             }
 
             with open(_v_filepath, 'w', encoding='utf-8') as f:
                 json.dump(_v_save_data, f, ensure_ascii=False, indent=2)
 
-            self._logger.info(f"스크리닝 결과 JSON 백업 완료: {_v_filepath}")
+            self._logger.info(f"스크리닝 결과 JSON 폴백 저장 완료: {_v_filepath}")
             return True
 
         except Exception as e:
