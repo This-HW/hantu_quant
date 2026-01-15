@@ -831,31 +831,101 @@ class DailyUpdater(IDailyUpdater):
         return min(_v_adjusted_weight, 0.2)
     
     def _save_daily_list(self, p_daily_list: Dict) -> bool:
-        """일일 매매 리스트 저장
-        
+        """일일 매매 리스트 저장 (DB + JSON 백업)
+
         Args:
             p_daily_list: 일일 매매 리스트 데이터
-            
+
         Returns:
             저장 성공 여부
         """
         try:
             _v_date = datetime.now().strftime("%Y%m%d")
+            _v_selection_date = datetime.now().date()
+
+            # === 1. DB에 먼저 저장 ===
+            db_saved = self._save_selection_to_db(p_daily_list, _v_selection_date)
+            if db_saved:
+                self._logger.info(f"선정 결과 DB 저장 완료")
+            else:
+                self._logger.warning("선정 결과 DB 저장 실패 - JSON 백업으로 진행")
+
+            # === 2. JSON 백업 저장 ===
             _v_file_path = os.path.join(self._output_dir, f"daily_selection_{_v_date}.json")
-            
+
+            # db_saved 여부를 metadata에 추가
+            if "metadata" in p_daily_list:
+                p_daily_list["metadata"]["db_saved"] = db_saved
+
             with open(_v_file_path, 'w', encoding='utf-8') as f:
                 json.dump(p_daily_list, f, ensure_ascii=False, indent=2)
-            
+
             # 최신 파일 링크 생성
             _v_latest_path = os.path.join(self._output_dir, "latest_selection.json")
             with open(_v_latest_path, 'w', encoding='utf-8') as f:
                 json.dump(p_daily_list, f, ensure_ascii=False, indent=2)
-            
-            self._logger.info(f"일일 매매 리스트 저장 완료: {_v_file_path}")
+
+            self._logger.info(f"일일 매매 리스트 JSON 백업 완료: {_v_file_path}")
             return True
-            
+
         except Exception as e:
             self._logger.error(f"일일 매매 리스트 저장 실패: {e}", exc_info=True)
+            return False
+
+    def _save_selection_to_db(self, p_daily_list: Dict, p_selection_date) -> bool:
+        """선정 결과를 DB에 저장
+
+        Args:
+            p_daily_list: 일일 매매 리스트 데이터
+            p_selection_date: 선정 날짜
+
+        Returns:
+            저장 성공 여부
+        """
+        try:
+            from core.database.session import DatabaseSession
+            from core.database.models import SelectionResult
+
+            db = DatabaseSession()
+            with db.get_session() as session:
+                # 기존 데이터 삭제 (같은 날짜)
+                session.query(SelectionResult).filter(
+                    SelectionResult.selection_date == p_selection_date
+                ).delete()
+
+                # 새 데이터 저장
+                saved_count = 0
+                stocks = p_daily_list.get("stocks", [])
+                market_condition = p_daily_list.get("market_condition", "")
+
+                for stock in stocks:
+                    selection_record = SelectionResult(
+                        selection_date=p_selection_date,
+                        stock_code=stock.get('stock_code', ''),
+                        stock_name=stock.get('stock_name', ''),
+                        total_score=stock.get('total_score', 0.0),
+                        technical_score=stock.get('technical_score', 0.0),
+                        volume_score=stock.get('volume_score', 0.0),
+                        pattern_score=stock.get('pattern_score', 0.0),
+                        risk_score=stock.get('risk_score', 0.0),
+                        entry_price=stock.get('entry_price'),
+                        target_price=stock.get('target_price'),
+                        stop_loss=stock.get('stop_loss'),
+                        expected_return=stock.get('expected_return'),
+                        confidence=stock.get('confidence'),
+                        signal=stock.get('signal', 'buy'),
+                        selection_reason=stock.get('selection_reason', ''),
+                        market_condition=market_condition
+                    )
+                    session.add(selection_record)
+                    saved_count += 1
+
+                session.commit()
+                self._logger.info(f"선정 결과 DB 저장 완료: {saved_count}건")
+                return True
+
+        except Exception as e:
+            self._logger.error(f"선정 결과 DB 저장 실패: {e}", exc_info=True)
             return False
     
     def _send_notification(self, p_daily_list: Dict):

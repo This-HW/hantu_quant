@@ -382,20 +382,23 @@ class IntegratedScheduler:
                 logger.warning(f"재무 데이터 확인 실패: {e}")
 
             # 1. Phase 1/2 스크리닝 (06:00 이후)
-            # 파일이 존재하면 생성 시간 확인 - 오늘 스크리닝 시간 이후에 생성되었는지 체크
+            # DB에서 오늘 선정 결과가 있는지 확인 (파일보다 DB 우선)
             screening_needed = False
             if now >= screening_time:
-                if not selection_file.exists():
-                    screening_needed = True
-                    logger.info("선정 파일 없음 - 스크리닝 필요")
-                else:
-                    # 파일 생성 시간 확인
+                db_has_selection = self._check_today_selection_in_db(now.date())
+                if db_has_selection:
+                    logger.info("DB에 오늘 선정 결과 있음 - 스크리닝 스킵")
+                elif selection_file.exists():
+                    # DB에 없지만 파일이 있으면 파일 시간 확인
                     file_mtime = datetime.fromtimestamp(selection_file.stat().st_mtime)
-                    if file_mtime < screening_time:
-                        screening_needed = True
-                        logger.info(f"선정 파일이 오래됨 (생성: {file_mtime.strftime('%Y-%m-%d %H:%M')}) - 스크리닝 필요")
+                    if file_mtime >= screening_time:
+                        logger.info(f"파일 정상 (생성: {file_mtime.strftime('%Y-%m-%d %H:%M')}) - 스크리닝 스킵")
                     else:
-                        logger.info(f"선정 파일 정상 (생성: {file_mtime.strftime('%Y-%m-%d %H:%M')}) - 스크리닝 스킵")
+                        screening_needed = True
+                        logger.info(f"파일이 오래됨 (생성: {file_mtime.strftime('%Y-%m-%d %H:%M')}) - 스크리닝 필요")
+                else:
+                    screening_needed = True
+                    logger.info("DB/파일 모두 없음 - 스크리닝 필요")
 
             if screening_needed:
                 print("📋 일간 스크리닝 실행...")
@@ -442,6 +445,29 @@ class IntegratedScheduler:
             logger.error(f"복구 작업 실패: {e}", exc_info=True)
             logger.error(traceback.format_exc())
             print(f"❌ 복구 작업 실패: {e}")
+
+    def _check_today_selection_in_db(self, target_date) -> bool:
+        """DB에서 오늘 선정 결과가 있는지 확인
+
+        Args:
+            target_date: 확인할 날짜
+
+        Returns:
+            선정 결과 존재 여부
+        """
+        try:
+            from core.database.session import DatabaseSession
+            from core.database.models import SelectionResult
+
+            db = DatabaseSession()
+            with db.get_session() as session:
+                count = session.query(SelectionResult).filter(
+                    SelectionResult.selection_date == target_date
+                ).count()
+                return count > 0
+        except Exception as e:
+            logger.warning(f"DB 선정 결과 확인 실패: {e}")
+            return False
 
     def stop_scheduler(self, reason: str = "사용자 요청"):
         """통합 스케줄러 중지"""
