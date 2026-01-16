@@ -4,12 +4,13 @@
 기능:
 - aiohttp 기반 비동기 HTTP 요청
 - 동시 요청 제한 (세마포어)
+- 요청 간 Rate Limit 준수 (초당 최대 요청 수 제한)
 - 배치 가격 조회
 - 부분 실패 허용
 
 성능 개선:
 - 100개 종목 순차 조회: ~30초
-- 100개 종목 병렬 조회: ~3초 (10배 향상)
+- 100개 종목 병렬 조회 (Rate Limit 적용): ~10초
 """
 
 import asyncio
@@ -25,7 +26,8 @@ try:
 except ImportError:
     AIOHTTP_AVAILABLE = False
 
-from core.config.api_config import APIConfig
+from core.config.api_config import APIConfig, KISErrorCode
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +71,13 @@ class BatchResult:
 class AsyncKISClient:
     """비동기 KIS API 클라이언트
 
-    동시 요청 제한을 통해 API 서버 부하를 방지하면서
+    동시 요청 제한 + Rate Limit을 통해 API 서버 부하를 방지하면서
     빠른 배치 조회를 수행합니다.
+
+    Rate Limit 정책:
+    - KIS API 공식 제한: 실전 초당 20건, 모의 초당 5건
+    - 안전 마진 적용: 초당 10건으로 제한 (슬라이딩 윈도우 대응)
+    - 동시 요청은 세마포어로 제한, 요청 간격은 Rate Limiter로 제어
 
     Usage:
         # 비동기 컨텍스트에서 사용
@@ -83,18 +90,28 @@ class AsyncKISClient:
         result = get_prices_sync(['005930', '000660', '035720'])
     """
 
+    # Rate Limit 설정 (초당 최대 요청 수)
+    # KIS API: 실전 20건/초, 모의 5건/초
+    # 안전 마진 적용하여 10건/초로 제한
+    DEFAULT_RATE_LIMIT_PER_SEC = 10
+
+    # Rate Limit 에러 발생 시 대기 시간 (초)
+    RATE_LIMIT_WAIT_TIME = 5.0
+
     def __init__(
         self,
-        max_concurrent: int = 10,
+        max_concurrent: int = 5,
         timeout: float = 10.0,
-        retry_count: int = 2,
+        retry_count: int = 3,
+        rate_limit_per_sec: Optional[int] = None,
     ):
         """초기화
 
         Args:
-            max_concurrent: 최대 동시 요청 수 (기본 10)
+            max_concurrent: 최대 동시 요청 수 (기본 5, 이전 10에서 하향)
             timeout: 요청 타임아웃 (초)
-            retry_count: 재시도 횟수
+            retry_count: 재시도 횟수 (기본 3, 이전 2에서 상향)
+            rate_limit_per_sec: 초당 최대 요청 수 (기본 10)
         """
         if not AIOHTTP_AVAILABLE:
             raise ImportError("aiohttp가 설치되어 있지 않습니다. pip install aiohttp")
@@ -102,9 +119,18 @@ class AsyncKISClient:
         self.max_concurrent = max_concurrent
         self.timeout = timeout
         self.retry_count = retry_count
+        self.rate_limit_per_sec = rate_limit_per_sec or self.DEFAULT_RATE_LIMIT_PER_SEC
+
+        # 요청 간 최소 대기 시간 계산 (예: 10건/초 → 0.1초)
+        self.min_interval = 1.0 / self.rate_limit_per_sec
+
         self.semaphore = asyncio.Semaphore(max_concurrent)
         self.config = APIConfig()
         self.session: Optional[aiohttp.ClientSession] = None
+
+        # Rate Limit 관리용 Lock과 마지막 요청 시간
+        self._rate_limit_lock = asyncio.Lock()
+        self._last_request_time: float = 0.0
 
     async def __aenter__(self):
         """컨텍스트 매니저 진입"""
@@ -136,11 +162,40 @@ class AsyncKISClient:
             "custtype": "P",
         }
 
+    async def _rate_limit_wait(self):
+        """Rate Limit 준수를 위한 대기
+
+        슬라이딩 윈도우 방식의 Rate Limit에 대응하기 위해
+        요청 간 최소 간격을 유지합니다.
+        """
+        async with self._rate_limit_lock:
+            now = time.time()
+            elapsed = now - self._last_request_time
+            if elapsed < self.min_interval:
+                wait_time = self.min_interval - elapsed
+                await asyncio.sleep(wait_time)
+            self._last_request_time = time.time()
+
+    def _is_rate_limit_error(self, data: dict) -> bool:
+        """Rate Limit 에러인지 확인"""
+        rt_cd = data.get("rt_cd")
+        msg_cd = data.get("msg_cd", "")
+
+        # rt_cd가 '1'이면 에러, msg_cd가 EGW00201이면 Rate Limit
+        if rt_cd == "1" and msg_cd == KISErrorCode.RATE_LIMIT:
+            return True
+        return False
+
+    def _is_retryable_error(self, data: dict) -> bool:
+        """재시도 가능한 에러인지 확인"""
+        msg_cd = data.get("msg_cd", "")
+        return msg_cd in KISErrorCode.RETRYABLE_ERRORS
+
     async def _get_price(
         self,
         stock_code: str
     ) -> Tuple[str, Optional[PriceData], Optional[str]]:
-        """단일 종목 가격 조회 (세마포어 적용)
+        """단일 종목 가격 조회 (세마포어 + Rate Limit 적용)
 
         Args:
             stock_code: 종목코드
@@ -151,6 +206,9 @@ class AsyncKISClient:
         async with self.semaphore:
             for attempt in range(self.retry_count + 1):
                 try:
+                    # Rate Limit 대기
+                    await self._rate_limit_wait()
+
                     url = f"{self.config.base_url}/uapi/domestic-stock/v1/quotations/inquire-price"
                     headers = self._get_headers()
                     params = {
@@ -159,9 +217,38 @@ class AsyncKISClient:
                     }
 
                     async with self.session.get(url, headers=headers, params=params) as response:
+                        data = await response.json()
+
+                        # Rate Limit 에러 처리 (EGW00201)
+                        if self._is_rate_limit_error(data):
+                            logger.warning(
+                                f"Rate Limit 에러 발생 ({stock_code}), "
+                                f"{self.RATE_LIMIT_WAIT_TIME}초 대기 후 재시도 "
+                                f"({attempt + 1}/{self.retry_count + 1})"
+                            )
+                            if attempt < self.retry_count:
+                                await asyncio.sleep(self.RATE_LIMIT_WAIT_TIME)
+                                continue
+                            return (stock_code, None, f"Rate Limit 초과 (EGW00201)")
+
+                        # 다른 재시도 가능 에러 처리
+                        if self._is_retryable_error(data):
+                            msg_cd = data.get("msg_cd", "")
+                            msg1 = data.get("msg1", "")
+                            logger.warning(
+                                f"재시도 가능 에러 ({stock_code}): {msg_cd} - {msg1}"
+                            )
+                            if attempt < self.retry_count:
+                                await asyncio.sleep(2 * (attempt + 1))
+                                continue
+                            return (stock_code, None, f"{msg_cd}: {msg1}")
+
                         if response.status == 200:
-                            data = await response.json()
                             output = data.get("output", {})
+
+                            # 정상 응답이지만 데이터가 없는 경우
+                            if not output or not output.get("stck_prpr"):
+                                return (stock_code, None, "데이터 없음")
 
                             price_data = PriceData(
                                 stock_code=stock_code,
@@ -178,7 +265,7 @@ class AsyncKISClient:
                         elif response.status >= 500:
                             # 서버 에러는 재시도
                             if attempt < self.retry_count:
-                                await asyncio.sleep(1 * (attempt + 1))  # 백오프
+                                await asyncio.sleep(2 * (attempt + 1))  # 백오프
                                 continue
                             return (stock_code, None, f"HTTP {response.status}")
                         else:
@@ -187,17 +274,18 @@ class AsyncKISClient:
 
                 except asyncio.TimeoutError:
                     if attempt < self.retry_count:
-                        await asyncio.sleep(1 * (attempt + 1))
+                        await asyncio.sleep(2 * (attempt + 1))
                         continue
                     return (stock_code, None, "Timeout")
 
                 except aiohttp.ClientError as e:
                     if attempt < self.retry_count:
-                        await asyncio.sleep(1 * (attempt + 1))
+                        await asyncio.sleep(2 * (attempt + 1))
                         continue
                     return (stock_code, None, str(e))
 
                 except Exception as e:
+                    logger.error(f"가격 조회 예외 ({stock_code}): {e}", exc_info=True)
                     return (stock_code, None, str(e))
 
             return (stock_code, None, "최대 재시도 횟수 초과")
@@ -269,7 +357,7 @@ class AsyncKISClient:
 
 def get_prices_sync(
     stock_codes: List[str],
-    max_concurrent: int = 10,
+    max_concurrent: int = 5,
     timeout: float = 10.0,
 ) -> BatchResult:
     """동기 코드에서 배치 가격 조회 호출
@@ -319,7 +407,7 @@ def get_price_sync(stock_code: str, timeout: float = 10.0) -> Optional[PriceData
 
 async def get_prices_async(
     stock_codes: List[str],
-    max_concurrent: int = 10,
+    max_concurrent: int = 5,
     timeout: float = 10.0,
 ) -> BatchResult:
     """비동기 컨텍스트에서 배치 가격 조회
