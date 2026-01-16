@@ -29,14 +29,18 @@ class ParallelPriceAnalyzer(PriceAnalyzer):
     
     def __init__(self, p_config_file: str = "core/config/api_config.py", p_max_workers: int = None):
         """초기화
-        
+
         Args:
             p_config_file: 설정 파일 경로
-            p_max_workers: 최대 워커 수 (None이면 CPU 코어 수)
+            p_max_workers: 최대 워커 수 (None이면 1, API Rate Limit 준수)
+
+        Note:
+            KIS API Rate Limit: 실전 20건/초, 모의 5건/초
+            Rate Limit 초과 방지를 위해 기본값 1로 설정 (순차 처리)
         """
         super().__init__(p_config_file)
-        # API rate limit 방지를 위해 워커 수 제한 (기본값 2)
-        self._v_max_workers = p_max_workers or 2
+        # API rate limit 방지를 위해 워커 수 제한 (기본값 1, 순차 처리)
+        self._v_max_workers = p_max_workers or 1
         logger.info(f"병렬 가격 분석기 초기화 완료 - 워커 수: {self._v_max_workers}")
     
     def parallel_analyze_multiple_stocks(self, p_stock_list: List[Dict], p_batch_size: int = 20) -> List[PriceAttractiveness]:
