@@ -92,15 +92,18 @@ class AsyncKISClient:
 
     # Rate Limit 설정 (초당 최대 요청 수)
     # KIS API: 실전 20건/초, 모의 5건/초
-    # 안전 마진 적용하여 10건/초로 제한
-    DEFAULT_RATE_LIMIT_PER_SEC = 10
+    # 안전 마진 적용하여 5건/초로 제한 (모의투자 기준, 슬라이딩 윈도우 대응)
+    DEFAULT_RATE_LIMIT_PER_SEC = 5
 
     # Rate Limit 에러 발생 시 대기 시간 (초)
-    RATE_LIMIT_WAIT_TIME = 5.0
+    RATE_LIMIT_WAIT_TIME = 10.0
+
+    # 청크 처리 시 청크 간 대기 시간 (초)
+    CHUNK_WAIT_TIME = 1.5
 
     def __init__(
         self,
-        max_concurrent: int = 5,
+        max_concurrent: int = 1,
         timeout: float = 10.0,
         retry_count: int = 3,
         rate_limit_per_sec: Optional[int] = None,
@@ -108,10 +111,10 @@ class AsyncKISClient:
         """초기화
 
         Args:
-            max_concurrent: 최대 동시 요청 수 (기본 5, 이전 10에서 하향)
+            max_concurrent: 최대 동시 요청 수 (기본 1, 순차 처리)
             timeout: 요청 타임아웃 (초)
-            retry_count: 재시도 횟수 (기본 3, 이전 2에서 상향)
-            rate_limit_per_sec: 초당 최대 요청 수 (기본 10)
+            retry_count: 재시도 횟수 (기본 3)
+            rate_limit_per_sec: 초당 최대 요청 수 (기본 5, 모의투자 기준)
         """
         if not AIOHTTP_AVAILABLE:
             raise ImportError("aiohttp가 설치되어 있지 않습니다. pip install aiohttp")
@@ -121,7 +124,7 @@ class AsyncKISClient:
         self.retry_count = retry_count
         self.rate_limit_per_sec = rate_limit_per_sec or self.DEFAULT_RATE_LIMIT_PER_SEC
 
-        # 요청 간 최소 대기 시간 계산 (예: 10건/초 → 0.1초)
+        # 요청 간 최소 대기 시간 계산 (예: 5건/초 → 0.2초)
         self.min_interval = 1.0 / self.rate_limit_per_sec
 
         self.semaphore = asyncio.Semaphore(max_concurrent)
@@ -131,6 +134,9 @@ class AsyncKISClient:
         # Rate Limit 관리용 Lock과 마지막 요청 시간
         self._rate_limit_lock = asyncio.Lock()
         self._last_request_time: float = 0.0
+
+        # 슬라이딩 윈도우 기반 Rate Limit 추적
+        self._request_timestamps: List[float] = []
 
     async def __aenter__(self):
         """컨텍스트 매니저 진입"""
@@ -163,18 +169,43 @@ class AsyncKISClient:
         }
 
     async def _rate_limit_wait(self):
-        """Rate Limit 준수를 위한 대기
+        """Rate Limit 준수를 위한 대기 (슬라이딩 윈도우 방식)
 
-        슬라이딩 윈도우 방식의 Rate Limit에 대응하기 위해
-        요청 간 최소 간격을 유지합니다.
+        1초 윈도우 내 요청 수를 추적하여 Rate Limit을 정확하게 준수합니다.
         """
         async with self._rate_limit_lock:
             now = time.time()
-            elapsed = now - self._last_request_time
-            if elapsed < self.min_interval:
-                wait_time = self.min_interval - elapsed
-                await asyncio.sleep(wait_time)
-            self._last_request_time = time.time()
+
+            # 1초 이전 타임스탬프 제거 (슬라이딩 윈도우)
+            self._request_timestamps = [
+                ts for ts in self._request_timestamps if now - ts < 1.0
+            ]
+
+            # 현재 윈도우 내 요청 수가 제한에 도달한 경우 대기
+            while len(self._request_timestamps) >= self.rate_limit_per_sec:
+                # 가장 오래된 요청이 윈도우를 벗어날 때까지 대기
+                oldest = self._request_timestamps[0]
+                wait_time = 1.0 - (now - oldest) + 0.05  # 50ms 여유
+                if wait_time > 0:
+                    logger.debug(f"Rate Limit 대기: {wait_time:.2f}초")
+                    await asyncio.sleep(wait_time)
+
+                # 다시 확인
+                now = time.time()
+                self._request_timestamps = [
+                    ts for ts in self._request_timestamps if now - ts < 1.0
+                ]
+
+            # 요청 간 최소 간격도 유지
+            if self._last_request_time > 0:
+                elapsed = now - self._last_request_time
+                if elapsed < self.min_interval:
+                    await asyncio.sleep(self.min_interval - elapsed)
+
+            # 현재 요청 시간 기록
+            now = time.time()
+            self._request_timestamps.append(now)
+            self._last_request_time = now
 
     def _is_rate_limit_error(self, data: dict) -> bool:
         """Rate Limit 에러인지 확인"""
@@ -292,12 +323,14 @@ class AsyncKISClient:
 
     async def get_prices_batch(
         self,
-        stock_codes: List[str]
+        stock_codes: List[str],
+        chunk_size: Optional[int] = None,
     ) -> BatchResult:
-        """여러 종목 가격 배치 조회
+        """여러 종목 가격 배치 조회 (순차 처리, Rate Limit 준수)
 
         Args:
             stock_codes: 종목코드 리스트
+            chunk_size: 청크 크기 (None이면 rate_limit_per_sec 사용)
 
         Returns:
             BatchResult: 배치 조회 결과
@@ -306,24 +339,48 @@ class AsyncKISClient:
             raise RuntimeError("세션이 초기화되지 않았습니다. async with 구문을 사용하세요.")
 
         start_time = time.time()
-        logger.info(f"배치 가격 조회 시작: {len(stock_codes)}개 종목")
-
-        # 병렬 조회
-        tasks = [self._get_price(code) for code in stock_codes]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        logger.info(f"배치 가격 조회 시작: {len(stock_codes)}개 종목 (순차 처리)")
 
         successful = {}
         failed = []
 
-        for result in results:
-            if isinstance(result, Exception):
-                failed.append(("unknown", str(result)))
-            else:
-                code, price_data, error = result
-                if price_data:
-                    successful[code] = price_data
-                else:
-                    failed.append((code, error or "Unknown error"))
+        # 청크 크기 설정 (기본: rate_limit_per_sec)
+        actual_chunk_size = chunk_size or self.rate_limit_per_sec
+
+        # 종목을 청크로 분할
+        chunks = [
+            stock_codes[i:i + actual_chunk_size]
+            for i in range(0, len(stock_codes), actual_chunk_size)
+        ]
+
+        for chunk_idx, chunk in enumerate(chunks):
+            chunk_start = time.time()
+
+            # 청크 내 종목들을 순차 처리
+            for code in chunk:
+                try:
+                    code, price_data, error = await self._get_price(code)
+                    if price_data:
+                        successful[code] = price_data
+                    else:
+                        failed.append((code, error or "Unknown error"))
+                except Exception as e:
+                    logger.error(f"가격 조회 예외 ({code}): {e}", exc_info=True)
+                    failed.append((code, str(e)))
+
+            # 청크 간 대기 (마지막 청크 제외)
+            if chunk_idx < len(chunks) - 1:
+                chunk_elapsed = time.time() - chunk_start
+                # 최소 1초 간격 유지 (슬라이딩 윈도우 대응)
+                if chunk_elapsed < self.CHUNK_WAIT_TIME:
+                    await asyncio.sleep(self.CHUNK_WAIT_TIME - chunk_elapsed)
+
+            # 진행 상황 로깅
+            processed = (chunk_idx + 1) * actual_chunk_size
+            logger.debug(
+                f"청크 {chunk_idx + 1}/{len(chunks)} 완료 "
+                f"({min(processed, len(stock_codes))}/{len(stock_codes)})"
+            )
 
         elapsed_ms = (time.time() - start_time) * 1000
         logger.info(
@@ -357,18 +414,20 @@ class AsyncKISClient:
 
 def get_prices_sync(
     stock_codes: List[str],
-    max_concurrent: int = 5,
+    max_concurrent: int = 1,
     timeout: float = 10.0,
+    rate_limit_per_sec: int = 5,
 ) -> BatchResult:
-    """동기 코드에서 배치 가격 조회 호출
+    """동기 코드에서 배치 가격 조회 호출 (순차 처리, Rate Limit 준수)
 
     비동기 코드를 동기적으로 실행합니다.
     이미 이벤트 루프가 실행 중인 경우 에러가 발생할 수 있습니다.
 
     Args:
         stock_codes: 종목코드 리스트
-        max_concurrent: 최대 동시 요청 수
+        max_concurrent: 최대 동시 요청 수 (기본 1, 순차 처리)
         timeout: 요청 타임아웃 (초)
+        rate_limit_per_sec: 초당 최대 요청 수 (기본 5, 모의투자 기준)
 
     Returns:
         BatchResult: 배치 조회 결과
@@ -381,7 +440,8 @@ def get_prices_sync(
     async def _run():
         async with AsyncKISClient(
             max_concurrent=max_concurrent,
-            timeout=timeout
+            timeout=timeout,
+            rate_limit_per_sec=rate_limit_per_sec,
         ) as client:
             return await client.get_prices_batch(stock_codes)
 
@@ -407,17 +467,19 @@ def get_price_sync(stock_code: str, timeout: float = 10.0) -> Optional[PriceData
 
 async def get_prices_async(
     stock_codes: List[str],
-    max_concurrent: int = 5,
+    max_concurrent: int = 1,
     timeout: float = 10.0,
+    rate_limit_per_sec: int = 5,
 ) -> BatchResult:
-    """비동기 컨텍스트에서 배치 가격 조회
+    """비동기 컨텍스트에서 배치 가격 조회 (순차 처리, Rate Limit 준수)
 
     이미 이벤트 루프가 실행 중인 경우 이 함수를 사용합니다.
 
     Args:
         stock_codes: 종목코드 리스트
-        max_concurrent: 최대 동시 요청 수
+        max_concurrent: 최대 동시 요청 수 (기본 1, 순차 처리)
         timeout: 요청 타임아웃 (초)
+        rate_limit_per_sec: 초당 최대 요청 수 (기본 5, 모의투자 기준)
 
     Returns:
         BatchResult: 배치 조회 결과
@@ -430,6 +492,7 @@ async def get_prices_async(
     """
     async with AsyncKISClient(
         max_concurrent=max_concurrent,
-        timeout=timeout
+        timeout=timeout,
+        rate_limit_per_sec=rate_limit_per_sec,
     ) as client:
         return await client.get_prices_batch(stock_codes)
