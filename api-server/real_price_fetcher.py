@@ -64,34 +64,40 @@ class RealPriceFetcher:
             return None
     
     async def get_real_prices(self, stock_codes: List[str]) -> Dict[str, Dict]:
-        """여러 종목의 실시간 가격 일괄 조회"""
+        """여러 종목의 실시간 가격 일괄 조회 (순차 처리, Rate Limit 준수)
+
+        KIS API Rate Limit: 실전 20건/초, 모의 5건/초
+        안전하게 5건/초로 제한하여 순차 처리
+        """
         if not self.kis_client:
             return {}
-            
+
         results = {}
-        
-        # API 호출 제한 (초당 20건)을 고려하여 배치 처리
-        batch_size = 15  # 여유를 두고 15건씩
-        
-        for i in range(0, len(stock_codes), batch_size):
-            batch = stock_codes[i:i + batch_size]
-            
-            # 각 배치 처리
-            tasks = [self.get_real_price(code) for code in batch]
-            batch_results = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            # 결과 저장
-            for code, result in zip(batch, batch_results):
+
+        # Rate Limit 준수를 위한 순차 처리 (초당 5건)
+        rate_limit_per_sec = 5
+        min_interval = 1.0 / rate_limit_per_sec  # 0.2초
+
+        for i, code in enumerate(stock_codes):
+            try:
+                # 요청 간 최소 간격 유지
+                if i > 0:
+                    await asyncio.sleep(min_interval)
+
+                result = await self.get_real_price(code)
                 if isinstance(result, dict) and result:
                     results[code] = result
                 else:
-                    # 실패 시 기본값
                     results[code] = self._get_fallback_price(code)
-            
-            # API 호출 제한 준수를 위한 대기
-            if i + batch_size < len(stock_codes):
-                await asyncio.sleep(1)
-        
+
+            except Exception as e:
+                logger.warning(f"가격 조회 실패 ({code}): {e}")
+                results[code] = self._get_fallback_price(code)
+
+            # 5건마다 추가 대기 (슬라이딩 윈도우 대응)
+            if (i + 1) % rate_limit_per_sec == 0:
+                await asyncio.sleep(0.5)
+
         return results
     
     async def _fetch_price_from_api(self, stock_code: str) -> Optional[Dict]:
