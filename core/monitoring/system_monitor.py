@@ -244,23 +244,59 @@ class SystemMonitor:
         except Exception as e:
             self.logger.error(f"학습 건강 상태 체크 실패: {e}", exc_info=True)
 
+    def _get_database_size_gb(self) -> float:
+        """데이터베이스 크기 조회 (GB 단위)
+
+        PostgreSQL과 SQLite 모두 지원
+        """
+        try:
+            from core.config import settings
+
+            if settings.DB_TYPE == 'postgresql':
+                # PostgreSQL: pg_database_size 쿼리 사용
+                try:
+                    from sqlalchemy import text
+                    from core.database.session import DatabaseSession
+
+                    db = DatabaseSession()
+                    with db.get_session() as session:
+                        result = session.execute(
+                            text("SELECT pg_database_size(current_database())")
+                        ).scalar()
+                        return result / (1024**3) if result else 0.0
+                except Exception as e:
+                    self.logger.warning(f"PostgreSQL 크기 조회 실패: {e}")
+                    return 0.0
+            else:
+                # SQLite: 파일 크기 확인
+                db_path = Path(settings.DB_PATH)
+                if db_path.exists():
+                    return db_path.stat().st_size / (1024**3)
+                return 0.0
+
+        except Exception as e:
+            self.logger.error(f"데이터베이스 크기 조회 실패: {e}", exc_info=True)
+            return 0.0
+
+    def _get_database_size_mb(self) -> float:
+        """데이터베이스 크기 조회 (MB 단위)"""
+        return self._get_database_size_gb() * 1024
+
     def _check_data_health(self):
         """데이터 건강 상태 체크"""
         try:
             # 데이터베이스 크기 확인
-            db_path = Path("data/learning/learning_data.db")
-            if db_path.exists():
-                db_size_gb = db_path.stat().st_size / (1024**3)
+            db_size_gb = self._get_database_size_gb()
 
-                if db_size_gb > self.thresholds['max_db_size_gb']:
-                    self._create_alert(
-                        "large_database",
-                        "warning",
-                        "data",
-                        "데이터베이스 크기 증가",
-                        f"데이터베이스 크기가 {db_size_gb:.2f}GB입니다",
-                        "데이터 정리나 아카이빙을 고려하세요"
-                    )
+            if db_size_gb > self.thresholds['max_db_size_gb']:
+                self._create_alert(
+                    "large_database",
+                    "warning",
+                    "data",
+                    "데이터베이스 크기 증가",
+                    f"데이터베이스 크기가 {db_size_gb:.2f}GB입니다",
+                    "데이터 정리나 아카이빙을 고려하세요"
+                )
 
             # 중요 디렉토리 존재 확인
             critical_dirs = [
@@ -292,9 +328,8 @@ class SystemMonitor:
             memory = psutil.virtual_memory()
             disk = psutil.disk_usage('/')
 
-            # 데이터베이스 크기
-            db_path = Path("data/learning/learning_data.db")
-            db_size_mb = db_path.stat().st_size / (1024**2) if db_path.exists() else 0
+            # 데이터베이스 크기 (공통 메서드 사용)
+            db_size_mb = self._get_database_size_mb()
 
             # 활성 프로세스 수
             active_processes = len([p for p in psutil.process_iter() if p.is_running()])
@@ -439,12 +474,12 @@ class SystemMonitor:
 
             message = f"""{emoji} *시스템 알림*
 
-🏷️ **카테고리**: {alert.category}
-📢 **제목**: {alert.title}
-📝 **설명**: {alert.description}"""
+🏷️ *카테고리*: {alert.category}
+📢 *제목*: {alert.title}
+📝 *설명*: {alert.description}"""
 
             if alert.suggested_action:
-                message += f"\n\n💡 **권장 조치**: {alert.suggested_action}"
+                message += f"\n\n💡 *권장 조치*: {alert.suggested_action}"
 
             message += f"\n\n⏰ 시간: `{alert.timestamp}`"
 
@@ -582,23 +617,33 @@ class SystemMonitor:
             health_status = summary['system_health']
             emoji = health_emoji.get(health_status, '⚪')
 
+            # DB 타입 확인
+            try:
+                from core.config import settings
+                db_type = settings.DB_TYPE.upper()
+            except Exception:
+                db_type = "DB"
+
+            # 현재 DB 크기 (실시간 조회)
+            current_db_size_mb = self._get_database_size_mb()
+
             message = f"""📊 *일일 시스템 모니터링 보고서*
 
-{emoji} **전체 상태**: {health_status.upper()}
+{emoji} *전체 상태*: {health_status.upper()}
 
-🚨 **오늘의 알림**:
+🚨 *오늘의 알림*:
 • 총 알림: {summary['total_alerts']}건
 • 심각: {summary['critical_alerts']}건
 • 경고: {summary['warning_alerts']}건
 
-💻 **평균 시스템 사용률** (24시간):"""
+💻 *평균 시스템 사용률* (24시간):"""
 
             if metrics:
                 message += f"""
 • CPU: {metrics.get('avg_cpu_usage', 0):.1f}%
 • 메모리: {metrics.get('avg_memory_usage', 0):.1f}%
 • 디스크: {metrics.get('avg_disk_usage', 0):.1f}%
-• DB 크기: {metrics.get('current_db_size_mb', 0):.1f}MB"""
+• {db_type} 크기: {current_db_size_mb:.1f}MB"""
 
             message += f"""
 
