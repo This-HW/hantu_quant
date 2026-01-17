@@ -117,7 +117,25 @@ class TelegramNotifier:
                     success_count += 1
                     logger.debug(f"텔레그램 메시지 전송 성공: {chat_id}")
                 else:
-                    logger.error(f"텔레그램 메시지 전송 실패: {chat_id}, 상태코드: {response.status_code}", exc_info=True)
+                    # 에러 응답 상세 정보 로깅
+                    try:
+                        error_detail = response.json()
+                        error_description = error_detail.get('description', 'Unknown error')
+                        error_code = error_detail.get('error_code', 'N/A')
+                        logger.error(
+                            f"텔레그램 메시지 전송 실패: {chat_id}, "
+                            f"상태코드: {response.status_code}, "
+                            f"에러코드: {error_code}, "
+                            f"설명: {error_description}",
+                            exc_info=True
+                        )
+                    except Exception:
+                        logger.error(
+                            f"텔레그램 메시지 전송 실패: {chat_id}, "
+                            f"상태코드: {response.status_code}, "
+                            f"응답: {response.text[:200] if response.text else 'Empty'}",
+                            exc_info=True
+                        )
 
             if success_count > 0:
                 logger.info(f"텔레그램 알림 전송 완료 ({priority}): {success_count}/{len(self._chat_ids)}")
