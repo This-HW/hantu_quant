@@ -14,7 +14,7 @@
       "Bash(df:*)",
       "Bash(file:*)",
       "Bash(stat:*)",
-      "Bash(pwd)",
+      "Bash(pwd:*)",
       "Bash(cd:*)",
       "Bash(mkdir:*)",
       "Bash(cp:*)",
@@ -143,27 +143,15 @@
       "Bash(yum:*)",
       "Bash(dnf:*)",
       "Bash(pacman:*)",
-      "Bash(for *)",
-      "Bash(while *)",
-      "Bash(if *)",
       "Read",
       "Glob",
       "Grep",
       "WebSearch"
     ],
     "deny": [
-      "Bash(rm -rf /)",
-      "Bash(rm -rf /*)",
-      "Bash(sudo rm -rf /)",
-      "Bash(sudo rm -rf /*)",
-      "Bash(chmod 777 /)",
-      "Bash(:(){ :|:& };:)",
       "Bash(mkfs:*)",
-      "Bash(dd if=/dev/zero of=/dev/sda:*)",
-      "Bash(> /dev/sda)",
-      "Bash(mv /* /dev/null)",
-      "Bash(wget * | sh)",
-      "Bash(curl * | sh)"
+      "Bash(dd:*)",
+      "Bash(shred:*)"
     ]
   },
   "hooks": {
