@@ -23,6 +23,16 @@ import subprocess
 import os
 from pathlib import Path
 
+# 공통 유틸리티 import (스크립트 위치 기반 동적 경로)
+hook_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, hook_dir)
+try:
+    from utils import debug_log, FORMATTER_TIMEOUT_SECONDS, safe_path
+except ImportError:
+    def debug_log(msg, error=None): pass
+    def safe_path(path): return bool(path) and '..' not in path
+    FORMATTER_TIMEOUT_SECONDS = 30
+
 
 def get_formatter(file_path: str) -> tuple[list[str], str] | None:
     """파일 확장자에 따른 포맷터 반환"""
@@ -54,21 +64,29 @@ def get_formatter(file_path: str) -> tuple[list[str], str] | None:
 
 def format_file(file_path: str) -> bool:
     """파일 포맷팅 실행"""
-    if not os.path.exists(file_path):
+    # 경로 안전성 검사
+    if not safe_path(file_path):
+        debug_log(f"Unsafe path rejected: {file_path}")
+        return False
+
+    if not os.path.isfile(file_path):
+        debug_log(f"File not found: {file_path}")
         return False
 
     formatter_info = get_formatter(file_path)
     if not formatter_info:
+        debug_log(f"No formatter for: {file_path}")
         return True  # 지원하지 않는 파일 타입은 무시
 
     command, name = formatter_info
+    debug_log(f"Formatting {file_path} with {name}")
 
     try:
         result = subprocess.run(
             command + [file_path],
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=FORMATTER_TIMEOUT_SECONDS
         )
 
         if result.returncode == 0:
@@ -113,10 +131,10 @@ def main():
         sys.exit(0)
 
     except json.JSONDecodeError:
-        # JSON 파싱 실패 시 무시
+        debug_log("JSON decode error in stdin")
         sys.exit(0)
     except Exception as e:
-        print(f"Hook error: {e}", file=sys.stderr)
+        debug_log(f"Hook error: {e}", e)
         sys.exit(0)  # 에러가 나도 작업 중단하지 않음
 
 

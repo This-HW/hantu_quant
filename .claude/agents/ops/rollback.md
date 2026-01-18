@@ -3,7 +3,10 @@ name: rollback
 description: |
   롤백 전문가. 배포 실패나 장애 시 이전 버전으로 빠르게 복구합니다.
   애플리케이션과 인프라 롤백을 모두 지원합니다.
-model: sonnet
+  MUST USE when: "롤백", "되돌리기", "이전 버전", "복구" 요청.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: rollback" 반환 시.
+  OUTPUT: 롤백 리포트 + "DELEGATE_TO: [monitor/diagnose/Dev/fix-bugs/postmortem]" 또는 "TASK_COMPLETE"
+model: haiku
 tools:
   - Read
   - Bash
@@ -236,4 +239,29 @@ rollback 완료
 - 근본 원인 분석 필수
 - 수정 후 재배포 계획
 - 재발 방지 대책 수립
+```
+
+---
+
+## 필수 출력 형식 (Delegation Signal)
+
+작업 완료 시 반드시 아래 형식 중 하나를 출력:
+
+### 다른 에이전트 필요 시
+```
+---DELEGATION_SIGNAL---
+TYPE: DELEGATE_TO
+TARGET: [에이전트명]
+REASON: [이유]
+CONTEXT: [전달할 컨텍스트]
+---END_SIGNAL---
+```
+
+### 작업 완료 시
+```
+---DELEGATION_SIGNAL---
+TYPE: TASK_COMPLETE
+SUMMARY: [결과 요약]
+NEXT_STEP: [권장 다음 단계]
+---END_SIGNAL---
 ```

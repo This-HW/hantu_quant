@@ -22,15 +22,28 @@ import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 
+# 공통 유틸리티 import
+try:
+    from utils import get_project_root, format_size, DEFAULT_SCRATCH_MAX_AGE_DAYS
+except ImportError:
+    DEFAULT_SCRATCH_MAX_AGE_DAYS = 7
 
-def get_project_root() -> str:
-    """프로젝트 루트 찾기"""
-    cwd = os.getcwd()
-    while cwd != "/":
-        if os.path.exists(os.path.join(cwd, ".git")):
-            return cwd
-        cwd = os.path.dirname(cwd)
-    return os.getcwd()
+    def get_project_root() -> str:
+        """프로젝트 루트 찾기 (fallback)"""
+        cwd = os.getcwd()
+        while cwd != "/":
+            if os.path.exists(os.path.join(cwd, ".git")):
+                return cwd
+            cwd = os.path.dirname(cwd)
+        return os.getcwd()
+
+    def format_size(size: int) -> str:
+        """파일 크기 포맷 (fallback)"""
+        for unit in ["B", "KB", "MB", "GB"]:
+            if size < 1024:
+                return f"{size:.1f}{unit}"
+            size /= 1024
+        return f"{size:.1f}TB"
 
 
 def get_scratch_files(scratch_dir: str) -> list[dict]:
@@ -58,15 +71,6 @@ def get_scratch_files(scratch_dir: str) -> list[dict]:
             })
 
     return sorted(files, key=lambda x: x["age_days"], reverse=True)
-
-
-def format_size(size: int) -> str:
-    """파일 크기 포맷"""
-    for unit in ["B", "KB", "MB", "GB"]:
-        if size < 1024:
-            return f"{size:.1f}{unit}"
-        size /= 1024
-    return f"{size:.1f}TB"
 
 
 def check_scratch(scratch_dir: str, max_age_days: int = 7):

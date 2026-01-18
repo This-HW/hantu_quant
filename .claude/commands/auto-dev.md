@@ -1,4 +1,5 @@
 ---
+name: auto-dev
 description: 자동화된 개발 파이프라인 실행. 탐색 → 계획 → 구현 → 검증 → 리뷰 순으로 진행합니다.
 argument-hint: [작업 설명]
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, WebSearch, WebFetch, TodoWrite, AskUserQuestion

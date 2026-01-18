@@ -3,6 +3,9 @@ name: monitor
 description: |
   시스템 모니터링 전문가. 메트릭, 로그, 트레이스를 분석하여
   시스템 상태를 파악하고 이상 징후를 탐지합니다.
+  MUST USE when: "모니터링", "메트릭", "대시보드", "알림" 요청.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: monitor" 반환 시.
+  OUTPUT: 모니터링 리포트 + "DELEGATE_TO: [diagnose/respond-incident/scale]" 또는 "TASK_COMPLETE"
 model: haiku
 tools:
   - Read
@@ -185,4 +188,29 @@ monitor 결과
 ```
 ⚠️ 이상 징후 발견 시 즉시 적절한 에이전트에게 위임!
 지연된 대응은 장애 확대로 이어집니다.
+```
+
+---
+
+## 필수 출력 형식 (Delegation Signal)
+
+작업 완료 시 반드시 아래 형식 중 하나를 출력:
+
+### 다른 에이전트 필요 시
+```
+---DELEGATION_SIGNAL---
+TYPE: DELEGATE_TO
+TARGET: [에이전트명]
+REASON: [이유]
+CONTEXT: [전달할 컨텍스트]
+---END_SIGNAL---
+```
+
+### 작업 완료 시
+```
+---DELEGATION_SIGNAL---
+TYPE: TASK_COMPLETE
+SUMMARY: [결과 요약]
+NEXT_STEP: [권장 다음 단계]
+---END_SIGNAL---
 ```

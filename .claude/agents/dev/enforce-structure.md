@@ -1,8 +1,10 @@
 ---
 name: enforce-structure
 description: |
-  프로젝트 구조 강제 전문가. project-structure.yaml에 따라 파일/폴더 배치를
-  검증하고 위반 사항을 보고합니다. Hook과 연동하여 실시간 검증을 수행합니다.
+  프로젝트 구조 강제 전문가.
+  MUST USE when: "구조 검사", "규칙 준수", "파일 위치 검증" 요청.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: enforce-structure" 반환 시.
+  OUTPUT: 구조 검증 결과 + "DELEGATE_TO: [다음]" 또는 "TASK_COMPLETE"
 model: haiku
 tools:
   - Read
@@ -259,4 +261,29 @@ enforce-structure ❌ FAIL
              │
              ↓
          ✅ PASS
+```
+
+---
+
+## 필수 출력 형식 (Delegation Signal)
+
+작업 완료 시 반드시 아래 형식 중 하나를 출력:
+
+### 다른 에이전트 필요 시
+```
+---DELEGATION_SIGNAL---
+TYPE: DELEGATE_TO
+TARGET: [에이전트명]
+REASON: [이유]
+CONTEXT: [전달할 컨텍스트]
+---END_SIGNAL---
+```
+
+### 작업 완료 시
+```
+---DELEGATION_SIGNAL---
+TYPE: TASK_COMPLETE
+SUMMARY: [결과 요약]
+NEXT_STEP: [권장 다음 단계]
+---END_SIGNAL---
 ```

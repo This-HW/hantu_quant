@@ -1,9 +1,11 @@
 ---
 name: security-scan
 description: |
-  보안 스캔 전문가. OWASP Top 10, 의존성 취약점, 시크릿 노출 등
-  보안 취약점을 탐지합니다. 심각도별로 분류하여 보고합니다.
-model: sonnet
+  보안 스캔 전문가.
+  MUST USE when: "보안", "취약점", "스캔", "시크릿", "OWASP" 요청.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: security-scan" 반환 시.
+  OUTPUT: 보안 스캔 결과 + "DELEGATE_TO: [다음]" 또는 "TASK_COMPLETE"
+model: opus
 tools:
   - Read
   - Glob
@@ -286,4 +288,29 @@ security-scan ❌ FAIL
              │
              ↓
          security-scan (재검증)
+```
+
+---
+
+## 필수 출력 형식 (Delegation Signal)
+
+작업 완료 시 반드시 아래 형식 중 하나를 출력:
+
+### 다른 에이전트 필요 시
+```
+---DELEGATION_SIGNAL---
+TYPE: DELEGATE_TO
+TARGET: [에이전트명]
+REASON: [이유]
+CONTEXT: [전달할 컨텍스트]
+---END_SIGNAL---
+```
+
+### 작업 완료 시
+```
+---DELEGATION_SIGNAL---
+TYPE: TASK_COMPLETE
+SUMMARY: [결과 요약]
+NEXT_STEP: [권장 다음 단계]
+---END_SIGNAL---
 ```
