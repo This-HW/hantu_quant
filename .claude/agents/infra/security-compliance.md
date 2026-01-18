@@ -1,9 +1,11 @@
 ---
 name: security-compliance
 description: |
-  인프라 보안 및 컴플라이언스 전문가. IaC 보안 스캔, 취약점 분석,
-  정책 준수 여부를 검사합니다. tfsec, checkov, trivy 등을 활용합니다.
-model: sonnet
+  인프라 보안 및 컴플라이언스 전문가. IaC 보안 스캔, 취약점 분석, 정책 준수 여부를 검사합니다.
+  MUST USE when: "인프라 보안", "컴플라이언스", "보안 정책" 요청.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: security-compliance" 반환 시.
+  OUTPUT: 보안 검사 결과 보고서 + "DELEGATE_TO: [다음]" 또는 "TASK_COMPLETE"
+model: opus
 tools:
   - Read
   - Bash
@@ -221,4 +223,29 @@ security-compliance 결과
 ```
 ⚠️ Critical/High 이슈가 있으면 배포 금지!
 반드시 수정 후 재검사를 실행하세요.
+```
+
+---
+
+## 필수 출력 형식 (Delegation Signal)
+
+작업 완료 시 반드시 아래 형식 중 하나를 출력:
+
+### 다른 에이전트 필요 시
+```
+---DELEGATION_SIGNAL---
+TYPE: DELEGATE_TO
+TARGET: [에이전트명]
+REASON: [이유]
+CONTEXT: [전달할 컨텍스트]
+---END_SIGNAL---
+```
+
+### 작업 완료 시
+```
+---DELEGATION_SIGNAL---
+TYPE: TASK_COMPLETE
+SUMMARY: [결과 요약]
+NEXT_STEP: [권장 다음 단계]
+---END_SIGNAL---
 ```

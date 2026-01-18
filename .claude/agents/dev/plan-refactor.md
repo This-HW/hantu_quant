@@ -1,9 +1,11 @@
 ---
 name: plan-refactor
 description: |
-  리팩토링 전략 수립 전문가. 코드 개선, 구조 변경, 마이그레이션 계획을
-  수립합니다. 영향 범위 분석과 단계별 안전한 변경 전략을 제시합니다.
-model: sonnet
+  리팩토링 전략 수립 전문가.
+  MUST USE when: "리팩토링", "개선해줘", "정리해줘", "구조 변경" 요청.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: plan-refactor" 반환 시.
+  OUTPUT: 리팩토링 계획 + "DELEGATE_TO: [다음]" 또는 "TASK_COMPLETE"
+model: opus
 tools:
   - Read
   - Glob
@@ -229,4 +231,29 @@ plan-refactor 완료
 3. 호환성 유지 전략
 4. 검증 체크포인트
 5. 롤백 계획
+```
+
+---
+
+## 필수 출력 형식 (Delegation Signal)
+
+작업 완료 시 반드시 아래 형식 중 하나를 출력:
+
+### 다른 에이전트 필요 시
+```
+---DELEGATION_SIGNAL---
+TYPE: DELEGATE_TO
+TARGET: [에이전트명]
+REASON: [이유]
+CONTEXT: [전달할 컨텍스트]
+---END_SIGNAL---
+```
+
+### 작업 완료 시
+```
+---DELEGATION_SIGNAL---
+TYPE: TASK_COMPLETE
+SUMMARY: [결과 요약]
+NEXT_STEP: [권장 다음 단계]
+---END_SIGNAL---
 ```

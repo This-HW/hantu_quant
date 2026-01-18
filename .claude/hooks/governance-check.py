@@ -23,6 +23,16 @@ import fnmatch
 from pathlib import Path
 from datetime import datetime
 
+# 공통 유틸리티 import (스크립트 위치 기반 동적 경로)
+hook_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, hook_dir)
+try:
+    from utils import get_project_root, debug_log, load_yaml_safe
+except ImportError:
+    def debug_log(msg, error=None): pass
+    def load_yaml_safe(path): return {}
+    # get_project_root는 아래에 로컬 정의 유지
+
 # =============================================================================
 # 기본 규칙 (project-structure.yaml 없을 때 적용)
 # =============================================================================
@@ -31,7 +41,7 @@ DEFAULT_RULES = {
     # 문서 위치 규칙
     "docs": {
         "root": "docs/",
-        "root_allowed": ["README.md", "CHANGELOG.md", "CONTRIBUTING.md", "LICENSE", "CODE_OF_CONDUCT.md"],
+        "root_allowed": ["README.md", "CHANGELOG.md", "CONTRIBUTING.md", "LICENSE", "CODE_OF_CONDUCT.md", "CLAUDE.md"],
         "forbidden_patterns": ["src/**/*.md", "**/notes.md", "**/temp*.md", "**/*.txt"],
         "categories": {
             "architecture": "docs/architecture/",
@@ -59,27 +69,23 @@ DEFAULT_RULES = {
 
 def load_project_rules(project_root: str) -> dict:
     """프로젝트 규칙 로드 (.claude/project-structure.yaml)"""
-    import yaml
-
     config_path = os.path.join(project_root, ".claude", "project-structure.yaml")
 
     if os.path.exists(config_path):
-        try:
-            with open(config_path, 'r') as f:
-                return yaml.safe_load(f)
-        except:
-            pass
+        rules = load_yaml_safe(config_path)
+        if rules:
+            debug_log(f"Loaded project rules from {config_path}")
+            return rules
 
+    debug_log("Using default rules")
     return DEFAULT_RULES
 
 
-def get_project_root() -> str:
-    """프로젝트 루트 찾기"""
-    # 환경변수에서
+def _get_project_root_local() -> str:
+    """프로젝트 루트 찾기 (로컬 fallback)"""
     if "CLAUDE_PROJECT_DIR" in os.environ:
         return os.environ["CLAUDE_PROJECT_DIR"]
 
-    # 현재 디렉토리에서 .git 찾기
     cwd = os.getcwd()
     while cwd != "/":
         if os.path.exists(os.path.join(cwd, ".git")):
@@ -87,6 +93,13 @@ def get_project_root() -> str:
         cwd = os.path.dirname(cwd)
 
     return os.getcwd()
+
+
+# utils.py가 없을 때 로컬 함수 사용
+try:
+    from utils import get_project_root
+except ImportError:
+    get_project_root = _get_project_root_local
 
 
 def is_pattern_match(path: str, pattern: str) -> bool:
@@ -116,6 +129,14 @@ def check_doc_location(file_path: str, rules: dict, project_root: str) -> tuple[
         return True, ""
 
     rel_path = os.path.relpath(file_path, project_root)
+
+    # 에이전트 정의 파일은 예외 (agents/ 폴더)
+    if rel_path.startswith("agents/") or "/agents/" in rel_path:
+        return True, ""
+
+    # ~/.claude/agents/ 경로도 예외
+    if "/.claude/agents/" in file_path or file_path.startswith(os.path.expanduser("~/.claude/agents/")):
+        return True, ""
     doc_rules = rules.get("docs", DEFAULT_RULES["docs"])
 
     # 루트 허용 문서 체크
@@ -241,6 +262,7 @@ def main():
 
     except Exception as e:
         # 에러 발생해도 작업 중단하지 않음
+        debug_log(f"Governance check error: {e}", e)
         sys.exit(0)
 
 

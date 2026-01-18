@@ -1,9 +1,11 @@
 ---
 name: plan-infrastructure
 description: |
-  인프라 변경 계획 전문가. IaC 변경, 리소스 추가/수정,
-  마이그레이션 계획을 수립합니다. 안전한 변경 전략을 제시합니다.
-model: sonnet
+  인프라 변경 계획 전문가. IaC 변경, 리소스 추가/수정, 마이그레이션 계획을 수립합니다.
+  MUST USE when: "인프라 계획", "아키텍처 설계", "클라우드 구성" 요청.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: plan-infrastructure" 반환 시.
+  OUTPUT: 인프라 변경 계획서 + "DELEGATE_TO: [다음]" 또는 "TASK_COMPLETE"
+model: opus
 tools:
   - Read
   - Glob
@@ -215,4 +217,29 @@ plan-infrastructure 완료
 3. 모듈 구조 설계
 4. 네트워크 설정
 5. 보안 그룹/정책
+```
+
+---
+
+## 필수 출력 형식 (Delegation Signal)
+
+작업 완료 시 반드시 아래 형식 중 하나를 출력:
+
+### 다른 에이전트 필요 시
+```
+---DELEGATION_SIGNAL---
+TYPE: DELEGATE_TO
+TARGET: [에이전트명]
+REASON: [이유]
+CONTEXT: [전달할 컨텍스트]
+---END_SIGNAL---
+```
+
+### 작업 완료 시
+```
+---DELEGATION_SIGNAL---
+TYPE: TASK_COMPLETE
+SUMMARY: [결과 요약]
+NEXT_STEP: [권장 다음 단계]
+---END_SIGNAL---
 ```

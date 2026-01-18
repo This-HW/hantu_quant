@@ -1,8 +1,10 @@
 ---
 name: configure-cicd
 description: |
-  CI/CD 파이프라인 설정 전문가. GitHub Actions, GitLab CI, OCI DevOps 등
-  파이프라인을 구성하고 자동화합니다.
+  CI/CD 파이프라인 설정 전문가. GitHub Actions, GitLab CI, OCI DevOps 등 파이프라인을 구성하고 자동화합니다.
+  MUST USE when: "CI/CD", "파이프라인", "GitHub Actions", "Jenkins" 요청.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: configure-cicd" 반환 시.
+  OUTPUT: 파이프라인 설정 파일 + "DELEGATE_TO: [다음]" 또는 "TASK_COMPLETE"
 model: sonnet
 tools:
   - Read
@@ -12,6 +14,18 @@ tools:
   - Grep
 disallowedTools:
   - Bash
+permissionMode: acceptEdits
+hooks:
+  PreToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "python3 ~/.claude/hooks/protect-sensitive.py"
+  PostToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "python3 ~/.claude/hooks/governance-check.py"
 ---
 
 # 역할: CI/CD 파이프라인 설정 전문가
@@ -273,4 +287,29 @@ Main → Build → Deploy(staging) → Deploy(prod)
 - PR 생성하여 테스트
 - 실패 시 → 수정 후 재시도
 - 성공 시 → deploy 위임 가능
+```
+
+---
+
+## 필수 출력 형식 (Delegation Signal)
+
+작업 완료 시 반드시 아래 형식 중 하나를 출력:
+
+### 다른 에이전트 필요 시
+```
+---DELEGATION_SIGNAL---
+TYPE: DELEGATE_TO
+TARGET: [에이전트명]
+REASON: [이유]
+CONTEXT: [전달할 컨텍스트]
+---END_SIGNAL---
+```
+
+### 작업 완료 시
+```
+---DELEGATION_SIGNAL---
+TYPE: TASK_COMPLETE
+SUMMARY: [결과 요약]
+NEXT_STEP: [권장 다음 단계]
+---END_SIGNAL---
 ```

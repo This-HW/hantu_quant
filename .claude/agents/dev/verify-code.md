@@ -1,9 +1,11 @@
 ---
 name: verify-code
 description: |
-  코드 검증 전문가. 빌드, 린트, 타입체크, 테스트를 실행하여
-  코드 품질을 검증합니다. CI/CD 파이프라인에서 실행되는 검증을 로컬에서 수행합니다.
-model: sonnet
+  코드 검증 전문가.
+  MUST USE when: "검증", "빌드", "린트", "타입체크" 요청.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: verify-code" 반환 시.
+  OUTPUT: 검증 결과 + "DELEGATE_TO: [다음]" 또는 "TASK_COMPLETE"
+model: haiku
 tools:
   - Read
   - Bash
@@ -236,4 +238,29 @@ verify-code ✅ PASS
 ⚠️ 검증 통과 시 반드시 review-code로 위임하세요!
 자동 검증은 코드 품질을 완전히 보장하지 않습니다.
 사람(리뷰어) 관점의 검토가 필요합니다.
+```
+
+---
+
+## 필수 출력 형식 (Delegation Signal)
+
+작업 완료 시 반드시 아래 형식 중 하나를 출력:
+
+### 다른 에이전트 필요 시
+```
+---DELEGATION_SIGNAL---
+TYPE: DELEGATE_TO
+TARGET: [에이전트명]
+REASON: [이유]
+CONTEXT: [전달할 컨텍스트]
+---END_SIGNAL---
+```
+
+### 작업 완료 시
+```
+---DELEGATION_SIGNAL---
+TYPE: TASK_COMPLETE
+SUMMARY: [결과 요약]
+NEXT_STEP: [권장 다음 단계]
+---END_SIGNAL---
 ```

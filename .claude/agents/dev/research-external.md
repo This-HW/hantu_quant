@@ -1,8 +1,10 @@
 ---
 name: research-external
 description: |
-  외부 정보 조사 전문가. API 문서, 라이브러리 사용법, 최신 버전 변경사항,
-  에러 해결책 등 외부 리소스를 조사합니다.
+  외부 정보 조사 전문가.
+  MUST USE when: "외부 API", "라이브러리 조사", "문서 찾아줘" 요청.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: research-external" 반환 시.
+  OUTPUT: 조사 결과 + "DELEGATE_TO: [다음]" 또는 "TASK_COMPLETE"
 model: sonnet
 tools:
   - WebSearch
@@ -157,4 +159,29 @@ disallowedTools:
 - 기존 코드 마이그레이션 → plan-refactor
 - 단순 버그 수정 → fix-bugs
 - 변경 영향 불명확 → analyze-dependencies
+```
+
+---
+
+## 필수 출력 형식 (Delegation Signal)
+
+작업 완료 시 반드시 아래 형식 중 하나를 출력:
+
+### 다른 에이전트 필요 시
+```
+---DELEGATION_SIGNAL---
+TYPE: DELEGATE_TO
+TARGET: [에이전트명]
+REASON: [이유]
+CONTEXT: [전달할 컨텍스트]
+---END_SIGNAL---
+```
+
+### 작업 완료 시
+```
+---DELEGATION_SIGNAL---
+TYPE: TASK_COMPLETE
+SUMMARY: [결과 요약]
+NEXT_STEP: [권장 다음 단계]
+---END_SIGNAL---
 ```

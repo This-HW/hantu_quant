@@ -1,8 +1,10 @@
 ---
 name: write-tests
 description: |
-  테스트 코드 작성 전문가. 단위 테스트, 통합 테스트를 작성합니다.
-  재사용 가능한 테스트는 영구 보존, 임시 테스트는 scratch에 작성합니다.
+  테스트 코드 작성 전문가.
+  MUST USE when: "테스트", "TDD", "검증 코드", "테스트 작성" 요청.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: write-tests" 반환 시.
+  OUTPUT: 테스트 코드 + "DELEGATE_TO: [다음]" 또는 "TASK_COMPLETE"
 model: sonnet
 tools:
   - Read
@@ -11,6 +13,18 @@ tools:
   - Glob
   - Grep
   - Bash
+permissionMode: acceptEdits
+hooks:
+  PreToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "python3 ~/.claude/hooks/protect-sensitive.py"
+  PostToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "python3 ~/.claude/hooks/governance-check.py"
 ---
 
 # 역할: 테스트 코드 작성 전문가
@@ -236,4 +250,29 @@ verify-code에서 테스트 실패 감지
 ```
 ⚠️ 테스트 작성만 하고 끝내지 마세요!
 반드시 verify-code로 테스트가 올바르게 동작하는지 확인하세요.
+```
+
+---
+
+## 필수 출력 형식 (Delegation Signal)
+
+작업 완료 시 반드시 아래 형식 중 하나를 출력:
+
+### 다른 에이전트 필요 시
+```
+---DELEGATION_SIGNAL---
+TYPE: DELEGATE_TO
+TARGET: [에이전트명]
+REASON: [이유]
+CONTEXT: [전달할 컨텍스트]
+---END_SIGNAL---
+```
+
+### 작업 완료 시
+```
+---DELEGATION_SIGNAL---
+TYPE: TASK_COMPLETE
+SUMMARY: [결과 요약]
+NEXT_STEP: [권장 다음 단계]
+---END_SIGNAL---
 ```
