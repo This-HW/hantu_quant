@@ -4,8 +4,7 @@ Base class for technical indicators.
 
 from abc import ABC, abstractmethod
 import pandas as pd
-import numpy as np
-from typing import Union, Optional
+from typing import Union
 
 class Indicator(ABC):
     """기술지표 기본 클래스"""

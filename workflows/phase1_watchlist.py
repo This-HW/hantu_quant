@@ -22,7 +22,7 @@ from core.watchlist.watchlist_manager import WatchlistManager
 from core.watchlist.evaluation_engine import EvaluationEngine
 from core.utils.log_utils import get_logger
 from core.utils.telegram_notifier import get_telegram_notifier
-from core.utils.partial_result import PartialResult, PartialFailureHandler, save_failed_items
+from core.utils.partial_result import PartialResult, save_failed_items
 
 logger = get_logger(__name__)
 

@@ -2,19 +2,16 @@
 동적 TODO 우선순위 조정 시스템 테스트
 """
 
-import pytest
 import os
 import tempfile
 import shutil
 from datetime import datetime, timedelta
-from unittest.mock import patch
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.utils.dynamic_priority import (
-    DynamicPriorityManager, TodoItem, TodoStatus, Priority, 
-    MarketCondition, get_priority_manager
+    DynamicPriorityManager, get_priority_manager
 )
 
 class TestDynamicPriorityManager:

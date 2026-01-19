@@ -9,9 +9,9 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: 'Deploy target'
+        description: "Deploy target"
         required: true
-        default: 'all'
+        default: "all"
         type: choice
         options:
           - all
@@ -46,11 +46,33 @@ jobs:
       - name: Deploy to server
         run: |
           ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+            set -e  # 에러 발생 시 즉시 중단
+
             cd ${{ env.DEPLOY_PATH }}
 
-            # Pull latest changes
+            echo "=== Server Git Status Check ==="
+            CURRENT_BRANCH=$(git branch --show-current)
+            echo "Current branch: $CURRENT_BRANCH"
+
+            # Check: Uncommitted changes
+            if [ -n "$(git status --porcelain)" ]; then
+              echo "⚠️ Uncommitted changes detected, stashing..."
+              git stash push -m "auto-stash-before-deploy-$(date +%Y%m%d-%H%M%S)"
+            fi
+
+            # Switch to main (with verification)
+            echo "=== Switching to main branch ==="
             git fetch origin main
+            git checkout main
+
+            # Verify we're on main before reset
+            if [ "$(git branch --show-current)" != "main" ]; then
+              echo "❌ ERROR: Failed to checkout main branch!"
+              exit 1
+            fi
+
             git reset --hard origin/main
+            echo "✅ Now on main branch: $(git rev-parse --short HEAD)"
 
             # Install dependencies
             source venv/bin/activate

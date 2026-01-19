@@ -8,11 +8,10 @@ Task C.2.4: 레짐 전환 감지 및 알림
 """
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict, field
-from enum import Enum
 
 from core.utils.log_utils import get_logger
 from core.daily_selection.selection_criteria import MarketCondition

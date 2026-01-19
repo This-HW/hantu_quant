@@ -8,9 +8,9 @@ Task B.1.3: 가중치 최적화 알고리즘 (EMA)
 
 import json
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict, field
 
 from core.utils.log_utils import get_logger

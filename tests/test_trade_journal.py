@@ -1,4 +1,3 @@
-import os
 import json
 from core.trading.trade_journal import TradeJournal
 

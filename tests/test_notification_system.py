@@ -13,7 +13,6 @@ import os
 import json
 import tempfile
 from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime
 
 from core.notification.alert import (
     Alert,
@@ -24,17 +23,13 @@ from core.notification.alert import (
 from core.notification.telegram_bot import (
     TelegramNotifier,
     TelegramConfig,
-    get_telegram_notifier,
 )
 from core.notification.config_loader import (
-    TelegramConfigData,
     TelegramConfigLoader,
-    get_telegram_config,
 )
 from core.notification.notification_history import (
     NotificationHistoryDB,
     NotificationHistoryEntry,
-    record_notification,
 )
 from core.notification.channels import (
     BaseNotificationChannel,
@@ -42,7 +37,6 @@ from core.notification.channels import (
     ChannelRegistry,
     ChannelType,
     ChannelStatus,
-    get_channel_registry,
 )
 
 

@@ -2,14 +2,11 @@
 
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-import json
 from decimal import Decimal
 
-from sqlalchemy import and_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from .models import Stock, Price, Indicator, Trade, WatchlistStock, DailySelection, TradeHistory
-from .session import DatabaseSession
 from core.utils import get_logger
 
 logger = get_logger(__name__)

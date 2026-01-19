@@ -12,13 +12,12 @@ import threading
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 import datetime
-import fnmatch
 
 from .interfaces import IPackageRepository, IPackageInfo, SemanticVersion
-from .metadata import PackageInfo, PackageManifest
+from .metadata import PackageInfo
 from .exceptions import (
-    RepositoryError, RepositoryNotFoundError, RepositoryCorruptedError,
-    PackageNotFoundError, PackageAlreadyExistsError, RepositoryLockError
+    RepositoryError, RepositoryCorruptedError,
+    PackageNotFoundError, PackageAlreadyExistsError
 )
 
 

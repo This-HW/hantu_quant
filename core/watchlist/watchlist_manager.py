@@ -12,7 +12,6 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, asdict
 import threading
-from copy import deepcopy
 
 from core.utils.log_utils import get_logger
 from core.interfaces.trading import IWatchlistManager, WatchlistEntry

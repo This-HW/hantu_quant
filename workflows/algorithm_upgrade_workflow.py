@@ -6,7 +6,6 @@ A → D → C → B 순서로 진행
 """
 
 import sys
-import os
 from pathlib import Path
 
 project_root = Path(__file__).parent.parent

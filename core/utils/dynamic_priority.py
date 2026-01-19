@@ -7,11 +7,10 @@ TODO 우선순위를 동적으로 조정하는 시스템
 
 import json
 import os
-from datetime import datetime, timedelta
-from typing import Dict, List, Tuple, Optional
+from datetime import datetime
+from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
 from enum import Enum
-import numpy as np
 
 from ..utils.logging import get_logger
 

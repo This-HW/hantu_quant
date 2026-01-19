@@ -14,7 +14,7 @@
 
 from datetime import datetime, timedelta, date
 from typing import Dict, List, Optional
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 import json
 
 from core.utils.log_utils import get_logger

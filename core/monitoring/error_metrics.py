@@ -8,7 +8,6 @@ Feature 5.6: Error Metrics 및 분석 시스템
 - T-5.6.4: 반복 에러 패턴 감지 및 알림
 """
 
-import time
 import threading
 import logging
 from datetime import datetime, timedelta
@@ -17,7 +16,7 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 from enum import Enum
 
-from core.exceptions import HantuQuantException, ErrorCategory, ErrorSeverity
+from core.exceptions import HantuQuantException
 from core.utils.log_utils import get_trace_id
 
 logger = logging.getLogger(__name__)

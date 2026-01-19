@@ -11,9 +11,8 @@ import time
 import threading
 import sys
 import os
-import asyncio
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Dict, Any
 import argparse
 import traceback
 
@@ -32,7 +31,6 @@ from pathlib import Path
 from core.utils.telegram_notifier import get_telegram_notifier
 
 # 자동 매매 엔진 추가
-from core.trading.trading_engine import get_trading_engine, TradingConfig
 
 # 강화된 로깅 설정
 log_filename = f"logs/{datetime.now().strftime('%Y%m%d')}.log"
@@ -1875,7 +1873,6 @@ def main():
             if args.heartbeat and status['running']:
                 try:
                     from core.utils.telegram_notifier import get_telegram_notifier
-                    from datetime import datetime
                     
                     notifier = get_telegram_notifier()
                     

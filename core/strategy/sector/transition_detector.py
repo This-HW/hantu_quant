@@ -4,9 +4,8 @@
 섹터 순위 및 모멘텀 변화를 감지하여 전환 신호를 생성합니다.
 """
 
-import pandas as pd
 import numpy as np
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum

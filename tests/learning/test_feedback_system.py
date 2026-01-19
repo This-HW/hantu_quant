@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock
 
 # 테스트 대상 모듈
-from core.learning.models.feedback_system import FeedbackSystem, get_feedback_system
+from core.learning.models.feedback_system import FeedbackSystem
 
 
 class TestFeedbackSystemGetRecentFeedback:

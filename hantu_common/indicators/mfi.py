@@ -3,9 +3,8 @@ MFI (Money Flow Index) 지표
 거래량을 포함한 RSI로, 자금 흐름의 강도를 측정
 """
 
-import numpy as np
 import pandas as pd
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 
 
 class MFI:

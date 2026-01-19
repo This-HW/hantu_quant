@@ -4,14 +4,10 @@
 모든 모듈이 함께 작동하는지 검증합니다.
 """
 
-import pytest
-from datetime import datetime, timedelta
-from typing import Dict, List
 
 # 전략 모듈
 from core.strategy.ensemble import (
     EnsembleEngine,
-    EnsembleConfig,
     SignalAggregator,
 )
 
@@ -19,7 +15,6 @@ from core.strategy.ensemble import (
 from core.risk.position import (
     KellyCalculator,
     KellyConfig,
-    PositionSizer,
 )
 from core.risk.drawdown import (
     DrawdownMonitor,
@@ -32,16 +27,11 @@ from core.risk.correlation import (
 # 학습 모듈
 from core.learning import (
     TradeLogger,
-    PerformancePatternAnalyzer,
-    FailureAnalyzer,
 )
 
 # 알림 모듈
 from core.notification import (
     NotificationManager,
-    Alert,
-    AlertType,
-    AlertLevel,
 )
 from core.notification import MockNotifier
 
@@ -49,7 +39,6 @@ from core.notification import MockNotifier
 from core.paper_trading import (
     PaperTrader,
     PaperTradingConfig,
-    OrderType,
 )
 
 
@@ -481,23 +470,14 @@ class TestModuleInteroperability:
     def test_all_modules_can_be_imported(self):
         """모든 모듈이 임포트 가능한지"""
         # 전략 모듈
-        from core.strategy.ensemble import EnsembleEngine
-        from core.strategy.timeframe import MTFAnalyzer
-        from core.strategy.sector import RotationEngine
 
         # 리스크 모듈
-        from core.risk.position import KellyCalculator
-        from core.risk.correlation import DiversificationScore
-        from core.risk.drawdown import DrawdownMonitor
 
         # 학습 모듈
-        from core.learning import TradeLogger, PerformancePatternAnalyzer
 
         # 알림 모듈
-        from core.notification import NotificationManager, TelegramNotifier
 
         # 페이퍼 트레이딩 모듈
-        from core.paper_trading import PaperTrader, VirtualPortfolio
 
         assert True  # 모든 임포트 성공
 

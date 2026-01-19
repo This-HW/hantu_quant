@@ -5,7 +5,7 @@
 """
 
 import inspect
-from typing import Type, TypeVar, Dict, List, Optional, Any, Set, Callable, Union
+from typing import Type, TypeVar, Dict, List, Optional, Any, Set, Callable
 import threading
 from contextlib import contextmanager
 from .registry import ServiceRegistry, ServiceDescriptor

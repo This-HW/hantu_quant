@@ -5,12 +5,10 @@
 - 성능 최적화된 스크리닝 실행
 """
 
-import logging
 import multiprocessing as mp
 import concurrent.futures
-from typing import List, Dict, Optional, Union, Any
+from typing import List, Dict, Optional
 from datetime import datetime
-import json
 import os
 import time
 from functools import partial

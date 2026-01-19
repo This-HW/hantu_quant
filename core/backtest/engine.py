@@ -6,11 +6,9 @@
 
 import time
 import uuid
-from datetime import datetime, date, timedelta
-from typing import Dict, List, Any, Optional, Callable
+from datetime import datetime
+from typing import Dict, List, Optional, Callable
 import pandas as pd
-import numpy as np
-from dataclasses import asdict
 
 from .config import BacktestConfig, PositionSizeMethod
 from .result import (

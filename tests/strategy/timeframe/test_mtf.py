@@ -7,7 +7,6 @@ MTFAnalyzer, TrendAligner, EntryOptimizer 테스트
 import pytest
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
 
 from core.strategy.timeframe import (
     MTFAnalyzer, TimeframeData, MTFConfig,

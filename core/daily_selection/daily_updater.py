@@ -10,10 +10,9 @@ import json
 import schedule
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
 import threading
-import logging
 
 # 프로젝트 루트 디렉토리를 Python 경로에 추가
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -1170,7 +1169,6 @@ class DailyUpdater(IDailyUpdater):
         try:
             from core.database.session import DatabaseSession
             from core.database.models import SelectionResult
-            from sqlalchemy import func
 
             db = DatabaseSession()
             with db.get_session() as session:

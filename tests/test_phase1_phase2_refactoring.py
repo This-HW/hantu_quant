@@ -8,14 +8,14 @@ import pytest
 import os
 import sys
 from datetime import datetime
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 # 프로젝트 루트 추가
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.interfaces.trading import (
     IStockScreener, IWatchlistManager, IPriceAnalyzer, IDailyUpdater,
-    ScreeningResult, WatchlistEntry, PriceAttractiveness, TechnicalSignal, DailySelection
+    ScreeningResult, WatchlistEntry, PriceAttractiveness, TechnicalSignal
 )
 
 class TestPhase1Refactoring:

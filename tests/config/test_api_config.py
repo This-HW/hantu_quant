@@ -3,8 +3,6 @@ APIConfig 클래스 테스트 모듈
 """
 
 import json
-import os
-import time
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path

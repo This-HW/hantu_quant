@@ -11,7 +11,7 @@ import sys
 import os
 import json
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 # 프로젝트 루트 디렉토리를 Python 경로에 추가

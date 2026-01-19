@@ -6,10 +6,10 @@
 
 import numpy as np
 from typing import Dict, Optional, List
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import logging
 
-from .kelly_calculator import KellyCalculator, KellyConfig, KellyResult
+from .kelly_calculator import KellyCalculator, KellyResult
 
 logger = logging.getLogger(__name__)
 

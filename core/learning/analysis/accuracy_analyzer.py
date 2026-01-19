@@ -4,7 +4,6 @@ Phase 4: AI 학습 시스템 - 정확도 분석 시스템
 시스템의 선정 정확도를 다양한 관점에서 분석
 """
 
-import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime, timedelta
@@ -83,7 +82,7 @@ class AccuracyAnalyzer:
         # 통합 DB 초기화 시도
         if use_unified_db:
             try:
-                from core.database.unified_db import get_db, ensure_tables_exist
+                from core.database.unified_db import ensure_tables_exist
                 ensure_tables_exist()
                 self._unified_db_available = True
                 self._logger.info("AccuracyAnalyzer: 통합 DB 사용")

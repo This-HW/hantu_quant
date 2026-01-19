@@ -13,7 +13,6 @@ from core.realtime.handlers import (
     MarketCondition,
     VolumeAnalysis,
     VolatilityAnalysis,
-    AbnormalTradingResult,
 )
 
 

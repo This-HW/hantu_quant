@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 from typing import Dict, List, Tuple, Optional
 from scipy.optimize import minimize
-import logging
 
 from core.utils.log_utils import get_logger
 from core.portfolio.risk_parity_optimizer import PortfolioWeights
