@@ -11,5 +11,5 @@ aiofiles==25.1.0
 websockets==15.0.1
 redis==5.0.1
 pandas==2.3.3
-numpy==1.25.2
+numpy==2.0.2
 psutil==7.2.1
