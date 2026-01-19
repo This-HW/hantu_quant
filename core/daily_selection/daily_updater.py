@@ -224,11 +224,12 @@ class DailyUpdater(IDailyUpdater):
         return self._kis_api
 
     def _get_momentum_selector(self):
-        """MomentumSelector 싱글톤 인스턴스 반환"""
+        """MomentumSelector 싱글톤 인스턴스 반환 (API 인스턴스 공유)"""
         if self._momentum_selector is None:
             from core.selection import MomentumSelector
-            self._momentum_selector = MomentumSelector()
-            self._logger.info("MomentumSelector 인스턴스 초기화 완료")
+            # KIS API 인스턴스 공유 (Rate Limit 효율화)
+            self._momentum_selector = MomentumSelector(api_client=self._get_kis_api())
+            self._logger.info("MomentumSelector 인스턴스 초기화 완료 (API 공유)")
         return self._momentum_selector
 
     def run_daily_update(self, p_force_run: bool = False) -> bool:
