@@ -527,7 +527,7 @@ class ConsoleNotifier:
                 print(f"\n영향받은 종목: {', '.join(alert.affected_stocks)}")
             
             if alert.recommendations:
-                print(f"\n추천 조치:")
+                print("\n추천 조치:")
                 for i, rec in enumerate(alert.recommendations, 1):
                     print(f"  {i}. {rec}")
             

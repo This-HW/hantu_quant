@@ -45,7 +45,7 @@ class EnhancedScreener(StockScreener):
             # 가격 데이터 가져오기
             try:
                 df = self.rest_client.fetch_price_data(stock_code, count=period)
-            except:
+            except Exception:
                 # 대체 방법으로 시도
                 df = None
             if df is None or len(df) < 30:

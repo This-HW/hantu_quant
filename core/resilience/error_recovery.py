@@ -617,7 +617,7 @@ class ErrorRecoverySystem:
                 'process_count': len(psutil.pids()),
                 'timestamp': datetime.now().isoformat()
             }
-        except:
+        except Exception:
             return {}
     
     def _save_error_event(self, error_event: ErrorEvent):

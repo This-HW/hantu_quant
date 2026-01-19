@@ -13,8 +13,8 @@ from core.learning.regime.regime_detector import RegimeResult
 
 # MarketCondition 별칭 (호환성)
 MarketRegime = MarketCondition
-from core.learning.weights.weight_safety import WeightSafety
-from core.utils.log_utils import get_logger
+from core.learning.weights.weight_safety import WeightSafety  # noqa: E402
+from core.utils.log_utils import get_logger  # noqa: E402
 
 logger = get_logger(__name__)
 

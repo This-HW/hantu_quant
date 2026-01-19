@@ -381,7 +381,7 @@ if __name__ == "__main__":
     # 성능 비교 실행
     _v_comparison = _v_parallel_analyzer.get_performance_comparison(_v_test_stocks)
     
-    print(f"\n=== 성능 비교 결과 ===")
+    print("\n=== 성능 비교 결과 ===")
     print(f"종목 수: {_v_comparison.get('stock_count', 0)}개")
     print(f"순차 처리 시간: {_v_comparison.get('sequential_time', 0):.2f}초")
     print(f"병렬 처리 시간: {_v_comparison.get('parallel_time', 0):.2f}초")
@@ -390,12 +390,12 @@ if __name__ == "__main__":
     
     # 최적화 메트릭 출력
     _v_metrics = _v_parallel_analyzer.get_optimization_metrics()
-    print(f"\n=== 최적화 메트릭 ===")
+    print("\n=== 최적화 메트릭 ===")
     print(f"워커 수: {_v_metrics['max_workers']}")
     print(f"권장 배치 크기: {_v_metrics['recommended_batch_size']}")
     print(f"메모리 사용량 추정: {_v_metrics['memory_estimation']['total_mb_estimate']:.1f}MB")
     
     # 적응형 분석 테스트
-    print(f"\n=== 적응형 분석 테스트 ===")
+    print("\n=== 적응형 분석 테스트 ===")
     _v_adaptive_results = _v_parallel_analyzer.adaptive_analysis(_v_test_stocks)
     print(f"적응형 분석 결과: {len(_v_adaptive_results)}개 종목 분석 완료") 

@@ -26,25 +26,25 @@ def test_performance_metrics():
         daily_perf = metrics.get_daily_performance()
         
         print(f"\n📊 일일 성과 (날짜: {daily_perf['date']}):")
-        print(f"  💰 실현 손익 (매도):")
+        print("  💰 실현 손익 (매도):")
         print(f"     - 실현 손익: {daily_perf['realized_pnl']:,.0f}원")
         print(f"     - 실현 수익률: {daily_perf['realized_return']*100:.2f}%")
         print(f"     - 거래 횟수: {daily_perf['trade_count']}건")
         print(f"     - 승률: {daily_perf['win_rate']*100:.1f}%")
         
-        print(f"\n  📈 평가 손익 (보유):")
+        print("\n  📈 평가 손익 (보유):")
         print(f"     - 평가 손익: {daily_perf['unrealized_pnl']:,.0f}원")
         print(f"     - 평가 수익률: {daily_perf['unrealized_return']*100:.2f}%")
         print(f"     - 보유 종목: {daily_perf['holding_count']}개")
         
-        print(f"\n  📊 종합 성과:")
+        print("\n  📊 종합 성과:")
         print(f"     - 총 손익: {daily_perf['total_pnl']:,.0f}원")
         print(f"     - 총 수익률: {daily_perf['total_return']*100:.2f}%")
         
         # 과거 성과 통계
         hist_perf = metrics.get_historical_performance(days=30)
         
-        print(f"\n📈 30일 성과 통계:")
+        print("\n📈 30일 성과 통계:")
         print(f"  - 총 실현 손익: {hist_perf['total_realized_pnl']:,.0f}원")
         print(f"  - 총 거래 횟수: {hist_perf['total_trades']}건")
         print(f"  - 평균 승률: {hist_perf['win_rate']*100:.1f}%")
@@ -140,7 +140,7 @@ def create_sample_trade_data():
         # 일일 요약 계산
         summary = journal.compute_daily_summary()
         
-        print(f"✅ 샘플 거래 데이터 생성 완료")
+        print("✅ 샘플 거래 데이터 생성 완료")
         print(f"   - 실현 손익: {summary['realized_pnl']:,.0f}원")
         print(f"   - 거래 횟수: {summary['total_trades']}건")
         print(f"   - 승률: {summary['win_rate']*100:.1f}%")

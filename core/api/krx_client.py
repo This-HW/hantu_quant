@@ -380,7 +380,7 @@ class KRXClient:
                     )
                 else:
                     logger.warning(
-                        f"[_get_market_fundamentals_pykrx] 재무 데이터 조회 실패: 데이터 없음"
+                        "[_get_market_fundamentals_pykrx] 재무 데이터 조회 실패: 데이터 없음"
                     )
                 return pd.DataFrame()
 
@@ -500,7 +500,7 @@ class KRXClient:
             df = self.get_market_fundamentals(date=date)
 
             if df.empty:
-                logger.warning(f"[save_market_fundamentals_to_db] 저장할 데이터 없음")
+                logger.warning("[save_market_fundamentals_to_db] 저장할 데이터 없음")
                 return 0
 
             # DB 저장
@@ -673,7 +673,7 @@ class KRXClient:
             df = self.get_market_fundamentals(date=date)
 
             if df.empty:
-                logger.warning(f"[save_market_fundamentals] 저장할 데이터 없음")
+                logger.warning("[save_market_fundamentals] 저장할 데이터 없음")
                 return 0
 
             # 1. DB 저장 (주요)

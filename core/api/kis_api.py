@@ -205,7 +205,7 @@ class KISAPI(KISRestClient):
             if self.ws_client:
                 try:
                     await self.ws_client.close()
-                except:
+                except Exception:
                     pass
                 self.ws_client = None
             return False

@@ -31,7 +31,7 @@ def test_trading_engine_init():
         )
 
         engine = TradingEngine(config)
-        print(f"✅ 매매 엔진 초기화 성공")
+        print("✅ 매매 엔진 초기화 성공")
         print(f"   - 최대 포지션: {engine.config.max_positions}")
         print(f"   - 포지션 크기: {engine.config.position_size_value*100:.1f}%")
         print(f"   - 실행 상태: {engine.is_running}")
@@ -60,7 +60,7 @@ def test_daily_selection_load():
 
         if selected_stocks:
             print(f"✅ 일일 선정 종목 로드 성공: {len(selected_stocks)}개")
-            print(f"\n상위 3개 종목:")
+            print("\n상위 3개 종목:")
             for i, stock in enumerate(selected_stocks[:3], 1):
                 print(f"   {i}. {stock.get('stock_name', 'N/A')} ({stock.get('stock_code', 'N/A')})")
                 print(f"      - 진입가: {stock.get('entry_price', 0):,}원")

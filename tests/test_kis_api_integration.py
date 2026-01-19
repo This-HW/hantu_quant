@@ -32,7 +32,7 @@ def test_api_connection():
         
         # 토큰 확인
         if config.ensure_valid_token():
-            print(f"✅ API 토큰 획득 성공")
+            print("✅ API 토큰 획득 성공")
             print(f"   - 환경: {config.server}")
             print(f"   - 토큰 길이: {len(config.access_token) if config.access_token else 0}")
             return True
@@ -61,7 +61,7 @@ def test_current_price():
             print(f"   - 거래량: {result.get('volume'):,}")
             return True
         else:
-            print(f"❌ 현재가 조회 실패")
+            print("❌ 현재가 조회 실패")
             return False
             
     except Exception as e:
@@ -78,13 +78,13 @@ def test_balance_inquiry():
         balance = api.get_balance()
         
         if balance:
-            print(f"✅ 잔고 조회 성공:")
+            print("✅ 잔고 조회 성공:")
             print(f"   - 예수금: {balance.get('deposit', 0):,.0f}원")
             print(f"   - 총평가금액: {balance.get('total_eval_amount', 0):,.0f}원")
             print(f"   - 보유종목수: {len(balance.get('positions', {}))}개")
             return True
         else:
-            print(f"❌ 잔고 조회 실패 (빈 응답)")
+            print("❌ 잔고 조회 실패 (빈 응답)")
             return False
             
     except Exception as e:
@@ -108,7 +108,7 @@ def test_stock_history():
             print(f"   - 최신 거래량: {df.iloc[0]['volume']:,}")
             return True
         else:
-            print(f"❌ 일봉 데이터 조회 실패")
+            print("❌ 일봉 데이터 조회 실패")
             return False
             
     except Exception as e:
@@ -126,7 +126,7 @@ async def test_websocket_connection():
         connected = await api.connect_websocket()
         
         if connected:
-            print(f"✅ 웹소켓 연결 성공")
+            print("✅ 웹소켓 연결 성공")
             
             # 구독 테스트 (삼성전자)
             stock_code = "005930"
@@ -142,14 +142,14 @@ async def test_websocket_connection():
                 for tr_id in tr_list:
                     print(f"   - {tr_id}")
             else:
-                print(f"❌ 종목 구독 실패")
+                print("❌ 종목 구독 실패")
                 
             # 연결 종료
             await api.close()
-            print(f"✅ 웹소켓 연결 종료")
+            print("✅ 웹소켓 연결 종료")
             return subscribed
         else:
-            print(f"❌ 웹소켓 연결 실패")
+            print("❌ 웹소켓 연결 실패")
             return False
             
     except Exception as e:
@@ -183,23 +183,23 @@ def test_order_simulation():
         }
         
         print("주문 파라미터 검증:")
-        print(f"✅ 매수 주문:")
+        print("✅ 매수 주문:")
         print(f"   - order_type: '{buy_params['order_type']}' (expected: '02')")
         print(f"   - order_division: '{buy_params['order_division']}' (expected: '00')")
         
-        print(f"✅ 매도 주문:")
+        print("✅ 매도 주문:")
         print(f"   - order_type: '{sell_params['order_type']}' (expected: '01')")
         print(f"   - order_division: '{sell_params['order_division']}' (expected: '00')")
         
         # TR_ID 확인
         if config.server == "virtual":
-            print(f"✅ 모의투자 TR_ID:")
-            print(f"   - 매수: VTTC0012U")
-            print(f"   - 매도: VTTC0011U")
+            print("✅ 모의투자 TR_ID:")
+            print("   - 매수: VTTC0012U")
+            print("   - 매도: VTTC0011U")
         else:
-            print(f"✅ 실전투자 TR_ID:")
-            print(f"   - 매수: TTTC0012U")
-            print(f"   - 매도: TTTC0011U")
+            print("✅ 실전투자 TR_ID:")
+            print("   - 매수: TTTC0012U")
+            print("   - 매도: TTTC0011U")
         
         return True
         

@@ -20,7 +20,7 @@ import tempfile
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.utils.health_check import (
+from core.utils.health_check import (  # noqa: E402
     HealthCheckResult,
     SystemMetrics,
     HealthStatus,

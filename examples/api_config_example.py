@@ -16,7 +16,7 @@ logging.basicConfig(
 # 프로젝트 루트 경로를 sys.path에 추가
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.config.api_config import APIConfig
+from core.config.api_config import APIConfig  # noqa: E402
 
 def main():
     """APIConfig 클래스 사용 예제 메인 함수"""

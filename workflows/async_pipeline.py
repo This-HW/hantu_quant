@@ -306,7 +306,7 @@ class AsyncPipeline:
     def _print_pipeline_summary(self, p_total_time: float):
         """파이프라인 결과 요약"""
         try:
-            print(f"\n📋 비동기 파이프라인 결과 요약")
+            print("\n📋 비동기 파이프라인 결과 요약")
             print(f"├─ 총 처리 시간: {p_total_time:.1f}초")
             print(f"├─ 총 처리 종목: {self.total_stocks}개")
             print(f"├─ 처리 속도: {self.total_stocks / p_total_time:.1f}종목/초")
@@ -316,7 +316,7 @@ class AsyncPipeline:
             # 순차 처리 대비 성능 향상
             sequential_time = 15 * 60  # 기존 15분
             speedup = sequential_time / p_total_time
-            print(f"\n⚡ 성능 개선:")
+            print("\n⚡ 성능 개선:")
             print(f"├─ 순차 처리 시간: {sequential_time / 60:.1f}분")
             print(f"├─ 비동기 처리 시간: {p_total_time / 60:.1f}분")
             print(f"└─ 속도 향상: {speedup:.1f}배")

@@ -391,7 +391,7 @@ class StatisticalAnalyzer:
             
             return (value - mean) / std
             
-        except:
+        except Exception:
             return None
     
     def _build_returns_matrix(self, snapshots: List[MarketSnapshot]) -> pd.DataFrame:

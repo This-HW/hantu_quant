@@ -16,8 +16,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.learning.auto_ml_trigger import get_auto_ml_trigger
-from core.utils.log_utils import get_logger
+from core.learning.auto_ml_trigger import get_auto_ml_trigger  # noqa: E402
+from core.utils.log_utils import get_logger  # noqa: E402
 
 logger = get_logger(__name__)
 
@@ -31,7 +31,7 @@ def test_ml_trigger_initialization():
     try:
         ml_trigger = get_auto_ml_trigger()
 
-        print(f"✅ 트리거 초기화 완료")
+        print("✅ 트리거 초기화 완료")
         print(f"   - 최소 거래일 수: {ml_trigger.min_trading_days}일")
         print(f"   - 최소 선정 기록: {ml_trigger.min_selection_records}개")
         print(f"   - 최소 성과 기록: {ml_trigger.min_performance_records}개")
@@ -39,7 +39,7 @@ def test_ml_trigger_initialization():
 
         # 현재 상태 확인
         state = ml_trigger.state
-        print(f"\n📊 현재 트리거 상태:")
+        print("\n📊 현재 트리거 상태:")
         print(f"   - 마지막 체크: {state.get('last_check_date', '없음')}")
         print(f"   - ML 학습 트리거됨: {state.get('ml_training_triggered', False)}")
         print(f"   - ML 학습 날짜: {state.get('ml_training_date', '없음')}")
@@ -63,28 +63,28 @@ def test_data_conditions_check():
         # 현재 데이터 상태 체크
         conditions_met, conditions = ml_trigger._check_data_conditions()
 
-        print(f"\n📊 데이터 조건 체크 결과:")
-        print(f"\n✓ 거래일 수:")
+        print("\n📊 데이터 조건 체크 결과:")
+        print("\n✓ 거래일 수:")
         print(f"   - 현재: {conditions['trading_days']}일")
         print(f"   - 필요: {ml_trigger.min_trading_days}일")
         print(f"   - 상태: {'✅ 충족' if conditions['trading_days'] >= ml_trigger.min_trading_days else '❌ 미충족'}")
 
-        print(f"\n✓ 선정 기록:")
+        print("\n✓ 선정 기록:")
         print(f"   - 현재: {conditions['selection_records']}개")
         print(f"   - 필요: {ml_trigger.min_selection_records}개")
         print(f"   - 상태: {'✅ 충족' if conditions['selection_records'] >= ml_trigger.min_selection_records else '❌ 미충족'}")
 
-        print(f"\n✓ 성과 기록:")
+        print("\n✓ 성과 기록:")
         print(f"   - 현재: {conditions['performance_records']}개")
         print(f"   - 필요: {ml_trigger.min_performance_records}개")
         print(f"   - 상태: {'✅ 충족' if conditions['performance_records'] >= ml_trigger.min_performance_records else '❌ 미충족'}")
 
-        print(f"\n✓ 승률:")
+        print("\n✓ 승률:")
         print(f"   - 현재: {conditions['current_win_rate']:.1%}")
         print(f"   - 필요: {ml_trigger.min_win_rate:.1%}")
         print(f"   - 상태: {'✅ 충족' if conditions['current_win_rate'] >= ml_trigger.min_win_rate else '❌ 미충족'}")
 
-        print(f"\n✓ 데이터 품질:")
+        print("\n✓ 데이터 품질:")
         print(f"   - 점수: {conditions['data_quality_score']:.1f}/100")
 
         print(f"\n{'='*60}")
@@ -115,12 +115,12 @@ def test_progress_to_ml():
         # 진행률 조회
         progress = ml_trigger.get_progress_to_ml()
 
-        print(f"\n📊 ML 학습 준비 진행률:")
+        print("\n📊 ML 학습 준비 진행률:")
         print(f"\n{'='*60}")
         print(f"전체 진행률: {progress['overall_progress']:.1f}%")
         print(f"{'='*60}")
 
-        print(f"\n세부 진행률:")
+        print("\n세부 진행률:")
         print(f"   - 거래일: {progress['trading_days_progress']:.1f}%")
         print(f"   - 선정 기록: {progress['selection_records_progress']:.1f}%")
         print(f"   - 성과 기록: {progress['performance_records_progress']:.1f}%")
@@ -130,7 +130,7 @@ def test_progress_to_ml():
             days_remaining = progress['estimated_days_remaining']
             print(f"\n⏰ 예상 남은 기간: 약 {days_remaining}일")
         else:
-            print(f"\n🎉 ML 학습 준비 완료!")
+            print("\n🎉 ML 학습 준비 완료!")
 
         return True
 
@@ -153,31 +153,31 @@ def test_auto_trigger_simulation():
         # 조건 체크만 수행 (실제 트리거는 하지 않음)
         conditions_met, conditions = ml_trigger._check_data_conditions()
 
-        print(f"\n🔍 트리거 시뮬레이션 결과:")
+        print("\n🔍 트리거 시뮬레이션 결과:")
 
         if conditions_met:
-            print(f"\n✅ 조건 충족 - ML 학습이 자동으로 시작될 것입니다")
-            print(f"\n📋 충족된 조건:")
+            print("\n✅ 조건 충족 - ML 학습이 자동으로 시작될 것입니다")
+            print("\n📋 충족된 조건:")
             print(f"   • 거래일 수: {conditions['trading_days']}일")
             print(f"   • 선정 기록: {conditions['selection_records']}개")
             print(f"   • 성과 기록: {conditions['performance_records']}개")
             print(f"   • 현재 승률: {conditions['current_win_rate']:.1%}")
             print(f"   • 데이터 품질: {conditions['data_quality_score']:.1f}점")
 
-            print(f"\n🚀 다음 단계:")
-            print(f"   1. WorkflowStateManager에 B단계 상태 저장")
-            print(f"   2. ML 학습 스크립트 실행 예약")
-            print(f"   3. 텔레그램 알림 전송")
+            print("\n🚀 다음 단계:")
+            print("   1. WorkflowStateManager에 B단계 상태 저장")
+            print("   2. ML 학습 스크립트 실행 예약")
+            print("   3. 텔레그램 알림 전송")
 
         else:
-            print(f"\n⏳ 조건 미충족 - ML 학습 대기 중")
-            print(f"\n📋 현재 상태:")
+            print("\n⏳ 조건 미충족 - ML 학습 대기 중")
+            print("\n📋 현재 상태:")
             print(f"   • 거래일 수: {conditions['trading_days']}/{ml_trigger.min_trading_days}일")
             print(f"   • 선정 기록: {conditions['selection_records']}/{ml_trigger.min_selection_records}개")
             print(f"   • 성과 기록: {conditions['performance_records']}/{ml_trigger.min_performance_records}개")
             print(f"   • 현재 승률: {conditions['current_win_rate']:.1%}/{ml_trigger.min_win_rate:.1%}")
 
-            print(f"\n⏰ 계속 모니터링 중...")
+            print("\n⏰ 계속 모니터링 중...")
 
         return True
 

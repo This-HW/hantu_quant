@@ -19,10 +19,10 @@ from datetime import datetime
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.trading.trading_engine import TradingEngine, TradingConfig
-from core.api.kis_api import KISAPI
-from core.config.api_config import APIConfig
-from core.utils.log_utils import get_logger
+from core.trading.trading_engine import TradingEngine, TradingConfig  # noqa: E402
+from core.api.kis_api import KISAPI  # noqa: E402
+from core.config.api_config import APIConfig  # noqa: E402
+from core.utils.log_utils import get_logger  # noqa: E402
 
 logger = get_logger(__name__)
 
@@ -35,16 +35,16 @@ async def test_api_connection():
 
     try:
         api_config = APIConfig()
-        print(f"✅ API 설정 로드 완료")
+        print("✅ API 설정 로드 완료")
         print(f"   - 서버: {api_config.server}")
         print(f"   - 앱키: {api_config.app_key[:10]}...")
 
         # 토큰 발급
         if api_config.ensure_valid_token():
-            print(f"✅ 토큰 발급 성공")
+            print("✅ 토큰 발급 성공")
             print(f"   - 토큰: {api_config.access_token[:20]}...")
         else:
-            print(f"❌ 토큰 발급 실패")
+            print("❌ 토큰 발급 실패")
             return False
 
         # API 연결 테스트
@@ -52,13 +52,13 @@ async def test_api_connection():
         balance = api.get_balance()
 
         if balance:
-            print(f"✅ 계좌 조회 성공")
+            print("✅ 계좌 조회 성공")
             print(f"   - 예수금: {balance.get('deposit', 0):,.0f}원")
             print(f"   - 평가금액: {balance.get('total_eval_amount', 0):,.0f}원")
             print(f"   - 총자산: {balance.get('deposit', 0) + balance.get('total_eval_amount', 0):,.0f}원")
             return True
         else:
-            print(f"❌ 계좌 조회 실패")
+            print("❌ 계좌 조회 실패")
             return False
 
     except Exception as e:
@@ -89,7 +89,7 @@ async def test_load_daily_selection():
         selected_stocks = data.get('data', {}).get('selected_stocks', [])
 
         print(f"✅ 일일 선정 종목 로드 성공: {len(selected_stocks)}개")
-        print(f"\n상위 5개 종목:")
+        print("\n상위 5개 종목:")
         for i, stock in enumerate(selected_stocks[:5], 1):
             print(f"   {i}. {stock.get('stock_name')} ({stock.get('stock_code')})")
             print(f"      - 진입가: {stock.get('entry_price', 0):,.0f}원")
@@ -121,7 +121,7 @@ async def test_trading_engine_init():
         )
 
         engine = TradingEngine(config)
-        print(f"✅ 매매 엔진 생성 성공")
+        print("✅ 매매 엔진 생성 성공")
         print(f"   - 최대 포지션: {config.max_positions}개")
         print(f"   - 포지션 크기: {config.position_size_value*100:.0f}%")
         print(f"   - 손절매: {config.stop_loss_pct:.1%}")
@@ -129,9 +129,9 @@ async def test_trading_engine_init():
 
         # API 초기화
         if engine._initialize_api():
-            print(f"✅ API 초기화 성공")
+            print("✅ API 초기화 성공")
         else:
-            print(f"❌ API 초기화 실패")
+            print("❌ API 초기화 실패")
             return None
 
         return engine
@@ -150,7 +150,7 @@ async def test_buy_conditions(engine, selected_stocks):
     print("=" * 60)
 
     if not engine or not selected_stocks:
-        print(f"❌ 엔진 또는 종목 데이터 없음")
+        print("❌ 엔진 또는 종목 데이터 없음")
         return
 
     buy_candidates = []
@@ -183,7 +183,7 @@ async def test_dry_run_buy(engine, stock_data):
     print("=" * 60)
 
     if not engine or not stock_data:
-        print(f"❌ 엔진 또는 종목 데이터 없음")
+        print("❌ 엔진 또는 종목 데이터 없음")
         return
 
     stock_code = stock_data.get('stock_code')
@@ -195,7 +195,7 @@ async def test_dry_run_buy(engine, stock_data):
         # 현재가 조회
         price_data = engine.api.get_current_price(stock_code)
         if not price_data:
-            print(f"❌ 현재가 조회 실패")
+            print("❌ 현재가 조회 실패")
             return
 
         current_price = price_data.get('current_price')
@@ -207,21 +207,21 @@ async def test_dry_run_buy(engine, stock_data):
         print(f"   - 투자 금액: {current_price * quantity:,.0f}원")
 
         if quantity <= 0:
-            print(f"❌ 포지션 크기 계산 실패 (수량 0)")
+            print("❌ 포지션 크기 계산 실패 (수량 0)")
             return
 
-        print(f"\n🔥 실제 주문 실행...")
+        print("\n🔥 실제 주문 실행...")
 
         # 실제 매수 주문 실행
         result = await engine._execute_buy_order(stock_data)
 
         if result:
-            print(f"✅ 매수 주문 성공!")
+            print("✅ 매수 주문 성공!")
             print(f"   - 종목: {stock_name}")
             print(f"   - 수량: {quantity}주")
             print(f"   - 가격: {current_price:,.0f}원")
         else:
-            print(f"❌ 매수 주문 실패")
+            print("❌ 매수 주문 실패")
 
     except Exception as e:
         print(f"❌ 매수 주문 오류: {e}")

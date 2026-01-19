@@ -484,7 +484,7 @@ class AutomationManager:
         try:
             param_set = self._parameter_manager.load_best_parameters(strategy_name)
             parameters = param_set.parameters if param_set else {}
-        except:
+        except Exception:
             parameters = {}
         
         # 작업 생성

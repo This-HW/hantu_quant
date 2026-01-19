@@ -708,6 +708,6 @@ if __name__ == "__main__":
     
     # 기준 요약 조회
     summary = manager.get_criteria_summary()
-    print(f"\n기준 요약:")
+    print("\n기준 요약:")
     print(f"총 기준 수: {summary['total_criteria']}")
     print(f"시장 상황: {summary['market_conditions']}") 

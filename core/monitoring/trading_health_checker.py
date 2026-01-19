@@ -263,7 +263,7 @@ class TradingHealthChecker:
                                     # 오류 메시지 추출
                                     error_msg = line.split('ERROR - ')[-1].strip()[:100]
                                     critical_errors.append(error_msg)
-                        except:
+                        except Exception:
                             continue
 
             return {
@@ -608,7 +608,7 @@ class TradingHealthChecker:
 
         # 근본 원인 (있을 경우 - 중요!)
         if result.metrics.get('selection_failure_cause'):
-            message += f"\n🔍 *근본 원인:*\n"
+            message += "\n🔍 *근본 원인:*\n"
             message += f"└ `{result.metrics['selection_failure_cause']}`\n"
 
         # 복구 결과 (실패 시에만)

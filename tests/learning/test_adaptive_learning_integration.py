@@ -24,9 +24,9 @@ from core.learning.regime.regime_strategy_mapper import RegimeStrategyMapper
 MarketRegime = MarketCondition
 
 # Feature D: 전체 통합
-from core.learning.orchestrator.learning_orchestrator import LearningOrchestrator, LearningTaskType
-from core.learning.orchestrator.pipeline_connector import PipelineConnector
-from core.learning.orchestrator.learning_reporter import LearningReporter
+from core.learning.orchestrator.learning_orchestrator import LearningOrchestrator, LearningTaskType  # noqa: E402
+from core.learning.orchestrator.pipeline_connector import PipelineConnector  # noqa: E402
+from core.learning.orchestrator.learning_reporter import LearningReporter  # noqa: E402
 
 
 class TestAdaptiveLearningIntegration:

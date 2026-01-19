@@ -60,7 +60,7 @@ class DatabaseSession:
                     pool_recycle=settings.DB_POOL_RECYCLE,
                     pool_pre_ping=True  # 연결 상태 확인
                 )
-                logger.info(f"PostgreSQL 데이터베이스 연결 완료")
+                logger.info("PostgreSQL 데이터베이스 연결 완료")
 
             # 테이블 생성
             Base.metadata.create_all(self.engine)

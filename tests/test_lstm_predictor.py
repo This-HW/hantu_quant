@@ -20,7 +20,7 @@ import tempfile
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.learning.models.lstm_predictor import (
+from core.learning.models.lstm_predictor import (  # noqa: E402
     LSTMConfig,
     PricePrediction,
     StockDataset,

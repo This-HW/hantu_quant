@@ -99,20 +99,20 @@ def test_auto_recovery():
     results = recovery_system.attempt_recovery(test_issues)
 
     print("-" * 60)
-    print(f"\n📊 복구 결과:")
+    print("\n📊 복구 결과:")
     print(f"   • 시도: {results['attempted']}건")
     print(f"   • 성공: {results['succeeded']}건")
     print(f"   • 실패: {results['failed']}건")
     print(f"   • 복구 불가: {len(results['unrecoverable'])}건")
 
     if results['actions']:
-        print(f"\n✅ 복구 액션:")
+        print("\n✅ 복구 액션:")
         for action in results['actions']:
             status = "✅" if action.success else "❌"
             print(f"   {status} {action.action_name}: {action.description}")
 
     if results['unrecoverable']:
-        print(f"\n⚠️ 복구 불가능한 문제:")
+        print("\n⚠️ 복구 불가능한 문제:")
         for issue in results['unrecoverable']:
             print(f"   • {issue}")
 
@@ -144,12 +144,12 @@ def test_integrated_health_check():
 
     # 자동 복구 결과
     if 'recovery_attempted' in result.metrics:
-        print(f"\n🔧 자동 복구:")
+        print("\n🔧 자동 복구:")
         print(f"   • 시도: {result.metrics.get('recovery_attempted', 0)}건")
         print(f"   • 성공: {result.metrics.get('recovery_succeeded', 0)}건")
 
     # 시스템 메트릭
-    print(f"\n📊 시스템 메트릭:")
+    print("\n📊 시스템 메트릭:")
     metrics = result.metrics
 
     if 'engine_running' in metrics:
@@ -184,10 +184,10 @@ def test_integrated_health_check():
 
     # 알림 전송 여부
     if not result.is_healthy:
-        print(f"\n📱 텔레그램 알림:")
-        print(f"   • 문제가 감지되어 텔레그램 알림이 전송되었습니다")
-        print(f"   • 자동 복구 결과가 포함되었습니다")
-        print(f"   • 우선순위가 문제 심각도에 따라 자동 결정되었습니다")
+        print("\n📱 텔레그램 알림:")
+        print("   • 문제가 감지되어 텔레그램 알림이 전송되었습니다")
+        print("   • 자동 복구 결과가 포함되었습니다")
+        print("   • 우선순위가 문제 심각도에 따라 자동 결정되었습니다")
 
 def main():
     """메인 함수"""
@@ -215,9 +215,9 @@ def main():
         print("   4. 자동 복구 결과가 메시지에 포함되었는지 확인")
         print("   5. 헬스체크 로그 파일을 확인하세요")
 
-        print(f"\n📁 데이터 저장 위치:")
-        print(f"   • 헬스체크: data/health_check/")
-        print(f"   • 복구 기록: data/recovery/")
+        print("\n📁 데이터 저장 위치:")
+        print("   • 헬스체크: data/health_check/")
+        print("   • 복구 기록: data/recovery/")
         print(f"   • 로그: {log_filename}")
 
         print("\n" + "="*60)

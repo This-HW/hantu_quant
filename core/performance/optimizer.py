@@ -319,7 +319,7 @@ class CPUOptimizer:
                     else:
                         current_process.nice(psutil.ABOVE_NORMAL_PRIORITY_CLASS if os.name == 'nt' else -2)
                     actions_taken.append("process_priority_increased")
-                except:
+                except Exception:
                     pass
             
             # CPU 친화성 설정 (Linux/macOS)
@@ -330,7 +330,7 @@ class CPUOptimizer:
                         # 고성능 코어에 바인딩 (가정)
                         psutil.Process().cpu_affinity([0, 1, 2, 3])
                         actions_taken.append("cpu_affinity_optimized")
-                except:
+                except Exception:
                     pass
             
             after_cpu = psutil.cpu_percent(interval=1)

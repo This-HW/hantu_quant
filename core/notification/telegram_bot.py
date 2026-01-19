@@ -414,23 +414,23 @@ class TelegramNotifier(BaseNotifier):
 
             body = []
             body.append(f'--{boundary}'.encode())
-            body.append(f'Content-Disposition: form-data; name="chat_id"'.encode())
+            body.append('Content-Disposition: form-data; name="chat_id"'.encode())
             body.append(b'')
             body.append(self.config.chat_id.encode())
 
             body.append(f'--{boundary}'.encode())
-            body.append(f'Content-Disposition: form-data; name="photo"; filename="chart.png"'.encode())
+            body.append('Content-Disposition: form-data; name="photo"; filename="chart.png"'.encode())
             body.append(b'Content-Type: image/png')
             body.append(b'')
             body.append(photo_data)
 
             if caption:
                 body.append(f'--{boundary}'.encode())
-                body.append(f'Content-Disposition: form-data; name="caption"'.encode())
+                body.append('Content-Disposition: form-data; name="caption"'.encode())
                 body.append(b'')
                 body.append(caption.encode())
                 body.append(f'--{boundary}'.encode())
-                body.append(f'Content-Disposition: form-data; name="parse_mode"'.encode())
+                body.append('Content-Disposition: form-data; name="parse_mode"'.encode())
                 body.append(b'')
                 body.append(self.config.parse_mode.encode())
 

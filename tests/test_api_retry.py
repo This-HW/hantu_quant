@@ -13,11 +13,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 import requests
 
-from core.api.rest_client import (
-    KISRestClient,
-    RetryableAPIError,
-    NonRetryableAPIError
-)
+from core.api.rest_client import KISRestClient, RetryableAPIError, NonRetryableAPIError
 
 
 class TestAPIRetryLogic:
@@ -26,7 +22,7 @@ class TestAPIRetryLogic:
     @pytest.fixture
     def client(self):
         """KISRestClient 인스턴스 생성 (모킹)"""
-        with patch('core.api.rest_client.APIConfig') as mock_config:
+        with patch("core.api.rest_client.APIConfig") as mock_config:
             mock_config_instance = MagicMock()
             mock_config_instance.ensure_valid_token.return_value = True
             mock_config.return_value = mock_config_instance
@@ -41,7 +37,7 @@ class TestAPIRetryLogic:
         mock_response.status_code = 200
         mock_response.json.return_value = {"output": "success"}
 
-        with patch('requests.request', return_value=mock_response):
+        with patch("requests.request", return_value=mock_response):
             result = client._request("GET", "http://test.com/api")
 
         assert result == {"output": "success"}
@@ -60,7 +56,7 @@ class TestAPIRetryLogic:
             mock_response.json.return_value = {"output": "success"}
             return mock_response
 
-        with patch('requests.request', side_effect=mock_request):
+        with patch("requests.request", side_effect=mock_request):
             result = client._request("GET", "http://test.com/api")
 
         assert call_count == 3  # 2번 실패 후 3번째 성공
@@ -80,7 +76,7 @@ class TestAPIRetryLogic:
             mock_response.json.return_value = {"output": "success"}
             return mock_response
 
-        with patch('requests.request', side_effect=mock_request):
+        with patch("requests.request", side_effect=mock_request):
             result = client._request("GET", "http://test.com/api")
 
         assert call_count == 2  # 1번 실패 후 2번째 성공
@@ -102,7 +98,7 @@ class TestAPIRetryLogic:
                 mock_response.json.return_value = {"output": "success"}
             return mock_response
 
-        with patch('requests.request', side_effect=mock_request):
+        with patch("requests.request", side_effect=mock_request):
             result = client._request("GET", "http://test.com/api")
 
         assert call_count == 3  # 2번 5xx 후 3번째 성공
@@ -120,12 +116,12 @@ class TestAPIRetryLogic:
             mock_response.text = "Bad Request"
             return mock_response
 
-        with patch('requests.request', side_effect=mock_request):
+        with patch("requests.request", side_effect=mock_request):
             result = client._request("GET", "http://test.com/api")
 
         assert call_count == 1  # 재시도 없이 1번만 호출
         assert "error" in result
-        assert result.get("retryable") == False
+        assert not result.get("retryable")
 
     def test_401_unauthorized_no_retry(self, client):
         """401 인증 실패 재시도 불가 테스트"""
@@ -139,7 +135,7 @@ class TestAPIRetryLogic:
             mock_response.text = "Unauthorized"
             return mock_response
 
-        with patch('requests.request', side_effect=mock_request):
+        with patch("requests.request", side_effect=mock_request):
             result = client._request("GET", "http://test.com/api")
 
         assert call_count == 1  # 재시도 없이 1번만 호출
@@ -154,7 +150,7 @@ class TestAPIRetryLogic:
             call_count += 1
             raise requests.ConnectionError("연결 실패")
 
-        with patch('requests.request', side_effect=mock_request):
+        with patch("requests.request", side_effect=mock_request):
             result = client._request("GET", "http://test.com/api")
 
         assert call_count == 3  # 최대 3회 시도
@@ -170,11 +166,12 @@ class TestAPIRetryLogic:
         result = client._request("GET", "http://test.com/api")
 
         assert "error" in result
-        assert result.get("retryable") == False
+        assert not result.get("retryable")
 
     def test_exponential_backoff_timing(self, client):
         """지수 백오프 타이밍 테스트 (대략적인 검증)"""
         import time
+
         call_times = []
 
         def mock_request(*args, **kwargs):
@@ -186,7 +183,7 @@ class TestAPIRetryLogic:
             mock_response.json.return_value = {"output": "success"}
             return mock_response
 
-        with patch('requests.request', side_effect=mock_request):
+        with patch("requests.request", side_effect=mock_request):
             start_time = time.time()
             result = client._request("GET", "http://test.com/api")
             total_time = time.time() - start_time

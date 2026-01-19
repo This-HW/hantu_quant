@@ -325,21 +325,21 @@ class BacktestEngine:
                 try:
                     value = float(line.split(':')[-1].strip().replace('%', '')) / 100
                     result.total_return = value
-                except:
+                except Exception:
                     pass
             
             elif 'sharpe' in line or '샤프' in line:
                 try:
                     value = float(line.split(':')[-1].strip())
                     result.sharpe_ratio = value
-                except:
+                except Exception:
                     pass
             
             elif 'drawdown' in line or '낙폭' in line:
                 try:
                     value = abs(float(line.split(':')[-1].strip().replace('%', ''))) / 100
                     result.max_drawdown = value
-                except:
+                except Exception:
                     pass
         
         # 연간 수익률 추정 (간단한 계산)

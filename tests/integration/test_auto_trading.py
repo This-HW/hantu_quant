@@ -58,7 +58,7 @@ async def test_trading_engine():
 
         if selected_stocks:
             print(f"✅ 일일 선정 종목 로드 성공: {len(selected_stocks)}개")
-            print(f"\n   상위 3개 종목:")
+            print("\n   상위 3개 종목:")
             for i, stock in enumerate(selected_stocks[:3], 1):
                 print(f"   {i}. {stock.get('stock_name')} ({stock.get('stock_code')})")
                 print(f"      현재가: {stock.get('entry_price', 0):,.0f}원")
@@ -72,7 +72,7 @@ async def test_trading_engine():
         balance = engine._get_account_balance()
         cash = engine._get_available_cash()
 
-        print(f"✅ 계좌 조회 성공")
+        print("✅ 계좌 조회 성공")
         print(f"   총 자산: {balance:,.0f}원")
         print(f"   가용 현금: {cash:,.0f}원")
 

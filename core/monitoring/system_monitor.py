@@ -310,7 +310,7 @@ class SystemMonitor:
                         "data",
                         "중요 디렉토리 누락",
                         f"필수 디렉토리 {dir_path}가 존재하지 않습니다",
-                        f"디렉토리를 생성하고 관련 시스템을 재시작하세요"
+                        "디렉토리를 생성하고 관련 시스템을 재시작하세요"
                     )
 
         except Exception as e:
@@ -339,7 +339,7 @@ class SystemMonitor:
                         history = json.load(f)
                     if history:
                         last_learning_time = history[-1].get('date')
-                except:
+                except Exception:
                     pass
 
             # 학습 성공률 (간단한 추정)

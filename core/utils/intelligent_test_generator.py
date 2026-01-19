@@ -258,7 +258,7 @@ class TestCodeGenerator:
             '',
             '',
             f'class {class_name}:',
-            f'    """{{module_name}} 모듈 테스트 클래스"""',
+            '    """{module_name} 모듈 테스트 클래스"""',
             '',
             '    def setup_method(self):',
             '        """테스트 설정"""',
@@ -311,12 +311,12 @@ class TestCodeGenerator:
         
         test_code = [
             f'    def {test_name}(self):',
-            f'        """{{func_name}} 기본 기능 테스트"""',
-            f'        # 기본 호출 테스트',
+            '        """{func_name} 기본 기능 테스트"""',
+            '        # 기본 호출 테스트',
             f'        result = {func_name}({args_str})',
-            f'        ',
-            f'        # 기본 검증',
-            f'        assert result is not None',
+            '        ',
+            '        # 기본 검증',
+            '        assert result is not None',
         ]
         
         # 반환 타입이 있는 경우 타입 검증 추가
@@ -346,46 +346,46 @@ class TestCodeGenerator:
         
         if edge.case_type == "null":
             test_code.extend([
-                f'        # None 값 테스트',
-                f'        with pytest.raises(Exception):',
+                '        # None 값 테스트',
+                '        with pytest.raises(Exception):',
                 f'            {func_name}(None)',
-                f'        # 또는 None 처리 확인',
+                '        # 또는 None 처리 확인',
                 f'        # result = {func_name}(None)',
-                f'        # assert result is not None  # 적절한 기본값 반환',
+                '        # assert result is not None  # 적절한 기본값 반환',
             ])
         
         elif edge.case_type == "empty":
             test_code.extend([
-                f'        # 빈 값 테스트',
+                '        # 빈 값 테스트',
                 f'        result = {func_name}([])',  # 또는 적절한 빈 값
-                f'        assert result is not None',
-                f'        # 빈 값에 대한 적절한 처리 확인',
+                '        assert result is not None',
+                '        # 빈 값에 대한 적절한 처리 확인',
             ])
         
         elif edge.case_type == "boundary":
             test_code.extend([
-                f'        # 경계값 테스트',
-                f'        # 0 값 테스트',
+                '        # 경계값 테스트',
+                '        # 0 값 테스트',
                 f'        result_zero = {func_name}(0)',
-                f'        assert result_zero is not None',
-                f'        ',
-                f'        # 음수 값 테스트 (적절한 경우)',
-                f'        # with pytest.raises(ValueError):',
+                '        assert result_zero is not None',
+                '        ',
+                '        # 음수 값 테스트 (적절한 경우)',
+                '        # with pytest.raises(ValueError):',
                 f'        #     {func_name}(-1)',
             ])
         
         elif edge.case_type == "exception_handling":
             test_code.extend([
-                f'        # 예외 처리 테스트',
-                f'        with pytest.raises(Exception):',
+                '        # 예외 처리 테스트',
+                '        with pytest.raises(Exception):',
                 f'            {func_name}("invalid_input")',
             ])
         
         else:
             test_code.extend([
                 f'        # {edge.case_type} 케이스 테스트',
-                f'        # TODO: 구체적인 테스트 구현 필요',
-                f'        pass',
+                '        # TODO: 구체적인 테스트 구현 필요',
+                '        pass',
             ])
         
         return test_code
@@ -397,18 +397,18 @@ class TestCodeGenerator:
         return [
             f'    def {test_name}(self):',
             f'        """{{func_name}} 복잡한 시나리오 테스트 (복잡도: {func_sig.complexity})"""',
-            f'        # 복잡한 함수이므로 다양한 시나리오 테스트 필요',
-            f'        # TODO: 구체적인 복잡 시나리오 구현',
-            f'        ',
-            f'        # 성능 테스트',
-            f'        import time',
-            f'        start_time = time.time()',
+            '        # 복잡한 함수이므로 다양한 시나리오 테스트 필요',
+            '        # TODO: 구체적인 복잡 시나리오 구현',
+            '        ',
+            '        # 성능 테스트',
+            '        import time',
+            '        start_time = time.time()',
             f'        result = {func_name}()',  # 기본 인자로 호출
-            f'        end_time = time.time()',
-            f'        ',
-            f'        # 성능 검증 (1초 이내 완료)',
-            f'        assert end_time - start_time < 1.0',
-            f'        assert result is not None',
+            '        end_time = time.time()',
+            '        ',
+            '        # 성능 검증 (1초 이내 완료)',
+            '        assert end_time - start_time < 1.0',
+            '        assert result is not None',
         ]
     
     def _generate_test_arguments(self, func_sig: FunctionSignature) -> Dict[str, str]:

@@ -41,7 +41,7 @@ class AutoTradingCLI:
             self.engine.config = config
             
             # 설정 정보 표시
-            print(f"\n📊 매매 설정:")
+            print("\n📊 매매 설정:")
             print(f"  • 최대 보유 종목: {config.max_positions}개")
             print(f"  • 포지션 방식: {config.position_size_method}")
             if config.position_size_method == "account_pct":
@@ -56,18 +56,18 @@ class AutoTradingCLI:
             print(f"  • 매매 시간: {config.market_start} ~ {config.market_end}")
             
             # 최종 확인
-            print(f"\n⚠️  주의사항:")
-            print(f"  • 가상계좌를 사용하여 실제 매매가 실행됩니다")
-            print(f"  • 손실 위험이 있으니 주의하시기 바랍니다")
-            print(f"  • Ctrl+C로 언제든지 중지할 수 있습니다")
+            print("\n⚠️  주의사항:")
+            print("  • 가상계좌를 사용하여 실제 매매가 실행됩니다")
+            print("  • 손실 위험이 있으니 주의하시기 바랍니다")
+            print("  • Ctrl+C로 언제든지 중지할 수 있습니다")
             
-            response = input(f"\n자동 매매를 시작하시겠습니까? (yes/no): ").strip().lower()
+            response = input("\n자동 매매를 시작하시겠습니까? (yes/no): ").strip().lower()
             
             if response not in ['yes', 'y']:
                 print("자동 매매가 취소되었습니다.")
                 return False
                 
-            print(f"\n🚀 자동 매매를 시작합니다...")
+            print("\n🚀 자동 매매를 시작합니다...")
             print(f"📝 로그 파일: {log_filename}")
             
             # 시그널 핸들러 등록
@@ -87,7 +87,7 @@ class AutoTradingCLI:
                 return False
                 
         except KeyboardInterrupt:
-            print(f"\n\n⚠️ 사용자가 중지를 요청했습니다...")
+            print("\n\n⚠️ 사용자가 중지를 요청했습니다...")
             await self._stop_trading("사용자 중지 요청")
             return False
         except Exception as e:
@@ -134,7 +134,7 @@ class AutoTradingCLI:
             
             # 포지션 상세
             if status['positions']:
-                print(f"\n📋 보유 포지션:")
+                print("\n📋 보유 포지션:")
                 print(f"{'종목명':<15} {'수량':<8} {'평가손익':<12} {'수익률':<10}")
                 print("-" * 50)
                 
@@ -147,7 +147,7 @@ class AutoTradingCLI:
                           
             # 설정 정보
             config = status['config']
-            print(f"\n⚙️ 매매 설정:")
+            print("\n⚙️ 매매 설정:")
             print(f"  최대 포지션: {config['max_positions']}개")
             print(f"  포지션 크기: {config['position_size']:,.0f}원")
             print(f"  손절매: {config['stop_loss_pct']:.1%}")

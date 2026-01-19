@@ -52,12 +52,12 @@ def optimize_strategy(args):
         
         # 결과 출력
         print("\n=== 최적화 결과 ===")
-        print(f"최적 파라미터:")
+        print("최적 파라미터:")
         for param, value in best_params.items():
             print(f"  - {param}: {value}")
             
         best_result = results.loc[results[args.metric].idxmax()]
-        print(f"\n최적 성과:")
+        print("\n최적 성과:")
         print(f"  - {args.metric}: {best_result[args.metric]:.4f}")
         print(f"  - 총수익률: {best_result['total_return']:.2f}%")
         print(f"  - 샤프비율: {best_result['sharpe_ratio']:.2f}")

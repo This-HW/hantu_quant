@@ -10,8 +10,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.backtesting.strategy_backtester import StrategyBacktester
-from datetime import datetime, timedelta
+from core.backtesting.strategy_backtester import StrategyBacktester  # noqa: E402
+from datetime import datetime, timedelta  # noqa: E402
 
 
 def test_current_strategy():
@@ -98,18 +98,18 @@ def print_result(result):
     """결과 출력"""
     print(f"\n전략: {result.strategy_name}")
     print(f"기간: {result.start_date} ~ {result.end_date}")
-    print(f"\n📊 거래 통계:")
+    print("\n📊 거래 통계:")
     print(f"  - 총 거래: {result.total_trades}건")
     print(f"  - 승리: {result.winning_trades}건")
     print(f"  - 손실: {result.losing_trades}건")
     print(f"  - 승률: {result.win_rate:.1%}")
-    print(f"\n💰 수익 지표:")
+    print("\n💰 수익 지표:")
     print(f"  - 평균 수익률: {result.avg_return:+.2%}")
     print(f"  - 평균 승리: {result.avg_win:+.2%}")
     print(f"  - 평균 손실: {result.avg_loss:+.2%}")
     print(f"  - 총 수익률: {result.total_return:+.2%}")
     print(f"  - Profit Factor: {result.profit_factor:.2f}")
-    print(f"\n📉 리스크 지표:")
+    print("\n📉 리스크 지표:")
     print(f"  - 최대 낙폭: {result.max_drawdown:+.2%}")
     print(f"  - Sharpe Ratio: {result.sharpe_ratio:.2f}")
     print(f"  - 최고 수익: {result.best_trade:+.2%}")

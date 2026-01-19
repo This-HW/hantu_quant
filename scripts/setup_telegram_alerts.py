@@ -15,9 +15,9 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.market_monitor.integrated_alert_manager import IntegratedAlertManager, NotificationPriority
-from core.market_monitor.anomaly_detector import AnomalyAlert, AnomalySeverity, AnomalyType
-from datetime import datetime
+from core.market_monitor.integrated_alert_manager import IntegratedAlertManager, NotificationPriority  # noqa: E402
+from core.market_monitor.anomaly_detector import AnomalyAlert, AnomalySeverity, AnomalyType  # noqa: E402
+from datetime import datetime  # noqa: E402
 
 class TelegramSetup:
     """텔레그램 설정 도구"""
@@ -68,7 +68,7 @@ class TelegramSetup:
         # 4. 설정 저장
         config = self.create_config(bot_token, selected_chat_id)
         if self.save_config(config):
-            print(f"\n✅ 설정이 저장되었습니다!")
+            print("\n✅ 설정이 저장되었습니다!")
             print(f"   채널: {selected_info['title']}")
             print(f"   ID: {selected_chat_id}")
             
@@ -92,7 +92,7 @@ class TelegramSetup:
             
             data = response.json()
             if not data.get('ok'):
-                print(f"❌ API 응답 오류")
+                print("❌ API 응답 오류")
                 return {}
             
             updates = data.get('result', [])
@@ -166,7 +166,7 @@ class TelegramSetup:
                 env_content = self.env_path.read_text()
                 if "TELEGRAM_BOT_TOKEN" not in env_content:
                     with open(self.env_path, 'a') as f:
-                        f.write(f"\n# 텔레그램 설정\n")
+                        f.write("\n# 텔레그램 설정\n")
                         f.write(f"TELEGRAM_BOT_TOKEN={config['telegram']['bot_token']}\n")
                         f.write(f"TELEGRAM_CHAT_ID={config['telegram']['default_chat_ids'][0]}\n")
             

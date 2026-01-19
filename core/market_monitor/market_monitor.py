@@ -166,7 +166,7 @@ class MarketDataProcessor:
                 'change': float(index_data.get('price_change', 0)),
                 'change_rate': float(index_data.get('price_change_rate', 0))
             }
-        except:
+        except Exception:
             return {'value': 0, 'change': 0, 'change_rate': 0}
     
     def _process_stock_data(self, stock_info: Dict, timestamp: datetime) -> Optional[StockSnapshot]:
@@ -294,7 +294,7 @@ class MarketDataProcessor:
             
             return float(rsi)
             
-        except:
+        except Exception:
             return None
     
     def _calculate_bollinger_bands(self, prices: List[float], period: int = 20, std_dev: float = 2.0) -> Tuple[Optional[float], Optional[float]]:
@@ -312,7 +312,7 @@ class MarketDataProcessor:
             
             return float(upper), float(lower)
             
-        except:
+        except Exception:
             return None, None
     
     def _determine_stock_status(self, price_change_rate: float, volume_ratio: float) -> MarketStatus:
@@ -788,7 +788,7 @@ class MarketMonitor:
             if snapshot.market_status == MarketStatus.ABNORMAL:
                 alerts.append({
                     'type': 'market_abnormal',
-                    'message': f"비정상적인 시장 상황 감지",
+                    'message': "비정상적인 시장 상황 감지",
                     'data': {
                         'kospi_change': snapshot.kospi_change,
                         'kosdaq_change': snapshot.kosdaq_change,

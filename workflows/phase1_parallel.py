@@ -165,7 +165,7 @@ class Phase1ParallelWorkflow:
                 sequential_time = len(all_results) * 0.05  # 순차 처리 예상 시간 (배치당 0.05초)
                 speedup = sequential_time / processing_time
                 
-                print(f"\n📈 성능 통계:")
+                print("\n📈 성능 통계:")
                 print(f"├─ 병렬 처리 시간: {processing_time:.1f}초")
                 print(f"├─ 순차 처리 예상 시간: {sequential_time:.1f}초")
                 print(f"├─ 속도 향상: {speedup:.1f}배")
@@ -270,7 +270,7 @@ def main():
         workflow.max_workers = args.workers
     
     try:
-        print(f"🚀 Phase 1 병렬 스크리닝 시작")
+        print("🚀 Phase 1 병렬 스크리닝 시작")
         print(f"├─ CPU 코어: {workflow.cpu_count}개")
         print(f"├─ 워커 프로세스: {workflow.max_workers}개")
         print(f"└─ 배치 크기: {args.batch_size}개")

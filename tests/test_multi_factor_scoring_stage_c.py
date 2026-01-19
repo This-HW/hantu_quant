@@ -12,8 +12,8 @@ import numpy as np
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.scoring import get_multi_factor_scorer
-from core.workflow import get_workflow_state_manager, WorkflowStage, WorkflowStatus
+from core.scoring import get_multi_factor_scorer  # noqa: E402
+from core.workflow import get_workflow_state_manager, WorkflowStage, WorkflowStatus  # noqa: E402
 
 
 def test_stage_c_multi_factor_scoring():
@@ -69,14 +69,14 @@ def test_stage_c_multi_factor_scoring():
 
         # 통계 정보
         composite_scores = [f.composite_score for f in factor_scores]
-        print(f"\n   종합 점수 통계:")
+        print("\n   종합 점수 통계:")
         print(f"   • 평균: {np.mean(composite_scores):.1f}")
         print(f"   • 최대: {np.max(composite_scores):.1f}")
         print(f"   • 최소: {np.min(composite_scores):.1f}")
         print(f"   • 표준편차: {np.std(composite_scores):.1f}")
 
         # 상위 5개 종목
-        print(f"\n   상위 5개 종목:")
+        print("\n   상위 5개 종목:")
         for i, fs in enumerate(factor_scores[:5], 1):
             print(f"   {i}. {fs.stock_name:12s} - 종합: {fs.composite_score:.1f}, "
                   f"모멘텀: {fs.momentum_score:.1f}, 밸류: {fs.value_score:.1f}, "
@@ -111,7 +111,7 @@ def test_stage_c_multi_factor_scoring():
         print(f"✅ 필터링 완료: {len(filtered_scores)}개 종목 선정")
 
         # 선정된 종목 정보
-        print(f"\n   선정 종목:")
+        print("\n   선정 종목:")
         for i, fs in enumerate(filtered_scores, 1):
             print(f"   {i:2d}. {fs.stock_name:12s} ({fs.stock_code}) - 종합: {fs.composite_score:.1f}")
 
@@ -191,7 +191,7 @@ def test_stage_c_multi_factor_scoring():
     )
 
     print("\n" + "=" * 80)
-    print(f"✅ C단계 완료!")
+    print("✅ C단계 완료!")
     print(f"   • 입력: {len(selected_stocks)}개 종목")
     print(f"   • 출력: {len(filtered_scores)}개 종목")
     print(f"   • 평균 점수: {np.mean(composite_scores):.1f}")

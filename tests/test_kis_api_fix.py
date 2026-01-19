@@ -37,8 +37,8 @@ def test_order_constants():
     # 검증
     assert api.ORDER_TYPE_SELL == "01", f"ORDER_TYPE_SELL should be '01', got {api.ORDER_TYPE_SELL}"
     assert api.ORDER_TYPE_BUY == "02", f"ORDER_TYPE_BUY should be '02', got {api.ORDER_TYPE_BUY}"
-    assert api.ORDER_DIVISION_LIMIT == "00", f"ORDER_DIVISION_LIMIT should be '00'"
-    assert api.ORDER_DIVISION_MARKET == "01", f"ORDER_DIVISION_MARKET should be '01'"
+    assert api.ORDER_DIVISION_LIMIT == "00", "ORDER_DIVISION_LIMIT should be '00'"
+    assert api.ORDER_DIVISION_MARKET == "01", "ORDER_DIVISION_MARKET should be '01'"
     
     print("✅ 주문 상수 값이 올바르게 설정되었습니다.")
     return True
@@ -56,7 +56,7 @@ def test_tr_id_generation():
     try:
         # 모의투자 환경 테스트
         config.server = 'virtual'
-        print(f"\n모의투자 환경 (server='virtual'):")
+        print("\n모의투자 환경 (server='virtual'):")
         
         # place_order 메소드 내부 로직 시뮬레이션
         order_type_sell = "01"
@@ -72,12 +72,12 @@ def test_tr_id_generation():
         print(f"  매도 TR_ID: {tr_id_sell} (expected: VTTC0011U)")
         print(f"  매수 TR_ID: {tr_id_buy} (expected: VTTC0012U)")
         
-        assert tr_id_sell == "VTTC0011U", f"모의 매도 TR_ID should be 'VTTC0011U'"
-        assert tr_id_buy == "VTTC0012U", f"모의 매수 TR_ID should be 'VTTC0012U'"
+        assert tr_id_sell == "VTTC0011U", "모의 매도 TR_ID should be 'VTTC0011U'"
+        assert tr_id_buy == "VTTC0012U", "모의 매수 TR_ID should be 'VTTC0012U'"
         
         # 실전투자 환경 테스트
         config.server = 'prod'
-        print(f"\n실전투자 환경 (server='prod'):")
+        print("\n실전투자 환경 (server='prod'):")
         
         if config.server == "virtual":
             tr_id_sell = "VTTC0011U" if order_type_sell == "01" else "VTTC0012U"
@@ -89,8 +89,8 @@ def test_tr_id_generation():
         print(f"  매도 TR_ID: {tr_id_sell} (expected: TTTC0011U)")
         print(f"  매수 TR_ID: {tr_id_buy} (expected: TTTC0012U)")
         
-        assert tr_id_sell == "TTTC0011U", f"실전 매도 TR_ID should be 'TTTC0011U'"
-        assert tr_id_buy == "TTTC0012U", f"실전 매수 TR_ID should be 'TTTC0012U'"
+        assert tr_id_sell == "TTTC0011U", "실전 매도 TR_ID should be 'TTTC0011U'"
+        assert tr_id_buy == "TTTC0012U", "실전 매수 TR_ID should be 'TTTC0012U'"
         
         print("✅ TR_ID가 환경과 주문유형에 따라 올바르게 생성됩니다.")
         return True
@@ -114,9 +114,9 @@ def test_websocket_subscription_codes():
     ]
     
     print("공식 문서 구독 코드:")
-    print(f"  H0STASP0: 주식 호가")
-    print(f"  H0STCNT0: 주식 체결")
-    print(f"  H0STCNI0: 주식 체결통보")
+    print("  H0STASP0: 주식 호가")
+    print("  H0STCNT0: 주식 체결")
+    print("  H0STCNI0: 주식 체결통보")
     
     print("\n현재 설정된 코드:")
     for code in actual_codes:

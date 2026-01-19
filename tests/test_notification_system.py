@@ -102,7 +102,7 @@ class TestNotificationHistory:
         """테스트 후 정리"""
         try:
             os.unlink(self.db_path)
-        except:
+        except Exception:
             pass
 
     def test_save_and_retrieve(self):

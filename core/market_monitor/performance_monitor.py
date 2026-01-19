@@ -253,7 +253,7 @@ class PerformanceMonitor:
         
         try:
             cpu_freq = psutil.cpu_freq().current if psutil.cpu_freq() else None
-        except:
+        except Exception:
             cpu_freq = None
         
         # 메모리 정보

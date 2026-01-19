@@ -11,12 +11,12 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.workflow import (
+from core.workflow import (  # noqa: E402
     get_workflow_state_manager,
     WorkflowStage,
     WorkflowStatus
 )
-from core.utils.log_utils import get_logger
+from core.utils.log_utils import get_logger  # noqa: E402
 
 logger = get_logger(__name__)
 
@@ -75,7 +75,7 @@ def run_stage_a():
 
         # Step 3: 테스트 실행 (이미 완료됨)
         print(f"✅ {steps[2]} 완료")
-        print(f"\n결과: 95개 → 12개 선정 (87.4% 감소)")
+        print("\n결과: 95개 → 12개 선정 (87.4% 감소)")
 
         # 완료 상태 저장
         state_manager.save_checkpoint(

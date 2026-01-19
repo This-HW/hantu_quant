@@ -65,7 +65,7 @@ def _run_screening(parallel: int, debug: bool) -> None:
 
     if result:
         click.echo()
-        click.echo(f"Screening completed successfully.")
+        click.echo("Screening completed successfully.")
         click.echo(f"Total stocks screened: {result.get('total_screened', 0)}")
         click.echo(f"Stocks added to watchlist: {result.get('added_count', 0)}")
         click.echo(f"Processing time: {result.get('duration_seconds', 0):.1f}s")

@@ -31,14 +31,18 @@ def create_balanced_orderbook() -> Tuple[List[Tuple[int, int]], List[Tuple[int, 
     return bids, asks
 
 
-def create_buy_pressure_orderbook() -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
+def create_buy_pressure_orderbook() -> (
+    Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]
+):
     """매수 압력 호가 데이터 생성 (불균형 > 0.3)"""
     bids = [(50000 - i * 100, 3000) for i in range(10)]  # 매수 많음
     asks = [(50100 + i * 100, 1000) for i in range(10)]  # 매도 적음
     return bids, asks
 
 
-def create_sell_pressure_orderbook() -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
+def create_sell_pressure_orderbook() -> (
+    Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]
+):
     """매도 압력 호가 데이터 생성 (불균형 < -0.3)"""
     bids = [(50000 - i * 100, 1000) for i in range(10)]  # 매수 적음
     asks = [(50100 + i * 100, 3000) for i in range(10)]  # 매도 많음
@@ -126,10 +130,7 @@ class TestSignalGeneration:
 
     def test_signal_thresholds(self):
         """신호 임계값 테스트"""
-        analyzer = OrderBookAnalyzer(
-            strong_threshold=0.3,
-            weak_threshold=0.1
-        )
+        analyzer = OrderBookAnalyzer(strong_threshold=0.3, weak_threshold=0.1)
 
         # 직접 신호 계산 테스트
         signal, conf = analyzer._calculate_signal(0.4)
@@ -161,7 +162,7 @@ class TestSignalGeneration:
         """커스텀 임계값 적용"""
         analyzer = OrderBookAnalyzer(
             strong_threshold=0.4,  # 기본값 0.3 대신
-            weak_threshold=0.2    # 기본값 0.1 대신
+            weak_threshold=0.2,  # 기본값 0.1 대신
         )
 
         # 0.3은 이제 neutral
@@ -235,10 +236,14 @@ class TestKISParsing:
         analyzer = OrderBookAnalyzer()
 
         raw_data = {
-            'ASKP1': '50100', 'ASKP_RSQN1': '1000',
-            'ASKP2': '50200', 'ASKP_RSQN2': '2000',
-            'BIDP1': '50000', 'BIDP_RSQN1': '1500',
-            'BIDP2': '49900', 'BIDP_RSQN2': '2500',
+            "ASKP1": "50100",
+            "ASKP_RSQN1": "1000",
+            "ASKP2": "50200",
+            "ASKP_RSQN2": "2000",
+            "BIDP1": "50000",
+            "BIDP_RSQN1": "1500",
+            "BIDP2": "49900",
+            "BIDP_RSQN2": "2500",
         }
 
         bids, asks = analyzer._parse_kis_orderbook(raw_data)
@@ -253,9 +258,11 @@ class TestKISParsing:
         analyzer = OrderBookAnalyzer()
 
         raw_data = {
-            'ASKP1': '50100', 'ASKP_RSQN1': '1000',
+            "ASKP1": "50100",
+            "ASKP_RSQN1": "1000",
             # ASKP2 없음
-            'BIDP1': '50000', 'BIDP_RSQN1': '1500',
+            "BIDP1": "50000",
+            "BIDP_RSQN1": "1500",
         }
 
         bids, asks = analyzer._parse_kis_orderbook(raw_data)
@@ -268,10 +275,14 @@ class TestKISParsing:
         analyzer = OrderBookAnalyzer()
 
         raw_data = {
-            'ASKP1': '50100', 'ASKP_RSQN1': '1000',
-            'ASKP2': '50200', 'ASKP_RSQN2': '1000',
-            'BIDP1': '50000', 'BIDP_RSQN1': '3000',
-            'BIDP2': '49900', 'BIDP_RSQN2': '3000',
+            "ASKP1": "50100",
+            "ASKP_RSQN1": "1000",
+            "ASKP2": "50200",
+            "ASKP_RSQN2": "1000",
+            "BIDP1": "50000",
+            "BIDP_RSQN1": "3000",
+            "BIDP2": "49900",
+            "BIDP_RSQN2": "3000",
         }
 
         result = analyzer.analyze_from_raw("005930", raw_data)
@@ -398,7 +409,7 @@ class TestSignalSummary:
         bids_sell, asks_sell = create_sell_pressure_orderbook()
         bids_neutral, asks_neutral = create_balanced_orderbook()
 
-        analyzer.analyze("005930", bids_buy, asks_buy)    # STRONG_BUY
+        analyzer.analyze("005930", bids_buy, asks_buy)  # STRONG_BUY
         analyzer.analyze("000660", bids_sell, asks_sell)  # STRONG_SELL
         analyzer.analyze("035420", bids_neutral, asks_neutral)  # NEUTRAL
 
@@ -474,13 +485,14 @@ class TestOrderBookMonitor:
     def test_start_monitoring_without_ws(self):
         """WebSocket 없이 모니터링 시작 실패"""
         import asyncio
+
         monitor = OrderBookMonitor()
 
         result = asyncio.get_event_loop().run_until_complete(
             monitor.start_monitoring(["005930"])
         )
 
-        assert result == False
+        assert not result
         assert not monitor.is_running
 
     def test_on_orderbook_data(self):
@@ -488,9 +500,11 @@ class TestOrderBookMonitor:
         monitor = OrderBookMonitor()
 
         data = {
-            'MKSC_SHRN_ISCD': '005930',
-            'ASKP1': '50100', 'ASKP_RSQN1': '1000',
-            'BIDP1': '50000', 'BIDP_RSQN1': '3000',
+            "MKSC_SHRN_ISCD": "005930",
+            "ASKP1": "50100",
+            "ASKP_RSQN1": "1000",
+            "BIDP1": "50000",
+            "BIDP_RSQN1": "3000",
         }
 
         monitor._on_orderbook_data(data)

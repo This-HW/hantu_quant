@@ -457,7 +457,7 @@ class StrategyComparator:
     def generate_comparison_report(self, comparison: StrategyComparison) -> str:
         """비교 리포트 생성"""
         report = [
-            f"# 전략 비교 분석 리포트",
+            "# 전략 비교 분석 리포트",
             "",
             f"**분석 일시**: {comparison.comparison_date.strftime('%Y-%m-%d %H:%M:%S')}",
             f"**분석 기간**: {comparison.phase1_performance.period_start.strftime('%Y-%m-%d')} ~ {comparison.phase1_performance.period_end.strftime('%Y-%m-%d')}",

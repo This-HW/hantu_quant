@@ -26,45 +26,45 @@ from core.indicators.investor_flow import (
 def create_strong_buy_data() -> dict:
     """외국인 + 기관 모두 순매수 데이터"""
     return {
-        'frgn_ntby_qty': '2000000',   # 외국인 200만주 순매수
-        'orgn_ntby_qty': '1000000',    # 기관 100만주 순매수
-        'prsn_ntby_qty': '-3000000',   # 개인 순매도
+        "frgn_ntby_qty": "2000000",  # 외국인 200만주 순매수
+        "orgn_ntby_qty": "1000000",  # 기관 100만주 순매수
+        "prsn_ntby_qty": "-3000000",  # 개인 순매도
     }
 
 
 def create_strong_sell_data() -> dict:
     """외국인 + 기관 모두 순매도 데이터"""
     return {
-        'frgn_ntby_qty': '-2000000',   # 외국인 순매도
-        'orgn_ntby_qty': '-1000000',   # 기관 순매도
-        'prsn_ntby_qty': '3000000',    # 개인 순매수
+        "frgn_ntby_qty": "-2000000",  # 외국인 순매도
+        "orgn_ntby_qty": "-1000000",  # 기관 순매도
+        "prsn_ntby_qty": "3000000",  # 개인 순매수
     }
 
 
 def create_buy_data() -> dict:
     """외국인만 순매수 데이터"""
     return {
-        'frgn_ntby_qty': '2000000',    # 외국인 순매수
-        'orgn_ntby_qty': '100000',     # 기관 중립 (임계값 미달)
-        'prsn_ntby_qty': '-2100000',
+        "frgn_ntby_qty": "2000000",  # 외국인 순매수
+        "orgn_ntby_qty": "100000",  # 기관 중립 (임계값 미달)
+        "prsn_ntby_qty": "-2100000",
     }
 
 
 def create_sell_data() -> dict:
     """기관만 순매도 데이터"""
     return {
-        'frgn_ntby_qty': '100000',     # 외국인 중립
-        'orgn_ntby_qty': '-1000000',   # 기관 순매도
-        'prsn_ntby_qty': '900000',
+        "frgn_ntby_qty": "100000",  # 외국인 중립
+        "orgn_ntby_qty": "-1000000",  # 기관 순매도
+        "prsn_ntby_qty": "900000",
     }
 
 
 def create_neutral_data() -> dict:
     """중립 데이터"""
     return {
-        'frgn_ntby_qty': '500000',     # 임계값 미달
-        'orgn_ntby_qty': '200000',     # 임계값 미달
-        'prsn_ntby_qty': '-700000',
+        "frgn_ntby_qty": "500000",  # 임계값 미달
+        "orgn_ntby_qty": "200000",  # 임계값 미달
+        "prsn_ntby_qty": "-700000",
     }
 
 
@@ -74,32 +74,26 @@ class TestInvestorTrend:
     def test_is_buying(self):
         """순매수 확인"""
         trend = InvestorTrend(
-            investor_type=InvestorType.FOREIGN,
-            net_buy=1000000,
-            trend="buying"
+            investor_type=InvestorType.FOREIGN, net_buy=1000000, trend="buying"
         )
-        assert trend.is_buying == True
-        assert trend.is_selling == False
+        assert trend.is_buying
+        assert not trend.is_selling
 
     def test_is_selling(self):
         """순매도 확인"""
         trend = InvestorTrend(
-            investor_type=InvestorType.INSTITUTION,
-            net_buy=-500000,
-            trend="selling"
+            investor_type=InvestorType.INSTITUTION, net_buy=-500000, trend="selling"
         )
-        assert trend.is_buying == False
-        assert trend.is_selling == True
+        assert not trend.is_buying
+        assert trend.is_selling
 
     def test_neutral(self):
         """중립"""
         trend = InvestorTrend(
-            investor_type=InvestorType.INDIVIDUAL,
-            net_buy=0,
-            trend="neutral"
+            investor_type=InvestorType.INDIVIDUAL, net_buy=0, trend="neutral"
         )
-        assert trend.is_buying == False
-        assert trend.is_selling == False
+        assert not trend.is_buying
+        assert not trend.is_selling
 
 
 class TestSignalGeneration:
@@ -188,9 +182,9 @@ class TestConfidenceCalculation:
 
         # 매우 큰 순매수량
         data = {
-            'frgn_ntby_qty': '100000000',  # 1억주
-            'orgn_ntby_qty': '50000000',   # 5천만주
-            'prsn_ntby_qty': '-150000000',
+            "frgn_ntby_qty": "100000000",  # 1억주
+            "orgn_ntby_qty": "50000000",  # 5천만주
+            "prsn_ntby_qty": "-150000000",
         }
 
         result = analyzer.analyze_from_data("005930", data)
@@ -211,9 +205,9 @@ class TestThresholds:
 
         # 기본 임계값에서는 중립이지만, 낮은 임계값에서는 매수
         data = {
-            'frgn_ntby_qty': '600000',
-            'orgn_ntby_qty': '300000',
-            'prsn_ntby_qty': '-900000',
+            "frgn_ntby_qty": "600000",
+            "orgn_ntby_qty": "300000",
+            "prsn_ntby_qty": "-900000",
         }
 
         result = analyzer.analyze_from_data("005930", data)
@@ -237,9 +231,9 @@ class TestDataParsing:
         analyzer = InvestorFlowAnalyzer()
 
         data = {
-            'frgn_ntby_qty': '2000000',
-            'orgn_ntby_qty': '1000000',
-            'prsn_ntby_qty': '-3000000',
+            "frgn_ntby_qty": "2000000",
+            "orgn_ntby_qty": "1000000",
+            "prsn_ntby_qty": "-3000000",
         }
 
         result = analyzer.analyze_from_data("005930", data)
@@ -253,9 +247,9 @@ class TestDataParsing:
         analyzer = InvestorFlowAnalyzer()
 
         data = {
-            'frgn_ntby_qty': 2000000,
-            'orgn_ntby_qty': 1000000,
-            'prsn_ntby_qty': -3000000,
+            "frgn_ntby_qty": 2000000,
+            "orgn_ntby_qty": 1000000,
+            "prsn_ntby_qty": -3000000,
         }
 
         result = analyzer.analyze_from_data("005930", data)
@@ -267,7 +261,7 @@ class TestDataParsing:
         analyzer = InvestorFlowAnalyzer()
 
         data = {
-            'frgn_ntby_qty': '2000000',
+            "frgn_ntby_qty": "2000000",
             # orgn_ntby_qty 누락
         }
 
@@ -281,9 +275,9 @@ class TestDataParsing:
         analyzer = InvestorFlowAnalyzer()
 
         data = {
-            'frgn_ntby_qty': None,
-            'orgn_ntby_qty': None,
-            'prsn_ntby_qty': None,
+            "frgn_ntby_qty": None,
+            "orgn_ntby_qty": None,
+            "prsn_ntby_qty": None,
         }
 
         result = analyzer.analyze_from_data("005930", data)
@@ -368,9 +362,9 @@ class TestUtilityMethods:
 
         summary = analyzer.get_signal_summary()
 
-        assert summary['strong_buy'] == 1
-        assert summary['strong_sell'] == 1
-        assert summary['neutral'] == 1
+        assert summary["strong_buy"] == 1
+        assert summary["strong_sell"] == 1
+        assert summary["neutral"] == 1
 
 
 class TestInvestorFlowResult:
@@ -455,9 +449,9 @@ class TestEdgeCases:
         analyzer = InvestorFlowAnalyzer()
 
         data = {
-            'frgn_ntby_qty': '0',
-            'orgn_ntby_qty': '0',
-            'prsn_ntby_qty': '0',
+            "frgn_ntby_qty": "0",
+            "orgn_ntby_qty": "0",
+            "prsn_ntby_qty": "0",
         }
 
         result = analyzer.analyze_from_data("005930", data)
@@ -472,9 +466,9 @@ class TestEdgeCases:
 
         # 정확히 -1,000,000 (외국인 임계값)
         data = {
-            'frgn_ntby_qty': '-1000000',
-            'orgn_ntby_qty': '0',
-            'prsn_ntby_qty': '1000000',
+            "frgn_ntby_qty": "-1000000",
+            "orgn_ntby_qty": "0",
+            "prsn_ntby_qty": "1000000",
         }
 
         result = analyzer.analyze_from_data("005930", data)
@@ -488,9 +482,9 @@ class TestEdgeCases:
         analyzer = InvestorFlowAnalyzer()
 
         data = {
-            'frgn_ntby_qty': 'invalid',
-            'orgn_ntby_qty': [],
-            'prsn_ntby_qty': {},
+            "frgn_ntby_qty": "invalid",
+            "orgn_ntby_qty": [],
+            "prsn_ntby_qty": {},
         }
 
         result = analyzer.analyze_from_data("005930", data)

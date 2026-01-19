@@ -228,7 +228,7 @@ async def check_database_health() -> Dict[str, Any]:
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
             engine.dispose()
-            return {"healthy": True, "message": f"PostgreSQL connected"}
+            return {"healthy": True, "message": "PostgreSQL connected"}
         else:
             # SQLite - 파일 존재 확인
             project_root = Path(__file__).parent.parent
@@ -277,7 +277,7 @@ def get_system_metrics() -> Dict[str, float]:
 api_config = APIConfig()
 kis_client = KISAPI()
 
-print(f"🚀 실제 투자 환경 시작")
+print("🚀 실제 투자 환경 시작")
 print(f"📡 API 서버: {api_config.base_url}")
 print(f"🏦 계좌: {api_config.account_number}")
 
@@ -672,7 +672,7 @@ async def stop_integrated_scheduler() -> Dict[str, Any]:
                 cmdline = proc.info.get('cmdline', [])
                 if cmdline and any('integrated_scheduler' in arg for arg in cmdline):
                     proc.kill()
-        except:
+        except Exception:
             pass
         
         # 종료 확인
@@ -884,7 +884,7 @@ REAL_STOCK_LIST = load_stock_list()
 # 실시간 모니터 상태 관리 (전역 변수)
 REALTIME_MONITOR_ACTIVE = False
 
-print(f"✅ 실제 투자 데이터 로딩 완료:")
+print("✅ 실제 투자 데이터 로딩 완료:")
 print(f"   - 일일 선정: {len(REAL_DAILY_SELECTIONS)}개 종목")
 print(f"   - 감시 리스트: {len(REAL_WATCHLIST)}개 종목")
 print(f"   - 전체 주식: {len(REAL_STOCK_LIST)}개 종목")
@@ -1188,7 +1188,7 @@ def get_system_services() -> Dict[str, ServiceStatus]:
                 web_running = True
                 web_pid = proc.info['pid']
                 break
-    except:
+    except Exception:
         pass
     
     services["web_interface"] = ServiceStatus(

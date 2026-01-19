@@ -74,8 +74,8 @@ class TestTradeLogger:
         """진입 기록"""
         logger = TradeLogger()
         context = TradeContext(
-            entry_indicators={'rsi': 45.0, 'macd': 0.5},
-            signal_source=['LSTM', 'TA'],
+            entry_indicators={"rsi": 45.0, "macd": 0.5},
+            signal_source=["LSTM", "TA"],
             signal_confidence=0.75,
             agreement_count=2,
         )
@@ -97,8 +97,8 @@ class TestTradeLogger:
         """청산 기록"""
         logger = TradeLogger()
         context = TradeContext(
-            entry_indicators={'rsi': 45.0},
-            signal_source=['LSTM'],
+            entry_indicators={"rsi": 45.0},
+            signal_source=["LSTM"],
             signal_confidence=0.75,
             agreement_count=2,
             max_profit_during=5.0,
@@ -117,7 +117,7 @@ class TestTradeLogger:
 
         # 청산
         exit_context = TradeContext(
-            exit_indicators={'rsi': 65.0},
+            exit_indicators={"rsi": 65.0},
             exit_market_regime="bull",
             max_profit_during=5.0,
         )
@@ -153,8 +153,8 @@ class TestTradeLogger:
         )
 
         context = TradeContext(
-            entry_indicators={'rsi': 40.0, 'macd': 0.3},
-            signal_source=['TA', 'SD'],
+            entry_indicators={"rsi": 40.0, "macd": 0.3},
+            signal_source=["TA", "SD"],
             signal_confidence=0.8,
             agreement_count=2,
             market_regime="bull",
@@ -218,10 +218,10 @@ class TestTradeLogger:
             logger.log_trade(trade, TradeContext())
 
         stats = logger.get_stats()
-        assert stats['total_trades'] == 10
-        assert stats['winners'] == 6
-        assert stats['losers'] == 4
-        assert stats['win_rate'] == pytest.approx(0.6, rel=0.01)
+        assert stats["total_trades"] == 10
+        assert stats["winners"] == 6
+        assert stats["losers"] == 4
+        assert stats["win_rate"] == pytest.approx(0.6, rel=0.01)
 
 
 class TestPerformancePatternAnalyzer:
@@ -246,7 +246,7 @@ class TestPerformancePatternAnalyzer:
                     rsi=40 + i % 20,
                     agreement_count=2 if is_winner else 1,
                     signal_confidence=0.7 if is_winner else 0.5,
-                    signal_source=['LSTM', 'TA'] if is_winner else ['TA'],
+                    signal_source=["LSTM", "TA"] if is_winner else ["TA"],
                     market_regime="bull" if is_winner else "range",
                     daily_trend="up" if is_winner else "down",
                     weekly_trend="up" if is_winner else "down",
@@ -293,7 +293,10 @@ class TestPerformancePatternAnalyzer:
 
         analysis = analyzer.analyze_patterns(logs)
 
-        assert 'bull' in analysis.performance_by_regime or 'range' in analysis.performance_by_regime
+        assert (
+            "bull" in analysis.performance_by_regime
+            or "range" in analysis.performance_by_regime
+        )
 
     def test_get_recommendations(self):
         """권고 생성"""
@@ -306,7 +309,7 @@ class TestPerformancePatternAnalyzer:
         assert isinstance(recommendations, list)
         # 권고사항이 있으면 category 필드가 있어야 함
         if recommendations:
-            assert 'category' in recommendations[0]
+            assert "category" in recommendations[0]
 
 
 class TestFailureAnalyzer:
@@ -316,20 +319,20 @@ class TestFailureAnalyzer:
         """손실 거래 로그 생성"""
         logs = []
         failure_types = [
-            ('trend_against', {'daily_trend': 'up', 'weekly_trend': 'down'}),
-            ('weak_signal', {'signal_confidence': 0.4}),
-            ('low_agreement', {'agreement_count': 1}),
-            ('other', {}),
+            ("trend_against", {"daily_trend": "up", "weekly_trend": "down"}),
+            ("weak_signal", {"signal_confidence": 0.4}),
+            ("low_agreement", {"agreement_count": 1}),
+            ("other", {}),
         ]
 
         for i in range(20):
             ftype, attrs = failure_types[i % len(failure_types)]
             ctx = EntryContext(
                 rsi=50,
-                signal_confidence=attrs.get('signal_confidence', 0.7),
-                agreement_count=attrs.get('agreement_count', 2),
-                daily_trend=attrs.get('daily_trend', 'up'),
-                weekly_trend=attrs.get('weekly_trend', 'up'),
+                signal_confidence=attrs.get("signal_confidence", 0.7),
+                agreement_count=attrs.get("agreement_count", 2),
+                daily_trend=attrs.get("daily_trend", "up"),
+                weekly_trend=attrs.get("weekly_trend", "up"),
             )
 
             log = TradeLog(
@@ -383,7 +386,7 @@ class TestFailureAnalyzer:
 
         # 개선 제안이 있을 수 있음
         if analysis.improvement_suggestions:
-            assert 'priority' in analysis.improvement_suggestions[0].to_dict()
+            assert "priority" in analysis.improvement_suggestions[0].to_dict()
 
     def test_get_summary(self):
         """요약 생성"""
@@ -409,36 +412,38 @@ class TestLSTMContinuousLearner:
     def test_learner_with_config(self):
         """설정과 함께 생성"""
         config = LearnerConfig(
-            retrain_period='daily',
+            retrain_period="daily",
             min_new_samples=50,
             performance_threshold=0.6,
         )
         learner = LSTMContinuousLearner(config)
 
-        assert learner.config.retrain_period == 'daily'
+        assert learner.config.retrain_period == "daily"
         assert learner.config.min_new_samples == 50
 
     def test_should_retrain_scheduled(self):
         """정기 재학습 판단"""
         learner = LSTMContinuousLearner()
 
-        decision = learner.should_retrain({'recent_accuracy': 0.6})
+        decision = learner.should_retrain({"recent_accuracy": 0.6})
 
         assert isinstance(decision, RetrainDecision)
         # 첫 번째 호출이므로 scheduled 가 있어야 함
-        assert 'scheduled' in decision.reasons
+        assert "scheduled" in decision.reasons
 
     def test_should_retrain_low_performance(self):
         """성과 저하 시 재학습"""
         learner = LSTMContinuousLearner()
         learner._last_retrain = datetime.now()  # 최근 학습 완료
 
-        decision = learner.should_retrain({
-            'recent_accuracy': 0.45,  # 임계값 미만
-        })
+        decision = learner.should_retrain(
+            {
+                "recent_accuracy": 0.45,  # 임계값 미만
+            }
+        )
 
         assert decision.should_retrain is True
-        assert any('low_performance' in r for r in decision.reasons)
+        assert any("low_performance" in r for r in decision.reasons)
         assert decision.urgency == RetrainUrgency.HIGH
 
     def test_record_sample(self):
@@ -456,10 +461,10 @@ class TestLSTMContinuousLearner:
 
         # 충분한 학습 데이터
         training_data = {
-            'prices': [100 + i * 0.5 + np.random.randn() for i in range(300)],
-            'volumes': [1000 + np.random.randint(-100, 100) for _ in range(300)],
-            'indicators': {
-                'rsi': [50 + np.random.randn() * 10 for _ in range(300)],
+            "prices": [100 + i * 0.5 + np.random.randn() for i in range(300)],
+            "volumes": [1000 + np.random.randint(-100, 100) for _ in range(300)],
+            "indicators": {
+                "rsi": [50 + np.random.randn() * 10 for _ in range(300)],
             },
         }
 
@@ -474,8 +479,8 @@ class TestLSTMContinuousLearner:
 
         stats = learner.get_stats()
 
-        assert 'model_version' in stats
-        assert 'config' in stats
+        assert "model_version" in stats
+        assert "config" in stats
 
 
 class TestLearningScheduler:
@@ -560,7 +565,7 @@ class TestLearningScheduler:
         pending = scheduler.get_pending_tasks()
 
         assert len(pending) == 2
-        assert all('next_run' in p for p in pending)
+        assert all("next_run" in p for p in pending)
 
     def test_get_stats(self):
         """통계 조회"""
@@ -571,8 +576,8 @@ class TestLearningScheduler:
 
         stats = scheduler.get_stats()
 
-        assert stats['total_tasks'] == 2
-        assert stats['enabled_tasks'] == 2
+        assert stats["total_tasks"] == 2
+        assert stats["enabled_tasks"] == 2
 
 
 class TestLearningTracker:
@@ -590,10 +595,10 @@ class TestLearningTracker:
 
         record = tracker.log_learning_result(
             learning_type=LearningType.MODEL_RETRAIN,
-            before_state={'version': 'v1'},
-            after_state={'version': 'v2'},
-            before_performance={'accuracy': 0.55},
-            after_performance={'accuracy': 0.60},
+            before_state={"version": "v1"},
+            after_state={"version": "v2"},
+            before_performance={"accuracy": 0.55},
+            after_performance={"accuracy": 0.60},
             training_samples=1000,
             validation_score=0.58,
             notes="Test retrain",
@@ -609,11 +614,15 @@ class TestLearningTracker:
         # 여러 기록 추가
         for i in range(5):
             tracker.log_learning_result(
-                learning_type=LearningType.WEIGHT_ADJUST if i % 2 == 0 else LearningType.MODEL_RETRAIN,
+                learning_type=(
+                    LearningType.WEIGHT_ADJUST
+                    if i % 2 == 0
+                    else LearningType.MODEL_RETRAIN
+                ),
                 before_state={},
                 after_state={},
-                before_performance={'accuracy': 0.5 + i * 0.01},
-                after_performance={'accuracy': 0.52 + i * 0.01},
+                before_performance={"accuracy": 0.5 + i * 0.01},
+                after_performance={"accuracy": 0.52 + i * 0.01},
             )
 
         # 전체 조회
@@ -622,8 +631,7 @@ class TestLearningTracker:
 
         # 유형별 조회
         weight_history = tracker.get_learning_history(
-            learning_type=LearningType.WEIGHT_ADJUST,
-            days=30
+            learning_type=LearningType.WEIGHT_ADJUST, days=30
         )
         assert len(weight_history) == 3
 
@@ -637,8 +645,8 @@ class TestLearningTracker:
                 learning_type=LearningType.MODEL_RETRAIN,
                 before_state={},
                 after_state={},
-                before_performance={'accuracy': 0.5},
-                after_performance={'accuracy': 0.52 if i < 7 else 0.48},
+                before_performance={"accuracy": 0.5},
+                after_performance={"accuracy": 0.52 if i < 7 else 0.48},
             )
 
         report = tracker.analyze_learning_effectiveness(days=30)
@@ -654,14 +662,14 @@ class TestLearningTracker:
             learning_type=LearningType.PARAM_OPTIMIZE,
             before_state={},
             after_state={},
-            before_performance={'accuracy': 0.5},
-            after_performance={'accuracy': 0.55},
+            before_performance={"accuracy": 0.5},
+            after_performance={"accuracy": 0.55},
         )
 
         stats = tracker.get_stats()
 
-        assert stats['total_records'] == 1
-        assert stats['positive_rate'] == 1.0
+        assert stats["total_records"] == 1
+        assert stats["positive_rate"] == 1.0
 
 
 class TestOverfitPrevention:
@@ -706,7 +714,9 @@ class TestOverfitPrevention:
         validation = prevention.validate_learning_result(result)
 
         # 과적합 징후가 감지되어야 함
-        overfit_checks = [c for c in validation.checks if c.check_type.value == 'overfit_gap']
+        overfit_checks = [
+            c for c in validation.checks if c.check_type.value == "overfit_gap"
+        ]
         assert len(overfit_checks) == 1
         assert overfit_checks[0].passed is False
 
@@ -723,7 +733,9 @@ class TestOverfitPrevention:
 
         validation = prevention.validate_learning_result(result)
 
-        min_samples_checks = [c for c in validation.checks if c.check_type.value == 'min_samples']
+        min_samples_checks = [
+            c for c in validation.checks if c.check_type.value == "min_samples"
+        ]
         assert len(min_samples_checks) == 1
         assert min_samples_checks[0].passed is False
 
@@ -742,9 +754,9 @@ class TestModelRollback:
         rollback = ModelRollback()
 
         rollback.save_model_state(
-            model_state={'weights': [1, 2, 3]},
+            model_state={"weights": [1, 2, 3]},
             version="v1",
-            performance={'accuracy': 0.6},
+            performance={"accuracy": 0.6},
         )
 
         assert rollback.current_version == "v1"
@@ -783,13 +795,13 @@ class TestModelRollback:
         rollback = ModelRollback()
 
         # 버전 저장
-        rollback.save_model_state({'v': 1}, "v1", {'accuracy': 0.5})
-        rollback.save_model_state({'v': 2}, "v2", {'accuracy': 0.4})
+        rollback.save_model_state({"v": 1}, "v1", {"accuracy": 0.5})
+        rollback.save_model_state({"v": 2}, "v2", {"accuracy": 0.4})
 
         # v1으로 롤백
         state = rollback.rollback("v1")
 
-        assert state == {'v': 1}
+        assert state == {"v": 1}
         assert rollback.current_version == "v1"
 
 
@@ -814,10 +826,10 @@ class TestLearningSafetyManager:
             improvement=0.05,
         )
 
-        apply_result = manager.validate_and_apply(result, {'model': 'test'})
+        apply_result = manager.validate_and_apply(result, {"model": "test"})
 
-        assert apply_result['applied'] is True
-        assert 'version' in apply_result
+        assert apply_result["applied"] is True
+        assert "version" in apply_result
 
     def test_validate_and_apply_reject(self):
         """거부 결과 처리"""
@@ -831,16 +843,16 @@ class TestLearningSafetyManager:
             improvement=0.5,  # 급격한 변화
         )
 
-        apply_result = manager.validate_and_apply(result, {'model': 'test'})
+        apply_result = manager.validate_and_apply(result, {"model": "test"})
 
-        assert apply_result['applied'] is False
+        assert apply_result["applied"] is False
 
     def test_check_and_rollback(self):
         """체크 및 롤백"""
         manager = LearningSafetyManager()
 
         # 모델 상태 저장
-        manager.model_rollback.save_model_state({'v': 1}, "v1", {'accuracy': 0.6})
+        manager.model_rollback.save_model_state({"v": 1}, "v1", {"accuracy": 0.6})
 
         # 성과 급락 체크
         result = manager.check_and_rollback(
@@ -848,7 +860,7 @@ class TestLearningSafetyManager:
             previous_performance=0.60,
         )
 
-        assert result['rolled_back'] is True
+        assert result["rolled_back"] is True
 
     def test_get_status(self):
         """상태 조회"""
@@ -856,8 +868,8 @@ class TestLearningSafetyManager:
 
         status = manager.get_status()
 
-        assert 'current_version' in status
-        assert 'consecutive_losses' in status
+        assert "current_version" in status
+        assert "consecutive_losses" in status
 
 
 class TestLearningIntegration:
@@ -881,7 +893,7 @@ class TestLearningIntegration:
                 is_closed=True,
             )
             context = TradeContext(
-                signal_source=['LSTM', 'TA'],
+                signal_source=["LSTM", "TA"],
                 signal_confidence=0.7 if i < 12 else 0.5,
                 agreement_count=2 if i < 12 else 1,
             )
@@ -896,7 +908,7 @@ class TestLearningIntegration:
 
         # 4. 실패 분석
         failure_analyzer = FailureAnalyzer(min_samples=3)
-        losers = [l for l in logs if not l.labels.is_winner]
+        losers = [log for log in logs if not log.labels.is_winner]
         failure_analysis = failure_analyzer.analyze_failures(losers)
 
         assert failure_analysis.total_losers == 8
@@ -905,14 +917,14 @@ class TestLearningIntegration:
         tracker = LearningTracker()
         tracker.log_learning_result(
             learning_type=LearningType.MODEL_RETRAIN,
-            before_state={'version': 'v1'},
-            after_state={'version': 'v2'},
-            before_performance={'win_rate': 0.5},
-            after_performance={'win_rate': 0.6},
+            before_state={"version": "v1"},
+            after_state={"version": "v2"},
+            before_performance={"win_rate": 0.5},
+            after_performance={"win_rate": 0.6},
         )
 
         stats = tracker.get_stats()
-        assert stats['total_records'] == 1
+        assert stats["total_records"] == 1
 
     def test_safety_with_scheduler(self):
         """스케줄러와 안전장치 통합"""
@@ -934,4 +946,4 @@ class TestLearningIntegration:
         result = scheduler.run_task("safety_check")
 
         assert result.status == TaskStatus.COMPLETED
-        assert 'current_version' in result.result
+        assert "current_version" in result.result
