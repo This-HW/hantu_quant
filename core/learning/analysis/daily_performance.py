@@ -13,7 +13,7 @@ from dataclasses import dataclass, asdict
 import json
 import os
 
-from ...utils.logging import get_logger
+from core.utils.log_utils import get_logger
 
 # KIS API 클라이언트 (선택적 import)
 try:
