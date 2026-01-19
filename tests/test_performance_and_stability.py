@@ -4,15 +4,9 @@
 성능 최적화기와 안정성 관리자의 통합 테스트
 """
 
-import pytest
 import tempfile
-import shutil
 import os
 import time
-import threading
-from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
-import psutil
 
 def test_performance_optimizer():
     """성능 최적화기 테스트"""
@@ -20,7 +14,7 @@ def test_performance_optimizer():
     
     try:
         from core.performance.optimizer import (
-            PerformanceOptimizer, OptimizationLevel, SystemMonitor
+            PerformanceOptimizer, OptimizationLevel
         )
         
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -69,7 +63,7 @@ def test_stability_manager():
     
     try:
         from core.resilience.stability_manager import (
-            StabilityManager, FailureType, CircuitBreaker, retry
+            StabilityManager, FailureType
         )
         
         with tempfile.TemporaryDirectory() as temp_dir:

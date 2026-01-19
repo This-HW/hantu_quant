@@ -3,9 +3,8 @@ VWAP (Volume Weighted Average Price) 지표
 기관 투자자들이 주로 사용하는 거래 기준선
 """
 
-import numpy as np
 import pandas as pd
-from typing import Optional, Dict, Any, Union, Tuple
+from typing import Optional, Dict, Any, Tuple
 
 
 class VWAP:

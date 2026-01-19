@@ -5,7 +5,6 @@ A단계: 강화된 선정 기준 테스트
 """
 
 import sys
-import os
 import json
 from pathlib import Path
 

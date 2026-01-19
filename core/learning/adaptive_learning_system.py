@@ -6,15 +6,12 @@
 import json
 import os
 import numpy as np
-import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, asdict
 from pathlib import Path
-import logging
 
 from ..utils.log_utils import get_logger
-from ..trading.trade_journal import TradeJournal
 from ..performance.performance_metrics import get_performance_metrics
 
 logger = get_logger(__name__)

@@ -7,7 +7,6 @@ Signal, SignalAggregator, EnsembleEngine, WeightOptimizer 테스트
 import pytest
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
 
 from core.strategy.ensemble import (
     Signal, SignalType, SignalSource, FinalSignal,
@@ -15,7 +14,7 @@ from core.strategy.ensemble import (
     EnsembleEngine, EnsembleConfig,
     TechnicalAnalysisScorer, TAScores,
     SupplyDemandScorer, SDScores,
-    WeightOptimizer, OptimizerConfig, PerformanceRecord
+    WeightOptimizer, OptimizerConfig
 )
 
 

@@ -173,6 +173,15 @@
             "command": "python3 \"$HOME/.claude/hooks/governance-check.py\""
           }
         ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/log-subagent.py\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -182,6 +191,15 @@
           {
             "type": "command",
             "command": "python3 \"$HOME/.claude/hooks/auto-format.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/log-subagent.py\""
           }
         ]
       }

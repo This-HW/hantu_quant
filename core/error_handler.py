@@ -7,7 +7,6 @@ Feature 5: 에러 추적 및 원인 파악 시스템
 Story 5.4: Silent Failure 제거 및 에러 알림 강화
 """
 
-import logging
 import functools
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, Callable, List, Type, Union
@@ -19,15 +18,11 @@ import threading
 from core.exceptions import (
     HantuQuantException,
     ErrorSeverity,
-    ErrorCategory,
-    is_critical,
-    is_retryable,
 )
 from core.utils.log_utils import (
     get_context_logger,
     get_trace_id,
     get_error_context,
-    ErrorContextManager,
 )
 
 logger = get_context_logger(__name__)

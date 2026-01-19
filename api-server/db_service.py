@@ -4,7 +4,7 @@ Provides database query functions to replace JSON file loading.
 """
 
 from typing import List, Optional, Dict, Any
-from datetime import datetime, date
+from datetime import date
 from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker, Session
 import sys
@@ -20,8 +20,7 @@ from core.database.models import (
     Stock as StockModel,
     WatchlistStock,
     DailySelection as DailySelectionModel,
-    TradeHistory,
-    ErrorLog  # 에러 로그 테이블
+    TradeHistory  # 에러 로그 테이블
 )
 from core.utils import get_logger
 

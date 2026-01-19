@@ -13,7 +13,7 @@ import json
 import logging
 import tempfile
 import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 from core.utils.log_utils import (
     JSONFormatter,

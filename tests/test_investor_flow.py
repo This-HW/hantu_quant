@@ -11,7 +11,7 @@
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 
 from core.indicators.investor_flow import (
     InvestorFlowAnalyzer,

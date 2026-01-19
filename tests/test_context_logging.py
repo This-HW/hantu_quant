@@ -8,7 +8,6 @@ T-5.2.4: Story 5.2 테스트 작성 및 검증
 """
 
 import pytest
-import logging
 import time
 import asyncio
 
@@ -25,7 +24,6 @@ from core.utils.log_utils import (
     log_context,
     log_async_context,
     # Trace ID
-    get_trace_id,
     set_trace_id,
     clear_trace_id,
 )

@@ -10,7 +10,6 @@ ML 자동 트리거 시스템 테스트
 """
 
 import sys
-import os
 from pathlib import Path
 
 # 프로젝트 루트를 Python 경로에 추가

@@ -6,16 +6,15 @@
 
 import asyncio
 import logging
-from typing import Dict, List, Optional, Set, Any, Tuple
+from typing import Dict, List, Optional, Set, Any
 from collections import defaultdict, deque
 import threading
 
 from core.interfaces.plugins import (
-    IPluginRegistry, IPlugin, PluginMetadata, PluginState
+    IPluginRegistry, IPlugin, PluginMetadata
 )
 from core.plugins.exceptions import (
-    PluginAlreadyExistsError, PluginNotFoundError, PluginDependencyError,
-    PluginException
+    PluginAlreadyExistsError, PluginNotFoundError, PluginDependencyError
 )
 from core.plugins.events import (
     PluginRegistryEvent, PluginDependencyEvent, PluginErrorEvent

@@ -3,7 +3,6 @@
 """
 
 import pytest
-from datetime import datetime
 
 from core.paper_trading.order_state_machine import (
     OrderStateMachine,

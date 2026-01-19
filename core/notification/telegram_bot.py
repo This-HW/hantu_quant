@@ -7,7 +7,6 @@ Feature 1: 알림 시스템 통합
 Story 1.2: TelegramNotifier 통합
 """
 
-import logging
 import time
 from datetime import datetime
 from typing import Optional, Dict, Any
@@ -30,12 +29,9 @@ from core.utils.log_utils import (
 from core.error_handler import (
     handle_error,
     ErrorAction,
-    error_handler,
 )
 from core.exceptions import (
-    NotificationException,
     NotificationSendError,
-    NotificationConfigError,
     ErrorSeverity,
 )
 

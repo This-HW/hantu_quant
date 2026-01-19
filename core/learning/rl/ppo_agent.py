@@ -10,7 +10,7 @@ Features:
 """
 
 import logging
-from typing import Dict, List, Optional, Callable, Any
+from typing import Dict, List, Optional, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -28,7 +28,7 @@ except ImportError:
     PPO = None
     DummyVecEnv = None
 
-from .trading_env import TradingEnvironment, GymTradingEnv, GYMNASIUM_AVAILABLE
+from .trading_env import GymTradingEnv, GYMNASIUM_AVAILABLE
 
 logger = logging.getLogger(__name__)
 

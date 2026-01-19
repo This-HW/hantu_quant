@@ -5,11 +5,9 @@ Phase 4: AI 학습 시스템 - 유전 알고리즘 최적화기
 """
 
 import numpy as np
-import pandas as pd
-from typing import Dict, List, Optional, Tuple, Any, Callable
+from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime
 import random
-import copy
 from dataclasses import dataclass
 import time
 

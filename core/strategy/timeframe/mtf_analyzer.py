@@ -7,8 +7,8 @@
 
 import pandas as pd
 import numpy as np
-from typing import Dict, Optional, List, Tuple
-from dataclasses import dataclass, field
+from typing import Dict, Optional, Tuple
+from dataclasses import dataclass
 from enum import Enum
 import logging
 

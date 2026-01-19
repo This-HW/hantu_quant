@@ -12,14 +12,11 @@ SQLite 폴백: 통합 DB 연결 실패 시 기존 SQLite 사용
 import json
 import sqlite3
 import numpy as np
-import pandas as pd
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict
 from pathlib import Path
-import logging
 
-from sqlalchemy.exc import SQLAlchemyError
 
 from ..utils.log_utils import get_logger
 from ..data_pipeline.data_synchronizer import get_data_synchronizer
@@ -79,11 +76,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
         # 통합 DB 사용 시도
         if use_unified_db:
             try:
-                from ..database.unified_db import get_db, ensure_tables_exist
-                from ..database.models import (
-                    ScreeningHistory, SelectionHistory,
-                    DailyTracking, LearningMetrics
-                )
+                from ..database.unified_db import ensure_tables_exist
                 ensure_tables_exist()
                 self._unified_db_available = True
                 self.logger.info("통합 DB 연결 성공 (PostgreSQL/SQLAlchemy)")

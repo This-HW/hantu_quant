@@ -12,7 +12,6 @@ from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass, asdict
 from collections import deque
 import json
-import os
 
 from ..utils.logging import get_logger
 

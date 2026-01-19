@@ -5,9 +5,8 @@ API 관련 인터페이스 정의
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any, Callable
+from typing import Dict, List, Optional, Callable
 import pandas as pd
-from datetime import datetime
 
 
 class IAPIClient(ABC):

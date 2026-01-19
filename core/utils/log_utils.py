@@ -13,7 +13,6 @@ import logging.handlers
 import json
 import re
 import uuid
-import threading
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from contextvars import ContextVar
@@ -646,7 +645,6 @@ def log_async_context(
         async def fetch_data(symbol: str):
             ...
     """
-    import asyncio
 
     def decorator(func: Callable):
         @functools.wraps(func)

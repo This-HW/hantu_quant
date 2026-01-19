@@ -10,11 +10,9 @@
 """
 
 import pytest
-import numpy as np
-from datetime import datetime, time, timedelta
+from datetime import datetime
 from pathlib import Path
 import sys
-import pytz
 
 # 프로젝트 루트 추가
 project_root = Path(__file__).parent.parent
@@ -32,7 +30,6 @@ from core.overseas.us_trader import (
     OrderSide,
     OrderStatus,
     US_EASTERN,
-    KST,
 )
 
 

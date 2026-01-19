@@ -6,12 +6,8 @@
 - 전체 처리 시간 최적화
 """
 
-import asyncio
 import time
-import json
-import multiprocessing as mp
-from datetime import datetime
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional
 from queue import Queue, Empty
 import threading
 import sys

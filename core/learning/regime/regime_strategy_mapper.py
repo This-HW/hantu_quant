@@ -5,16 +5,15 @@ Task C.3.1: 레짐별 팩터 가중치 프리셋
 Task C.3.2: 레짐 전환 시 가중치 자동 조정
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Callable
-from enum import Enum
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Any
 
 from core.daily_selection.selection_criteria import MarketCondition
 from core.learning.regime.regime_detector import RegimeResult
 
 # MarketCondition 별칭 (호환성)
 MarketRegime = MarketCondition
-from core.learning.weights.weight_safety import WeightSafety, WeightConstraints
+from core.learning.weights.weight_safety import WeightSafety
 from core.utils.log_utils import get_logger
 
 logger = get_logger(__name__)

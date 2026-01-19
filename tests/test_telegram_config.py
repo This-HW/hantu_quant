@@ -11,7 +11,6 @@ import pytest
 import os
 import json
 import tempfile
-from pathlib import Path
 from unittest.mock import patch
 
 from core.notification.config_loader import (
@@ -20,7 +19,6 @@ from core.notification.config_loader import (
     NotificationLevelConfig,
     MessageFormatConfig,
     RateLimitingConfig,
-    get_telegram_config,
     reload_telegram_config,
 )
 from core.exceptions import ConfigValidationError

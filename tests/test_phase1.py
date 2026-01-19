@@ -8,13 +8,13 @@ import os
 import sys
 import tempfile
 import shutil
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 # 프로젝트 루트 디렉토리를 Python 경로에 추가
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.watchlist.stock_screener import StockScreener
-from core.watchlist.watchlist_manager import WatchlistManager, WatchlistStock
+from core.watchlist.watchlist_manager import WatchlistManager
 from core.watchlist.evaluation_engine import EvaluationEngine, EvaluationWeights, MarketCondition
 
 class TestStockScreener(unittest.TestCase):

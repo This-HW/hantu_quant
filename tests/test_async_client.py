@@ -14,7 +14,6 @@ import asyncio
 from unittest.mock import MagicMock, AsyncMock, patch
 from pathlib import Path
 import sys
-import time
 from dataclasses import asdict
 
 # 프로젝트 루트 추가
@@ -26,8 +25,6 @@ from core.api.async_client import (
     BatchResult,
     AsyncKISClient,
     get_prices_sync,
-    get_price_sync,
-    get_prices_async,
     AIOHTTP_AVAILABLE,
 )
 

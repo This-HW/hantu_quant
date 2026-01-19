@@ -25,7 +25,7 @@ OpenAI Gymnasium 호환 트레이딩 환경
 
 import logging
 from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 import numpy as np
 import pandas as pd

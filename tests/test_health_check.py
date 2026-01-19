@@ -10,12 +10,11 @@
 
 import pytest
 import asyncio
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock
 from pathlib import Path
 import sys
 import time
 import tempfile
-import os
 
 # 프로젝트 루트 추가
 project_root = Path(__file__).parent.parent

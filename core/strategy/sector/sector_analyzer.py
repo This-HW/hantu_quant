@@ -7,8 +7,7 @@
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from dataclasses import dataclass
 import logging
 
 from .sector_map import Sector, SectorMap

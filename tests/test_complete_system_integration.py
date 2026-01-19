@@ -5,14 +5,8 @@
 Phase 3(자동 매매)는 보류 상태로 제외
 """
 
-import pytest
-import tempfile
-import shutil
 import os
-import time
-import json
-from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
+from datetime import datetime
 import numpy as np
 
 def test_phase1_watchlist_system():
@@ -23,7 +17,6 @@ def test_phase1_watchlist_system():
         # Phase 1 import 테스트
         from core.watchlist.stock_screener import StockScreener
         from core.watchlist.watchlist_manager import WatchlistManager
-        from core.watchlist.evaluation_engine import EvaluationEngine
         
         print("✅ Phase 1 모듈 import 성공")
         
@@ -70,7 +63,6 @@ def test_phase2_daily_selection_system():
     
     try:
         # Phase 2 import 테스트
-        from core.daily_selection.daily_updater import DailyUpdater
         from core.daily_selection.price_analyzer import PriceAnalyzer
         from core.daily_selection.selection_criteria import SelectionCriteria, MarketCondition
 

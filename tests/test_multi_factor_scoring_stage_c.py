@@ -5,7 +5,6 @@ C단계: 멀티 팩터 스코어링 테스트
 """
 
 import sys
-import os
 import json
 from pathlib import Path
 import numpy as np

@@ -7,7 +7,6 @@ KellyCalculator, PositionSizer, CorrelationMatrix, DrawdownMonitor 테스트
 import pytest
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
 
 from core.risk.position import (
     KellyCalculator, KellyConfig, KellyResult,
@@ -20,7 +19,7 @@ from core.risk.correlation import (
 )
 from core.risk.drawdown import (
     DrawdownMonitor, DrawdownStatus, DrawdownConfig,
-    CircuitBreaker, BreakerStatus, BreakerConfig,
+    CircuitBreaker, BreakerConfig,
     PositionReducer, ReductionPlan
 )
 from core.risk.drawdown.drawdown_monitor import AlertLevel

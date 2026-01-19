@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Optional
 from abc import abstractmethod
 
 from ..interfaces.events import IEventHandler, IEvent, EventType
-from .types import EventPriority, is_high_priority
+from .types import EventPriority
 
 logger = logging.getLogger(__name__)
 

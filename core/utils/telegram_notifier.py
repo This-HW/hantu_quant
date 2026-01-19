@@ -9,7 +9,7 @@ import requests
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, List
+from typing import Dict
 
 # 성과 지표 계산 모듈 import
 try:

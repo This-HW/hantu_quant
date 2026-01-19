@@ -83,3 +83,4 @@ data/
 web-interface/dist/
 web-interface/node_modules/
 
+.claude-backup/

@@ -5,12 +5,10 @@ Phase 4: AI 학습 시스템 - 예측 엔진
 """
 
 import numpy as np
-import pandas as pd
-from typing import Dict, List, Optional, Tuple, Any
-from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Any
+from datetime import datetime
 import json
 from dataclasses import dataclass, asdict
-from pathlib import Path
 
 from core.utils.log_utils import get_logger
 from core.learning.features.feature_selector import FeatureSelector

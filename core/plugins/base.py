@@ -7,18 +7,17 @@ BasePlugin 클래스 구현
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List, Type, Union
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 import threading
-import weakref
 
 from core.interfaces.plugins import IPlugin, PluginMetadata, PluginState
 from core.plugins.exceptions import (
-    PluginException, PluginInitializationError, PluginStartError,
-    PluginStopError, PluginStateError, PluginConfigurationError
+    PluginInitializationError, PluginStartError,
+    PluginStopError, PluginStateError
 )
 from core.events.bus import EventBus
-from core.di.injector import inject, DependencyInjector
+from core.di.injector import DependencyInjector
 
 
 class BasePlugin(IPlugin, ABC):
@@ -79,7 +78,7 @@ class BasePlugin(IPlugin, ABC):
         try:
             # 이벤트 버스 주입
             self._event_bus = DependencyInjector.get_instance().get_service(EventBus)
-        except Exception as e:
+        except Exception:
             # 이벤트 버스가 없는 경우 무시
             pass
     

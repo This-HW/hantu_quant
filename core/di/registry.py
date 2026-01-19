@@ -4,13 +4,12 @@
 이 모듈은 서비스 등록과 관리를 위한 중앙 집중식 레지스트리를 제공합니다.
 """
 
-from typing import Type, Dict, List, Optional, Callable, Any, Set
+from typing import Type, Dict, List, Optional, Callable, Set
 import threading
 from dataclasses import dataclass
 from .lifetime import ServiceLifetime, Lifetime, create_lifetime, LifetimeManager
 from .exceptions import (
     ServiceRegistrationException, 
-    ServiceNotRegisteredException,
     CircularDependencyException,
     InvalidServiceTypeException
 )

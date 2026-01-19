@@ -15,7 +15,6 @@ import os
 import json
 import tempfile
 from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime
 
 from core.notification.telegram_bot import (
     TelegramNotifier,
@@ -25,12 +24,9 @@ from core.notification.telegram_bot import (
     send_telegram_message,
 )
 from core.notification.alert import Alert, AlertType, AlertLevel
-from core.notification.notifier import NotificationResult
 from core.notification.config_loader import (
     TelegramConfigData,
-    TelegramConfigLoader,
     MessageFormatConfig,
-    RateLimitingConfig,
 )
 from core.utils.log_utils import set_trace_id, clear_trace_id
 

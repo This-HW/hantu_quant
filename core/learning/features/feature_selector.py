@@ -10,10 +10,9 @@ Phase 4 AI 학습 시스템 - 피처 선택 및 중요도 분석 모듈
 
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional
 from dataclasses import dataclass
 from datetime import datetime
-import logging
 import json
 from typing import Any
 

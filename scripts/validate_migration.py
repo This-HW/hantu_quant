@@ -23,11 +23,8 @@ from typing import Dict, List, Optional, Any, Tuple
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from sqlalchemy import create_engine, text, inspect
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text, inspect
 
-from core.database.models import Base
 from core.database.session import DatabaseSession
 from core.utils.log_utils import get_logger
 

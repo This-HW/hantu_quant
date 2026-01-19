@@ -6,13 +6,13 @@
 
 import asyncio
 import logging
-from typing import Dict, List, Optional, Any, Set
+from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 import threading
 import time
 
 from core.interfaces.plugins import (
-    IPluginLifecycleManager, IPlugin, PluginState, PluginMetadata
+    IPluginLifecycleManager, IPlugin, PluginState
 )
 from core.plugins.exceptions import (
     PluginStateError, PluginInitializationError, PluginStartError,
@@ -21,7 +21,7 @@ from core.plugins.exceptions import (
 from core.plugins.events import (
     PluginInitializingEvent, PluginInitializedEvent, PluginStartingEvent,
     PluginStartedEvent, PluginStoppingEvent, PluginStoppedEvent,
-    PluginStateChangedEvent, PluginErrorEvent, PluginPerformanceEvent
+    PluginStateChangedEvent, PluginErrorEvent
 )
 from core.events.bus import EventBus
 from core.di.injector import DependencyInjector

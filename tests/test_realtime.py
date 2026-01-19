@@ -2,16 +2,13 @@
 Real-time data processing system test.
 """
 
-import asyncio
 import pytest
 from datetime import datetime
 from decimal import Decimal
-import json
 
 from core.realtime import DataProcessor, EventHandler
 from core.database.session import DatabaseSession
 from core.database.repository import StockRepository
-from core.database.models import Stock, Price
 from core.utils import get_logger
 
 logger = get_logger(__name__)

@@ -8,9 +8,8 @@
 
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional
 from dataclasses import dataclass
-import logging
 
 from core.utils.log_utils import get_logger
 
