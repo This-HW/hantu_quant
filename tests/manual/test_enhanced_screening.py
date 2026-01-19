@@ -184,7 +184,7 @@ def test_enhanced_screener():
                 score = screener.calculate_enhanced_score(indicators)
                 print(f"  ⭐ 향상된 점수: {score:.1f}/100")
             else:
-                print(f"  ❌ 지표 계산 실패")
+                print("  ❌ 지표 계산 실패")
 
         return True
 

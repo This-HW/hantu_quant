@@ -125,11 +125,11 @@ class TestVolumeData:
         """거래량 급증 판단"""
         # 2배 이상이면 급증
         vol = VolumeData(volume=1000000, avg_volume_20d=400000)
-        assert vol.is_volume_surge == True
+        assert vol.is_volume_surge
 
         # 2배 미만이면 급증 아님
         vol = VolumeData(volume=700000, avg_volume_20d=400000)
-        assert vol.is_volume_surge == False
+        assert not vol.is_volume_surge
 
 
 class TestOHLCVData:
@@ -143,7 +143,7 @@ class TestOHLCVData:
             high=51000,
             low=49000,
             close=50500,
-            volume=1000000
+            volume=1000000,
         )
         assert ohlcv.close == 50500
 
@@ -156,7 +156,7 @@ class TestOHLCVData:
                 high=48000,  # 고가가 저가보다 낮음
                 low=49000,
                 close=50500,
-                volume=1000000
+                volume=1000000,
             )
 
     def test_invalid_high_less_than_open_close(self):
@@ -168,7 +168,7 @@ class TestOHLCVData:
                 high=49000,  # 고가가 시가보다 낮음
                 low=48000,
                 close=49500,
-                volume=1000000
+                volume=1000000,
             )
 
     def test_invalid_low_greater_than_open_close(self):
@@ -180,7 +180,7 @@ class TestOHLCVData:
                 high=51000,
                 low=50500,  # 저가가 시가보다 높음
                 close=50200,
-                volume=1000000
+                volume=1000000,
             )
 
     def test_zero_price_invalid(self):
@@ -192,7 +192,7 @@ class TestOHLCVData:
                 high=51000,
                 low=49000,
                 close=50500,
-                volume=1000000
+                volume=1000000,
             )
 
 
@@ -206,7 +206,7 @@ class TestOrderRequest:
             quantity=10,
             price=70000,
             order_type=OrderType.LIMIT,
-            order_side=OrderSide.BUY
+            order_side=OrderSide.BUY,
         )
         assert order.stock_code == "005930"
         assert order.quantity == 10
@@ -217,7 +217,7 @@ class TestOrderRequest:
             stock_code="005930",
             quantity=10,
             order_type=OrderType.MARKET,
-            order_side=OrderSide.SELL
+            order_side=OrderSide.SELL,
         )
         assert order.price is None
 
@@ -229,7 +229,7 @@ class TestOrderRequest:
                 quantity=10,
                 order_type=OrderType.LIMIT,
                 order_side=OrderSide.BUY,
-                price=None
+                price=None,
             )
 
     def test_invalid_stock_code(self):
@@ -240,7 +240,7 @@ class TestOrderRequest:
                 quantity=10,
                 price=70000,
                 order_type=OrderType.LIMIT,
-                order_side=OrderSide.BUY
+                order_side=OrderSide.BUY,
             )
 
     def test_zero_quantity_invalid(self):
@@ -251,7 +251,7 @@ class TestOrderRequest:
                 quantity=0,
                 price=70000,
                 order_type=OrderType.LIMIT,
-                order_side=OrderSide.BUY
+                order_side=OrderSide.BUY,
             )
 
     def test_quantity_limit(self):
@@ -262,7 +262,7 @@ class TestOrderRequest:
                 quantity=100001,
                 price=70000,
                 order_type=OrderType.LIMIT,
-                order_side=OrderSide.BUY
+                order_side=OrderSide.BUY,
             )
 
     def test_price_limit(self):
@@ -273,7 +273,7 @@ class TestOrderRequest:
                 quantity=10,
                 price=100_000_001,
                 order_type=OrderType.LIMIT,
-                order_side=OrderSide.BUY
+                order_side=OrderSide.BUY,
             )
 
 
@@ -287,7 +287,7 @@ class TestPositionData:
             stock_name="삼성전자",
             quantity=100,
             avg_price=70000,
-            current_price=75000
+            current_price=75000,
         )
         assert pos.quantity == 100
         # 수익률 자동 계산: (75000-70000)/70000 * 100 = 7.14%
@@ -296,10 +296,7 @@ class TestPositionData:
     def test_profit_calculation(self):
         """수익률/수익금 자동 계산"""
         pos = PositionData(
-            stock_code="005930",
-            quantity=100,
-            avg_price=10000,
-            current_price=12000
+            stock_code="005930", quantity=100, avg_price=10000, current_price=12000
         )
         # 수익률: 20%
         assert abs(pos.profit_rate - 20.0) < 0.1
@@ -310,10 +307,7 @@ class TestPositionData:
         """무효한 종목코드"""
         with pytest.raises(ValidationError):
             PositionData(
-                stock_code="ABCDEF",
-                quantity=100,
-                avg_price=70000,
-                current_price=75000
+                stock_code="ABCDEF", quantity=100, avg_price=70000, current_price=75000
             )
 
 
@@ -331,9 +325,9 @@ class TestTradeResult:
             executed_quantity=100,
             requested_price=70000,
             executed_price=70000,
-            status="executed"
+            status="executed",
         )
-        assert result.is_fully_executed == True
+        assert result.is_fully_executed
         assert result.fill_rate == 100.0
 
     def test_partial_execution(self):
@@ -345,9 +339,9 @@ class TestTradeResult:
             order_type=OrderType.LIMIT,
             requested_quantity=100,
             executed_quantity=50,
-            status="partial"
+            status="partial",
         )
-        assert result.is_fully_executed == False
+        assert not result.is_fully_executed
         assert result.fill_rate == 50.0
 
     def test_invalid_status(self):
@@ -360,7 +354,7 @@ class TestTradeResult:
                 order_type=OrderType.LIMIT,
                 requested_quantity=100,
                 executed_quantity=0,
-                status="invalid_status"
+                status="invalid_status",
             )
 
 
@@ -369,31 +363,52 @@ class TestConvenienceFunctions:
 
     def test_validate_stock_code_valid(self):
         """유효 종목코드 검증"""
-        assert validate_stock_code("005930") == True
-        assert validate_stock_code("000660") == True
+        assert validate_stock_code("005930")
+        assert validate_stock_code("000660")
 
     def test_validate_stock_code_invalid(self):
         """무효 종목코드 검증"""
-        assert validate_stock_code("12345") == False
-        assert validate_stock_code("ABCDEF") == False
+        assert not validate_stock_code("12345")
+        assert not validate_stock_code("ABCDEF")
 
     def test_validate_price_valid(self):
         """유효 가격 검증"""
-        assert validate_price(50000) == True
-        assert validate_price(50000, 15.0) == True
+        assert validate_price(50000)
+        assert validate_price(50000, 15.0)
 
     def test_validate_price_invalid(self):
         """무효 가격 검증"""
-        assert validate_price(0) == False
-        assert validate_price(-1000) == False
-        assert validate_price(50000, 35.0) == False
+        assert not validate_price(0)
+        assert not validate_price(-1000)
+        assert not validate_price(50000, 35.0)
 
     def test_parse_ohlcv_list(self):
         """OHLCV 리스트 파싱"""
         data_list = [
-            {"date": "2024-01-15", "open": 50000, "high": 51000, "low": 49000, "close": 50500, "volume": 1000000},
-            {"date": "2024-01-16", "open": 50500, "high": 52000, "low": 50000, "close": 51500, "volume": 1200000},
-            {"date": "invalid", "open": 0, "high": 0, "low": 0, "close": 0, "volume": 0},  # 무효 데이터
+            {
+                "date": "2024-01-15",
+                "open": 50000,
+                "high": 51000,
+                "low": 49000,
+                "close": 50500,
+                "volume": 1000000,
+            },
+            {
+                "date": "2024-01-16",
+                "open": 50500,
+                "high": 52000,
+                "low": 50000,
+                "close": 51500,
+                "volume": 1200000,
+            },
+            {
+                "date": "invalid",
+                "open": 0,
+                "high": 0,
+                "low": 0,
+                "close": 0,
+                "volume": 0,
+            },  # 무효 데이터
         ]
 
         result = parse_ohlcv_list(data_list)
@@ -409,7 +424,7 @@ class TestConvenienceFunctions:
             quantity=10,
             side="buy",
             order_type="limit",
-            price=70000
+            price=70000,
         )
 
         assert order.stock_code == "005930"
@@ -423,7 +438,7 @@ class TestConvenienceFunctions:
                 quantity=10,
                 side="buy",
                 order_type="limit",
-                price=70000
+                price=70000,
             )
 
 

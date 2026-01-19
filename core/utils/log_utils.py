@@ -94,11 +94,11 @@ class SensitiveDataFilter(logging.Filter):
         for field in self.fields:
             # JSON 패턴 (예: "access_token": "abcdefg")
             pattern1 = fr'["\']({field})["\']:\s*["\']([^"\']+)["\']'
-            msg = re.sub(pattern1, fr'"\1": "***MASKED***"', msg, flags=re.IGNORECASE)
+            msg = re.sub(pattern1, r'"\1": "***MASKED***"', msg, flags=re.IGNORECASE)
             
             # 변수 할당 패턴 (예: access_token=abcdefg)
             pattern2 = fr'({field})\s*=\s*["\']?([^"\'\s,\)]+)'
-            msg = re.sub(pattern2, fr'\1=***MASKED***', msg, flags=re.IGNORECASE)
+            msg = re.sub(pattern2, r'\1=***MASKED***', msg, flags=re.IGNORECASE)
             
         return msg
 
@@ -337,10 +337,10 @@ def get_structured_logger(name: str) -> StructuredLogger:
 
 # ========== Context-aware Error Logging (Story 5.2) ==========
 
-import time
-import functools
-from dataclasses import dataclass, field
-from typing import Callable
+import time  # noqa: E402
+import functools  # noqa: E402
+from dataclasses import dataclass, field  # noqa: E402
+from typing import Callable  # noqa: E402
 
 # 현재 ErrorContext를 위한 컨텍스트 변수
 _error_context: ContextVar[Optional['ErrorContext']] = ContextVar('error_context', default=None)
@@ -689,7 +689,7 @@ def log_async_context(
 
 # ========== Distributed Tracing (Story 5.3) ==========
 
-from enum import Enum
+from enum import Enum  # noqa: E402
 
 
 class SpanStatus(Enum):

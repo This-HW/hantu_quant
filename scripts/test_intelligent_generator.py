@@ -45,7 +45,7 @@ def test_feature_engineering_auto_generation():
         else:
             print(f"❌ 파일 없음: {file_path}")
     
-    print(f"\n📊 요약")
+    print("\n📊 요약")
     print(f"- 분석된 파일: {len(target_files)}개")
     print(f"- 생성된 테스트: {len(generated_files)}개")
     
@@ -118,7 +118,7 @@ def test_priority_system_integration():
     
     # 우선순위 기반 다음 작업 추천
     prioritized_todos = priority_manager.get_prioritized_todos()
-    print(f"\n🎯 다음 우선순위 작업:")
+    print("\n🎯 다음 우선순위 작업:")
     for i, todo in enumerate(prioritized_todos[:3], 1):
         status_emoji = {
             "pending": "⏳",
@@ -220,7 +220,7 @@ def demonstrate_intelligent_features():
                 print(f"      - 반환 타입: {func_sig.return_type or '미지정'}")
                 
                 if func_sig.complexity > 5:
-                    print(f"      ⚠️  높은 복잡도 감지 - 추가 테스트 필요")
+                    print("      ⚠️  높은 복잡도 감지 - 추가 테스트 필요")
                 print()
     
     # 엣지 케이스 감지 시연
@@ -248,7 +248,7 @@ if __name__ == "__main__":
         
         print("\n" + "="*80)
         print("🎉 모든 테스트 완료!")
-        print(f"📊 결과 요약:")
+        print("📊 결과 요약:")
         print(f"   - 생성된 테스트: {results['generated_tests']}개")
         print(f"   - 전체 진행률: {results['overall_completion']:.1%}")
         print(f"   - 추천 작업: {len(results['recommendations'])}개")

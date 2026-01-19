@@ -18,22 +18,22 @@ import sys
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy.orm import sessionmaker  # noqa: E402
 
-from core.database.models import (
+from core.database.models import (  # noqa: E402
     Base,
     Stock,
     WatchlistStock,
     DailySelection,
     TradeHistory,
 )
-from core.database.repository import (
+from core.database.repository import (  # noqa: E402
     WatchlistRepository,
     DailySelectionRepository,
     TradeHistoryRepository,
 )
-from core.database.migration import (
+from core.database.migration import (  # noqa: E402
     DataMigrator,
     MigrationResult,
 )

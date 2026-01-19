@@ -233,7 +233,7 @@ print("🔄 실제 투자 데이터 로딩 중...")
 REAL_WATCHLIST = load_real_watchlist()
 REAL_DAILY_SELECTIONS = load_real_daily_selections()
 
-print(f"✅ 실제 투자 데이터 로딩 완료:")
+print("✅ 실제 투자 데이터 로딩 완료:")
 print(f"   - 감시 리스트: {len(REAL_WATCHLIST)}개 종목")
 print(f"   - 일일 선정: {len(REAL_DAILY_SELECTIONS)}개 종목")
 

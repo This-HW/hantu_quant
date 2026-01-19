@@ -281,7 +281,7 @@ class DocumentSynchronizer:
         for todo in completed_todos:
             content += f"- TODO {todo.todo_id}: {todo.description}\n"
             
-        content += f"""
+        content += """
 ## 업데이트된 문서
 - PROJECT_SUMMARY.md
 - .cursor/rules/project-status.mdc  

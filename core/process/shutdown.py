@@ -146,7 +146,7 @@ class GracefulShutdown:
             try:
                 elapsed = time.time() - start_time
                 if elapsed >= self.timeout:
-                    logger.warning(f"Shutdown timeout reached, skipping remaining cleanup")
+                    logger.warning("Shutdown timeout reached, skipping remaining cleanup")
                     break
 
                 logger.debug(f"Executing cleanup: {callback.__name__}")

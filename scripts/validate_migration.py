@@ -23,10 +23,10 @@ from typing import Dict, List, Optional, Any, Tuple
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from sqlalchemy import text, inspect
+from sqlalchemy import text, inspect  # noqa: E402
 
-from core.database.session import DatabaseSession
-from core.utils.log_utils import get_logger
+from core.database.session import DatabaseSession  # noqa: E402
+from core.utils.log_utils import get_logger  # noqa: E402
 
 logger = get_logger(__name__)
 
@@ -262,7 +262,7 @@ class MigrationValidator:
             if missing_cols:
                 result.warnings.append(f"Missing columns in PostgreSQL: {missing_cols}")
 
-            logger.info(f"  ✓ 샘플 데이터 검증 완료")
+            logger.info("  ✓ 샘플 데이터 검증 완료")
         else:
             if not sqlite_samples:
                 result.warnings.append("No sample data from SQLite")
@@ -275,7 +275,7 @@ class MigrationValidator:
         result.warnings.extend(idx_warnings)
 
         if result.passed:
-            logger.info(f"  ✓ 검증 통과")
+            logger.info("  ✓ 검증 통과")
         else:
             logger.warning(f"  ✗ 검증 실패: {result.errors}")
 

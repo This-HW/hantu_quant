@@ -12,7 +12,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.daily_selection.daily_updater import FilteringCriteria
+from core.daily_selection.daily_updater import FilteringCriteria  # noqa: E402
 
 def test_stage_a_criteria():
     """A단계 강화된 기준으로 필터링 테스트"""
@@ -37,7 +37,7 @@ def test_stage_a_criteria():
     # 2. 강화된 기준 로드
     criteria = FilteringCriteria()
 
-    print(f"\n🔧 강화된 기준:")
+    print("\n🔧 강화된 기준:")
     print(f"  • 가격 매력도: {criteria.price_attractiveness}점 이상")
     print(f"  • 리스크 점수: {criteria.risk_score_max}점 이하")
     print(f"  • 신뢰도: {criteria.confidence_min} 이상")
@@ -98,7 +98,7 @@ def test_stage_a_criteria():
     print(f"\n✅ 강화된 기준 적용 후 선정 종목 수: {len(passed_stocks)}개")
     print(f"   (감소율: {(1 - len(passed_stocks)/len(original_stocks))*100:.1f}%)")
 
-    print(f"\n📉 필터링 사유별 통계:")
+    print("\n📉 필터링 사유별 통계:")
     print(f"  • 가격 매력도 미달: {filtered_reasons['price_attractiveness']}개")
     print(f"  • 리스크 점수 초과: {filtered_reasons['risk_score']}개")
     print(f"  • 신뢰도 미달: {filtered_reasons['confidence']}개")
@@ -106,11 +106,11 @@ def test_stage_a_criteria():
     print(f"  • 섹터 제한 초과: {filtered_reasons['sector_limit']}개")
     print(f"  • 전체 제한 도달: {filtered_reasons['total_limit']}개")
 
-    print(f"\n🏢 섹터별 분포:")
+    print("\n🏢 섹터별 분포:")
     for sector, count in sorted(sector_count.items(), key=lambda x: x[1], reverse=True):
         print(f"  • {sector}: {count}개 (최대 {criteria.sector_limit}개)")
 
-    print(f"\n🎯 상위 10개 종목:")
+    print("\n🎯 상위 10개 종목:")
     for i, stock in enumerate(passed_stocks[:10], 1):
         print(f"  {i:2d}. {stock['stock_name']:12s} ({stock['stock_code']}) - "
               f"매력도: {stock['price_attractiveness']:.1f}, "

@@ -16,17 +16,19 @@ logger = logging.getLogger(__name__)
 
 class ExitReason(Enum):
     """청산 사유"""
-    SIGNAL = "signal"          # 신호에 의한 청산
-    STOP_LOSS = "stop_loss"    # 손절
+
+    SIGNAL = "signal"  # 신호에 의한 청산
+    STOP_LOSS = "stop_loss"  # 손절
     TAKE_PROFIT = "take_profit"  # 익절
-    TRAILING = "trailing"      # 트레일링 스탑
-    TIMEOUT = "timeout"        # 보유 기간 만료
-    MANUAL = "manual"          # 수동 청산
+    TRAILING = "trailing"  # 트레일링 스탑
+    TIMEOUT = "timeout"  # 보유 기간 만료
+    MANUAL = "manual"  # 수동 청산
     CIRCUIT_BREAKER = "circuit_breaker"  # 서킷 브레이커
 
 
 class MarketRegime(Enum):
     """시장 레짐"""
+
     BULL = "bull"
     BEAR = "bear"
     RANGE = "range"
@@ -36,6 +38,7 @@ class MarketRegime(Enum):
 @dataclass
 class EntryContext:
     """진입 시점 상태"""
+
     # 기술적 지표
     rsi: float = 50.0
     macd: float = 0.0
@@ -62,66 +65,69 @@ class EntryContext:
 
     def to_dict(self) -> Dict:
         return {
-            'rsi': self.rsi,
-            'macd': self.macd,
-            'macd_signal': self.macd_signal,
-            'bb_position': self.bb_position,
-            'ma_trend': self.ma_trend,
-            'volume_ratio': self.volume_ratio,
-            'signal_source': self.signal_source,
-            'signal_strength': self.signal_strength,
-            'signal_confidence': self.signal_confidence,
-            'agreement_count': self.agreement_count,
-            'market_regime': self.market_regime,
-            'sector_rank': self.sector_rank,
-            'vix_level': self.vix_level,
-            'daily_trend': self.daily_trend,
-            'weekly_trend': self.weekly_trend,
-            'monthly_trend': self.monthly_trend,
+            "rsi": self.rsi,
+            "macd": self.macd,
+            "macd_signal": self.macd_signal,
+            "bb_position": self.bb_position,
+            "ma_trend": self.ma_trend,
+            "volume_ratio": self.volume_ratio,
+            "signal_source": self.signal_source,
+            "signal_strength": self.signal_strength,
+            "signal_confidence": self.signal_confidence,
+            "agreement_count": self.agreement_count,
+            "market_regime": self.market_regime,
+            "sector_rank": self.sector_rank,
+            "vix_level": self.vix_level,
+            "daily_trend": self.daily_trend,
+            "weekly_trend": self.weekly_trend,
+            "monthly_trend": self.monthly_trend,
         }
 
 
 @dataclass
 class ExitContext:
     """청산 시점 상태"""
+
     exit_reason: str = "signal"
     indicators_at_exit: Dict[str, float] = field(default_factory=dict)
     market_regime_at_exit: str = "range"
     max_profit_during: float = 0.0  # 보유 기간 중 최대 수익률
-    max_loss_during: float = 0.0    # 보유 기간 중 최대 손실률
+    max_loss_during: float = 0.0  # 보유 기간 중 최대 손실률
 
     def to_dict(self) -> Dict:
         return {
-            'exit_reason': self.exit_reason,
-            'indicators_at_exit': self.indicators_at_exit,
-            'market_regime_at_exit': self.market_regime_at_exit,
-            'max_profit_during': self.max_profit_during,
-            'max_loss_during': self.max_loss_during,
+            "exit_reason": self.exit_reason,
+            "indicators_at_exit": self.indicators_at_exit,
+            "market_regime_at_exit": self.market_regime_at_exit,
+            "max_profit_during": self.max_profit_during,
+            "max_loss_during": self.max_loss_during,
         }
 
 
 @dataclass
 class TradeLabels:
     """학습용 레이블"""
+
     is_winner: bool = False
     is_big_winner: bool = False  # 5% 이상 수익
-    is_big_loser: bool = False   # 3% 이상 손실
+    is_big_loser: bool = False  # 3% 이상 손실
     exit_optimal: str = "neutral"  # optimal, early, late, neutral
     entry_optimal: str = "neutral"
 
     def to_dict(self) -> Dict:
         return {
-            'is_winner': self.is_winner,
-            'is_big_winner': self.is_big_winner,
-            'is_big_loser': self.is_big_loser,
-            'exit_optimal': self.exit_optimal,
-            'entry_optimal': self.entry_optimal,
+            "is_winner": self.is_winner,
+            "is_big_winner": self.is_big_winner,
+            "is_big_loser": self.is_big_loser,
+            "exit_optimal": self.exit_optimal,
+            "entry_optimal": self.entry_optimal,
         }
 
 
 @dataclass
 class TradeLog:
     """거래 로그"""
+
     trade_id: str
     timestamp: datetime
 
@@ -147,54 +153,55 @@ class TradeLog:
 
     def to_dict(self) -> Dict:
         return {
-            'trade_id': self.trade_id,
-            'timestamp': self.timestamp.isoformat(),
-            'stock_code': self.stock_code,
-            'stock_name': self.stock_name,
-            'direction': self.direction,
-            'entry_price': self.entry_price,
-            'exit_price': self.exit_price,
-            'quantity': self.quantity,
-            'pnl': self.pnl,
-            'pnl_pct': self.pnl_pct,
-            'holding_days': self.holding_days,
-            'entry_context': self.entry_context.to_dict(),
-            'exit_context': self.exit_context.to_dict(),
-            'labels': self.labels.to_dict(),
-            'strategy_name': self.strategy_name,
-            'notes': self.notes,
+            "trade_id": self.trade_id,
+            "timestamp": self.timestamp.isoformat(),
+            "stock_code": self.stock_code,
+            "stock_name": self.stock_name,
+            "direction": self.direction,
+            "entry_price": self.entry_price,
+            "exit_price": self.exit_price,
+            "quantity": self.quantity,
+            "pnl": self.pnl,
+            "pnl_pct": self.pnl_pct,
+            "holding_days": self.holding_days,
+            "entry_context": self.entry_context.to_dict(),
+            "exit_context": self.exit_context.to_dict(),
+            "labels": self.labels.to_dict(),
+            "strategy_name": self.strategy_name,
+            "notes": self.notes,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'TradeLog':
+    def from_dict(cls, data: Dict) -> "TradeLog":
         """딕셔너리에서 TradeLog 생성"""
-        entry_ctx = EntryContext(**data.get('entry_context', {}))
-        exit_ctx = ExitContext(**data.get('exit_context', {}))
-        labels = TradeLabels(**data.get('labels', {}))
+        entry_ctx = EntryContext(**data.get("entry_context", {}))
+        exit_ctx = ExitContext(**data.get("exit_context", {}))
+        labels = TradeLabels(**data.get("labels", {}))
 
         return cls(
-            trade_id=data['trade_id'],
-            timestamp=datetime.fromisoformat(data['timestamp']),
-            stock_code=data['stock_code'],
-            stock_name=data.get('stock_name', ''),
-            direction=data.get('direction', 'buy'),
-            entry_price=data.get('entry_price', 0.0),
-            exit_price=data.get('exit_price', 0.0),
-            quantity=data.get('quantity', 0),
-            pnl=data.get('pnl', 0.0),
-            pnl_pct=data.get('pnl_pct', 0.0),
-            holding_days=data.get('holding_days', 0),
+            trade_id=data["trade_id"],
+            timestamp=datetime.fromisoformat(data["timestamp"]),
+            stock_code=data["stock_code"],
+            stock_name=data.get("stock_name", ""),
+            direction=data.get("direction", "buy"),
+            entry_price=data.get("entry_price", 0.0),
+            exit_price=data.get("exit_price", 0.0),
+            quantity=data.get("quantity", 0),
+            pnl=data.get("pnl", 0.0),
+            pnl_pct=data.get("pnl_pct", 0.0),
+            holding_days=data.get("holding_days", 0),
             entry_context=entry_ctx,
             exit_context=exit_ctx,
             labels=labels,
-            strategy_name=data.get('strategy_name', ''),
-            notes=data.get('notes', ''),
+            strategy_name=data.get("strategy_name", ""),
+            notes=data.get("notes", ""),
         )
 
 
 @dataclass
 class Trade:
     """거래 정보"""
+
     id: str
     stock_code: str
     direction: str
@@ -211,6 +218,7 @@ class Trade:
 @dataclass
 class TradeContext:
     """거래 컨텍스트"""
+
     entry_indicators: Dict[str, float] = field(default_factory=dict)
     exit_indicators: Dict[str, float] = field(default_factory=dict)
     signal_source: List[str] = field(default_factory=list)
@@ -245,10 +253,7 @@ class TradeLogger:
         self._open_trades: Dict[str, Trade] = {}
 
     def log_trade(
-        self,
-        trade: Trade,
-        context: TradeContext,
-        stock_name: str = ""
+        self, trade: Trade, context: TradeContext, stock_name: str = ""
     ) -> TradeLog:
         """
         거래 상세 로그 생성
@@ -263,12 +268,12 @@ class TradeLogger:
         """
         # 진입 컨텍스트
         entry_context = EntryContext(
-            rsi=context.entry_indicators.get('rsi', 50.0),
-            macd=context.entry_indicators.get('macd', 0.0),
-            macd_signal=context.entry_indicators.get('macd_signal', 0.0),
-            bb_position=context.entry_indicators.get('bb_position', 0.5),
-            ma_trend=context.entry_indicators.get('ma_trend', 'neutral'),
-            volume_ratio=context.entry_indicators.get('volume_ratio', 1.0),
+            rsi=context.entry_indicators.get("rsi", 50.0),
+            macd=context.entry_indicators.get("macd", 0.0),
+            macd_signal=context.entry_indicators.get("macd_signal", 0.0),
+            bb_position=context.entry_indicators.get("bb_position", 0.5),
+            ma_trend=context.entry_indicators.get("ma_trend", "neutral"),
+            volume_ratio=context.entry_indicators.get("volume_ratio", 1.0),
             signal_source=context.signal_source,
             signal_strength=context.signal_strength,
             signal_confidence=context.signal_confidence,
@@ -321,8 +326,10 @@ class TradeLogger:
         self._logs.append(log)
         self._save_log(log)
 
-        logger.info(f"Trade logged: {trade.id} - {trade.stock_code} "
-                   f"PnL: {trade.pnl_pct:.2%}")
+        logger.info(
+            f"Trade logged: {trade.id} - {trade.stock_code} "
+            f"PnL: {trade.pnl_pct:.2%}"
+        )
 
         return log
 
@@ -333,7 +340,7 @@ class TradeLogger:
         direction: str,
         entry_price: float,
         quantity: int,
-        context: TradeContext
+        context: TradeContext,
     ) -> Trade:
         """
         진입 기록
@@ -369,7 +376,7 @@ class TradeLogger:
         exit_price: float,
         exit_reason: str,
         context: TradeContext,
-        stock_name: str = ""
+        stock_name: str = "",
     ) -> Optional[TradeLog]:
         """
         청산 기록
@@ -414,7 +421,9 @@ class TradeLogger:
             if context.max_profit_during == 0:
                 return "neutral"
 
-            peak_to_exit = (context.max_profit_during - trade.pnl_pct) / context.max_profit_during
+            peak_to_exit = (
+                context.max_profit_during - trade.pnl_pct
+            ) / context.max_profit_during
 
             if peak_to_exit < 0.1:  # 최고점 대비 10% 이내
                 return "optimal"
@@ -438,12 +447,12 @@ class TradeLogger:
             str: optimal, early, late, neutral
         """
         # MTF 정렬 체크
-        mtf_aligned = (
-            context.daily_trend == context.weekly_trend
-        )
+        mtf_aligned = context.daily_trend == context.weekly_trend
 
         # 신호 일치도 체크
-        strong_signal = context.agreement_count >= 2 and context.signal_confidence >= 0.7
+        strong_signal = (
+            context.agreement_count >= 2 and context.signal_confidence >= 0.7
+        )
 
         if trade.pnl > 0:
             if mtf_aligned and strong_signal:
@@ -465,15 +474,15 @@ class TradeLogger:
 
         try:
             import os
+
             os.makedirs(self.storage_path, exist_ok=True)
 
             file_path = os.path.join(
-                self.storage_path,
-                f"trades_{datetime.now().strftime('%Y%m')}.jsonl"
+                self.storage_path, f"trades_{datetime.now().strftime('%Y%m')}.jsonl"
             )
 
-            with open(file_path, 'a', encoding='utf-8') as f:
-                f.write(json.dumps(log.to_dict(), ensure_ascii=False) + '\n')
+            with open(file_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(log.to_dict(), ensure_ascii=False) + "\n")
 
         except Exception as e:
             logger.error(f"Failed to save trade log: {e}", exc_info=True)
@@ -483,7 +492,7 @@ class TradeLogger:
         stock_code: Optional[str] = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
-        winners_only: bool = False
+        winners_only: bool = False,
     ) -> List[TradeLog]:
         """
         로그 조회
@@ -500,16 +509,16 @@ class TradeLogger:
         logs = self._logs
 
         if stock_code:
-            logs = [l for l in logs if l.stock_code == stock_code]
+            logs = [log for log in logs if log.stock_code == stock_code]
 
         if start_date:
-            logs = [l for l in logs if l.timestamp >= start_date]
+            logs = [log for log in logs if log.timestamp >= start_date]
 
         if end_date:
-            logs = [l for l in logs if l.timestamp <= end_date]
+            logs = [log for log in logs if log.timestamp <= end_date]
 
         if winners_only:
-            logs = [l for l in logs if l.labels.is_winner]
+            logs = [log for log in logs if log.labels.is_winner]
 
         return logs
 
@@ -517,25 +526,29 @@ class TradeLogger:
         """통계 정보"""
         if not self._logs:
             return {
-                'total_trades': 0,
-                'win_rate': 0.0,
-                'avg_pnl_pct': 0.0,
+                "total_trades": 0,
+                "win_rate": 0.0,
+                "avg_pnl_pct": 0.0,
             }
 
-        winners = [l for l in self._logs if l.labels.is_winner]
-        losers = [l for l in self._logs if not l.labels.is_winner]
+        winners = [log for log in self._logs if log.labels.is_winner]
+        losers = [log for log in self._logs if not log.labels.is_winner]
 
         return {
-            'total_trades': len(self._logs),
-            'winners': len(winners),
-            'losers': len(losers),
-            'win_rate': len(winners) / len(self._logs) if self._logs else 0.0,
-            'avg_pnl_pct': sum(l.pnl_pct for l in self._logs) / len(self._logs),
-            'avg_winner_pnl': sum(l.pnl_pct for l in winners) / len(winners) if winners else 0.0,
-            'avg_loser_pnl': sum(l.pnl_pct for l in losers) / len(losers) if losers else 0.0,
-            'big_winners': len([l for l in self._logs if l.labels.is_big_winner]),
-            'big_losers': len([l for l in self._logs if l.labels.is_big_loser]),
-            'open_trades': len(self._open_trades),
+            "total_trades": len(self._logs),
+            "winners": len(winners),
+            "losers": len(losers),
+            "win_rate": len(winners) / len(self._logs) if self._logs else 0.0,
+            "avg_pnl_pct": sum(log.pnl_pct for log in self._logs) / len(self._logs),
+            "avg_winner_pnl": (
+                sum(log.pnl_pct for log in winners) / len(winners) if winners else 0.0
+            ),
+            "avg_loser_pnl": (
+                sum(log.pnl_pct for log in losers) / len(losers) if losers else 0.0
+            ),
+            "big_winners": len([log for log in self._logs if log.labels.is_big_winner]),
+            "big_losers": len([log for log in self._logs if log.labels.is_big_loser]),
+            "open_trades": len(self._open_trades),
         }
 
     def load_logs(self, file_path: str) -> int:
@@ -550,7 +563,7 @@ class TradeLogger:
         """
         loaded = 0
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 for line in f:
                     data = json.loads(line.strip())
                     log = TradeLog.from_dict(data)

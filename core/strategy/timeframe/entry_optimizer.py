@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class CandlePattern(Enum):
     """캔들 패턴"""
+
     HAMMER = "hammer"
     INVERTED_HAMMER = "inverted_hammer"
     ENGULFING_BULL = "engulfing_bull"
@@ -32,6 +33,7 @@ class CandlePattern(Enum):
 @dataclass
 class SupportResistance:
     """지지/저항선 정보"""
+
     support_levels: List[float] = field(default_factory=list)
     resistance_levels: List[float] = field(default_factory=list)
     nearest_support: float = 0.0
@@ -41,18 +43,19 @@ class SupportResistance:
 
     def to_dict(self) -> Dict:
         return {
-            'support_levels': self.support_levels[:3],
-            'resistance_levels': self.resistance_levels[:3],
-            'nearest_support': self.nearest_support,
-            'nearest_resistance': self.nearest_resistance,
-            'support_strength': self.support_strength,
-            'resistance_strength': self.resistance_strength,
+            "support_levels": self.support_levels[:3],
+            "resistance_levels": self.resistance_levels[:3],
+            "nearest_support": self.nearest_support,
+            "nearest_resistance": self.nearest_resistance,
+            "support_strength": self.support_strength,
+            "resistance_strength": self.resistance_strength,
         }
 
 
 @dataclass
 class EntrySignal:
     """진입 신호"""
+
     direction: int = 0  # 1: 롱, -1: 숏, 0: 진입 안함
     entry_price: float = 0.0
     stop_loss: float = 0.0
@@ -76,16 +79,16 @@ class EntrySignal:
 
     def to_dict(self) -> Dict:
         return {
-            'direction': self.direction,
-            'entry_price': self.entry_price,
-            'stop_loss': self.stop_loss,
-            'take_profit': self.take_profit,
-            'position_size_pct': self.position_size_pct,
-            'confidence': self.confidence,
-            'quality_score': self.quality_score,
-            'risk_reward_ratio': self.risk_reward_ratio,
-            'candle_pattern': self.candle_pattern.value,
-            'reasons': self.reasons,
+            "direction": self.direction,
+            "entry_price": self.entry_price,
+            "stop_loss": self.stop_loss,
+            "take_profit": self.take_profit,
+            "position_size_pct": self.position_size_pct,
+            "confidence": self.confidence,
+            "quality_score": self.quality_score,
+            "risk_reward_ratio": self.risk_reward_ratio,
+            "candle_pattern": self.candle_pattern.value,
+            "reasons": self.reasons,
         }
 
 
@@ -101,7 +104,7 @@ class EntryOptimizer:
         atr_period: int = 14,
         sr_lookback: int = 50,
         min_risk_reward: float = 1.5,
-        max_stop_loss_pct: float = 0.05
+        max_stop_loss_pct: float = 0.05,
     ):
         """
         Args:
@@ -119,7 +122,7 @@ class EntryOptimizer:
         self,
         data: pd.DataFrame,
         trend_direction: TrendDirection,
-        alignment_score: float = 0.5
+        alignment_score: float = 0.5,
     ) -> EntrySignal:
         """
         진입 최적화
@@ -135,7 +138,7 @@ class EntryOptimizer:
         if len(data) < self.sr_lookback + 10:
             return EntrySignal()
 
-        current_price = data['close'].iloc[-1]
+        current_price = data["close"].iloc[-1]
 
         # 지지/저항 분석
         sr = self.find_support_resistance(data)
@@ -155,23 +158,23 @@ class EntryOptimizer:
             alignment_score,
             candle_pattern,
             volume_score,
-            support_proximity
+            support_proximity,
         )
 
         # 진입 결정
         if entry_quality < 0.5:
             return EntrySignal(
-                quality_score=entry_quality,
-                reasons=["진입 품질 점수 미달"]
+                quality_score=entry_quality, reasons=["진입 품질 점수 미달"]
             )
 
         # 방향 결정
-        direction = 1 if trend_direction.value > 0 else -1 if trend_direction.value < 0 else 0
+        direction = (
+            1 if trend_direction.value > 0 else -1 if trend_direction.value < 0 else 0
+        )
 
         if direction == 0:
             return EntrySignal(
-                quality_score=entry_quality,
-                reasons=["추세 방향 불명확"]
+                quality_score=entry_quality, reasons=["추세 방향 불명확"]
             )
 
         # 손절/익절 계산
@@ -188,7 +191,7 @@ class EntryOptimizer:
         if risk_reward < self.min_risk_reward:
             return EntrySignal(
                 quality_score=entry_quality,
-                reasons=[f"손익비 미달: {risk_reward:.2f} < {self.min_risk_reward}"]
+                reasons=[f"손익비 미달: {risk_reward:.2f} < {self.min_risk_reward}"],
             )
 
         # 포지션 크기 계산
@@ -208,36 +211,40 @@ class EntryOptimizer:
             confidence=entry_quality,
             quality_score=entry_quality,
             candle_pattern=candle_pattern,
-            reasons=reasons
+            reasons=reasons,
         )
 
     def find_support_resistance(self, data: pd.DataFrame) -> SupportResistance:
         """지지/저항선 탐색"""
-        high = data['high'].iloc[-self.sr_lookback:]
-        low = data['low'].iloc[-self.sr_lookback:]
-        close = data['close'].iloc[-self.sr_lookback:]
-        data['volume'].iloc[-self.sr_lookback:]
+        high = data["high"].iloc[-self.sr_lookback :]
+        low = data["low"].iloc[-self.sr_lookback :]
+        close = data["close"].iloc[-self.sr_lookback :]
+        data["volume"].iloc[-self.sr_lookback :]
 
         current_price = close.iloc[-1]
 
         # 피벗 포인트 기반 지지/저항
-        pivot_highs = self._find_pivot_points(high, 'high')
-        pivot_lows = self._find_pivot_points(low, 'low')
+        pivot_highs = self._find_pivot_points(high, "high")
+        pivot_lows = self._find_pivot_points(low, "low")
 
         # 거래량 가중 레벨 식별
         support_levels = self._cluster_levels(
-            [l for l in pivot_lows if l < current_price],
-            tolerance=current_price * 0.01
+            [level for level in pivot_lows if level < current_price],
+            tolerance=current_price * 0.01,
         )
 
         resistance_levels = self._cluster_levels(
             [h for h in pivot_highs if h > current_price],
-            tolerance=current_price * 0.01
+            tolerance=current_price * 0.01,
         )
 
         # 가장 가까운 레벨
-        nearest_support = max(support_levels) if support_levels else current_price * 0.95
-        nearest_resistance = min(resistance_levels) if resistance_levels else current_price * 1.05
+        nearest_support = (
+            max(support_levels) if support_levels else current_price * 0.95
+        )
+        nearest_resistance = (
+            min(resistance_levels) if resistance_levels else current_price * 1.05
+        )
 
         # 강도 계산 (터치 횟수 기반)
         support_strength = self._calculate_level_strength(data, nearest_support)
@@ -249,7 +256,7 @@ class EntryOptimizer:
             nearest_support=nearest_support,
             nearest_resistance=nearest_resistance,
             support_strength=support_strength,
-            resistance_strength=resistance_strength
+            resistance_strength=resistance_strength,
         )
 
     def detect_candle_pattern(self, data: pd.DataFrame) -> CandlePattern:
@@ -257,13 +264,13 @@ class EntryOptimizer:
         if len(data) < 3:
             return CandlePattern.NONE
 
-        open_price = data['open'].iloc[-1]
-        high = data['high'].iloc[-1]
-        low = data['low'].iloc[-1]
-        close = data['close'].iloc[-1]
+        open_price = data["open"].iloc[-1]
+        high = data["high"].iloc[-1]
+        low = data["low"].iloc[-1]
+        close = data["close"].iloc[-1]
 
-        prev_open = data['open'].iloc[-2]
-        prev_close = data['close'].iloc[-2]
+        prev_open = data["open"].iloc[-2]
+        prev_close = data["close"].iloc[-2]
 
         body = abs(close - open_price)
         upper_shadow = high - max(open_price, close)
@@ -289,42 +296,44 @@ class EntryOptimizer:
 
         # 불리시 인걸핑
         prev_body = abs(prev_close - prev_open)
-        if (prev_close < prev_open and  # 이전이 음봉
-            close > open_price and  # 현재가 양봉
-            body > prev_body and  # 현재 몸통이 더 큼
-            close > prev_open and  # 현재 종가가 이전 시가 위
-            open_price < prev_close):  # 현재 시가가 이전 종가 아래
+        if (
+            prev_close < prev_open
+            and close > open_price  # 이전이 음봉
+            and body > prev_body  # 현재가 양봉
+            and close > prev_open  # 현재 몸통이 더 큼
+            and open_price < prev_close  # 현재 종가가 이전 시가 위
+        ):  # 현재 시가가 이전 종가 아래
             return CandlePattern.ENGULFING_BULL
 
         # 베어리시 인걸핑
-        if (prev_close > prev_open and
-            close < open_price and
-            body > prev_body and
-            close < prev_open and
-            open_price > prev_close):
+        if (
+            prev_close > prev_open
+            and close < open_price
+            and body > prev_body
+            and close < prev_open
+            and open_price > prev_close
+        ):
             return CandlePattern.ENGULFING_BEAR
 
         return CandlePattern.NONE
 
     def _calculate_atr(self, data: pd.DataFrame) -> float:
         """ATR 계산"""
-        high = data['high']
-        low = data['low']
-        close = data['close']
+        high = data["high"]
+        low = data["low"]
+        close = data["close"]
 
-        tr = pd.concat([
-            high - low,
-            abs(high - close.shift(1)),
-            abs(low - close.shift(1))
-        ], axis=1).max(axis=1)
+        tr = pd.concat(
+            [high - low, abs(high - close.shift(1)), abs(low - close.shift(1))], axis=1
+        ).max(axis=1)
 
         atr = tr.rolling(self.atr_period).mean().iloc[-1]
         return atr
 
     def _calculate_volume_score(self, data: pd.DataFrame) -> float:
         """거래량 점수 계산"""
-        volume = data['volume']
-        close = data['close']
+        volume = data["volume"]
+        close = data["close"]
 
         # 거래량 이동평균
         vol_ma = volume.rolling(20).mean()
@@ -347,9 +356,7 @@ class EntryOptimizer:
         return score
 
     def _calculate_support_proximity(
-        self,
-        current_price: float,
-        sr: SupportResistance
+        self, current_price: float, sr: SupportResistance
     ) -> float:
         """지지선 접근도 점수"""
         if sr.nearest_support == 0:
@@ -374,7 +381,7 @@ class EntryOptimizer:
         alignment_score: float,
         candle_pattern: CandlePattern,
         volume_score: float,
-        support_proximity: float
+        support_proximity: float,
     ) -> float:
         """진입 품질 점수 계산"""
         score = 0.0
@@ -394,12 +401,12 @@ class EntryOptimizer:
         bullish_patterns = [
             CandlePattern.HAMMER,
             CandlePattern.ENGULFING_BULL,
-            CandlePattern.MORNING_STAR
+            CandlePattern.MORNING_STAR,
         ]
         bearish_patterns = [
             CandlePattern.INVERTED_HAMMER,
             CandlePattern.ENGULFING_BEAR,
-            CandlePattern.EVENING_STAR
+            CandlePattern.EVENING_STAR,
         ]
 
         if candle_pattern in bullish_patterns and trend_direction.value > 0:
@@ -420,11 +427,7 @@ class EntryOptimizer:
         return min(1.0, score)
 
     def _calculate_risk_levels(
-        self,
-        entry_price: float,
-        direction: int,
-        atr: float,
-        sr: SupportResistance
+        self, entry_price: float, direction: int, atr: float, sr: SupportResistance
     ) -> Tuple[float, float]:
         """손절/익절 레벨 계산"""
         # ATR 기반 손절
@@ -445,10 +448,7 @@ class EntryOptimizer:
             risk = entry_price - stop_loss
             min_reward = risk * self.min_risk_reward
 
-            take_profit = max(
-                sr.nearest_resistance * 0.99,
-                entry_price + min_reward
-            )
+            take_profit = max(sr.nearest_resistance * 0.99, entry_price + min_reward)
 
         else:  # 숏
             stop_by_atr = entry_price + atr_stop
@@ -462,17 +462,12 @@ class EntryOptimizer:
             risk = stop_loss - entry_price
             min_reward = risk * self.min_risk_reward
 
-            take_profit = min(
-                sr.nearest_support * 1.01,
-                entry_price - min_reward
-            )
+            take_profit = min(sr.nearest_support * 1.01, entry_price - min_reward)
 
         return stop_loss, take_profit
 
     def _calculate_position_size(
-        self,
-        entry_quality: float,
-        alignment_score: float
+        self, entry_quality: float, alignment_score: float
     ) -> float:
         """포지션 크기 비율 계산 (0.0 ~ 1.0)"""
         # 기본 크기
@@ -489,29 +484,22 @@ class EntryOptimizer:
         return min(1.0, max(0.1, size))
 
     def _find_pivot_points(
-        self,
-        series: pd.Series,
-        pivot_type: str,
-        window: int = 5
+        self, series: pd.Series, pivot_type: str, window: int = 5
     ) -> List[float]:
         """피벗 포인트 찾기"""
         pivots = []
 
         for i in range(window, len(series) - window):
-            if pivot_type == 'high':
-                if series.iloc[i] == series.iloc[i - window:i + window + 1].max():
+            if pivot_type == "high":
+                if series.iloc[i] == series.iloc[i - window : i + window + 1].max():
                     pivots.append(series.iloc[i])
             else:
-                if series.iloc[i] == series.iloc[i - window:i + window + 1].min():
+                if series.iloc[i] == series.iloc[i - window : i + window + 1].min():
                     pivots.append(series.iloc[i])
 
         return pivots
 
-    def _cluster_levels(
-        self,
-        levels: List[float],
-        tolerance: float
-    ) -> List[float]:
+    def _cluster_levels(self, levels: List[float], tolerance: float) -> List[float]:
         """비슷한 레벨 클러스터링"""
         if not levels:
             return []
@@ -528,17 +516,13 @@ class EntryOptimizer:
         # 각 클러스터의 평균 반환
         return [np.mean(cluster) for cluster in clusters]
 
-    def _calculate_level_strength(
-        self,
-        data: pd.DataFrame,
-        level: float
-    ) -> float:
+    def _calculate_level_strength(self, data: pd.DataFrame, level: float) -> float:
         """레벨 강도 계산 (터치 횟수 기반)"""
         tolerance = level * 0.01  # 1% 오차 허용
 
-        close = data['close'].iloc[-self.sr_lookback:]
-        low = data['low'].iloc[-self.sr_lookback:]
-        high = data['high'].iloc[-self.sr_lookback:]
+        close = data["close"].iloc[-self.sr_lookback :]
+        low = data["low"].iloc[-self.sr_lookback :]
+        high = data["high"].iloc[-self.sr_lookback :]
 
         # 해당 레벨 근처 터치 횟수
         touches = 0
@@ -556,7 +540,7 @@ class EntryOptimizer:
         trend_direction: TrendDirection,
         candle_pattern: CandlePattern,
         volume_score: float,
-        support_proximity: float
+        support_proximity: float,
     ) -> List[str]:
         """진입 이유 생성"""
         reasons = []

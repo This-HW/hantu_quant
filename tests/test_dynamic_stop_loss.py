@@ -23,7 +23,9 @@ from core.trading.dynamic_stop_loss import (
 )
 
 
-def create_sample_ohlcv(days: int = 30, base_price: int = 50000, volatility: float = 0.02) -> pd.DataFrame:
+def create_sample_ohlcv(
+    days: int = 30, base_price: int = 50000, volatility: float = 0.02
+) -> pd.DataFrame:
     """테스트용 OHLCV 데이터 생성"""
     np.random.seed(42)
     dates = [datetime.now() - timedelta(days=i) for i in range(days, 0, -1)]
@@ -34,12 +36,12 @@ def create_sample_ohlcv(days: int = 30, base_price: int = 50000, volatility: flo
         prices.append(int(prices[-1] * (1 + change)))
 
     data = {
-        'date': dates,
-        'open': prices,
-        'high': [int(p * (1 + np.random.uniform(0, 0.02))) for p in prices],
-        'low': [int(p * (1 - np.random.uniform(0, 0.02))) for p in prices],
-        'close': prices,
-        'volume': [np.random.randint(100000, 1000000) for _ in range(days)]
+        "date": dates,
+        "open": prices,
+        "high": [int(p * (1 + np.random.uniform(0, 0.02))) for p in prices],
+        "low": [int(p * (1 - np.random.uniform(0, 0.02))) for p in prices],
+        "close": prices,
+        "volume": [np.random.randint(100000, 1000000) for _ in range(days)],
     }
 
     return pd.DataFrame(data)
@@ -108,9 +110,7 @@ class TestDynamicStopCalculation:
         """기본 손절/익절 계산"""
         df = create_sample_ohlcv(days=30)
         calculator = DynamicStopLossCalculator(
-            atr_period=14,
-            stop_multiplier=2.0,
-            profit_multiplier=3.0
+            atr_period=14, stop_multiplier=2.0, profit_multiplier=3.0
         )
         entry_price = 50000
 
@@ -144,8 +144,7 @@ class TestDynamicStopCalculation:
         """손익비 계산 테스트"""
         df = create_sample_ohlcv(days=30)
         calculator = DynamicStopLossCalculator(
-            stop_multiplier=2.0,
-            profit_multiplier=3.0  # 기대 손익비 = 3/2 = 1.5
+            stop_multiplier=2.0, profit_multiplier=3.0  # 기대 손익비 = 3/2 = 1.5
         )
 
         result = calculator.get_stops(50000, df)
@@ -161,14 +160,14 @@ class TestDynamicStopCalculation:
 
         result_default = calculator.get_stops(entry_price, df)
         result_custom = calculator.get_stops(
-            entry_price, df,
-            custom_stop_mult=1.5,
-            custom_profit_mult=4.0
+            entry_price, df, custom_stop_mult=1.5, custom_profit_mult=4.0
         )
 
         # 커스텀 배수로 다른 결과 생성
-        assert result_default.stop_loss != result_custom.stop_loss or \
-               result_default.take_profit != result_custom.take_profit
+        assert (
+            result_default.stop_loss != result_custom.stop_loss
+            or result_default.take_profit != result_custom.take_profit
+        )
 
 
 class TestStopLossLimits:
@@ -179,8 +178,7 @@ class TestStopLossLimits:
         # 매우 낮은 변동성으로 작은 ATR 생성
         df = create_sample_ohlcv(days=30, volatility=0.001)
         calculator = DynamicStopLossCalculator(
-            min_stop_pct=0.02,  # 최소 2%
-            stop_multiplier=1.0  # 낮은 배수
+            min_stop_pct=0.02, stop_multiplier=1.0  # 최소 2%  # 낮은 배수
         )
         entry_price = 50000
 
@@ -195,8 +193,7 @@ class TestStopLossLimits:
         # 매우 높은 변동성으로 큰 ATR 생성
         df = create_sample_ohlcv(days=30, volatility=0.10)  # 10% 변동성
         calculator = DynamicStopLossCalculator(
-            max_stop_pct=0.10,  # 최대 10%
-            stop_multiplier=5.0  # 높은 배수
+            max_stop_pct=0.10, stop_multiplier=5.0  # 최대 10%  # 높은 배수
         )
         entry_price = 50000
 
@@ -222,7 +219,7 @@ class TestTrailingStop:
         assert state.entry_price == 50000
         assert state.highest_price == 50000
         assert state.current_stop == state.initial_stop
-        assert state.is_activated == False
+        assert not state.is_activated
 
     def test_trailing_stop_activation(self):
         """트레일링 스탑 활성화 테스트"""
@@ -230,26 +227,27 @@ class TestTrailingStop:
         calculator = DynamicStopLossCalculator()
 
         calculator.init_trailing_stop(
-            "005930", 50000, df,
-            activation_threshold=0.02  # 2% 수익 시 활성화
+            "005930", 50000, df, activation_threshold=0.02  # 2% 수익 시 활성화
         )
 
         # 2% 미만 상승 - 아직 비활성화
         new_stop, triggered = calculator.update_trailing_stop("005930", 50500)
         state = calculator.get_trailing_state("005930")
-        assert state.is_activated == False
+        assert not state.is_activated
 
         # 2% 이상 상승 - 활성화
         new_stop, triggered = calculator.update_trailing_stop("005930", 51000)
         state = calculator.get_trailing_state("005930")
-        assert state.is_activated == True
+        assert state.is_activated
 
     def test_trailing_stop_adjustment(self):
         """트레일링 스탑 조정 테스트"""
         df = create_sample_ohlcv(days=30)
         calculator = DynamicStopLossCalculator(trailing_multiplier=1.5)
 
-        state = calculator.init_trailing_stop("005930", 50000, df, activation_threshold=0.01)
+        state = calculator.init_trailing_stop(
+            "005930", 50000, df, activation_threshold=0.01
+        )
         initial_stop = state.current_stop
 
         # 활성화 후 신고가 갱신
@@ -267,13 +265,15 @@ class TestTrailingStop:
         df = create_sample_ohlcv(days=30, volatility=0.01)  # 낮은 변동성
         calculator = DynamicStopLossCalculator(trailing_multiplier=1.0)
 
-        state = calculator.init_trailing_stop("005930", 50000, df, activation_threshold=0.01)
+        state = calculator.init_trailing_stop(
+            "005930", 50000, df, activation_threshold=0.01
+        )
 
         # 손절가 아래로 하락
         trigger_price = state.current_stop - 100
         new_stop, triggered = calculator.update_trailing_stop("005930", trigger_price)
 
-        assert triggered == True
+        assert triggered
 
     def test_trailing_stop_never_goes_down(self):
         """트레일링 손절가는 내려가지 않음"""
@@ -303,7 +303,7 @@ class TestTrailingStop:
         assert calculator.get_trailing_state("005930") is not None
 
         result = calculator.remove_trailing_state("005930")
-        assert result == True
+        assert result
         assert calculator.get_trailing_state("005930") is None
 
 
@@ -315,11 +315,11 @@ class TestMarketAdjustedMultipliers:
         calculator = DynamicStopLossCalculator()
 
         configs = {
-            'very_low': (1.5, 2.5, 1.0),
-            'low': (1.8, 2.8, 1.2),
-            'normal': (2.0, 3.0, 1.5),
-            'high': (2.5, 3.5, 2.0),
-            'very_high': (3.0, 4.0, 2.5),
+            "very_low": (1.5, 2.5, 1.0),
+            "low": (1.8, 2.8, 1.2),
+            "normal": (2.0, 3.0, 1.5),
+            "high": (2.5, 3.5, 2.0),
+            "very_high": (3.0, 4.0, 2.5),
         }
 
         for volatility, expected in configs.items():
@@ -330,8 +330,8 @@ class TestMarketAdjustedMultipliers:
         """고변동성 시장에서 더 넓은 손절"""
         calculator = DynamicStopLossCalculator()
 
-        normal_mult = calculator.get_market_adjusted_multipliers('normal')
-        high_mult = calculator.get_market_adjusted_multipliers('high')
+        normal_mult = calculator.get_market_adjusted_multipliers("normal")
+        high_mult = calculator.get_market_adjusted_multipliers("high")
 
         # 고변동성에서 더 큰 손절 배수
         assert high_mult[0] > normal_mult[0]
@@ -349,7 +349,7 @@ class TestConvenienceFunctions:
             df=df,
             atr_period=14,
             stop_multiplier=2.0,
-            profit_multiplier=3.0
+            profit_multiplier=3.0,
         )
 
         assert isinstance(result, StopLossResult)

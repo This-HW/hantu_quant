@@ -18,9 +18,7 @@ tests/scratch/ 폴더의 파일을 정리합니다.
 
 import os
 import sys
-import shutil
-from datetime import datetime, timedelta
-from pathlib import Path
+from datetime import datetime
 
 # 공통 유틸리티 import
 try:

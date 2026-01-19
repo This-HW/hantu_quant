@@ -144,7 +144,7 @@ class Phase1Workflow:
                     market = stock.get('market', '미분류')
                     _v_market_stats[market] = _v_market_stats.get(market, 0) + 1
                 
-                print(f"\n=== 시장별 통과 종목 통계 ===")
+                print("\n=== 시장별 통과 종목 통계 ===")
                 for market, count in _v_market_stats.items():
                     print(f"{market}: {count}개")
                 
@@ -250,13 +250,13 @@ class Phase1Workflow:
             
             # 통계 정보 출력
             _v_stats = self.watchlist_manager.get_statistics()
-            print(f"\n=== 통계 정보 ===")
+            print("\n=== 통계 정보 ===")
             print(f"총 종목 수: {_v_stats['total_count']}개")
             print(f"활성 종목: {_v_stats['active_count']}개")
             print(f"평균 점수: {_v_stats.get('avg_score', 0.0):.1f}점")
             
             if _v_stats['sectors']:
-                print(f"섹터별 분포:")
+                print("섹터별 분포:")
                 for sector, count in _v_stats['sectors'].items():
                     print(f"  - {sector}: {count}개")
                     

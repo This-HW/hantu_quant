@@ -21,11 +21,11 @@ from typing import Dict, List, Optional, Any
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from sqlalchemy import text, inspect
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text, inspect  # noqa: E402
+from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
 
-from core.database.session import DatabaseSession
-from core.utils.log_utils import get_logger
+from core.database.session import DatabaseSession  # noqa: E402
+from core.utils.log_utils import get_logger  # noqa: E402
 
 logger = get_logger(__name__)
 
@@ -178,7 +178,7 @@ class PostgresRollback:
         logger.info(f"  현재 레코드 수: {count}")
 
         if count == 0:
-            logger.info(f"  건너뛰기: 데이터 없음")
+            logger.info("  건너뛰기: 데이터 없음")
             return 0
 
         if self.dry_run:
@@ -214,7 +214,7 @@ class PostgresRollback:
             logger.info("SQLite 폴백 모드 비활성화")
             if not self.dry_run and fallback_file.exists():
                 fallback_file.unlink()
-                logger.info(f"  ✓ 폴백 플래그 파일 제거")
+                logger.info("  ✓ 폴백 플래그 파일 제거")
 
     def create_rollback_log(self):
         """롤백 로그 생성"""

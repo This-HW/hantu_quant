@@ -209,7 +209,7 @@ REAL_DAILY_SELECTIONS = load_daily_selections()
 REAL_WATCHLIST = load_watchlist()
 REAL_STOCK_LIST = load_stock_list()
 
-print(f"✅ 실제 데이터 로딩 완료:")
+print("✅ 실제 데이터 로딩 완료:")
 print(f"   - 일일 선정: {len(REAL_DAILY_SELECTIONS)}개 종목")
 print(f"   - 감시 리스트: {len(REAL_WATCHLIST)}개 종목")
 print(f"   - 전체 주식: {len(REAL_STOCK_LIST)}개 종목")
@@ -240,7 +240,7 @@ for i, selection in enumerate(REAL_DAILY_SELECTIONS[:3]):  # 상위 3개 종목�
         id=str(i + 1),
         type="selection_alert",
         severity="medium",
-        title=f"새로운 AI 선정 종목",
+        title="새로운 AI 선정 종목",
         message=f"{selection.stock.name}이 오늘 AI에 의해 선정되었습니다. 기대수익률: {selection.expectedReturn:.1f}%",
         timestamp=datetime.now().isoformat(),
         acknowledged=False
@@ -396,6 +396,6 @@ if __name__ == "__main__":
     host = os.getenv('API_HOST', '127.0.0.1')
     port = int(os.getenv('API_PORT', '8001'))
 
-    print(f"📱 웹 인터페이스: http://localhost:5174")
+    print("📱 웹 인터페이스: http://localhost:5174")
     print(f"🔗 API 문서: http://localhost:{port}/docs")
     uvicorn.run(app, host=host, port=port) 

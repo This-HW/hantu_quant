@@ -23,13 +23,13 @@ from typing import Dict, List, Optional, Tuple, Any
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from sqlalchemy import text
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text  # noqa: E402
+from sqlalchemy.orm import sessionmaker  # noqa: E402
+from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
 
-from core.database.models import Base
-from core.database.session import DatabaseSession
-from core.utils.log_utils import get_logger
+from core.database.models import Base  # noqa: E402
+from core.database.session import DatabaseSession  # noqa: E402
+from core.utils.log_utils import get_logger  # noqa: E402
 
 logger = get_logger(__name__)
 

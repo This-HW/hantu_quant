@@ -33,7 +33,7 @@ class TestPartialResult:
         assert result.success_count == 0
         assert result.fail_count == 0
         assert result.success_rate == 0.0
-        assert result.is_acceptable == False  # 0/0은 0.0 < 0.9
+        assert not result.is_acceptable  # 0/0은 0.0 < 0.9
 
     def test_add_success(self):
         """성공 항목 추가 테스트"""
@@ -46,7 +46,7 @@ class TestPartialResult:
         assert result.total_count == 2
         assert result.fail_count == 0
         assert result.success_rate == 1.0
-        assert result.is_acceptable == True
+        assert result.is_acceptable
 
     def test_add_failure(self):
         """실패 항목 추가 테스트"""
@@ -59,7 +59,7 @@ class TestPartialResult:
         assert result.total_count == 2
         assert result.success_count == 0
         assert result.success_rate == 0.0
-        assert result.is_acceptable == False
+        assert not result.is_acceptable
 
     def test_mixed_results(self):
         """성공/실패 혼합 테스트"""
@@ -74,7 +74,7 @@ class TestPartialResult:
         assert result.success_count == 9
         assert result.fail_count == 1
         assert result.success_rate == 0.9
-        assert result.is_acceptable == True  # 90% >= 90%
+        assert result.is_acceptable  # 90% >= 90%
 
     def test_below_threshold(self):
         """성공률 미달 테스트"""
@@ -87,7 +87,7 @@ class TestPartialResult:
         result.add_failure("fail_2", "실패 이유2")
 
         assert result.success_rate == 0.8
-        assert result.is_acceptable == False  # 80% < 90%
+        assert not result.is_acceptable  # 80% < 90%
 
     def test_custom_min_success_rate(self):
         """커스텀 최소 성공률 테스트"""
@@ -100,7 +100,7 @@ class TestPartialResult:
             result.add_failure(f"fail_{i}", "실패")
 
         assert result.success_rate == 0.6
-        assert result.is_acceptable == True  # 60% >= 50%
+        assert result.is_acceptable  # 60% >= 50%
 
     def test_get_summary(self):
         """결과 요약 테스트"""
@@ -115,7 +115,7 @@ class TestPartialResult:
         assert summary["success_count"] == 1
         assert summary["fail_count"] == 1
         assert summary["success_rate"] == 0.5
-        assert summary["is_acceptable"] == False
+        assert not summary["is_acceptable"]
         assert summary["min_success_rate"] == 0.9
         assert len(summary["failed_items"]) == 1
 
@@ -196,7 +196,7 @@ class TestProcessWithPartialFailure:
         assert result.success_count == 5
         assert result.fail_count == 0
         assert result.successful == [2, 4, 6, 8, 10]
-        assert result.is_acceptable == True
+        assert result.is_acceptable
 
     def test_some_failures(self):
         """일부 실패 테스트"""
@@ -220,7 +220,7 @@ class TestProcessWithPartialFailure:
         assert result.success_count == 4
         assert result.fail_count == 1
         assert result.success_rate == 0.8
-        assert result.is_acceptable == False  # 80% < 90%
+        assert not result.is_acceptable  # 80% < 90%
 
     def test_all_failures(self):
         """모든 항목 실패 테스트"""
@@ -241,7 +241,7 @@ class TestProcessWithPartialFailure:
 
         assert result.success_count == 0
         assert result.fail_count == 3
-        assert result.is_acceptable == False
+        assert not result.is_acceptable
 
     def test_custom_min_success_rate(self):
         """커스텀 최소 성공률 테스트"""
@@ -265,7 +265,7 @@ class TestProcessWithPartialFailure:
         )
 
         assert result.success_rate == 0.6
-        assert result.is_acceptable == True
+        assert result.is_acceptable
 
 
 class TestPartialFailureHandler:
@@ -287,7 +287,7 @@ class TestPartialFailureHandler:
         )
 
         assert result.success_count == 5
-        assert result.is_acceptable == True
+        assert result.is_acceptable
 
     def test_should_continue(self):
         """계속 진행 여부 확인 테스트"""
@@ -297,7 +297,7 @@ class TestPartialFailureHandler:
         result_good = PartialResult[str](min_success_rate=0.9)
         for i in range(10):
             result_good.add_success(str(i))
-        assert handler.should_continue(result_good) == True
+        assert handler.should_continue(result_good)
 
         # 성공률 낮은 경우
         result_bad = PartialResult[str](min_success_rate=0.9)
@@ -305,7 +305,7 @@ class TestPartialFailureHandler:
             result_bad.add_success(str(i))
         for i in range(5):
             result_bad.add_failure(str(i + 5), "실패")
-        assert handler.should_continue(result_bad) == False
+        assert not handler.should_continue(result_bad)
 
 
 class TestEdgeCases:
@@ -317,7 +317,7 @@ class TestEdgeCases:
         result.add_success("only_one")
 
         assert result.success_rate == 1.0
-        assert result.is_acceptable == True
+        assert result.is_acceptable
 
     def test_single_item_failure(self):
         """단일 항목 실패 테스트"""
@@ -325,7 +325,7 @@ class TestEdgeCases:
         result.add_failure("only_one", "실패")
 
         assert result.success_rate == 0.0
-        assert result.is_acceptable == False
+        assert not result.is_acceptable
 
     def test_exact_threshold(self):
         """정확히 임계값에서 테스트"""
@@ -337,7 +337,7 @@ class TestEdgeCases:
         result.add_failure("fail", "실패")
 
         assert result.success_rate == 0.9
-        assert result.is_acceptable == True  # >= 이므로 통과
+        assert result.is_acceptable  # >= 이므로 통과
 
     def test_large_scale(self):
         """대규모 데이터 테스트"""
@@ -351,7 +351,7 @@ class TestEdgeCases:
 
         assert result.total_count == 10000
         assert result.success_rate == 0.95
-        assert result.is_acceptable == True
+        assert result.is_acceptable
 
 
 if __name__ == "__main__":

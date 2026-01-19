@@ -196,7 +196,7 @@ class TelegramNotifier:
                 percentage = (count / total_stocks * 100) if total_stocks > 0 else 0
                 message += f"\n{i}. {sector}: {count}개 ({percentage:.1f}%)"
             
-            message += f"""
+            message += """
 
 🎯 *오늘의 투자 포인트*:
 • 고성장 섹터 집중 모니터링
@@ -337,7 +337,7 @@ class TelegramNotifier:
             status_lines.append(f"• {db_type} 연결: ✅ 정상")
         except Exception as e:
             logger.warning(f"DB 연결 확인 실패: {e}")
-            status_lines.append(f"• DB 연결: ⚠️ 실패 (JSON 폴백 사용)")
+            status_lines.append("• DB 연결: ⚠️ 실패 (JSON 폴백 사용)")
 
         # Watchlist 데이터 소스 확인
         try:
@@ -358,19 +358,19 @@ class TelegramNotifier:
                         # DB에 데이터가 없으면 JSON 확인
                         json_file = Path("data/watchlist/watchlist.json")
                         if json_file.exists():
-                            status_lines.append(f"• Watchlist: ⚠️ JSON 폴백 사용")
+                            status_lines.append("• Watchlist: ⚠️ JSON 폴백 사용")
                         else:
-                            status_lines.append(f"• Watchlist: ❌ 데이터 없음")
+                            status_lines.append("• Watchlist: ❌ 데이터 없음")
             except Exception:
                 json_file = Path("data/watchlist/watchlist.json")
                 if json_file.exists():
-                    status_lines.append(f"• Watchlist: ⚠️ JSON 폴백 사용")
+                    status_lines.append("• Watchlist: ⚠️ JSON 폴백 사용")
                 else:
-                    status_lines.append(f"• Watchlist: ❌ 데이터 없음")
+                    status_lines.append("• Watchlist: ❌ 데이터 없음")
 
         except Exception as e:
             logger.warning(f"Watchlist 상태 확인 실패: {e}")
-            status_lines.append(f"• Watchlist: ❓ 확인 불가")
+            status_lines.append("• Watchlist: ❓ 확인 불가")
 
         return "\n".join(status_lines) if status_lines else "• 상태 확인 불가"
     

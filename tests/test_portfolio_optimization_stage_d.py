@@ -12,8 +12,8 @@ import numpy as np
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.portfolio import get_risk_parity_optimizer, get_sharpe_optimizer
-from core.workflow import get_workflow_state_manager, WorkflowStage, WorkflowStatus
+from core.portfolio import get_risk_parity_optimizer, get_sharpe_optimizer  # noqa: E402
+from core.workflow import get_workflow_state_manager, WorkflowStage, WorkflowStatus  # noqa: E402
 
 
 def test_stage_d_portfolio_optimization():
@@ -60,7 +60,7 @@ def test_stage_d_portfolio_optimization():
 
     try:
         rp_result = risk_parity_optimizer.optimize(selected_stocks)
-        print(f"✅ 리스크 패리티 최적화 완료")
+        print("✅ 리스크 패리티 최적화 완료")
         print(f"   • 기대 수익률: {rp_result.expected_return:.2%}")
         print(f"   • 예상 변동성: {rp_result.expected_volatility:.2%}")
         print(f"   • 샤프 비율: {rp_result.sharpe_ratio:.2f}")
@@ -68,7 +68,7 @@ def test_stage_d_portfolio_optimization():
         print(f"   • 최소 가중치: {min(rp_result.weights):.2%}")
 
         # 상위 5개 가중치 종목
-        print(f"\n   상위 5개 가중치 종목:")
+        print("\n   상위 5개 가중치 종목:")
         sorted_indices = np.argsort(rp_result.weights)[::-1][:5]
         for idx in sorted_indices:
             print(f"   - {selected_stocks[idx]['stock_name']:12s}: {rp_result.weights[idx]:.2%}")
@@ -98,7 +98,7 @@ def test_stage_d_portfolio_optimization():
 
     try:
         sharpe_result = sharpe_optimizer.optimize(selected_stocks)
-        print(f"✅ 샤프 비율 최적화 완료")
+        print("✅ 샤프 비율 최적화 완료")
         print(f"   • 기대 수익률: {sharpe_result.expected_return:.2%}")
         print(f"   • 예상 변동성: {sharpe_result.expected_volatility:.2%}")
         print(f"   • 샤프 비율: {sharpe_result.sharpe_ratio:.2f}")
@@ -106,7 +106,7 @@ def test_stage_d_portfolio_optimization():
         print(f"   • 최소 가중치: {min(sharpe_result.weights):.2%}")
 
         # 상위 5개 가중치 종목
-        print(f"\n   상위 5개 가중치 종목:")
+        print("\n   상위 5개 가중치 종목:")
         sorted_indices = np.argsort(sharpe_result.weights)[::-1][:5]
         for idx in sorted_indices:
             print(f"   - {selected_stocks[idx]['stock_name']:12s}: {sharpe_result.weights[idx]:.2%}")
@@ -193,7 +193,7 @@ def test_stage_d_portfolio_optimization():
     )
 
     print("\n" + "=" * 80)
-    print(f"✅ D단계 완료!")
+    print("✅ D단계 완료!")
     print("=" * 80)
 
     return True

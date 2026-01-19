@@ -51,7 +51,7 @@ def main():
             for i, issue in enumerate(result.issues, 1):
                 print(f"   {i}. {issue}")
         else:
-            print(f"\n✅ 발견된 문제: 없음")
+            print("\n✅ 발견된 문제: 없음")
 
         # 경고사항
         if result.warnings:
@@ -59,11 +59,11 @@ def main():
             for i, warning in enumerate(result.warnings, 1):
                 print(f"   {i}. {warning}")
         else:
-            print(f"\n✅ 경고사항: 없음")
+            print("\n✅ 경고사항: 없음")
 
         # 메트릭 출력
         if result.metrics:
-            print(f"\n📊 시스템 메트릭:")
+            print("\n📊 시스템 메트릭:")
             print("-" * 60)
 
             metrics = result.metrics

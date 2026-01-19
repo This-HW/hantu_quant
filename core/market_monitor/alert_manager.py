@@ -273,7 +273,7 @@ class SystemAlertTelegramNotifier:
                     metrics_lines.append(f"• {key}: {value}")
 
             if metrics_lines:
-                metrics_text = f"\n\n📊 지표:\n" + "\n".join(metrics_lines)
+                metrics_text = "\n\n📊 지표:\n" + "\n".join(metrics_lines)
 
         message = template.format(
             title=title_with_emoji,

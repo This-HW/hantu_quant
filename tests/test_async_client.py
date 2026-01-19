@@ -20,7 +20,7 @@ from dataclasses import asdict
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.api.async_client import (
+from core.api.async_client import (  # noqa: E402
     PriceData,
     BatchResult,
     AsyncKISClient,

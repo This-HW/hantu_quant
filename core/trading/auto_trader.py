@@ -431,7 +431,7 @@ class AutoTrader:
         try:
             from core.utils.telegram_notifier import get_telegram_notifier
             
-            message = f"💰 매도 완료\n"
+            message = "💰 매도 완료\n"
             message += f"종목: {sell_signal.stock_name} ({sell_signal.stock_code})\n"
             message += f"매도사유: {sell_signal.reason}\n"
             message += f"매도비율: {sell_ratio*100:.0f}%\n"

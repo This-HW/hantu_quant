@@ -1122,7 +1122,7 @@ class DailyUpdater(IDailyUpdater):
             # === 1. DB에 저장 시도 ===
             db_saved = self._save_selection_to_db(p_daily_list, _v_selection_date)
             if db_saved:
-                self._logger.info(f"선정 결과 DB 저장 완료")
+                self._logger.info("선정 결과 DB 저장 완료")
                 return True
 
             # === 2. DB 실패 시에만 JSON 폴백 저장 ===

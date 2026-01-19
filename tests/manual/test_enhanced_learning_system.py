@@ -33,7 +33,7 @@ def test_data_synchronizer():
         print("\n🔄 전체 데이터 동기화 실행...")
         sync_results = synchronizer.run_full_sync()
 
-        print(f"📈 동기화 결과:")
+        print("📈 동기화 결과:")
         print(f"   - 스크리닝 동기화: {sync_results.get('screening_synced', 0)}건")
         print(f"   - 선정 동기화: {sync_results.get('selection_synced', 0)}건")
         print(f"   - 성과 업데이트: {sync_results.get('performance_updated', 0)}건")
@@ -47,7 +47,7 @@ def test_data_synchronizer():
 
                 # 테이블별 레코드 수 확인
                 tables = ['screening_history', 'selection_history', 'performance_tracking']
-                print(f"\n💾 데이터베이스 상태:")
+                print("\n💾 데이터베이스 상태:")
 
                 for table in tables:
                     cursor.execute(f"SELECT COUNT(*) FROM {table}")
@@ -331,7 +331,7 @@ def cleanup_test_data():
                 # 여기서는 정리하지 않고 유지
                 pass
 
-        print(f"ℹ️ 테스트 데이터는 향후 시스템에서 활용하도록 유지합니다")
+        print("ℹ️ 테스트 데이터는 향후 시스템에서 활용하도록 유지합니다")
 
     except Exception as e:
         print(f"⚠️ 테스트 데이터 정리 중 오류: {e}")

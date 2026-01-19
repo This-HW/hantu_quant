@@ -61,7 +61,7 @@ class SimpleTelegramSetup:
         
         # 4. 설정 저장
         if self.save_config(bot_token, selected_chat_id):
-            print(f"\n✅ 설정 완료!")
+            print("\n✅ 설정 완료!")
             print(f"   채널: {selected_info['title']}")
             print(f"   ID: {selected_chat_id}")
             
@@ -87,7 +87,7 @@ class SimpleTelegramSetup:
             
             data = response.json()
             if not data.get('ok'):
-                print(f"❌ 봇 토큰이 잘못되었거나 API 오류입니다.")
+                print("❌ 봇 토큰이 잘못되었거나 API 오류입니다.")
                 return {}
             
             updates = data.get('result', [])
@@ -159,7 +159,7 @@ class SimpleTelegramSetup:
                 # 텔레그램 설정 추가
                 if "TELEGRAM_BOT_TOKEN" not in env_content:
                     with open(env_file, 'a') as f:
-                        f.write(f"\n# 텔레그램 알림 설정\n")
+                        f.write("\n# 텔레그램 알림 설정\n")
                         f.write(f"TELEGRAM_BOT_TOKEN={bot_token}\n")
                         f.write(f"TELEGRAM_CHAT_ID={chat_id}\n")
                     print(f"📁 환경 변수 추가: {env_file}")

@@ -165,7 +165,7 @@ class QuantConfig:
 
 
 # 싱글톤 인스턴스 (스레드 안전)
-import threading
+import threading  # noqa: E402
 _quant_config: Optional[QuantConfig] = None
 _quant_config_lock = threading.Lock()
 

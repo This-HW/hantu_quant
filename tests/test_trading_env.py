@@ -21,7 +21,7 @@ import tempfile
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.learning.rl.trading_env import (
+from core.learning.rl.trading_env import (  # noqa: E402
     TradingEnvironment,
     TradingState,
     TradeRecord,
@@ -29,7 +29,7 @@ from core.learning.rl.trading_env import (
     create_sample_env,
     GYMNASIUM_AVAILABLE,
 )
-from core.learning.rl.ppo_agent import (
+from core.learning.rl.ppo_agent import (  # noqa: E402
     PPOConfig,
     PPOAgent,
     TrainingResult,

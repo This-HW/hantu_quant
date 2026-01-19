@@ -413,7 +413,7 @@ class DataSynchronizer:
             fundamental = result.get("fundamental", {})
             details = fundamental.get("details", {})
             return details.get(key, {}).get("value")
-        except:
+        except Exception:
             return None
 
     def sync_selection_results(self, days_back: int = 30) -> int:

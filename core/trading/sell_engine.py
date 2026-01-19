@@ -375,7 +375,7 @@ class SellEngine(ISellEngine):
                 current_price=current_price,
                 entry_price=position.entry_price,
                 current_return=position.current_return,
-                reason=f"볼린저 밴드 반전: 상단 접촉 후 하락",
+                reason="볼린저 밴드 반전: 상단 접촉 후 하락",
                 timestamp=datetime.now().isoformat(),
                 confidence=0.6
             )

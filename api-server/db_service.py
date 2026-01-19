@@ -14,15 +14,15 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.config import settings
-from core.database.models import (
+from core.config import settings  # noqa: E402
+from core.database.models import (  # noqa: E402
     Base,
     Stock as StockModel,
     WatchlistStock,
     DailySelection as DailySelectionModel,
     TradeHistory  # 에러 로그 테이블
 )
-from core.utils import get_logger
+from core.utils import get_logger  # noqa: E402
 
 logger = get_logger(__name__)
 

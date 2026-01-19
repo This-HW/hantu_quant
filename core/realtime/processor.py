@@ -126,7 +126,7 @@ class DataProcessor:
             if not isinstance(data['volume'], int) or data['volume'] < 0:
                 return False
 
-            if not data['type'] in ['BID', 'ASK', 'TRADE']:
+            if data['type'] not in ['BID', 'ASK', 'TRADE']:
                 return False
 
             return True

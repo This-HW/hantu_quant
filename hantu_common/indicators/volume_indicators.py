@@ -217,7 +217,7 @@ class VolumeIndicators:
         try:
             slope, _ = np.polyfit(x, y, 1)
             return slope
-        except:
+        except Exception:
             return 0.0
 
 

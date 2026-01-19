@@ -20,7 +20,7 @@ import sys
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.hedging.futures_hedger import (
+from core.hedging.futures_hedger import (  # noqa: E402
     HedgeConfig,
     HedgePosition,
     HedgeSignal,

@@ -55,7 +55,7 @@ def test_multi_strategy_integration():
         print("✅ 멀티 전략 관리자 로드 성공")
 
         # 전략 목록 확인
-        print(f"\n   등록된 전략:")
+        print("\n   등록된 전략:")
         for strategy_type, config in manager.strategies.items():
             print(f"   - {config.name}: {config.description}")
 

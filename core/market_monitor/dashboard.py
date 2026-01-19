@@ -630,7 +630,7 @@ class MetricsCollector:
 
             return volatility
 
-        except:
+        except Exception:
             return 0.0
 
     def _create_default_metrics(self) -> DashboardMetrics:

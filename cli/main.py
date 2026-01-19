@@ -25,9 +25,9 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-import click
+import click  # noqa: E402
 
-from cli import __version__
+from cli import __version__  # noqa: E402
 
 
 class AliasedGroup(click.Group):
@@ -86,15 +86,15 @@ def cli(ctx: click.Context, version: bool, debug: bool) -> None:
 
 
 # Import and register commands
-from cli.commands.start import start
-from cli.commands.stop import stop
-from cli.commands.status import status
-from cli.commands.trade import trade
-from cli.commands.screen import screen
-from cli.commands.select import select
-from cli.commands.config import config
-from cli.commands.health import health
-from cli.commands.logs import logs
+from cli.commands.start import start  # noqa: E402
+from cli.commands.stop import stop  # noqa: E402
+from cli.commands.status import status  # noqa: E402
+from cli.commands.trade import trade  # noqa: E402
+from cli.commands.screen import screen  # noqa: E402
+from cli.commands.select import select  # noqa: E402
+from cli.commands.config import config  # noqa: E402
+from cli.commands.health import health  # noqa: E402
+from cli.commands.logs import logs  # noqa: E402
 
 cli.add_command(start)
 cli.add_command(stop)

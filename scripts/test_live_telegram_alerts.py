@@ -204,10 +204,10 @@ def test_alert_messages():
         print(f"📤 {i}. {test_case['title']} 전송 중...")
         
         if send_telegram_message(bot_token, chat_id, test_case['message']):
-            print(f"   ✅ 성공!")
+            print("   ✅ 성공!")
             success_count += 1
         else:
-            print(f"   ❌ 실패!")
+            print("   ❌ 실패!")
         
         # 메시지 간 간격 (스팸 방지)
         if i < len(test_cases):

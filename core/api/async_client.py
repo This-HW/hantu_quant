@@ -259,7 +259,7 @@ class AsyncKISClient:
                             if attempt < self.retry_count:
                                 await asyncio.sleep(self.RATE_LIMIT_WAIT_TIME)
                                 continue
-                            return (stock_code, None, f"Rate Limit 초과 (EGW00201)")
+                            return (stock_code, None, "Rate Limit 초과 (EGW00201)")
 
                         # 다른 재시도 가능 에러 처리
                         if self._is_retryable_error(data):
