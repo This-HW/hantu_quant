@@ -14,12 +14,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from core.utils.log_utils import get_logger
 from .session import DatabaseSession
 from .models import (
-    Base, Stock, Price, Indicator, Trade,
-    WatchlistStock, DailySelection, TradeHistory, ErrorLog,
-    FeedbackData, ModelPerformanceHistory,
-    ScreeningResult, SelectionResult,
-    NotificationHistory, SystemAlert,
-    PerformanceTracking, AccuracyTracking
+    Base, FeedbackData, ModelPerformanceHistory,
+    ScreeningResult, SelectionResult
 )
 
 logger = get_logger(__name__)

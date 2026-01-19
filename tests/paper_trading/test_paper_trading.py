@@ -4,26 +4,19 @@
 VirtualPortfolio, OrderExecutor, PositionTracker, PaperTrader를 테스트합니다.
 """
 
-import pytest
-from datetime import datetime, timedelta
 
 from core.paper_trading import (
     VirtualPortfolio,
     PortfolioConfig,
     PortfolioSnapshot,
     OrderExecutor,
-    Order,
     OrderType,
     OrderSide,
     OrderStatus,
-    ExecutionResult,
     PositionTracker,
-    Position,
     PositionStatus,
-    PositionSummary,
     PaperTrader,
     PaperTradingConfig,
-    TradingSession,
 )
 
 

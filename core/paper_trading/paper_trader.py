@@ -10,14 +10,12 @@ from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass, field
 from enum import Enum
 import threading
-import time
-import json
 
-from .virtual_portfolio import VirtualPortfolio, PortfolioConfig, PortfolioSnapshot
+from .virtual_portfolio import VirtualPortfolio, PortfolioConfig
 from .order_executor import (
-    OrderExecutor, Order, OrderType, OrderSide, OrderStatus, ExecutionResult
+    OrderExecutor, OrderType, OrderSide, OrderStatus, ExecutionResult
 )
-from .position_tracker import PositionTracker, Position, PositionSummary
+from .position_tracker import PositionTracker
 
 logger = logging.getLogger(__name__)
 

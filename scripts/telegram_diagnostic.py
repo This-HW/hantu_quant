@@ -16,7 +16,7 @@ from pathlib import Path
 # 프로젝트 루트 디렉토리 추가
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.utils.telegram_notifier import get_telegram_notifier, TelegramNotifier
+from core.utils.telegram_notifier import get_telegram_notifier
 from core.utils.log_utils import get_logger
 
 logger = get_logger(__name__)

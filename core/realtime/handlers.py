@@ -5,9 +5,7 @@ Real-time data event handlers.
 """
 
 from typing import Dict, Any, List, Optional
-import asyncio
-from datetime import datetime, timedelta
-from decimal import Decimal
+from datetime import datetime
 from dataclasses import dataclass, field
 from collections import deque
 import statistics

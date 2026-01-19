@@ -4,7 +4,6 @@
 실제 API 호출을 통해 수정사항이 올바르게 작동하는지 검증
 """
 
-import os
 import sys
 import asyncio
 import logging

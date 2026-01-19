@@ -5,7 +5,7 @@
 """
 
 import sys
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock
 
 # 외부 의존성 모킹 (임포트 전에 실행)
 mock_modules = {

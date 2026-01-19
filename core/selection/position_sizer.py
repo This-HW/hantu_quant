@@ -10,12 +10,11 @@
 
 import pandas as pd
 import numpy as np
-from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 
 from core.utils.log_utils import get_logger
-from core.selection.quant_config import get_quant_config, QuantConfig, PositionSizingConfig
+from core.selection.quant_config import get_quant_config, QuantConfig
 
 logger = get_logger(__name__)
 

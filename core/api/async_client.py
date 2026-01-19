@@ -15,7 +15,7 @@
 
 import asyncio
 import logging
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 import time
@@ -27,7 +27,6 @@ except ImportError:
     AIOHTTP_AVAILABLE = False
 
 from core.config.api_config import APIConfig, KISErrorCode
-from core.config import settings
 
 logger = logging.getLogger(__name__)
 

@@ -12,11 +12,9 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, asdict, field
 from enum import Enum
-import warnings
-from scipy import stats
 
 from ..utils.logging import get_logger
-from .market_monitor import MarketSnapshot, StockSnapshot, MarketStatus
+from .market_monitor import MarketSnapshot
 
 logger = get_logger(__name__)
 

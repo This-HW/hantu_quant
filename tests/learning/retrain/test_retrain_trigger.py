@@ -7,15 +7,11 @@ RetrainTrigger 단위 테스트
 """
 
 import pytest
-from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
 
 from core.learning.retrain.retrain_trigger import (
     RetrainTrigger,
     RetrainReason,
-    RetrainConfig,
-    TriggerCheckResult,
-    get_retrain_trigger
+    RetrainConfig
 )
 
 

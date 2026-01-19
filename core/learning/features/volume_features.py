@@ -14,10 +14,9 @@ Phase 4 AI 학습 시스템 - 볼륨 피처 엔지니어링 모듈
 
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from dataclasses import dataclass
 from datetime import datetime
-import logging
 
 from core.utils.log_utils import get_logger
 from hantu_common.indicators.volume import (

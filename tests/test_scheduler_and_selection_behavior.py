@@ -1,5 +1,3 @@
-import os
-import json
 from datetime import datetime
 
 from core.watchlist.watchlist_manager import WatchlistManager

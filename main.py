@@ -4,15 +4,12 @@ import argparse
 import asyncio
 import logging
 import schedule
-import time
-from datetime import datetime
 
 from core.api.kis_api import KISAPI
 from core.api.krx_client import KRXClient
 from core.trading.auto_trader import AutoTrader
-from hantu_backtest.strategies.momentum import MomentumStrategy as BacktestMomentumStrategy
 from core.strategy.momentum import MomentumStrategy as TradingMomentumStrategy
-from core.config.settings import LOG_LEVEL, LOG_FORMAT
+from core.config.settings import LOG_LEVEL
 from core.utils.log_utils import setup_logging
 
 # 로깅 설정

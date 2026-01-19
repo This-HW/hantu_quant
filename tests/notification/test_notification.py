@@ -4,10 +4,7 @@
 Phase D 알림 시스템의 모든 구성 요소를 테스트합니다.
 """
 
-import pytest
-from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
-import time
+from datetime import datetime
 
 # Alert
 from core.notification.alert import (

@@ -5,7 +5,6 @@ REST API client module.
 import logging
 import os
 import time
-import hashlib
 import requests
 import fcntl
 import tempfile

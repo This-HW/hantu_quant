@@ -8,10 +8,9 @@ Task C.1.4: 변동성 지표 계산
 """
 
 import json
-import numpy as np
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict, field
 
 from core.utils.log_utils import get_logger

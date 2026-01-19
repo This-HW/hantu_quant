@@ -7,7 +7,7 @@ import os
 import re
 import logging
 from pathlib import Path
-from typing import List, Dict, Tuple, Optional
+from typing import List, Tuple, Optional
 import hashlib
 import hmac
 

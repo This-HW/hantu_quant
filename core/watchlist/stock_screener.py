@@ -5,9 +5,8 @@
 - 모멘텀 기반 스크리닝
 """
 
-import logging
 from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
 import os
 import numpy as np
@@ -15,10 +14,9 @@ import pandas as pd
 
 from core.config.api_config import APIConfig
 from core.utils.log_utils import get_logger
-from core.interfaces.trading import IStockScreener, ScreeningResult, TechnicalSignal
+from core.interfaces.trading import IStockScreener, ScreeningResult
 from core.plugins.decorators import plugin
 from core.di.injector import inject
-from hantu_common.indicators.trend import SlopeIndicator
 
 # 새로운 아키텍처 imports - 사용 가능할 때만 import
 try:
@@ -639,7 +637,6 @@ class StockScreener(IStockScreener):
             
             from pathlib import Path
             import json
-            import glob
             
             # 프로젝트 루트 경로 기준으로 절대 경로 생성
             _v_project_root = Path(__file__).parent.parent.parent

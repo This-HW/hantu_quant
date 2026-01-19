@@ -9,7 +9,7 @@ T-5.4.4: Story 5.4 테스트 작성 및 검증
 
 import pytest
 import asyncio
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock
 from datetime import datetime
 
 from core.error_handler import (
@@ -27,9 +27,7 @@ from core.exceptions import (
     HantuQuantException,
     APITimeoutError,
     APIAuthenticationError,
-    OrderExecutionError,
     ErrorSeverity,
-    ErrorCategory,
 )
 from core.utils.log_utils import (
     set_trace_id,

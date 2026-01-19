@@ -4,11 +4,10 @@
 스트리밍 데이터에 대한 효율적인 지표 계산을 제공합니다.
 """
 
-import numpy as np
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 from enum import Enum
 
 from core.utils import get_logger

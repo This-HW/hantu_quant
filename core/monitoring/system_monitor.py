@@ -7,21 +7,17 @@
 """
 
 import json
-import os
 import psutil
-import sqlite3
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict
 from pathlib import Path
-import logging
 import threading
 import time
 
 from ..utils.log_utils import get_logger
 from ..utils.telegram_notifier import get_telegram_notifier
 from ..learning.enhanced_adaptive_system import get_enhanced_adaptive_system
-from ..data_pipeline.data_synchronizer import get_data_synchronizer
 
 logger = get_logger(__name__)
 

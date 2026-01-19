@@ -5,23 +5,17 @@ Features A, B, C, D 전체 통합 테스트
 """
 
 import pytest
-from datetime import datetime
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch, MagicMock
 
 # Feature A: 자동 재학습 파이프라인
-from core.learning.retrain.retrain_trigger import RetrainTrigger, RetrainReason
-from core.learning.retrain.model_retrainer import ModelRetrainer
-from core.learning.retrain.model_swapper import ModelSwapper
-from core.learning.retrain.retrain_history import RetrainHistory, RetrainRecord
+from core.learning.retrain.retrain_trigger import RetrainTrigger
 
 # Feature B: 동적 가중치 시스템
 from core.learning.weights.weight_safety import WeightSafety
 from core.learning.weights.dynamic_weight_calculator import DynamicWeightCalculator
-from core.learning.weights.weight_storage import WeightStorage
-from core.learning.weights.weight_provider import HybridWeightProvider
 
 # Feature C: 시장 레짐 탐지
-from core.learning.regime.market_indicator_collector import MarketIndicatorCollector, MarketIndicators
+from core.learning.regime.market_indicator_collector import MarketIndicators
 from core.learning.regime.regime_detector import RegimeDetector
 from core.daily_selection.selection_criteria import MarketCondition
 from core.learning.regime.regime_strategy_mapper import RegimeStrategyMapper

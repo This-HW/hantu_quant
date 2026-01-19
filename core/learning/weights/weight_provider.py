@@ -5,8 +5,7 @@ Task B.2.3: MultiFactorScorer 동적 가중치 적용을 위한 인터페이스
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Any
-from datetime import datetime
+from typing import Dict, Optional
 
 from core.utils.log_utils import get_logger
 

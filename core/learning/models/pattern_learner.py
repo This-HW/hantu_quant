@@ -5,12 +5,8 @@ Phase 4: AI 학습 시스템 - 패턴 학습 엔진
 """
 
 import numpy as np
-import pandas as pd
-from typing import Dict, List, Optional, Tuple, Any, Union
-from datetime import datetime, timedelta
-import json
-import pickle
-import os
+from typing import Dict, List, Optional, Any
+from datetime import datetime
 from dataclasses import dataclass, asdict
 from pathlib import Path
 

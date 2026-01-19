@@ -13,9 +13,8 @@ from .interfaces import (
     IModuleRegistry, IModuleMetadata, ModuleType, ModuleStatus
 )
 from .exceptions import (
-    ModuleAlreadyRegisteredError, ModuleNotFoundError, ModuleNotRegisteredError,
-    InvalidModuleMetadataError, DependencyError, CircularDependencyError,
-    UnresolvedDependencyError, RegistryLockError
+    ModuleAlreadyRegisteredError, ModuleNotFoundError, InvalidModuleMetadataError, DependencyError, CircularDependencyError,
+    UnresolvedDependencyError
 )
 
 logger = logging.getLogger(__name__)

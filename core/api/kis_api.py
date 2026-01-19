@@ -6,7 +6,6 @@ import logging
 import pandas as pd
 from typing import Dict, List, Optional, Callable
 import asyncio
-import websockets
 
 from .rest_client import KISRestClient
 from .websocket_client import KISWebSocketClient

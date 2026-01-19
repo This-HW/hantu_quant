@@ -15,7 +15,6 @@ import pandas as pd
 from pathlib import Path
 import sys
 import tempfile
-from dataclasses import asdict
 
 # 프로젝트 루트 추가
 project_root = Path(__file__).parent.parent

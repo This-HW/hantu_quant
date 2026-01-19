@@ -4,8 +4,8 @@ Supports both SQLite (local development) and PostgreSQL (production).
 """
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session, Session
-from sqlalchemy.pool import QueuePool, NullPool
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.pool import QueuePool
 from sqlalchemy.exc import SQLAlchemyError
 from contextlib import contextmanager
 import os
@@ -91,7 +91,7 @@ class DatabaseSession:
         try:
             yield session
             session.commit()
-        except Exception as e:
+        except Exception:
             session.rollback()
             raise
         finally:

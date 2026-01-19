@@ -8,10 +8,9 @@ import psutil
 import threading
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Callable
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict, field
 from collections import deque, defaultdict
-import json
 import sqlite3
 from pathlib import Path
 
@@ -307,7 +306,7 @@ class APICallTracker:
         # 통합 DB 초기화 시도
         if use_unified_db:
             try:
-                from ..database.unified_db import get_db, ensure_tables_exist
+                from ..database.unified_db import ensure_tables_exist
                 ensure_tables_exist()
                 self._unified_db_available = True
                 self._logger.info("APICallTracker: 통합 DB 사용")

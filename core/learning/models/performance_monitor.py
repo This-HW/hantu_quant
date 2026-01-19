@@ -5,18 +5,16 @@ AI 모델의 성능을 지속적으로 모니터링하고 성능 저하를 감�
 """
 
 import numpy as np
-import pandas as pd
 import sqlite3
 import json
 import threading
 import time
 import schedule
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict
 from enum import Enum
 from pathlib import Path
-import warnings
 
 from core.utils.log_utils import get_logger
 
@@ -123,7 +121,7 @@ class ModelPerformanceMonitor:
         # 통합 DB 초기화 시도
         if use_unified_db:
             try:
-                from core.database.unified_db import get_db, ensure_tables_exist
+                from core.database.unified_db import ensure_tables_exist
                 ensure_tables_exist()
                 self._unified_db_available = True
                 self._logger.info("ModelPerformanceMonitor: 통합 DB 사용")

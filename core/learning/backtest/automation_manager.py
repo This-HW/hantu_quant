@@ -4,18 +4,16 @@
 전략 변경 감지, 자동 백테스트 실행, 결과 검증 및 승인 프로세스 관리
 """
 
-import os
 import json
 import threading
 import time
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Optional, Any, Callable, Set
 from dataclasses import dataclass, asdict
 from enum import Enum
 from pathlib import Path
 import queue
-import schedule
 
 from ...utils.logging import get_logger
 from .backtest_engine import BacktestEngine, BacktestConfig, BacktestResult

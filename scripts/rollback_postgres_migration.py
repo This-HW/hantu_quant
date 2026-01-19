@@ -12,7 +12,6 @@ PostgreSQL 데이터를 삭제하고 SQLite 폴백을 활성화합니다.
 
 import argparse
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -22,11 +21,9 @@ from typing import Dict, List, Optional, Any
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from sqlalchemy import create_engine, text, inspect
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text, inspect
 from sqlalchemy.exc import SQLAlchemyError
 
-from core.database.models import Base
 from core.database.session import DatabaseSession
 from core.utils.log_utils import get_logger
 

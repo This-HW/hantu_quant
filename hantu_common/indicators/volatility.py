@@ -4,7 +4,7 @@ Volatility indicators module.
 
 import pandas as pd
 import numpy as np
-from typing import Union, Tuple
+from typing import Tuple
 from .base import Indicator
 
 class BollingerBands(Indicator):

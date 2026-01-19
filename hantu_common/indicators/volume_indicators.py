@@ -14,7 +14,7 @@ OBV 다이버전스:
 
 import pandas as pd
 import numpy as np
-from typing import Union, Dict, Optional, Tuple
+from typing import Dict, Optional
 from enum import Enum
 from dataclasses import dataclass, field
 from datetime import datetime

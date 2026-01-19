@@ -2,7 +2,7 @@
 Date utility functions.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 import pandas as pd
 from pandas.tseries.offsets import BDay
 from core.config.trading_config import MARKET_START_TIME, MARKET_END_TIME

@@ -9,11 +9,10 @@ import logging
 import uuid
 from typing import Dict, List, Optional, Set, Any
 from collections import defaultdict, deque
-from datetime import datetime
 import threading
 
 from ..interfaces.events import IEventBus, IEventHandler, IEvent, EventType
-from .types import EventPriority, is_high_priority, is_critical_priority
+from .types import is_high_priority, is_critical_priority
 
 logger = logging.getLogger(__name__)
 

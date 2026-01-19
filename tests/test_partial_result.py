@@ -13,7 +13,6 @@ import pytest
 import os
 import json
 import tempfile
-from datetime import datetime
 
 from core.utils.partial_result import (
     PartialResult,

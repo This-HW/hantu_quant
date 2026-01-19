@@ -10,11 +10,9 @@ import json
 import sqlite3
 import os
 import glob
-from datetime import datetime, timedelta, date as dt_date
-from typing import Dict, List, Optional, Any, Tuple
-from pathlib import Path
-import logging
-from dataclasses import dataclass, asdict
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -89,13 +87,7 @@ class DataSynchronizer:
         # 통합 DB 사용 시도
         if use_unified_db:
             try:
-                from ..database.unified_db import get_db, ensure_tables_exist
-                from ..database.models import (
-                    ScreeningHistory,
-                    SelectionHistory,
-                    LearningMetrics,
-                    PerformanceTracking,
-                )
+                from ..database.unified_db import ensure_tables_exist
 
                 ensure_tables_exist()
                 self._unified_db_available = True

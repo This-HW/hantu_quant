@@ -6,18 +6,15 @@ API configuration management module.
 - WebSocket: 별도 접속키(approval_key) 발급 필요
 """
 
-import os
 import json
 import logging
 import ssl
 import time
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Optional, Dict
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.ssl_ import create_urllib3_context
-from dotenv import load_dotenv
 
 from . import settings
 

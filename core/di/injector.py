@@ -9,7 +9,6 @@ import inspect
 from typing import Type, TypeVar, Callable, Any, Dict, Optional, List
 from .container import ServiceContainer
 from .lifetime import Lifetime
-from .exceptions import DependencyInjectionError
 
 T = TypeVar('T')
 

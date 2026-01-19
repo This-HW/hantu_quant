@@ -7,7 +7,6 @@
 import numpy as np
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
-from collections import defaultdict
 
 from .signal import Signal, SignalType, SignalSource, FinalSignal
 

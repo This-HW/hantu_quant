@@ -9,12 +9,10 @@ RegimeDetector 단위 테스트
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 
 from core.learning.regime.regime_detector import (
     RegimeDetector,
-    RegimeResult,
-    RegimeScore,
     get_regime_detector
 )
 from core.daily_selection.selection_criteria import MarketCondition

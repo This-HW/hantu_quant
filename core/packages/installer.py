@@ -4,12 +4,11 @@
 이 모듈은 패키지의 설치, 제거, 업데이트를 담당하는 시스템을 구현합니다.
 """
 
-import os
 import shutil
 import zipfile
 import json
 import threading
-from typing import Dict, List, Optional, Set, Any, Tuple
+from typing import Dict, List, Optional, Set, Any
 from pathlib import Path
 import tempfile
 import datetime
@@ -19,7 +18,6 @@ from .interfaces import (
     SemanticVersion, PackageDependency
 )
 from .metadata import PackageInfo
-from .repository import LocalRepository
 from .exceptions import (
     PackageNotFoundError, PackageAlreadyInstalledError, PackageNotInstalledError,
     PackageInstallationError, PackageUninstallationError, PackageUpdateError,

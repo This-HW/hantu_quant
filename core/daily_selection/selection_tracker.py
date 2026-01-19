@@ -11,7 +11,7 @@ adaptive_filter_tuner에 학습 데이터를 제공합니다.
 """
 
 from datetime import datetime, timedelta, date
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 from dataclasses import dataclass, asdict
 
 from core.utils.log_utils import get_logger

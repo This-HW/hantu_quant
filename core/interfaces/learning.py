@@ -5,7 +5,7 @@ AI 학습 시스템의 모든 인터페이스를 정의
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any
 from enum import Enum
 
 

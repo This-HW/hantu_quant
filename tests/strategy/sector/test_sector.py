@@ -7,11 +7,9 @@ SectorMap, SectorAnalyzer, RotationEngine, TransitionDetector 테스트
 import pytest
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
 
 from core.strategy.sector import (
-    SectorMap, Sector, KOSPI_SECTORS,
-    SectorAnalyzer, SectorMetrics,
+    SectorMap, Sector, SectorAnalyzer, SectorMetrics,
     RotationEngine, SectorAllocation,
     TransitionDetector, TransitionSignal
 )

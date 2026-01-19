@@ -8,9 +8,8 @@
 import json
 import os
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Tuple
 import numpy as np
-import pandas as pd
 from dataclasses import dataclass
 
 from core.utils.log_utils import get_logger
