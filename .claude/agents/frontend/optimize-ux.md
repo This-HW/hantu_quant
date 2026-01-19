@@ -2,12 +2,10 @@
 name: optimize-ux
 description: |
   UX 최적화 전문가. 성능, 접근성, 사용자 경험을 개선합니다.
-
-  MUST USE when:
-  - 페이지 로딩 속도 개선
-  - 접근성(a11y) 개선
-  - 사용자 경험 최적화
-  - Core Web Vitals 개선
+  MUST USE when: "UX 개선", "로딩 속도", "접근성", "Core Web Vitals" 요청.
+  MUST USE when: 프론트엔드 성능이나 접근성 개선이 필요할 때.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: optimize-ux" 반환 시.
+  OUTPUT: UX 개선 코드 + "DELEGATE_TO: [다음]" 또는 "TASK_COMPLETE"
 model: sonnet
 tools:
   - Read

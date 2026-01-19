@@ -2,13 +2,10 @@
 name: implement-api
 description: |
   백엔드 API 구현 전문가. REST/GraphQL API, 비즈니스 로직을 구현합니다.
-
-  MUST USE when:
-  - API 엔드포인트 구현
-  - 비즈니스 로직 구현
-  - 서비스 레이어 개발
-  - 백엔드 기능 추가
-
+  MUST USE when: "API 구현", "엔드포인트", "백엔드 기능", "서비스 레이어" 요청.
+  MUST USE when: REST/GraphQL API 구현이 필요할 때.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: implement-api" 반환 시.
+  OUTPUT: API 구현 코드 + "DELEGATE_TO: write-api-tests" 또는 "TASK_COMPLETE"
   Uses: Context7 for framework docs (Express, FastAPI, NestJS)
 model: sonnet
 tools:

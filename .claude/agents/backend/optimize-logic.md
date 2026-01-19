@@ -2,12 +2,10 @@
 name: optimize-logic
 description: |
   백엔드 로직 최적화 전문가. 알고리즘, 캐싱, 성능을 최적화합니다.
-
-  MUST USE when:
-  - 성능 병목 해결
-  - 알고리즘 최적화
-  - 캐싱 전략 수립
-  - N+1 쿼리 문제 해결
+  MUST USE when: "성능 최적화", "알고리즘 개선", "캐싱", "N+1" 요청.
+  MUST USE when: 백엔드 성능 병목 해결이 필요할 때.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: optimize-logic" 반환 시.
+  OUTPUT: 최적화 코드 + "DELEGATE_TO: [다음]" 또는 "TASK_COMPLETE"
 model: sonnet
 tools:
   - Read
