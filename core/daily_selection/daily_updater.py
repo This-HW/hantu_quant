@@ -169,17 +169,29 @@ class DailyUpdater(IDailyUpdater):
     """일일 업데이트 스케줄러 클래스 - 새로운 아키텍처 적용"""
     
     @inject
-    def __init__(self, 
+    def __init__(self,
                  p_watchlist_file: str = "data/watchlist/watchlist.json",
                  p_output_dir: str = "data/daily_selection",
                  watchlist_manager=None,
                  price_analyzer=None,
-                 logger=None):
-        """초기화 메서드"""
+                 logger=None,
+                 use_momentum_selector: bool = True,  # 새로운 모멘텀 선정 사용 여부
+                 total_capital: float = 10_000_000):  # 총 투자 자본금 (기본 1천만원)
+        """초기화 메서드
+
+        Args:
+            p_watchlist_file: 감시 리스트 파일 경로
+            p_output_dir: 출력 디렉토리
+            watchlist_manager: 감시 리스트 관리자 (DI)
+            price_analyzer: 가격 분석기 (DI)
+            logger: 로거 (DI)
+            use_momentum_selector: 새로운 모멘텀 기반 선정 사용 여부 (기본 True)
+            total_capital: 총 투자 자본금 (포지션 사이징용)
+        """
         self._watchlist_file = p_watchlist_file
         self._output_dir = p_output_dir
         self._logger = logger or get_logger(__name__)
-        
+
         # 컴포넌트 초기화 (DI 또는 직접 생성)
         self._watchlist_manager = watchlist_manager or WatchlistManager(p_watchlist_file)
         self._price_analyzer = price_analyzer or PriceAnalyzer()
@@ -187,6 +199,11 @@ class DailyUpdater(IDailyUpdater):
 
         # KIS API 인스턴스 (공유하여 rate limiting 적용)
         self._kis_api = None  # lazy initialization
+
+        # 새로운 모멘텀 선정 시스템
+        self._use_momentum_selector = use_momentum_selector
+        self._total_capital = total_capital
+        self._momentum_selector = None  # lazy initialization
 
         # 필터링 기준 및 상태
         self._filtering_criteria = FilteringCriteria()
@@ -206,57 +223,173 @@ class DailyUpdater(IDailyUpdater):
             self._logger.info("KIS API 인스턴스 초기화 완료")
         return self._kis_api
 
+    def _get_momentum_selector(self):
+        """MomentumSelector 싱글톤 인스턴스 반환"""
+        if self._momentum_selector is None:
+            from core.selection import MomentumSelector
+            self._momentum_selector = MomentumSelector()
+            self._logger.info("MomentumSelector 인스턴스 초기화 완료")
+        return self._momentum_selector
+
     def run_daily_update(self, p_force_run: bool = False) -> bool:
-        """일일 업데이트 실행 (새 인터페이스 구현)"""
+        """일일 업데이트 실행 (새 인터페이스 구현)
+
+        Args:
+            p_force_run: 강제 실행 여부
+
+        Returns:
+            bool: 성공 여부
+        """
         try:
+            self._logger.info("=" * 50)
             self._logger.info("일일 업데이트 시작")
-            
+            self._logger.info(f"선정 방식: {'모멘텀 기반 (신규)' if self._use_momentum_selector else '기존 방식'}")
+
             # 1. 시장 상황 분석
             _v_market_condition = self.analyze_market_condition()
-            
-            # 2. 시장 상황에 따른 기준 조정
-            self._adjust_criteria_by_market(_v_market_condition)
-            
-            # 3. 감시 리스트에서 종목 데이터 준비
+
+            # 2. 감시 리스트에서 종목 데이터 준비
             _v_watchlist_stocks = self._watchlist_manager.list_stocks(p_status="active")
-            _v_stock_data_list = self._prepare_stock_data(_v_watchlist_stocks)
-            
-            # 4. 가격 매력도 분석 (PriceAttractiveness 직접 사용)
-            _v_analysis_results = []
-            for _v_stock_data in _v_stock_data_list:
-                try:
-                    _v_result = self._price_analyzer.analyze_price_attractiveness(_v_stock_data)
-                    _v_analysis_results.append(_v_result)
-                except Exception as e:
-                    self._logger.error(f"종목 {_v_stock_data.get('stock_code')} 분석 오류: {e}", exc_info=True)
-                    continue
-            
-            # 5. 필터링 및 선정 (PriceAttractiveness 직접 사용)
-            _v_selected_stocks = self._filter_and_select_stocks(_v_analysis_results)
-            
-            # 6. 일일 매매 리스트 생성
-            _v_market_indicators = self._market_analyzer.get_market_indicators()
-            _v_daily_list = self._create_daily_trading_list(_v_selected_stocks, _v_market_condition, _v_market_indicators)
-            
-            # 7. 결과 저장
+            self._logger.info(f"감시 리스트 종목 수: {len(_v_watchlist_stocks)}개")
+
+            if not _v_watchlist_stocks:
+                self._logger.warning("감시 리스트에 종목이 없습니다")
+                return False
+
+            # ========================================
+            # 선정 방식 분기
+            # ========================================
+            if self._use_momentum_selector:
+                # 새로운 모멘텀 기반 선정
+                _v_daily_list = self._run_momentum_selection(_v_watchlist_stocks, _v_market_condition)
+            else:
+                # 기존 방식 선정
+                _v_daily_list = self._run_legacy_selection(_v_watchlist_stocks, _v_market_condition)
+
+            # 결과 저장
             _v_save_success = self._save_daily_list(_v_daily_list)
-            
+
             if _v_save_success:
-                self._logger.info(f"일일 업데이트 완료 - 선정 종목: {len(_v_selected_stocks)}개")
-                
-                # 텔레그램 일일 업데이트 완료 알림 전송
-                self._send_daily_update_complete_notification(len(_v_selected_stocks))
-                
+                self._logger.info(f"일일 업데이트 완료 - 선정 종목: {len(_v_daily_list)}개")
+
+                # 텔레그램 알림
+                self._send_daily_update_complete_notification(len(_v_daily_list))
+
                 return True
             else:
                 self._logger.error("일일 리스트 저장 실패")
                 return False
-                
+
         except Exception as e:
             import traceback
             self._logger.error(f"일일 업데이트 오류: {e}", exc_info=True)
             self._logger.error(f"상세 에러: {traceback.format_exc()}", exc_info=True)
             return False
+
+    def _run_momentum_selection(self, watchlist_stocks: List[Dict], market_condition: str) -> List[Dict]:
+        """
+        새로운 모멘텀 기반 종목 선정
+
+        Args:
+            watchlist_stocks: 감시 리스트 종목들
+            market_condition: 시장 상황
+
+        Returns:
+            List[Dict]: 선정 종목 리스트 (기존 형식 호환)
+        """
+        try:
+            self._logger.info("=== 모멘텀 기반 선정 시작 ===")
+
+            # MomentumSelector 인스턴스
+            selector = self._get_momentum_selector()
+
+            # 종목 데이터 준비 (기존 형식 → 새 형식)
+            prepared_stocks = self._prepare_stock_data(watchlist_stocks)
+
+            # 모멘텀 기반 선정 실행
+            selection_results = selector.select_stocks(
+                watchlist=prepared_stocks,
+                total_capital=self._total_capital
+            )
+
+            self._logger.info(f"모멘텀 선정 결과: {len(selection_results)}개")
+
+            # 기존 형식으로 변환 (DailySelectionLegacy 호환)
+            daily_list = []
+            for result in selection_results:
+                daily_item = {
+                    "stock_code": result.stock_code,
+                    "stock_name": result.stock_name,
+                    "selection_date": result.selection_date,
+                    "selection_reason": result.selection_reason,
+                    "price_attractiveness": result.price_attractiveness,
+                    "entry_price": result.entry_price,
+                    "target_price": result.target_price,
+                    "stop_loss": result.stop_loss,
+                    "expected_return": result.expected_return,
+                    "risk_score": result.risk_score,
+                    "volume_score": result.volume_score,
+                    "technical_signals": result.technical_signals,
+                    "sector": result.sector,
+                    "market_cap": result.market_cap,
+                    "priority": result.priority,
+                    "position_size": result.position_size,
+                    "position_amount": result.position_amount,
+                    "confidence": result.confidence,
+                    "predicted_class": result.predicted_class,
+                    "model_name": result.model_name,
+                    # ATR 기반 신규 필드
+                    "atr_value": result.atr_value,
+                    "daily_volatility": result.daily_volatility,
+                    "technical_score": result.technical_score,
+                }
+                daily_list.append(daily_item)
+
+            return daily_list
+
+        except Exception as e:
+            self._logger.error(f"모멘텀 선정 실패, 기존 방식으로 폴백: {e}", exc_info=True)
+            return self._run_legacy_selection(watchlist_stocks, market_condition)
+
+    def _run_legacy_selection(self, watchlist_stocks: List[Dict], market_condition: str) -> List[Dict]:
+        """
+        기존 방식 종목 선정 (폴백용)
+
+        Args:
+            watchlist_stocks: 감시 리스트 종목들
+            market_condition: 시장 상황
+
+        Returns:
+            List[Dict]: 선정 종목 리스트
+        """
+        self._logger.info("=== 기존 방식 선정 시작 ===")
+
+        # 시장 상황에 따른 기준 조정
+        self._adjust_criteria_by_market(market_condition)
+
+        # 종목 데이터 준비
+        _v_stock_data_list = self._prepare_stock_data(watchlist_stocks)
+
+        # 가격 매력도 분석
+        _v_analysis_results = []
+        for _v_stock_data in _v_stock_data_list:
+            try:
+                _v_result = self._price_analyzer.analyze_price_attractiveness(_v_stock_data)
+                _v_analysis_results.append(_v_result)
+            except Exception as e:
+                self._logger.debug(f"종목 {_v_stock_data.get('stock_code')} 분석 오류: {e}")
+                continue
+
+        # 필터링 및 선정
+        _v_selected_stocks = self._filter_and_select_stocks(_v_analysis_results)
+
+        # 일일 매매 리스트 생성
+        _v_market_indicators = self._market_analyzer.get_market_indicators()
+        _v_daily_list = self._create_daily_trading_list(
+            _v_selected_stocks, market_condition, _v_market_indicators
+        )
+
+        return _v_daily_list
 
     def analyze_market_condition(self) -> str:
         """시장 상황 분석 (새 인터페이스 구현)"""

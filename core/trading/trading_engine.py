@@ -103,10 +103,61 @@ class TradingEngine:
         self.data_dir = Path("data/trading")
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
+        # 실시간 피드백 루프 (선택적)
+        self._feedback_loop = None
+
         self.logger.info(
             f"자동 매매 엔진 초기화 완료 "
             f"(동적손절: {'활성화' if self.config.use_dynamic_stops else '비활성화'})"
         )
+
+    def _get_feedback_loop(self):
+        """피드백 루프 싱글톤 인스턴스"""
+        if self._feedback_loop is None:
+            try:
+                from core.selection.realtime_feedback import get_feedback_loop
+                self._feedback_loop = get_feedback_loop()
+            except ImportError:
+                self.logger.debug("RealtimeFeedbackLoop 모듈 로드 실패 (무시)")
+        return self._feedback_loop
+
+    def _record_trade_feedback(
+        self,
+        stock_code: str,
+        stock_name: str,
+        entry_price: float,
+        exit_price: float,
+        entry_time: str,
+        pnl: float,
+        pnl_pct: float,
+        exit_reason: str
+    ):
+        """거래 결과를 피드백 루프에 기록"""
+        try:
+            feedback_loop = self._get_feedback_loop()
+            if feedback_loop is None:
+                return
+
+            from core.selection.realtime_feedback import TradeResult
+
+            trade_result = TradeResult(
+                stock_code=stock_code,
+                stock_name=stock_name,
+                entry_price=entry_price,
+                exit_price=exit_price,
+                entry_time=entry_time,
+                exit_time=datetime.now().isoformat(),
+                pnl=pnl,
+                pnl_pct=pnl_pct,
+                is_winner=pnl > 0,
+                exit_reason=exit_reason
+            )
+
+            feedback_loop.on_trade_closed(trade_result)
+            self.logger.debug(f"피드백 기록 완료: {stock_code}")
+
+        except Exception as e:
+            self.logger.warning(f"피드백 기록 실패 (무시): {e}")
         
     def _initialize_api(self) -> bool:
         """API 초기화"""
@@ -734,8 +785,20 @@ class TradingEngine:
                 # 포지션 제거
                 del self.positions[stock_code]
                 self.daily_trades += 1
-                
+
                 self.logger.info(f"매도 완료: {stock_code} {position.quantity}주 @ {current_price:,.0f}원 (손익: {pnl:+,.0f}원)")
+
+                # 실시간 피드백 루프에 거래 결과 기록
+                self._record_trade_feedback(
+                    stock_code=stock_code,
+                    stock_name=position.stock_name,
+                    entry_price=position.avg_price,
+                    exit_price=current_price,
+                    entry_time=position.entry_time,
+                    pnl=pnl,
+                    pnl_pct=return_rate * 100,
+                    exit_reason=reason
+                )
                 
                 # 텔레그램 알림
                 if self.notifier.is_enabled():
