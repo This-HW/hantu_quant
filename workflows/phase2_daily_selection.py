@@ -8,20 +8,17 @@ import os
 import sys
 import json
 import argparse
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
-import logging
+from typing import Dict, List, Optional
 
 # 프로젝트 루트 디렉토리를 Python 경로에 추가
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.daily_selection.price_analyzer import PriceAnalyzer, PriceAttractiveness
 from core.daily_selection.price_analyzer_parallel import ParallelPriceAnalyzer
-from core.daily_selection.daily_updater import DailyUpdater, FilteringCriteria
+from core.daily_selection.daily_updater import DailyUpdater
 from core.daily_selection.selection_criteria import SelectionCriteriaManager, MarketCondition, SelectionCriteria
 from core.watchlist.watchlist_manager import WatchlistManager
 from core.utils.log_utils import get_logger
-from core.utils.telegram_notifier import get_telegram_notifier
 from core.utils.partial_result import PartialResult, save_failed_items
 
 logger = get_logger(__name__)

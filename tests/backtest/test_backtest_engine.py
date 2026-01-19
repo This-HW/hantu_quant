@@ -7,7 +7,7 @@
 import pytest
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import sys
 sys.path.insert(0, '/home/user/hantu_quant')
@@ -18,13 +18,10 @@ from core.backtest import (
     BacktestResult,
     BacktestStatus,
     Trade,
-    Position,
     MACrossStrategy,
     RSIMeanReversionStrategy,
     BollingerBreakoutStrategy,
     CombinedStrategy,
-    Signal,
-    SignalType,
     CommissionConfig,
     SlippageConfig,
     RiskConfig,

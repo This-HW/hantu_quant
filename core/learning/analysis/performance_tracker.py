@@ -5,7 +5,6 @@
 """
 
 import numpy as np
-import pandas as pd
 import sqlite3
 import json
 import time
@@ -14,7 +13,6 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, asdict
 from enum import Enum
 from pathlib import Path
-import warnings
 
 from core.utils.log_utils import get_logger
 
@@ -144,7 +142,7 @@ class PerformanceTracker:
         # 통합 DB 초기화 시도
         if use_unified_db:
             try:
-                from core.database.unified_db import get_db, ensure_tables_exist
+                from core.database.unified_db import ensure_tables_exist
                 ensure_tables_exist()
                 self._unified_db_available = True
                 self._logger.info("PerformanceTracker: 통합 DB 사용")

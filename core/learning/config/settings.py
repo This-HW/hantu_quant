@@ -5,7 +5,7 @@ AI 학습 시스템의 모든 설정을 관리
 
 import os
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 from pathlib import Path
 
 # 기존 설정 시스템과 연동

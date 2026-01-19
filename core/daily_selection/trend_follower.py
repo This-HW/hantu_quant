@@ -4,11 +4,9 @@
 역추세 전략의 보완으로 상승 추세 종목 선정
 """
 
-import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from dataclasses import dataclass
-import logging
 
 from core.utils.log_utils import get_logger
 

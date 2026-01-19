@@ -6,7 +6,7 @@
 
 import numpy as np
 from typing import Dict, Optional, List, Tuple
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import logging
 
 logger = logging.getLogger(__name__)

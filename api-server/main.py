@@ -5,7 +5,6 @@
 
 import json
 import logging
-import subprocess
 import sys
 import asyncio
 from pathlib import Path
@@ -21,7 +20,6 @@ except ImportError:
 
 from fastapi import FastAPI, HTTPException, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 

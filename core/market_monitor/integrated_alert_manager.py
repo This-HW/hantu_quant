@@ -9,19 +9,17 @@ Story 1.2: TelegramNotifier 통합
 
 import json
 import os
-import asyncio
 import threading
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Tuple, Optional, Any, Callable
-from dataclasses import dataclass, asdict, field
+from typing import Dict, List, Tuple, Optional, Any
+from dataclasses import dataclass, field
 from enum import Enum
 from concurrent.futures import ThreadPoolExecutor
 
 from ..utils.logging import get_logger
-from .market_monitor import MarketMonitor, MarketSnapshot
-from .anomaly_detector import AnomalyDetector, AnomalyAlert, AnomalySeverity
-from .alert_system import AlertSystem, AlertChannel
+from .anomaly_detector import AnomalyAlert, AnomalySeverity
+from .alert_system import AlertChannel
 from ..notification.telegram_bot import (
     TelegramNotifier as StandardTelegramNotifier,
     TelegramConfig as StandardTelegramConfig,

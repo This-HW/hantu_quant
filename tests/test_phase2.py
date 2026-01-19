@@ -10,18 +10,15 @@ import json
 import tempfile
 import shutil
 import unittest
-from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime, timedelta
-from typing import Dict, List
 
 # 프로젝트 루트 디렉토리를 Python 경로에 추가
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.daily_selection.price_analyzer import PriceAnalyzer, PriceAttractiveness, TechnicalIndicators
-from core.daily_selection.daily_updater import DailyUpdater, FilteringCriteria, DailySelection
+from core.daily_selection.daily_updater import DailyUpdater
 from core.daily_selection.selection_criteria import SelectionCriteriaManager, MarketCondition, SelectionCriteria
 from workflows.phase2_daily_selection import Phase2CLI
-from core.watchlist.watchlist_manager import WatchlistManager, WatchlistStock
+from core.watchlist.watchlist_manager import WatchlistManager
 
 class TestTechnicalIndicators(unittest.TestCase):
     """기술적 지표 테스트"""

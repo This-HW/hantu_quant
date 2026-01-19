@@ -3,9 +3,8 @@ Accumulation/Distribution Line (A/D Line) 지표
 매집과 분산을 측정하여 가격과 거래량의 관계 분석
 """
 
-import numpy as np
 import pandas as pd
-from typing import Optional, Dict, Any, Tuple
+from typing import Dict, Any
 
 
 class AccumulationDistribution:

@@ -9,7 +9,6 @@ ATR 기반 동적 손절/익절 시스템 (P1-1)
 """
 
 import pandas as pd
-import numpy as np
 from dataclasses import dataclass, field
 from typing import Dict, Optional, List, Tuple
 from datetime import datetime

@@ -5,8 +5,7 @@ Phase 4: AI 학습 시스템 - 피드백 시스템
 """
 
 import numpy as np
-import pandas as pd
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 import json
 import sqlite3
@@ -14,8 +13,7 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 
 from core.utils.log_utils import get_logger
-from .pattern_learner import PatternLearner, PatternFeatures
-from .prediction_engine import PredictionEngine, PredictionResult
+from .prediction_engine import PredictionResult
 
 logger = get_logger(__name__)
 
@@ -73,7 +71,7 @@ class FeedbackSystem:
         # 통합 DB 사용 시도
         if use_unified_db:
             try:
-                from core.database.unified_db import get_db, ensure_tables_exist
+                from core.database.unified_db import ensure_tables_exist
                 ensure_tables_exist()
                 self._unified_db_available = True
                 self._logger.info("통합 DB (PostgreSQL/SQLite) 연결 성공")

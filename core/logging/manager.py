@@ -22,7 +22,7 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict
 from logging.handlers import RotatingFileHandler
 
 

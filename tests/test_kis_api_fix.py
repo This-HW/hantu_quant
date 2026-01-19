@@ -4,7 +4,6 @@
 공식 문서 기준으로 API 호출이 올바르게 작동하는지 검증
 """
 
-import os
 import sys
 import logging
 from pathlib import Path

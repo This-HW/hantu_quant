@@ -9,11 +9,9 @@ import sys
 import json
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
-from typing import Dict, List, Tuple, Optional, Any
+from datetime import datetime
+from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass, asdict
-import logging
-import time
 
 # 프로젝트 루트 디렉토리를 Python 경로에 추가
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -22,7 +20,6 @@ from core.config.api_config import APIConfig
 from core.utils.log_utils import get_logger
 from core.interfaces.trading import IPriceAnalyzer, PriceAttractiveness, TechnicalSignal
 from hantu_common.indicators.trend import SlopeIndicator
-from hantu_common.indicators.volume import VolumePriceAnalyzer, RelativeVolumeStrength, VolumeClusterAnalyzer
 from core.config import trading_config as TCONF
 
 # 새로운 아키텍처 imports - 사용 가능할 때만 import
@@ -93,7 +90,7 @@ class PatternAnalysis:
             
             return patterns
             
-        except Exception as e:
+        except Exception:
             return []
     
     def detect_support_resistance(self, p_prices):
@@ -124,7 +121,7 @@ class PatternAnalysis:
                 "resistance": _v_resistance_levels
             }
             
-        except Exception as e:
+        except Exception:
             return {"support": [], "resistance": []}
 
 class VolumeAnalysis:
@@ -155,7 +152,7 @@ class VolumeAnalysis:
             else:
                 return 40.0
                 
-        except Exception as e:
+        except Exception:
             return 50.0
     
     def analyze_volume_pattern(self, p_volumes, p_prices):
@@ -190,7 +187,7 @@ class VolumeAnalysis:
                 'consistency': 70.0  # 임시 고정값
             }
             
-        except Exception as e:
+        except Exception:
             return {
                 'trend': 'neutral',
                 'strength': 50.0,
@@ -214,7 +211,7 @@ class VolumeAnalysis:
             
             return max(0.0, min(100.0, _v_base_score))
             
-        except Exception as e:
+        except Exception:
             return 50.0
 
 

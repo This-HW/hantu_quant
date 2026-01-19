@@ -5,7 +5,6 @@
 AI 학습을 위한 데이터를 제공하는 시스템
 """
 
-import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional, Any

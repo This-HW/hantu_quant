@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -9,7 +8,7 @@ from hantu_backtest.strategies.base import BacktestStrategy
 from core.trading.sell_engine import SellEngine, SellSignal
 from core.trading.trade_journal import TradeJournal
 from core.config.trading_config import (
-    TRADE_AMOUNT, MAX_STOCKS,
+    MAX_STOCKS,
     MAX_TRADES_PER_DAY, MAX_TRADES_PER_STOCK,
     MARKET_START_TIME, MARKET_END_TIME,
     MAX_RELATIVE_SPREAD, UPTICK_RATIO_BUY_MIN

@@ -12,7 +12,7 @@
 """
 
 import pytest
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock
 from typing import List, Tuple
 
 from core.indicators.orderbook_analyzer import (
@@ -20,7 +20,6 @@ from core.indicators.orderbook_analyzer import (
     OrderBookMonitor,
     OrderBookSignal,
     OrderBookImbalance,
-    OrderBookLevel,
     analyze_orderbook,
 )
 

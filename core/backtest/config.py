@@ -6,7 +6,7 @@
 
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
-from datetime import datetime, date
+from datetime import date
 from enum import Enum
 
 

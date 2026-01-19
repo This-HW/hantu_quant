@@ -5,20 +5,16 @@
 """
 
 import numpy as np
-import pandas as pd
 import json
 import os
 import threading
 import time
-import asyncio
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional, Any, Callable
 from dataclasses import dataclass, asdict, field
 from enum import Enum
-import warnings
 
 from ..utils.logging import get_logger
-from ..api.kis_api import KISApiClient
 
 logger = get_logger(__name__)
 

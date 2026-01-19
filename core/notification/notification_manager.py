@@ -8,11 +8,10 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Set
 from dataclasses import dataclass, field
-from collections import defaultdict
 import hashlib
 import threading
 
-from .alert import Alert, AlertType, AlertLevel, AlertFormatter
+from .alert import Alert, AlertType, AlertFormatter
 from .notifier import BaseNotifier, NotificationResult
 from .telegram_bot import TelegramNotifier, TelegramConfig
 

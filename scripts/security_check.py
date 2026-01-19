@@ -14,8 +14,7 @@ from typing import List, Tuple, Optional
 # 프로젝트 루트를 sys.path에 추가
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.utils.security_validator import SecurityValidator, run_security_check
-from core.config.secure_config import get_secure_config
+from core.utils.security_validator import SecurityValidator
 
 # 로깅 설정
 logging.basicConfig(

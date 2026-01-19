@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import json
 from dataclasses import dataclass, asdict
-from datetime import datetime, date
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from core.utils.log_utils import get_logger

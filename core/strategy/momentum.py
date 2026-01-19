@@ -1,11 +1,8 @@
 from typing import List, Dict
 import pandas as pd
-import numpy as np
 from core.api.kis_api import KISAPI
 from core.config.trading_config import (
-    RSI_PERIOD, RSI_BUY_THRESHOLD, RSI_SELL_THRESHOLD,
-    MIN_VOLUME, VOLUME_SURGE_RATIO,
-    TRADE_AMOUNT, STOP_LOSS_RATE, TARGET_PROFIT_RATE,
+    RSI_PERIOD, RSI_BUY_THRESHOLD, VOLUME_SURGE_RATIO,
     MA_SHORT, MA_MEDIUM
 )
 from core.utils.log_utils import get_logger

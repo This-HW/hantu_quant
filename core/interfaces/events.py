@@ -5,11 +5,10 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any, Callable, Union, Tuple
+from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-import asyncio
 
 
 class EventType(Enum):

@@ -4,7 +4,6 @@
 실제 성과가 알림에 반영되는지 확인
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -14,7 +13,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from core.performance.performance_metrics import get_performance_metrics
 from core.utils.telegram_notifier import get_telegram_notifier
 from core.trading.trade_journal import TradeJournal
-from datetime import datetime
 
 
 def test_performance_metrics():

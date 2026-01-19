@@ -9,7 +9,6 @@ from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from datetime import datetime
 
-from core.interfaces.events import IEvent
 from core.interfaces.plugins import PluginMetadata, PluginState, IPlugin
 
 

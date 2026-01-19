@@ -11,15 +11,15 @@ import zipfile
 import hashlib
 import json
 import glob
-from typing import Dict, List, Optional, Tuple, Set, Any
+from typing import Dict, List, Optional, Tuple, Any
 from pathlib import Path
 import datetime
 import tempfile
 
 from .interfaces import IPackageBuilder, IPackageInfo, SemanticVersion
-from .metadata import PackageInfo, PackageManifest
+from .metadata import PackageManifest
 from .exceptions import (
-    PackageBuildError, InvalidPackageError, PackageValidationError
+    PackageBuildError, PackageValidationError
 )
 
 
@@ -517,7 +517,7 @@ class PackageBuilder(IPackageBuilder):
             
             return package_file_path
             
-        except Exception as e:
+        except Exception:
             # 생성 실패 시 파일 삭제
             if package_file_path.exists():
                 package_file_path.unlink()

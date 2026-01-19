@@ -12,7 +12,7 @@
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, Optional, Tuple
 from datetime import datetime
 from enum import Enum
 import pandas as pd

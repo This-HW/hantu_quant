@@ -6,7 +6,7 @@
 
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Any, Optional
-from datetime import datetime, date
+from datetime import datetime
 from enum import Enum
 import pandas as pd
 import numpy as np

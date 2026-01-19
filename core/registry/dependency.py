@@ -6,13 +6,12 @@
 
 import logging
 from typing import Dict, List, Optional, Set, Tuple, Any
-from collections import defaultdict, deque
+from collections import defaultdict
 import networkx as nx
 
-from .interfaces import IDependencyAnalyzer, IModuleRegistry, ModuleStatus
+from .interfaces import IDependencyAnalyzer, IModuleRegistry
 from .exceptions import (
-    CircularDependencyError, UnresolvedDependencyError, 
-    ModuleNotFoundError, DependencyError
+    CircularDependencyError, ModuleNotFoundError, DependencyError
 )
 
 logger = logging.getLogger(__name__)

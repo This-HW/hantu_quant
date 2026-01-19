@@ -9,14 +9,13 @@ LearningOrchestrator 단위 테스트
 
 import pytest
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch, MagicMock
 
 from core.learning.orchestrator.learning_orchestrator import (
     LearningOrchestrator,
     LearningTaskType,
     TaskPriority,
-    LearningTask,
-    get_learning_orchestrator
+    LearningTask
 )
 
 

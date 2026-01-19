@@ -7,13 +7,12 @@ Story 1.2: TelegramNotifier 통합
 - T-1.2.5: 표준 TelegramNotifier 사용하도록 수정
 """
 
-import asyncio
 import json
 import sqlite3
 import threading
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict
 from enum import Enum
 from pathlib import Path
@@ -23,7 +22,6 @@ from ..notification.telegram_bot import (
     TelegramNotifier as StandardTelegramNotifier,
     TelegramConfig as StandardTelegramConfig,
 )
-from ..notification.config_loader import get_telegram_config
 from ..utils.log_utils import trace_operation, get_trace_id
 
 logger = get_logger(__name__)
@@ -330,7 +328,7 @@ class SystemAlertManager:
         # 통합 DB 초기화 시도
         if use_unified_db:
             try:
-                from ..database.unified_db import get_db, ensure_tables_exist
+                from ..database.unified_db import ensure_tables_exist
                 ensure_tables_exist()
                 self._unified_db_available = True
                 self._logger.info("SystemAlertManager: 통합 DB 사용")

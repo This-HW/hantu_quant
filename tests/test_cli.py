@@ -75,7 +75,6 @@ class TestStatusCommand:
     @patch('core.process.registry.ProcessRegistry')
     def test_status_json(self, mock_registry_class):
         """Test: hantu status --json outputs JSON."""
-        import json
 
         mock_registry = MagicMock()
         mock_status = MagicMock()

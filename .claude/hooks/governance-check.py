@@ -20,8 +20,6 @@ import sys
 import os
 import re
 import fnmatch
-from pathlib import Path
-from datetime import datetime
 
 # 공통 유틸리티 import (스크립트 위치 기반 동적 경로)
 hook_dir = os.path.dirname(os.path.abspath(__file__))
@@ -130,8 +128,14 @@ def check_doc_location(file_path: str, rules: dict, project_root: str) -> tuple[
 
     rel_path = os.path.relpath(file_path, project_root)
 
-    # 에이전트 정의 파일은 예외 (agents/ 폴더)
-    if rel_path.startswith("agents/") or "/agents/" in rel_path:
+    # 에이전트 정의 파일은 예외 (common-agents/, domain-agents/, project-agents/ 폴더)
+    if any(rel_path.startswith(p) for p in ["common-agents/", "domain-agents/", "project-agents/"]):
+        return True, ""
+    if any(p in rel_path for p in ["/common-agents/", "/domain-agents/", "/project-agents/"]):
+        return True, ""
+
+    # 배포된 에이전트 폴더도 예외 (.claude/agents/)
+    if "/agents/" in rel_path or rel_path.startswith("agents/"):
         return True, ""
 
     # ~/.claude/agents/ 경로도 예외

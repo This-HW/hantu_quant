@@ -11,7 +11,6 @@ from datetime import datetime
 
 from core.learning.weights.weight_provider import (
     WeightProvider,
-    HybridWeightProvider,
     get_hybrid_weight_provider
 )
 from core.learning.regime.regime_detector import RegimeDetector, get_regime_detector

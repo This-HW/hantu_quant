@@ -15,7 +15,6 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 from pathlib import Path
 import psutil
-import subprocess
 
 from ..utils.logging import get_logger
 
@@ -194,7 +193,7 @@ class RecoveryManager:
         # 통합 DB 초기화 시도
         if use_unified_db:
             try:
-                from ..database.unified_db import get_db, ensure_tables_exist
+                from ..database.unified_db import ensure_tables_exist
                 ensure_tables_exist()
                 self._unified_db_available = True
                 self._logger.info("RecoveryManager: 통합 DB 사용")

@@ -1,13 +1,11 @@
 """실시간 데이터 처리 모듈"""
 
-import asyncio
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, Any, List, Callable, Optional
+from typing import Dict, Any, List, Callable
 import json
 
 from core.utils import get_logger
-from core.database.models import Stock, Price, Indicator
 
 logger = get_logger(__name__)
 

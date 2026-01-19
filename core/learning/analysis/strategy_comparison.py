@@ -5,10 +5,9 @@ Phase 1과 Phase 2의 성과를 비교하고 개선점을 분석하여
 AI 학습을 위한 인사이트를 제공하는 시스템
 """
 
-import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Any
 from dataclasses import dataclass, asdict
 import json
 import os

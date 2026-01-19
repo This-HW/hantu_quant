@@ -2,7 +2,7 @@ import logging
 import pandas as pd
 import time
 from pathlib import Path
-from datetime import datetime, timedelta, date as date_type
+from datetime import datetime, timedelta
 from typing import Optional, Dict, List
 
 # pykrx 임포트 (폴백용, 2025년 12월 KRX 로그인 필수화로 현재 사용 불가)

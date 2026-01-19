@@ -3,11 +3,7 @@
 새로운 지표들 (VWAP, ADX, MFI, Ichimoku, Pattern Recognition, A/D Line) 통합
 """
 
-import logging
-from typing import Dict, List, Optional, Tuple, Any
-from datetime import datetime, timedelta
-import pandas as pd
-import numpy as np
+from typing import Dict, Optional, Any
 
 from core.utils.log_utils import get_logger
 from core.watchlist.stock_screener import StockScreener

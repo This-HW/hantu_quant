@@ -23,13 +23,11 @@ from core.learning.trade_logger import (
 from core.learning.performance_pattern_analyzer import (
     PerformancePatternAnalyzer,
     PatternAnalysis,
-    WinningConditions,
 )
 
 # Failure Analyzer
 from core.learning.failure_analyzer import (
     FailureAnalyzer,
-    FailureType,
     FailureAnalysis,
 )
 
@@ -59,9 +57,7 @@ from core.learning.safety import (
     OverfitPrevention,
     ModelRollback,
     LearningSafetyManager,
-    SafetyConfig,
     LearningResult,
-    ValidationResult,
 )
 
 

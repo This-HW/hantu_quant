@@ -11,7 +11,6 @@ import asyncio
 import websockets
 from typing import Dict, Optional, Callable, List
 from core.config.settings import (
-    APP_KEY, APP_SECRET, ACCOUNT_NUMBER,
     SERVER, SOCKET_VIRTUAL_URL, SOCKET_PROD_URL
 )
 from core.config.api_config import APIConfig

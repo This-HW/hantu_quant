@@ -6,7 +6,6 @@
 """
 
 import requests
-import json
 import sys
 
 def get_channel_id(bot_token: str):

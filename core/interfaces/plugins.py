@@ -5,10 +5,9 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any, Union, Callable
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
-import asyncio
 
 
 class PluginState(Enum):

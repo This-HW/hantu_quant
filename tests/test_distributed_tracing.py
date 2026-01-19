@@ -28,7 +28,6 @@ from core.utils.log_utils import (
     TracingContext,
     # Trace ID
     get_trace_id,
-    set_trace_id,
     clear_trace_id,
 )
 
