@@ -301,7 +301,6 @@ class TelegramConfigLoader:
             ConfigValidationError: 검증 실패 시
         """
         warnings = []
-        missing_keys = []
 
         # 필수 설정 체크 (경고만, 에러 아님)
         if not config.bot_token:

@@ -21,7 +21,7 @@ def test_phase1_watchlist_system():
         print("✅ Phase 1 모듈 import 성공")
         
         # 스크리너 테스트
-        screener = StockScreener()
+        StockScreener()
         mock_stocks = [
             {'stock_code': '005930', 'stock_name': '삼성전자', 'market_cap': 500000000000, 'per': 12.5},
             {'stock_code': '000660', 'stock_name': 'SK하이닉스', 'market_cap': 100000000000, 'per': 8.2}

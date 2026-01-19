@@ -208,7 +208,6 @@ class DataSynchronizer:
             )
 
             with get_session() as session:
-                batch = []
                 for file_path, date_str in recent_files:
                     try:
                         with open(file_path, "r", encoding="utf-8") as f:
@@ -665,7 +664,7 @@ class DataSynchronizer:
                         price_change_pct = (
                             (current_price - entry_price) / entry_price * 100
                         )
-                        days_tracked = (datetime.now().date() - sel.selection_date).days
+                        (datetime.now().date() - sel.selection_date).days
 
                         # 기존 추적 데이터 확인
                         existing = (

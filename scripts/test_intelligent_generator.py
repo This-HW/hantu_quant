@@ -226,7 +226,7 @@ def demonstrate_intelligent_features():
     # 엣지 케이스 감지 시연
     from core.utils.intelligent_test_generator import EdgeCaseDetector
     
-    detector = EdgeCaseDetector()
+    EdgeCaseDetector()
     
     print("🕵️ 엣지 케이스 감지 예시:")
     print("   - None 값 처리")

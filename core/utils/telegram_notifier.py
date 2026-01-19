@@ -342,7 +342,7 @@ class TelegramNotifier:
         # Watchlist 데이터 소스 확인
         try:
             from pathlib import Path
-            today_str = datetime.now().strftime("%Y%m%d")
+            datetime.now().strftime("%Y%m%d")
 
             # DB에서 watchlist 로드 시도
             try:

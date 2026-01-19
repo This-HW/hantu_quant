@@ -304,7 +304,7 @@ class TestPriorityIntegration:
         assert len(todos) > 0
         
         # AI 학습 관련 TODO들이 높은 우선순위를 가져야 함
-        ai_todos = [t for t in todos if any(tag in ['ai', 'learning'] for tag in (t.tags or []))]
+        [t for t in todos if any(tag in ['ai', 'learning'] for tag in (t.tags or []))]
         
         # 리포트 생성 및 확인
         report = self.manager.export_priority_report()

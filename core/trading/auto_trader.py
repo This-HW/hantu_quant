@@ -94,7 +94,7 @@ class AutoTrader:
             self.buy_count < MAX_TRADES_PER_DAY and
             code not in self.positions):
             # 보조 데이터 수집(분봉/호가/체결)
-            ob, ticks = None, None
+            ob, _ticks = None, None
             try:
                 ob = self.api.get_orderbook(code)
                 tdf = self.api.get_tick_conclusions(code)

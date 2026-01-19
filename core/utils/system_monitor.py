@@ -211,7 +211,7 @@ class SystemMonitor:
         for alert in alerts:
             alert_type = alert['type']
             level = alert['level']
-            message = alert['message']
+            alert['message']
 
             # 쿨다운 체크
             if not self._should_send_alert(alert_type, level):

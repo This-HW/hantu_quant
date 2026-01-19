@@ -242,7 +242,7 @@ class PositionSizer:
 
             # 섹터 제한
             if sector:
-                sector_exposure = sum(
+                sum(
                     v for k, v in current_positions.items()
                     # 섹터 체크 로직 필요
                 )

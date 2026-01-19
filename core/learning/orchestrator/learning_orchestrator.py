@@ -210,7 +210,7 @@ class LearningOrchestrator:
             regime_result = self._regime_detector.detect()
 
             # 레짐에 따른 가중치 업데이트
-            new_weights = self._strategy_mapper.update_regime(regime_result)
+            self._strategy_mapper.update_regime(regime_result)
 
             # 콜백 호출
             if regime_result.regime_changed:

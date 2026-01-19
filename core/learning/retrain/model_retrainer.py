@@ -197,7 +197,6 @@ class ModelRetrainer:
             return "학습 데이터는 리스트 형식이어야 함"
 
         required_keys = {'predicted_class', 'actual_class'}
-        recommended_keys = {'stock_code', 'predicted_probability'}
 
         for i, sample in enumerate(training_data[:10]):  # 처음 10개만 검증
             if not isinstance(sample, dict):
@@ -336,7 +335,7 @@ class ModelRetrainer:
         import random
 
         new_weight = self._config.incremental_data_weight
-        existing_weight = 1 - new_weight
+        1 - new_weight
 
         # 목표 샘플 수
         target_size = len(existing) + len(new)

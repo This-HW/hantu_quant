@@ -473,7 +473,7 @@ class KISRestClient:
             
             # 시작일 계산
             end_date = datetime.now()
-            start_date = end_date - timedelta(days=period_days + 30)  # 여유분 추가
+            end_date - timedelta(days=period_days + 30)  # 여유분 추가
             
             params = {
                 "FID_COND_MRKT_DIV_CODE": "J",

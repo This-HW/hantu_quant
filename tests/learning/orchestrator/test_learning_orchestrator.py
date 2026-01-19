@@ -82,7 +82,7 @@ class TestLearningOrchestrator:
 
     def test_enqueue_task_with_priority(self, orchestrator):
         """우선순위 지정 작업 추가"""
-        task_id = orchestrator.enqueue_task(
+        orchestrator.enqueue_task(
             task_type=LearningTaskType.MODEL_RETRAIN,
             priority=TaskPriority.CRITICAL
         )

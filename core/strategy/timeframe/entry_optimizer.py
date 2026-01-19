@@ -216,7 +216,7 @@ class EntryOptimizer:
         high = data['high'].iloc[-self.sr_lookback:]
         low = data['low'].iloc[-self.sr_lookback:]
         close = data['close'].iloc[-self.sr_lookback:]
-        volume = data['volume'].iloc[-self.sr_lookback:]
+        data['volume'].iloc[-self.sr_lookback:]
 
         current_price = close.iloc[-1]
 
@@ -356,7 +356,7 @@ class EntryOptimizer:
             return 0.5
 
         distance_to_support = (current_price - sr.nearest_support) / current_price
-        distance_to_resistance = (sr.nearest_resistance - current_price) / current_price
+        (sr.nearest_resistance - current_price) / current_price
 
         # 지지선에 가까울수록 높은 점수 (매수 관점)
         if distance_to_support < 0.02:  # 2% 이내

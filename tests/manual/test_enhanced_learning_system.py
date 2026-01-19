@@ -324,7 +324,6 @@ def cleanup_test_data():
             "data/monitoring/performance_metrics.json"
         ]
 
-        cleaned_count = 0
         for pattern in test_patterns:
             file_path = Path(pattern)
             if file_path.exists():

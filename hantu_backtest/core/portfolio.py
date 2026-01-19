@@ -3,9 +3,7 @@ Portfolio management module for backtesting.
 """
 
 import pandas as pd
-import numpy as np
 from typing import Dict, Optional
-import logging
 from decimal import Decimal
 from core.utils import get_logger
 

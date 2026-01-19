@@ -187,7 +187,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                 true_positives = latest[4] or 0
                 false_positives = latest[5] or 0
                 false_negatives = latest[6] or 0
-                true_negatives = latest[7] or 0
+                latest[7] or 0
 
                 # 정확도 메트릭 계산
                 if passed_screening > 0:

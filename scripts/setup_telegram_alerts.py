@@ -180,10 +180,10 @@ class TelegramSetup:
         """테스트 메시지 전송"""
         try:
             # 실제 알림 시스템을 사용한 테스트
-            alert_manager = IntegratedAlertManager()
+            IntegratedAlertManager()
             
             # 테스트 알림 생성
-            test_alert = AnomalyAlert(
+            AnomalyAlert(
                 alert_id="test_001",
                 timestamp=datetime.now(),
                 anomaly_type=AnomalyType.NEWS_IMPACT,
@@ -264,7 +264,7 @@ class TelegramSetup:
             ]
             
             for title, priority in test_cases:
-                test_alert = AnomalyAlert(
+                AnomalyAlert(
                     alert_id=f"integration_test_{priority.value}",
                     timestamp=datetime.now(),
                     anomaly_type=AnomalyType.PRICE_SPIKE,

@@ -87,7 +87,6 @@ class TelegramDiagnostic:
             print(f"   파일 크기: {self.config_file.stat().st_size} bytes")
             
             # 필수 키 확인
-            required_keys = ['telegram']
             telegram_keys = ['bot_token', 'default_chat_ids']
             
             if 'telegram' not in config:

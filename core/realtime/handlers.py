@@ -246,7 +246,7 @@ class EventHandler:
             ma20 = ma.calculate(period=20)
 
             # 볼린저 밴드 계산
-            bb = BollingerBands(prices).calculate()
+            BollingerBands(prices).calculate()
 
             timestamp = data.get('timestamp', datetime.now())
 

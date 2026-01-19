@@ -537,7 +537,7 @@ class WebPushNotifier:
             
             # VAPID 키 설정
             vapid_private_key = self._config.get('vapid_private_key')
-            vapid_claims = self._config.get('vapid_claims', {})
+            self._config.get('vapid_claims', {})
             
             if not vapid_private_key:
                 self._logger.warning("VAPID 키가 설정되지 않음 - Mock 전송")
@@ -1026,7 +1026,7 @@ class IntegratedAlertManager:
                     return False
             
             # 시간당 제한 확인
-            hour_key = f"{rule.rule_id}_{channel}_{datetime.now().strftime('%Y%m%d_%H')}"
+            f"{rule.rule_id}_{channel}_{datetime.now().strftime('%Y%m%d_%H')}"
             hour_count = len([
                 log for log in self._notification_logs
                 if (log.rule_id == rule.rule_id and 
@@ -1058,7 +1058,7 @@ class IntegratedAlertManager:
                     notification = self._notification_queue.pop(0)
                     
                     # 비동기 전송
-                    future = self._executor.submit(self._send_notification, notification)
+                    self._executor.submit(self._send_notification, notification)
                     
                 time.sleep(1)
                 

@@ -407,7 +407,7 @@ class PaperTrader:
 
                 if result.success:
                     # 포지션 청산
-                    close_result = self.tracker.close_position(
+                    self.tracker.close_position(
                         stock_code=stock_code,
                         exit_price=result.filled_price,
                         quantity=result.filled_quantity,

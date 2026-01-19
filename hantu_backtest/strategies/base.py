@@ -4,7 +4,7 @@ Base strategy class for backtesting.
 
 from abc import ABC, abstractmethod
 import pandas as pd
-from typing import Dict, List, Optional
+from typing import Dict, List
 from datetime import datetime
 import logging
 

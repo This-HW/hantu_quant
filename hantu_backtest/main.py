@@ -5,7 +5,6 @@ Backtesting main script.
 import argparse
 import logging
 from datetime import datetime, timedelta
-from pathlib import Path
 
 from hantu_backtest.core.backtest import Backtest
 from hantu_backtest.strategies.momentum import MomentumStrategy

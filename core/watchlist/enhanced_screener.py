@@ -75,7 +75,7 @@ class EnhancedScreener(StockScreener):
             # 2. ADX 계산
             try:
                 adx_data = ADX.calculate(df['high'], df['low'], df['close'])
-                adx_signals = ADX.get_trade_signals(df)
+                ADX.get_trade_signals(df)
 
                 indicators['adx'] = {
                     'adx_value': adx_data['adx'].iloc[-1] if len(adx_data['adx']) > 0 else None,
@@ -109,7 +109,7 @@ class EnhancedScreener(StockScreener):
 
             # 4. Ichimoku 계산
             try:
-                ichimoku_data = Ichimoku.calculate(df['high'], df['low'], df['close'])
+                Ichimoku.calculate(df['high'], df['low'], df['close'])
                 ichimoku_signals = Ichimoku.get_trade_signals(df)
 
                 indicators['ichimoku'] = {

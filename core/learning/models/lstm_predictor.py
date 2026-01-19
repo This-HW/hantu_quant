@@ -509,7 +509,7 @@ if TORCH_AVAILABLE:
                 raise RuntimeError("모델이 학습되지 않았습니다.")
 
             # 테스트 데이터 분리
-            train_data = data.iloc[:-test_size]
+            data.iloc[:-test_size]
             test_data = data.iloc[-test_size-self.config.sequence_length:]
 
             dataset = StockDataset(test_data, self.config.sequence_length)

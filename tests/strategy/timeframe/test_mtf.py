@@ -264,7 +264,7 @@ class TestTrendAligner:
 
         # 같은 방향 추세
         up_trend = aligner.analyze_trend(uptrend_data)
-        down_trend = aligner.analyze_trend(downtrend_data)
+        aligner.analyze_trend(downtrend_data)
 
         alignment = aligner.align_trends({
             'daily': up_trend,

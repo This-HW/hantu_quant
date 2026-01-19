@@ -145,7 +145,7 @@ class IntegrationTestRunner:
         # 4. Ichimoku 테스트
         try:
             from hantu_common.indicators.ichimoku import Ichimoku
-            ichimoku = Ichimoku.calculate(test_df['high'], test_df['low'], test_df['close'])
+            Ichimoku.calculate(test_df['high'], test_df['low'], test_df['close'])
             signals = Ichimoku.get_trade_signals(test_df)
             self.log_test("Indicators", "Ichimoku", True,
                          f"신호 강도: {signals['signal_strength'].iloc[-1]}")

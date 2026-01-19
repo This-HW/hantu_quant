@@ -2,13 +2,11 @@
 Base visualization module.
 """
 
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 import logging
-from typing import Optional, Dict, List, Tuple
+from typing import List, Tuple
 from datetime import datetime
 
 logger = logging.getLogger(__name__)

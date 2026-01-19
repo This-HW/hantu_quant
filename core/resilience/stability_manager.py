@@ -307,7 +307,7 @@ class HealthMonitor:
         """헬스 체크 실행"""
         try:
             # 타임아웃 적용
-            result = self._run_with_timeout(
+            self._run_with_timeout(
                 health_check.check_function, 
                 health_check.timeout_seconds
             )

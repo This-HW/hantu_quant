@@ -873,7 +873,7 @@ class Phase1Workflow:
                 return
             
             # 통계 정보 생성
-            total_stocks = len(all_results)
+            len(all_results)
             passed_count = len(passed_stocks)
             avg_score = sum(r.get('overall_score', 0) for r in passed_stocks) / passed_count if passed_count > 0 else 0.0
             

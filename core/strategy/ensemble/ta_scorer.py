@@ -456,7 +456,7 @@ class TechnicalAnalysisScorer:
         current_middle = middle.iloc[-1]
         prev_price = close.iloc[-2]
         prev_lower = lower.iloc[-2]
-        prev_upper = upper.iloc[-2]
+        upper.iloc[-2]
 
         # BB 내 위치 (0~1)
         bb_position = (current_price - current_lower) / (current_upper - current_lower + 1e-10)
@@ -593,8 +593,8 @@ class TechnicalAnalysisScorer:
         ind_recent = indicator.tail(lookback)
 
         # 가격 저점 vs 지표 저점
-        price_low_idx = price_recent.idxmin()
-        ind_low_idx = ind_recent.idxmin()
+        price_recent.idxmin()
+        ind_recent.idxmin()
 
         # 최근 저점이 이전 저점보다 낮은데 지표는 높은 경우 (상승 다이버전스)
         if (price_recent.iloc[-1] < price_recent.iloc[0] and

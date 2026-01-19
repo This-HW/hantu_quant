@@ -664,7 +664,7 @@ class TestNotificationIntegration:
             message="테스트",
         )
 
-        results = manager.send_alert(alert, channels=['channel1'])
+        manager.send_alert(alert, channels=['channel1'])
 
         assert notifier1.sent is True
         assert notifier2.sent is False

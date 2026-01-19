@@ -1786,10 +1786,10 @@ def main():
     subparsers = parser.add_subparsers(dest='command', help='사용 가능한 명령')
     
     # 스케줄러 시작
-    start_parser = subparsers.add_parser('start', help='스케줄러 시작')
+    subparsers.add_parser('start', help='스케줄러 시작')
     
     # 스케줄러 중지
-    stop_parser = subparsers.add_parser('stop', help='스케줄러 중지')
+    subparsers.add_parser('stop', help='스케줄러 중지')
     
     # 상태 조회
     status_parser = subparsers.add_parser('status', help='스케줄러 상태 조회')
@@ -1797,7 +1797,7 @@ def main():
     status_parser.add_argument('--heartbeat', action='store_true', help='생존 신호 전송')
     
     # 즉시 실행
-    run_parser = subparsers.add_parser('run', help='즉시 실행 (테스트용)')
+    subparsers.add_parser('run', help='즉시 실행 (테스트용)')
     
     args = parser.parse_args()
     

@@ -127,7 +127,7 @@ def _collect_health_data(verbose: bool) -> dict:
     if verbose:
         try:
             from core.api.kis_api import KISAPI
-            api = KISAPI()
+            KISAPI()
             # Simple connectivity check
             health_data['checks']['api_connectivity'] = {
                 'status': 'healthy',
