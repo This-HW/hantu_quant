@@ -2,12 +2,10 @@
 name: write-ui-tests
 description: |
   프론트엔드 테스트 작성 전문가. 컴포넌트, E2E, 통합 테스트를 작성합니다.
-
-  MUST USE when:
-  - 컴포넌트 테스트 작성
-  - E2E 테스트 작성
-  - 스냅샷 테스트
-  - 인터랙션 테스트
+  MUST USE when: "UI 테스트", "컴포넌트 테스트", "E2E 테스트", "Playwright" 요청.
+  MUST USE when: 프론트엔드 코드에 대한 테스트 작성이 필요할 때.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: write-ui-tests" 반환 시.
+  OUTPUT: 테스트 코드 + "DELEGATE_TO: verify-code" 또는 "TASK_COMPLETE"
 model: sonnet
 tools:
   - Read

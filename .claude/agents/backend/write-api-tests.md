@@ -2,12 +2,10 @@
 name: write-api-tests
 description: |
   백엔드 API 테스트 작성 전문가. 단위, 통합, API 테스트를 작성합니다.
-
-  MUST USE when:
-  - API 테스트 작성
-  - 서비스 단위 테스트
-  - 통합 테스트
-  - 테스트 커버리지 향상
+  MUST USE when: "API 테스트", "백엔드 테스트", "단위 테스트", "통합 테스트" 요청.
+  MUST USE when: 백엔드 코드에 대한 테스트 작성이 필요할 때.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: write-api-tests" 반환 시.
+  OUTPUT: 테스트 코드 + "DELEGATE_TO: verify-code" 또는 "TASK_COMPLETE"
 model: sonnet
 tools:
   - Read

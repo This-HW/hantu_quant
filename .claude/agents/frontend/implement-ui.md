@@ -2,13 +2,10 @@
 name: implement-ui
 description: |
   프론트엔드 UI 구현 전문가. React, Next.js, Vue 등 프레임워크로 UI를 구현합니다.
-
-  MUST USE when:
-  - 컴포넌트 구현 요청
-  - 페이지/화면 개발
-  - UI 기능 추가
-  - 프론트엔드 코드 작성
-
+  MUST USE when: "UI 구현", "컴포넌트 작성", "페이지 개발", "프론트엔드 기능" 요청.
+  MUST USE when: React/Next.js/Vue 컴포넌트 구현이 필요할 때.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: implement-ui" 반환 시.
+  OUTPUT: UI 구현 코드 + "DELEGATE_TO: write-ui-tests" 또는 "TASK_COMPLETE"
   Uses: Magic MCP (21st.dev) for UI patterns, Context7 for framework docs
 model: sonnet
 tools:

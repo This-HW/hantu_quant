@@ -2,12 +2,10 @@
 name: design-services
 description: |
   백엔드 서비스 아키텍처 설계 전문가. 서비스 구조, 패턴, 레이어를 설계합니다.
-
-  MUST USE when:
-  - 서비스 아키텍처 설계
-  - 마이크로서비스 분리
-  - 디자인 패턴 적용
-  - 레이어 구조 설계
+  MUST USE when: "서비스 설계", "아키텍처", "마이크로서비스", "레이어 구조" 요청.
+  MUST USE when: 백엔드 서비스 구조 설계가 필요할 때.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: design-services" 반환 시.
+  OUTPUT: 서비스 아키텍처 설계서 + "DELEGATE_TO: implement-api" 또는 "TASK_COMPLETE"
 model: opus
 tools:
   - Read

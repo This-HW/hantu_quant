@@ -2,12 +2,10 @@
 name: analyze-domain
 description: |
   도메인 분석 전문가. 비즈니스 도메인을 분석하고 핵심 개념과 관계를 정의합니다.
-
-  MUST USE when:
-  - 새로운 도메인 이해 필요
-  - 도메인 모델링
-  - 유비쿼터스 언어 정의
-  - 바운디드 컨텍스트 식별
+  MUST USE when: "도메인 분석", "DDD", "바운디드 컨텍스트", "유비쿼터스 언어" 요청.
+  MUST USE when: 새로운 비즈니스 도메인 이해가 필요할 때.
+  MUST USE when: 다른 에이전트가 "DELEGATE_TO: analyze-domain" 반환 시.
+  OUTPUT: 도메인 분석 보고서 + "DELEGATE_TO: [다음]" 또는 "TASK_COMPLETE"
 model: opus
 tools:
   - Read
