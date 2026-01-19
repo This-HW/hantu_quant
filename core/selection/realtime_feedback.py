@@ -437,6 +437,15 @@ class RealtimeFeedbackLoop:
             # 기록
             if self._adaptive_tuner:
                 from core.daily_selection.adaptive_filter_tuner import FilterTradeResult
+
+                # holding_days 계산 (entry_time, exit_time에서)
+                try:
+                    entry_dt = datetime.fromisoformat(trade.entry_time[:19])
+                    exit_dt = datetime.fromisoformat(trade.exit_time[:19])
+                    holding_days = max(1, (exit_dt - entry_dt).days)
+                except (ValueError, TypeError):
+                    holding_days = 1
+
                 filter_result = FilterTradeResult(
                     stock_code=trade.stock_code,
                     entry_date=trade.entry_time[:10],
@@ -445,7 +454,7 @@ class RealtimeFeedbackLoop:
                     exit_price=trade.exit_price,
                     profit_pct=trade.pnl_pct,
                     is_winner=trade.is_winner,
-                    holding_days=1,
+                    holding_days=holding_days,
                     entry_scores={
                         'momentum_score': trade.momentum_score,
                         'technical_score': 50,
@@ -530,13 +539,17 @@ class RealtimeFeedbackLoop:
         return self.param_store.get_all_params()
 
 
-# 싱글톤 인스턴스
+# 싱글톤 인스턴스 (스레드 안전)
 _feedback_loop: Optional[RealtimeFeedbackLoop] = None
+_feedback_loop_lock = threading.Lock()
 
 
 def get_feedback_loop() -> RealtimeFeedbackLoop:
-    """피드백 루프 싱글톤 인스턴스"""
+    """피드백 루프 싱글톤 인스턴스 (스레드 안전)"""
     global _feedback_loop
     if _feedback_loop is None:
-        _feedback_loop = RealtimeFeedbackLoop()
+        with _feedback_loop_lock:
+            # Double-checked locking
+            if _feedback_loop is None:
+                _feedback_loop = RealtimeFeedbackLoop()
     return _feedback_loop

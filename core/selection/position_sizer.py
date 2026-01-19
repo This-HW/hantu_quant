@@ -282,7 +282,11 @@ class PositionSizer:
         for p in positions:
             new_weight = p.weight * scale_factor
             new_amount = total_capital * new_weight
-            new_shares = int(new_amount / p.stop_loss) if p.stop_loss > 0 else p.shares
+
+            # 주식 가격 계산: 기존 amount/shares에서 역산
+            # stop_loss가 아닌 실제 주가를 사용해야 함
+            share_price = p.amount / p.shares if p.shares > 0 else p.stop_loss
+            new_shares = int(new_amount / share_price) if share_price > 0 else p.shares
 
             normalized.append(PositionSize(
                 stock_code=p.stock_code,

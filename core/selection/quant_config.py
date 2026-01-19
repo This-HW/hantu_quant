@@ -164,19 +164,25 @@ class QuantConfig:
         }
 
 
-# 싱글톤 인스턴스
+# 싱글톤 인스턴스 (스레드 안전)
+import threading
 _quant_config: Optional[QuantConfig] = None
+_quant_config_lock = threading.Lock()
 
 
 def get_quant_config() -> QuantConfig:
-    """퀀트 설정 싱글톤 인스턴스 반환"""
+    """퀀트 설정 싱글톤 인스턴스 반환 (스레드 안전)"""
     global _quant_config
     if _quant_config is None:
-        _quant_config = QuantConfig()
+        with _quant_config_lock:
+            # Double-checked locking
+            if _quant_config is None:
+                _quant_config = QuantConfig()
     return _quant_config
 
 
 def reset_quant_config():
     """퀀트 설정 초기화 (테스트용)"""
     global _quant_config
-    _quant_config = None
+    with _quant_config_lock:
+        _quant_config = None
