@@ -110,7 +110,7 @@ class TestAPIConfig(unittest.TestCase):
                     config._token_file = self.test_token_file
                     
                     # 토큰 갱신
-                    with patch('json.dump') as mock_json_dump:
+                    with patch('json.dump'):
                         result = config.refresh_token()
                         
                         # 갱신 결과 확인

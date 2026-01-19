@@ -27,7 +27,7 @@ def test_api_connection():
     print("\n=== API 연결 테스트 ===")
     
     try:
-        api = KISAPI()
+        KISAPI()
         config = APIConfig()
         
         # 토큰 확인

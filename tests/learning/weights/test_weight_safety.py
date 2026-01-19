@@ -187,7 +187,7 @@ class TestWeightSafety:
     def test_rollback_no_history(self, weight_safety):
         """히스토리 없을 때 롤백 테스트"""
         # 히스토리가 없으면 None 반환
-        rollback = weight_safety.rollback(steps=1)
+        weight_safety.rollback(steps=1)
         # 히스토리가 없으면 None 또는 빈 dict 반환
         # 구현에 따라 다를 수 있음
 

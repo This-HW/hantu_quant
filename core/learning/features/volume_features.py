@@ -76,7 +76,7 @@ class VolumeFeatureExtractor:
                 return VolumeFeatures()
             
             # 볼륨 지표 객체 생성
-            volume_price_analyzer = VolumePriceAnalyzer(ohlcv_data)
+            VolumePriceAnalyzer(ohlcv_data)
             relative_volume_strength = RelativeVolumeStrength(ohlcv_data)
             volume_cluster_analyzer = VolumeClusterAnalyzer(ohlcv_data)
             

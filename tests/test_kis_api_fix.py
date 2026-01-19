@@ -48,7 +48,7 @@ def test_tr_id_generation():
     print("\n=== 2. TR_ID 생성 검증 ===")
     
     config = APIConfig()
-    client = KISRestClient()
+    KISRestClient()
     
     # 원래 서버 설정 저장
     original_server = config.server

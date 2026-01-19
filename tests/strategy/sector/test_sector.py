@@ -393,7 +393,7 @@ class TestTransitionDetector:
 
         # 첫 번째 업데이트
         metrics1 = analyzer.analyze_all_sectors(sample_stock_data, market_data)
-        signals1 = detector.update(metrics1)
+        detector.update(metrics1)
 
         # 두 번째 업데이트 (데이터 변경)
         modified_data = sample_stock_data.copy()
@@ -536,7 +536,7 @@ class TestSectorIntegration:
             # 분석 및 배분
             metrics = analyzer.analyze_all_sectors(modified_data, market_data)
             allocation = engine.calculate_allocation(modified_data, market_data)
-            signals = detector.update(metrics)
+            detector.update(metrics)
 
             allocations.append(allocation)
 

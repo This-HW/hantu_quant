@@ -5,7 +5,6 @@ Strategy optimization script.
 import argparse
 import logging
 from datetime import datetime, timedelta
-import json
 
 from ..strategies.momentum import MomentumStrategy
 from ..optimization.optimizer import StrategyOptimizer

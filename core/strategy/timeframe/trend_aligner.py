@@ -319,7 +319,7 @@ class TrendAligner:
         current_price = close.iloc[-1]
 
         # 가격의 이평선 대비 위치
-        deviation_s = (current_price - ma_s.iloc[-1]) / ma_s.iloc[-1]
+        (current_price - ma_s.iloc[-1]) / ma_s.iloc[-1]
         deviation_l = (current_price - ma_l.iloc[-1]) / ma_l.iloc[-1]
 
         # 이평선 간 거리

@@ -350,7 +350,7 @@ class TestCache:
 
         # 첫 번째 분석
         bids1, asks1 = create_balanced_orderbook()
-        result1 = analyzer.analyze("005930", bids1, asks1)
+        analyzer.analyze("005930", bids1, asks1)
 
         # 두 번째 분석 (다른 데이터)
         bids2, asks2 = create_buy_pressure_orderbook()

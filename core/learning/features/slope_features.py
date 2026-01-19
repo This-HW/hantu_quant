@@ -75,7 +75,7 @@ class SlopeFeatureExtractor:
                 return SlopeFeatures()
             
             # SlopeIndicator 생성
-            slope_indicator = SlopeIndicator(ohlcv_data)
+            SlopeIndicator(ohlcv_data)
             
             # 각 피처 계산
             features = SlopeFeatures()

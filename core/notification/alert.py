@@ -333,7 +333,6 @@ class AlertFormatter:
         """
         일일 요약 알림 생성
         """
-        is_profit = total_pnl >= 0
 
         message_lines = [
             f"거래 {total_trades}건, 승률 {win_rate:.1%}",

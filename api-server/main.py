@@ -658,7 +658,7 @@ async def stop_integrated_scheduler() -> Dict[str, Any]:
 
         # 보안: shell=True 대신 리스트 기반 subprocess 사용 (Command Injection 방지)
         script_path = os.path.join(project_root, 'workflows', 'integrated_scheduler.py')
-        result = subprocess.run(
+        subprocess.run(
             ['python3', script_path, 'stop'],
             cwd=project_root,
             capture_output=True,

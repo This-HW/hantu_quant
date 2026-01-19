@@ -116,7 +116,7 @@ class TestErrorContextManager:
         """기본 컨텍스트 관리자"""
         assert get_error_context() is None
 
-        with ErrorContextManager("test_operation") as ctx:
+        with ErrorContextManager("test_operation"):
             assert get_error_context() is not None
             assert get_error_context().operation == "test_operation"
 

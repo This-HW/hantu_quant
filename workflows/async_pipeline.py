@@ -116,7 +116,7 @@ class AsyncPipeline:
             
             # 배치 크기 설정
             batch_size = 10
-            total_batches = (len(p_stock_list) + batch_size - 1) // batch_size
+            (len(p_stock_list) + batch_size - 1) // batch_size
             
             # 배치별 처리 및 스트리밍
             for i in range(0, len(p_stock_list), batch_size):

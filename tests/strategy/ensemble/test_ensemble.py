@@ -739,7 +739,7 @@ class TestEnsembleIntegration:
         sell_ranked = engine.rank_signals(signals, action_filter=SignalType.SELL)
 
         # 전체 실행 가능 신호
-        actionable = engine.get_actionable_signals(signals)
+        engine.get_actionable_signals(signals)
 
         assert len(signals) == 2
         assert isinstance(buy_ranked, list)

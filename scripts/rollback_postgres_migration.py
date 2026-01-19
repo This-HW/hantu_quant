@@ -288,7 +288,7 @@ class PostgresRollback:
             self.set_fallback_flag(enable=True)
 
         # 롤백 로그 생성
-        result = self.create_rollback_log()
+        self.create_rollback_log()
 
         # 결과 요약
         summary = self.stats.summary()

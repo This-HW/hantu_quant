@@ -276,7 +276,7 @@ class MTFAnalyzer:
             abs(low - close.shift(1))
         ], axis=1).max(axis=1)
 
-        atr = tr.rolling(14).mean()
+        tr.rolling(14).mean()
         trend_strength = min(1.0, abs(ma_diff) / 0.1)  # 10% 변화를 최대로
 
         # 이평선 대비 위치

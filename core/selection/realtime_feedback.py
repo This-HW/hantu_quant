@@ -245,7 +245,7 @@ class AdaptiveParameterStore:
     def set(self, param_name: str, value: float, reason: str = ""):
         """파라미터 설정"""
         with self._lock:
-            old_value = self._params.get(param_name, 0)
+            self._params.get(param_name, 0)
             self._params[param_name] = value
 
             # DB 저장

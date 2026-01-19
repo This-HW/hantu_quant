@@ -287,9 +287,9 @@ class TestOrderStateMachineManager:
     def test_get_active_orders(self):
         manager = OrderStateMachineManager()
 
-        m1 = manager.create("order-001")
+        manager.create("order-001")
         m2 = manager.create("order-002")
-        m3 = manager.create("order-003")
+        manager.create("order-003")
 
         # Fill one order
         m2.submit()
@@ -305,7 +305,7 @@ class TestOrderStateMachineManager:
         manager = OrderStateMachineManager()
 
         m1 = manager.create("order-001")
-        m2 = manager.create("order-002")
+        manager.create("order-002")
 
         m1.submit()
         m1.acknowledge()

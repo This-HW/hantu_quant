@@ -5,15 +5,12 @@ Momentum strategy for backtesting.
 import pandas as pd
 import numpy as np
 from decimal import Decimal
-from typing import Dict, List, Any, Optional
 from datetime import datetime
-import logging
 from pathlib import Path
 
 from .base import BacktestStrategy
-from hantu_common.indicators import RSI, MovingAverage, BollingerBands, MACD
+from hantu_common.indicators import MovingAverage
 from core.utils import get_logger
-from ..core.strategy import Strategy
 from ..core.portfolio import Portfolio
 
 logger = get_logger(__name__)

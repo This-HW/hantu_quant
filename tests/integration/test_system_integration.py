@@ -48,7 +48,7 @@ class TestStrategyToTradingIntegration:
     def test_signal_aggregator_to_paper_trade(self):
         """신호 집계에서 페이퍼 트레이드까지"""
         # 1. 신호 집계기 설정
-        aggregator = SignalAggregator()
+        SignalAggregator()
 
         # 2. 페이퍼 트레이딩 설정
         paper_config = PaperTradingConfig(
@@ -123,7 +123,7 @@ class TestStrategyToTradingIntegration:
             warning_threshold=0.10,
             critical_threshold=0.15,
         )
-        drawdown_monitor = DrawdownMonitor(dd_config)
+        DrawdownMonitor(dd_config)
 
         # 2. 페이퍼 트레이딩 설정
         paper_config = PaperTradingConfig(
@@ -347,7 +347,7 @@ class TestEndToEndWorkflow:
             default_stop_loss_pct=3.0,
             default_take_profit_pct=5.0,
         ))
-        trade_logger = TradeLogger()
+        TradeLogger()
         notification_manager = NotificationManager()
         mock_notifier = MockNotifier()
         notification_manager.register_notifier('mock', mock_notifier)
@@ -417,13 +417,13 @@ class TestEndToEndWorkflow:
     def test_risk_integration(self):
         """리스크 관리 통합"""
         # 1. 드로우다운 모니터
-        dd_monitor = DrawdownMonitor(DrawdownConfig(
+        DrawdownMonitor(DrawdownConfig(
             warning_threshold=0.03,
             critical_threshold=0.05,
         ))
 
         # 2. 분산투자 점수 계산기
-        div_scorer = DiversificationScore()
+        DiversificationScore()
 
         # 3. 페이퍼 트레이더
         trader = PaperTrader(PaperTradingConfig(

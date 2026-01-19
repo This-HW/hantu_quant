@@ -6,7 +6,6 @@ import pandas as pd
 import numpy as np
 from typing import Dict, List
 from scipy import stats
-from decimal import Decimal
 
 def calculate_metrics(equity_curve: pd.Series,
                      trades: List[Dict],

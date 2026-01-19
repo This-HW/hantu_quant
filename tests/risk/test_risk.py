@@ -393,7 +393,7 @@ class TestDrawdownMonitor:
         monitor = DrawdownMonitor()
 
         # 초기 값
-        status1 = monitor.update(100000)
+        monitor.update(100000)
         status2 = monitor.update(105000)  # 5% 상승
 
         assert status2.current_drawdown == 0.0

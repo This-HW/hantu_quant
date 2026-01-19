@@ -188,8 +188,8 @@ class TestAsyncKISClientSession:
     def test_context_manager_closes_session(self):
         """컨텍스트 매니저 종료 시 세션 닫힘"""
         async def test():
-            async with AsyncKISClient() as client:
-                session = client.session
+            async with AsyncKISClient():
+                pass
             # 컨텍스트 종료 후 세션 확인 불가 (closed 상태)
             return True
 

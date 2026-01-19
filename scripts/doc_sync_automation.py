@@ -129,7 +129,7 @@ class DocumentSynchronizer:
         content = file_path.read_text(encoding="utf-8")
         
         # 완료된 TODO 개수 계산
-        completed_count = len([t for t in completed_todos if t.status == "completed"])
+        len([t for t in completed_todos if t.status == "completed"])
         
         # 현재 진행 상황 업데이트
         current_status = self._get_current_status_text(completed_todos)

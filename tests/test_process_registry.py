@@ -100,7 +100,7 @@ class TestProcessRegistry:
 
         # Note: temp_dir may have different permissions, check registry creates with correct mode
         new_dir = os.path.join(self.temp_dir, 'subdir')
-        new_registry = ProcessRegistry(run_dir=new_dir)
+        ProcessRegistry(run_dir=new_dir)
 
         mode = Path(new_dir).stat().st_mode & 0o777
         assert mode == 0o700

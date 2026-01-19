@@ -3,8 +3,7 @@ Strategy optimization module.
 """
 
 import pandas as pd
-import numpy as np
-from typing import Dict, List, Tuple, Any, Callable
+from typing import Dict, List, Tuple, Any
 from itertools import product
 import logging
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -13,7 +12,6 @@ import json
 from datetime import datetime
 
 from ..core.backtest import Backtest
-from ..strategies.base import BacktestStrategy
 from ..visualization.base import BaseVisualizer
 
 logger = logging.getLogger(__name__)

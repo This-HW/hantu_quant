@@ -496,7 +496,7 @@ class IntelligentTestGenerator:
         self._logger.info(f"테스트 파일 생성 완료: {test_file_path}")
         
         # 5. 요약 리포트 생성
-        report = self._generate_test_report(file_path, functions, edge_cases, test_file_path)
+        self._generate_test_report(file_path, functions, edge_cases, test_file_path)
         
         return test_file_path
     
@@ -569,7 +569,7 @@ class IntelligentTestGenerator:
                     
                     if functions:
                         # 간단한 커버리지 예상 (실제로는 더 정교한 분석 필요)
-                        total_complexity = sum(f.complexity for f in functions.values())
+                        sum(f.complexity for f in functions.values())
                         estimated_coverage = min(0.95, 0.6 + (len(functions) * 0.05))
                         coverage[file_path] = estimated_coverage
         

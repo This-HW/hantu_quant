@@ -6,7 +6,6 @@ import pandas as pd
 from decimal import Decimal
 
 from core.utils import get_logger
-from .portfolio import Portfolio
 
 logger = get_logger(__name__)
 

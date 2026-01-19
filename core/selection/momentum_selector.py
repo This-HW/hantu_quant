@@ -245,7 +245,6 @@ class MomentumSelector:
         - 거래량 서지 (30%): 단기/장기 거래량 비율
         - 가격 강도 (20%): 최근 가격 위치
         """
-        mom = self.config.momentum
         scores = []
 
         for stock in stocks:

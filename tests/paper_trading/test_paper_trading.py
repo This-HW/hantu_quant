@@ -736,7 +736,7 @@ class TestPaperTrader:
             price=70000,
         )
 
-        results = trader.update_prices({"005930": 75000})
+        trader.update_prices({"005930": 75000})
 
         status = trader.get_portfolio_status()
         assert status['total_value'] > 10_000_000
@@ -758,7 +758,7 @@ class TestPaperTrader:
         )
 
         # 가격이 3% 이상 하락하면 손절
-        results = trader.update_prices({"005930": 67000})
+        trader.update_prices({"005930": 67000})
 
         # 손절 실행됨
         assert len(trader.get_holdings()) == 0

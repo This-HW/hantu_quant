@@ -173,7 +173,7 @@ class LearningReporter:
 
         # 피드백 분석
         recent_feedback = self._feedback_system.get_recent_feedback(days=7)
-        feedback_stats = self._feedback_system.get_stats()
+        self._feedback_system.get_stats()
 
         # 예측 정확도 계산
         correct_predictions = sum(

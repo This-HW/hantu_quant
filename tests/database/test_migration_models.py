@@ -492,7 +492,6 @@ class TestModelIntegrity:
 
     def test_all_tables_created(self, engine):
         """모든 테이블 생성 확인"""
-        inspector = engine.dialect.get_columns
         tables = Base.metadata.tables.keys()
 
         expected_tables = [
