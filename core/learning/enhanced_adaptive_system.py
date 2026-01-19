@@ -666,11 +666,11 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             }
 
             # 전체 상태 결정
+            # 주의: stale_data는 system_monitor에서 별도로 "데이터" 카테고리 경고로 처리
+            # 여기서는 학습 시스템 자체 이슈(DB, 디스크)만 포함
             issues = []
             if not health['database_health']['status']:
                 issues.append('database')
-            if health['data_freshness']['days_since_update'] > 2:
-                issues.append('stale_data')
             if health['disk_usage']['usage_pct'] > 90:
                 issues.append('disk_space')
 
@@ -719,27 +719,49 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             return {'status': False, 'error': str(e)}
 
     def _check_data_freshness(self) -> Dict[str, Any]:
-        """데이터 신선도 확인"""
+        """데이터 신선도 확인 (DB 우선, JSON 폴백)"""
         try:
-            today = datetime.now().strftime('%Y%m%d')
+            days_since = 999
+            latest_date_str = None
+            source = None
 
-            # 최신 스크리닝 파일 확인
-            screening_files = list(Path("data/watchlist").glob("screening_results_*.json"))
-            if screening_files:
-                latest_file = max(screening_files, key=lambda x: x.stat().st_mtime)
-                file_date_str = latest_file.name.split('_')[2][:8]  # YYYYMMDD
-                file_date = datetime.strptime(file_date_str, '%Y%m%d')
-                days_since = (datetime.now() - file_date).days
-            else:
-                days_since = 999
+            # 1. DB에서 최신 스크리닝 날짜 확인 (우선)
+            try:
+                from core.database.session import DatabaseSession
+                from core.database.models import ScreeningResult
+                from sqlalchemy import func
+
+                db = DatabaseSession()
+                with db.get_session() as session:
+                    latest_date = session.query(func.max(ScreeningResult.screening_date)).scalar()
+                    if latest_date:
+                        # date 객체를 datetime으로 변환하여 비교
+                        if hasattr(latest_date, 'strftime'):
+                            latest_date_str = latest_date.strftime('%Y%m%d')
+                            days_since = (datetime.now().date() - latest_date).days
+                            source = 'database'
+            except Exception as db_error:
+                self.logger.debug(f"DB 스크리닝 날짜 조회 실패 (JSON 폴백): {db_error}")
+
+            # 2. DB에서 못 찾으면 JSON 파일 확인 (폴백)
+            if source is None:
+                screening_files = list(Path("data/watchlist").glob("screening_results_*.json"))
+                if screening_files:
+                    latest_file = max(screening_files, key=lambda x: x.stat().st_mtime)
+                    latest_date_str = latest_file.name.split('_')[2][:8]  # YYYYMMDD
+                    file_date = datetime.strptime(latest_date_str, '%Y%m%d')
+                    days_since = (datetime.now() - file_date).days
+                    source = 'json_file'
 
             return {
                 'days_since_update': days_since,
-                'latest_file_date': file_date_str if screening_files else None,
+                'latest_date': latest_date_str,
+                'source': source,
                 'is_fresh': days_since <= 1
             }
 
         except Exception as e:
+            self.logger.error(f"데이터 신선도 확인 실패: {e}", exc_info=True)
             return {'days_since_update': 999, 'error': str(e)}
 
     def _check_performance_metrics(self) -> Dict[str, Any]:
