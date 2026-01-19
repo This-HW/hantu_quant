@@ -10,18 +10,45 @@
 
 ---
 
+## 작업 환경 감지
+
+> **세션 시작 시 반드시 현재 환경을 파악하세요.**
+
+### 환경 판단 기준
+
+| 환경       | 판단 조건                                       | 주 용도                |
+| ---------- | ----------------------------------------------- | ---------------------- |
+| **로컬**   | 경로가 `/Users/grimm/`으로 시작                 | 기능 개발, 설계, CI/CD |
+| **서버**   | 경로가 `/opt/hantu_quant/` 또는 `/home/ubuntu/` | 에러 픽스, 핫픽스      |
+| **온라인** | claude.ai 웹 환경                               | 대규모 작업, 리서치    |
+
+### 환경별 Git 규칙
+
+| 환경   | 브랜치 prefix             | CI 스킵          | 비고               |
+| ------ | ------------------------- | ---------------- | ------------------ |
+| 로컬   | `feature/*`, `refactor/*` | X                | PR 필수            |
+| 서버   | `fix/*`, `hotfix/*`       | `[skip ci]` 권장 | 서비스 재시작 필요 |
+| 온라인 | `claude/*`                | X                | PR 필수            |
+
+**상세 규칙**: `.claude/rules/git-governance.md` 참조
+
+---
+
 ## 프로젝트 목표
 
 ### 비전
+
 종목 스크리닝부터 매매 실행까지 전 과정을 자동화하여 체계적이고 감정에 휘둘리지 않는 퀀트 트레이딩을 구현한다.
 
 ### 핵심 기능
+
 1. **Phase 1**: 종목 스크리닝 (전체 종목 대상 일일 분석)
 2. **Phase 2**: 일일 매매 종목 선정 (감시 리스트 기반)
 3. **Phase 3**: 매매 실행 (자동 주문, 리스크 관리)
 4. **Phase 4**: 학습/AI (머신러닝 기반 전략 최적화)
 
 ### 비기능 요구사항
+
 - 성능: 전체 종목 스크리닝 30분 이내
 - 가용성: 장 시간 중 99% 업타임
 - 보안: API 키/시크릿 보호, 인증 필수
@@ -94,6 +121,7 @@ except Exception as e:
 ```
 
 **공통 로거 사용**
+
 ```python
 from core.utils.log_utils import get_logger
 logger = get_logger(__name__)
@@ -107,24 +135,24 @@ logger = get_logger(__name__)
 
 ### 4. 테스트 규칙
 
-| 유형 | 위치 | 보존 |
-|------|------|------|
-| 단위 테스트 | `tests/unit/` | 영구 |
-| 통합 테스트 | `tests/integration/` | 영구 |
-| 임시 테스트 | `tests/scratch/` | **PR 전 삭제** |
+| 유형        | 위치                 | 보존           |
+| ----------- | -------------------- | -------------- |
+| 단위 테스트 | `tests/unit/`        | 영구           |
+| 통합 테스트 | `tests/integration/` | 영구           |
+| 임시 테스트 | `tests/scratch/`     | **PR 전 삭제** |
 
 ---
 
 ## 기술 스택
 
-| 구분 | 기술 |
-|------|------|
-| 언어 | Python 3.11+ |
-| API 서버 | FastAPI |
-| 스케줄러 | Schedule, APScheduler |
-| DB | SQLite (로컬), PostgreSQL (운영) |
-| 알림 | Telegram Bot |
-| 배포 | Docker, OCI |
+| 구분     | 기술                             |
+| -------- | -------------------------------- |
+| 언어     | Python 3.11+                     |
+| API 서버 | FastAPI                          |
+| 스케줄러 | Schedule, APScheduler            |
+| DB       | SQLite (로컬), PostgreSQL (운영) |
+| 알림     | Telegram Bot                     |
+| 배포     | Docker, OCI                      |
 
 ---
 
@@ -160,25 +188,27 @@ python3 scripts/security_check.py --fix
 
 ## 환경 변수
 
-| 변수 | 설명 |
-|------|------|
-| `KIS_APP_KEY` | 한투 API 앱 키 |
-| `KIS_APP_SECRET` | 한투 API 시크릿 |
-| `KIS_ACCOUNT_NO` | 계좌 번호 |
-| `API_SERVER_KEY` | API 서버 인증 키 |
+| 변수                 | 설명             |
+| -------------------- | ---------------- |
+| `KIS_APP_KEY`        | 한투 API 앱 키   |
+| `KIS_APP_SECRET`     | 한투 API 시크릿  |
+| `KIS_ACCOUNT_NO`     | 계좌 번호        |
+| `API_SERVER_KEY`     | API 서버 인증 키 |
 | `TELEGRAM_BOT_TOKEN` | 텔레그램 봇 토큰 |
-| `TELEGRAM_CHAT_ID` | 텔레그램 채팅 ID |
+| `TELEGRAM_CHAT_ID`   | 텔레그램 채팅 ID |
 
 ---
 
 ## 점수 기준
 
 ### Phase 1: 종목 스크리닝 (100점)
+
 - 재무건전성 (30%): ROE, PER, PBR, 부채비율
 - 기술적 지표 (40%): 이평선, MACD, RSI
 - 모멘텀 (30%): 거래량/가격 추세
 
 ### Phase 2: 일일 선정 (100점)
+
 - 기술적 점수 (40%): 이평선, MACD, RSI, 스토캐스틱, CCI
 - 가격 매력도 (30%): 지지선 근접도
 - 시장 상황 (20%): 섹터 동향
@@ -192,6 +222,7 @@ python3 scripts/security_check.py --fix
 
 **현재 상태**: 모든 분석이 실제 데이터로 동작
 **구현 완료**:
+
 - KIS API 통한 실데이터 조회 완료
 - 캐싱 및 요청 제한 처리
 - 데이터 검증 및 정제
@@ -207,6 +238,7 @@ real_data = kis.get_daily_prices(stock_code, period=60)
 ### 2. 기술적 지표 계산 구현 (완료)
 
 **구현 완료 지표**:
+
 - RSI (Relative Strength Index)
 - MACD (Moving Average Convergence Divergence)
 - 볼린저 밴드 (Bollinger Bands)
@@ -219,12 +251,14 @@ real_data = kis.get_daily_prices(stock_code, period=60)
 ### 3. 리스크 관리 시스템 (완료)
 
 **구현 완료**:
+
 - 역사적 변동성 계산 (연율화)
 - VaR (Value at Risk) 파라메트릭 방법
 - ATR 기반 손절가 계산
 - 통합 리스크 점수 (변동성, 시가총액, 유동성, 섹터)
 
 **향후 개선 예정**:
+
 - CVaR (Conditional VaR)
 - Copula 기반 상관관계 분석
 - 동적 포지션 사이징
@@ -232,6 +266,7 @@ real_data = kis.get_daily_prices(stock_code, period=60)
 ### 4. ML/AI 모델 학습 (진행중)
 
 **계획된 모델**:
+
 1. **LSTM**: 시계열 가격 예측
 2. **XGBoost**: 종목 선정 분류
 3. **Random Forest**: 특성 중요도 분석
@@ -243,6 +278,7 @@ real_data = kis.get_daily_prices(stock_code, period=60)
 
 **현재 상태**: 실제 데이터 기반
 **구현 예정**:
+
 - 일별 성과 데이터 수집
 - 특성/레이블 데이터셋 생성
 - 모델 학습 및 평가 자동화
@@ -263,12 +299,12 @@ watch_list.monitor_real_time(
 
 ## 목표 지표
 
-| 지표 | 현재 목표 | 장기 목표 |
-|------|---------|---------|
-| 연수익률 | 12% | 20%+ |
-| 샤프 비율 | 1.2 | 1.8+ |
-| 최대 손실폭 | -8% | -12% |
-| 승률 | 58% | 65%+ |
+| 지표        | 현재 목표 | 장기 목표 |
+| ----------- | --------- | --------- |
+| 연수익률    | 12%       | 20%+      |
+| 샤프 비율   | 1.2       | 1.8+      |
+| 최대 손실폭 | -8%       | -12%      |
+| 승률        | 58%       | 65%+      |
 
 ---
 
@@ -279,7 +315,9 @@ watch_list.monitor_real_time(
 배포 또는 인프라 변경 시 반드시 아래 문서를 업데이트하세요:
 
 #### 1. `deploy/SERVERS.md` - 서버 정보
+
 업데이트 시점: 서버 생성/변경/삭제 시
+
 - 서버 IP 주소 (Public/Private)
 - 인스턴스 OCID
 - 서버 스펙 (CPU, RAM, Storage)
@@ -287,13 +325,17 @@ watch_list.monitor_real_time(
 - SSH 접속 정보
 
 #### 2. `deploy/DEPLOY_MICRO.md` - 배포 가이드
+
 업데이트 시점: 배포 절차 변경 시
+
 - 의존성 설치 방법
 - 환경 설정 방법
 - 트러블슈팅 가이드
 
 #### 3. `CHANGELOG.md` - 변경 이력 (필요시 생성)
+
 업데이트 시점: 주요 버전 릴리즈 시
+
 - 버전별 변경 내용
 - Breaking changes
 - 마이그레이션 가이드
@@ -309,12 +351,13 @@ watch_list.monitor_real_time(
 배포 후:
 [ ] deploy/SERVERS.md 업데이트
 [ ] 서버 동작 확인
-[ ] 로그 확인 (journalctl -u hantu-* -f)
+[ ] 로그 확인 (journalctl -u hantu-\* -f)
 ```
 
 ### 버전 정보 기록
 
 Python 패키지 버전 이슈 발생 시 `deploy/DEPLOY_MICRO.md`의 "문제 해결" 섹션에 기록:
+
 - 에러 메시지
 - 해결 방법
 - 영향받는 Python/OS 버전
@@ -340,12 +383,12 @@ except Exception as e:
 
 ### 에러 수준 구분
 
-| 수준 | 용도 | 예시 |
-|------|------|------|
-| `logger.error()` | 기능 실패, 복구 필요 | 주문 실패, DB 연결 실패 |
-| `logger.warning()` | 잠재적 문제, 동작은 계속 | 재시도 성공, 폴백 사용 |
-| `logger.info()` | 중요 이벤트 | 주문 체결, 스케줄 시작 |
-| `logger.debug()` | 디버깅용 상세 정보 | 변수 값, 중간 결과 |
+| 수준               | 용도                     | 예시                    |
+| ------------------ | ------------------------ | ----------------------- |
+| `logger.error()`   | 기능 실패, 복구 필요     | 주문 실패, DB 연결 실패 |
+| `logger.warning()` | 잠재적 문제, 동작은 계속 | 재시도 성공, 폴백 사용  |
+| `logger.info()`    | 중요 이벤트              | 주문 체결, 스케줄 시작  |
+| `logger.debug()`   | 디버깅용 상세 정보       | 변수 값, 중간 결과      |
 
 ### Silent Failure 금지
 
@@ -375,6 +418,7 @@ db_error_handler = setup_db_error_logging(service_name="서비스명")
 ### 에러 로깅 체크리스트
 
 새 코드 작성 시:
+
 - [ ] 모든 `except` 블록에 `exc_info=True` 추가
 - [ ] `get_logger(__name__)` 사용
 - [ ] 에러 메시지에 실패 원인 포함
