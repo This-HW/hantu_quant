@@ -108,18 +108,21 @@ class MomentumSelector:
         results = selector.select_stocks(watchlist_stocks, market_data)
     """
 
-    def __init__(self, config: Optional[QuantConfig] = None):
+    def __init__(
+        self,
+        config: Optional[QuantConfig] = None,
+        api_client=None  # API 인스턴스 주입 (Rate Limit 공유용)
+    ):
         """
         초기화
 
         Args:
             config: 퀀트 설정 (None이면 기본값 사용)
+            api_client: KIS API 클라이언트 (None이면 내부 생성)
         """
         self.config = config or get_quant_config()
         self.logger = logger
-
-        # API 클라이언트 (지연 로딩)
-        self._api = None
+        self._api = api_client  # 외부 주입 또는 None (지연 로딩)
 
         # 캐시
         self._market_return_cache: Dict[str, float] = {}
@@ -422,7 +425,8 @@ class MomentumSelector:
         """
         from core.selection.position_sizer import PositionSizer
 
-        sizer = PositionSizer(self.config)
+        # API 인스턴스 공유 (Rate Limit 효율화)
+        sizer = PositionSizer(self.config, api_client=self._api)
         results = []
 
         for i, score in enumerate(selected):

@@ -58,19 +58,22 @@ class PositionSizer:
         )
     """
 
-    def __init__(self, config: Optional[QuantConfig] = None):
+    def __init__(
+        self,
+        config: Optional[QuantConfig] = None,
+        api_client=None  # API 인스턴스 주입 (Rate Limit 공유용)
+    ):
         """
         초기화
 
         Args:
             config: 퀀트 설정 (None이면 기본값 사용)
+            api_client: KIS API 클라이언트 (None이면 내부 생성)
         """
         self.config = config or get_quant_config()
         self.ps_config = self.config.position_sizing
         self.logger = logger
-
-        # API 클라이언트 (지연 로딩)
-        self._api = None
+        self._api = api_client  # 외부 주입 또는 None (지연 로딩)
 
     @property
     def api(self):
