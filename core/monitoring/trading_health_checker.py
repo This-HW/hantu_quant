@@ -345,17 +345,39 @@ class TradingHealthChecker:
         """선정 실패의 근본 원인 진단"""
         try:
             today = datetime.now().strftime("%Y%m%d")
-            log_file = Path(f"logs/{today}.log")
 
-            if not log_file.exists():
+            # 실제 로그 파일 경로 확인 (app.log 또는 날짜별 로그)
+            log_candidates = [
+                Path("logs/app/app.log"),
+                Path(f"logs/{today}.log"),
+                Path("logs/hantu_quant.log"),
+            ]
+
+            log_file = None
+            for candidate in log_candidates:
+                if candidate.exists():
+                    log_file = candidate
+                    break
+
+            if log_file is None:
                 return "로그 파일 없음 - 스케줄러 미실행 가능성"
 
             # 오늘 로그에서 API 에러 패턴 검색
             api_errors = []
             phase_errors = []
 
+            # 오늘 날짜 형식들 (로그 형식에 따라 다양하게 매칭)
+            today_patterns = [
+                datetime.now().strftime("%Y-%m-%d"),  # 2026-01-19
+                datetime.now().strftime("%Y%m%d"),    # 20260119
+            ]
+
             with open(log_file, 'r', encoding='utf-8') as f:
                 for line in f:
+                    # 오늘 날짜 로그만 필터링 (app.log는 여러 날 포함 가능)
+                    if not any(pattern in line for pattern in today_patterns):
+                        continue
+
                     # API 에러 패턴
                     if 'RetryableAPIError' in line or 'HTTP 500' in line:
                         # 에러 코드 추출
