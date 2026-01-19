@@ -1032,19 +1032,25 @@ class StockScreener(IStockScreener):
                 # 새 데이터 저장
                 saved_count = 0
                 for result in p_results:
+                    # 중첩 딕셔너리에서 점수 추출
+                    _fundamental = result.get('fundamental', {})
+                    _technical = result.get('technical', {})
+                    _momentum = result.get('momentum', {})
+                    _fundamental_details = _fundamental.get('details', {})
+
                     screening_record = ScreeningResult(
                         screening_date=p_screening_date,
                         stock_code=result.get('stock_code', ''),
                         stock_name=result.get('stock_name', ''),
-                        total_score=result.get('total_score', 0.0),
-                        fundamental_score=result.get('fundamental_score', 0.0),
-                        technical_score=result.get('technical_score', 0.0),
-                        momentum_score=result.get('momentum_score', 0.0),
+                        total_score=result.get('overall_score', 0.0),
+                        fundamental_score=_fundamental.get('score', 0.0),
+                        technical_score=_technical.get('score', 0.0),
+                        momentum_score=_momentum.get('score', 0.0),
                         passed=1 if result.get('overall_passed', False) else 0,
-                        roe=result.get('roe'),
-                        per=result.get('per'),
-                        pbr=result.get('pbr'),
-                        debt_ratio=result.get('debt_ratio')
+                        roe=_fundamental_details.get('roe'),
+                        per=_fundamental_details.get('per'),
+                        pbr=_fundamental_details.get('pbr'),
+                        debt_ratio=_fundamental_details.get('debt_ratio')
                     )
                     session.add(screening_record)
                     saved_count += 1

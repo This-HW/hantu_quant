@@ -73,7 +73,8 @@ class StrategyBacktester:
         start_date: str,
         end_date: str,
         selection_criteria: Dict,
-        trading_config: Dict
+        trading_config: Dict,
+        strategy_name: str = "Default"
     ) -> BacktestResult:
         """선정 전략 백테스트
 
