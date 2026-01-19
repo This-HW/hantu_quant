@@ -5,7 +5,7 @@ tenacity>=8.2.0
 pydantic>=2.0.0
 websockets==15.0.1
 pandas==2.3.3
-numpy==1.26.3
+numpy==2.0.2
 sqlalchemy==2.0.45
 python-dotenv==1.2.1
 schedule==1.2.2
