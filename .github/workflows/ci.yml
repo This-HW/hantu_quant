@@ -10,13 +10,18 @@ jobs:
   check:
     name: Lint & Verify
     runs-on: ubuntu-latest
+    # Skip CI for commits with [skip ci], [ci skip], or [no ci] in message
+    if: |
+      !contains(github.event.head_commit.message, '[skip ci]') &&
+      !contains(github.event.head_commit.message, '[ci skip]') &&
+      !contains(github.event.head_commit.message, '[no ci]')
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Cache pip packages
         uses: actions/cache@v4
