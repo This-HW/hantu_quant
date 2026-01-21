@@ -43,26 +43,6 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Pre-deployment Checks
-        run: |
-          ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
-            set -e
-
-            cd /opt/hantu_quant
-
-            # Ensure scripts are executable
-            chmod +x scripts/deployment/*.sh
-
-            # Run pre-deployment checks
-            echo "=== Running Pre-deployment Checks ==="
-            source scripts/deployment/pre_checks.sh
-            if ! run_pre_deployment_checks; then
-              echo "❌ Pre-deployment checks failed!"
-              exit 1
-            fi
-            echo "✅ Pre-deployment checks passed"
-          ENDSSH
-
       - name: Deploy to server
         id: deploy
         run: |
@@ -95,6 +75,16 @@ jobs:
             git reset --hard origin/main
             COMMIT_SHA=$(git rev-parse --short HEAD)
             echo "✅ Now on main branch: $COMMIT_SHA"
+
+            # Run pre-deployment checks (after git pull to ensure scripts exist)
+            echo "=== Running Pre-deployment Checks ==="
+            chmod +x scripts/deployment/*.sh
+            source scripts/deployment/pre_checks.sh
+            if ! run_pre_deployment_checks; then
+              echo "❌ Pre-deployment checks failed!"
+              exit 1
+            fi
+            echo "✅ Pre-deployment checks passed"
 
             # Install dependencies (--quiet 제거하여 오류 확인 가능)
             echo "=== Installing dependencies ==="
