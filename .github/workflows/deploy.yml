@@ -43,6 +43,26 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Pre-deployment Checks
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+            set -e
+
+            cd /opt/hantu_quant
+
+            # Ensure scripts are executable
+            chmod +x scripts/deployment/*.sh
+
+            # Run pre-deployment checks
+            echo "=== Running Pre-deployment Checks ==="
+            source scripts/deployment/pre_checks.sh
+            if ! run_pre_deployment_checks; then
+              echo "❌ Pre-deployment checks failed!"
+              exit 1
+            fi
+            echo "✅ Pre-deployment checks passed"
+          ENDSSH
+
       - name: Deploy to server
         id: deploy
         run: |
@@ -141,6 +161,11 @@ jobs:
             fi
             echo "✅ Scheduler is running"
 
+            # Setup auto-fix crontab
+            echo "=== Setting up auto-fix crontab ==="
+            chmod +x scripts/setup-crontab.sh
+            bash scripts/setup-crontab.sh || echo "⚠️ Crontab setup had issues, continuing..."
+
             # Final verification
             echo "=== Final Service Status ==="
             systemctl status hantu-api --no-pager -l | head -20
@@ -150,14 +175,49 @@ jobs:
             echo "✅ Deployment complete! Commit: $COMMIT_SHA"
           ENDSSH
 
+      - name: Track Deployment Status
+        if: always()
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+            set +e  # Don't exit on error in tracking
+
+            cd /opt/hantu_quant
+
+            # Source state manager
+            source scripts/deployment/state_manager.sh
+
+            # Determine deployment outcome (check if previous step succeeded)
+            # Note: In SSH context, we check service status as proxy for deployment success
+            if systemctl is-active --quiet hantu-api && systemctl is-active --quiet hantu-scheduler; then
+              echo "Deployment succeeded - updating state"
+              update_state "success" "Deployed $(git rev-parse --short HEAD)"
+            else
+              echo "Deployment failed - updating state"
+              COMMIT_SHA=$(git rev-parse --short HEAD)
+              BRANCH=$(git branch --show-current)
+
+              update_state "failed" "Deployment failed: services not running"
+
+              # Check consecutive failures
+              FAILURES=$(get_consecutive_failures)
+              echo "Consecutive failures: $FAILURES"
+
+              if [ "$FAILURES" -ge 2 ]; then
+                echo "Sending deployment failure alert..."
+                LAST_SUCCESS=$(get_last_success)
+                python3 scripts/deployment/send_failure_alert.py "$FAILURES" "$COMMIT_SHA" "$BRANCH" "$LAST_SUCCESS" || echo "Failed to send Telegram alert"
+              fi
+            fi
+          ENDSSH
+
       - name: Health Check
         if: success()
         run: |
           echo "Waiting for services to stabilize (10s)..."
           sleep 10
-          
+
           HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.DEPLOY_HOST }}:8000/health || echo "000")
-          
+
           if [ "$HTTP_STATUS" = "200" ]; then
             echo "✅ Health check passed (HTTP $HTTP_STATUS)"
           else
