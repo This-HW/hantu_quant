@@ -40,22 +40,32 @@ def parse_event_type(hook_event_name: str) -> str:
 
 def create_log_entry(data: dict) -> dict:
     """로그 항목 생성"""
+    tool_name = data.get("tool_name", "")
     tool_input = data.get("tool_input", {})
 
-    # 프롬프트 미리보기 (너무 길면 자름)
-    prompt = tool_input.get("prompt", "")
-    prompt_preview = prompt[:200] + "..." if len(prompt) > 200 else prompt
+    # Skill vs Task 파라미터 차이 처리
+    if tool_name == "Skill":
+        agent_type = f"skill/{tool_input.get('skill', 'unknown')}"
+        description = f"Skill: {tool_input.get('skill', 'unknown')}"
+        prompt_preview = tool_input.get("args", "")
+        model = "default"
+    else:  # Task
+        agent_type = tool_input.get("subagent_type", "unknown")
+        description = tool_input.get("description", "")
+        prompt = tool_input.get("prompt", "")
+        prompt_preview = prompt[:200] + "..." if len(prompt) > 200 else prompt
+        model = tool_input.get("model", "default")
 
     return {
         "timestamp": datetime.now().isoformat(),
         "event": parse_event_type(data.get("hook_event_name", "")),
         "session_id": data.get("session_id", "unknown"),
-        "agent_type": tool_input.get("subagent_type", "unknown"),
-        "description": tool_input.get("description", ""),
-        "model": tool_input.get("model", "default"),
+        "agent_type": agent_type,
+        "description": description,
+        "model": model,
         "prompt_preview": prompt_preview,
         "cwd": data.get("cwd", ""),
-        "tool_use_id": data.get("tool_use_id", "")
+        "tool_use_id": data.get("tool_use_id", ""),
     }
 
 
@@ -82,9 +92,9 @@ def main():
         # stdin에서 훅 데이터 수신
         data = json.load(sys.stdin)
 
-        # Task 도구인지 확인 (이미 matcher로 필터링되지만 안전하게)
+        # Task/Skill 도구인지 확인 (이미 matcher로 필터링되지만 안전하게)
         tool_name = data.get("tool_name", "")
-        if tool_name != "Task":
+        if tool_name not in ["Task", "Skill"]:
             sys.exit(0)
 
         # 로그 항목 생성
