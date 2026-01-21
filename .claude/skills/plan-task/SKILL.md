@@ -13,26 +13,55 @@ allowed-tools: Read, Glob, Grep, Task, TodoWrite, AskUserQuestion
 
 ---
 
+## 파이프라인 구조
+
+```
+┌──────────────┐   ┌───────────────────┐   ┌───────────────────┐
+│ Phase 1      │ → │ Phase 2           │ → │ Phase 3           │
+│ explore-     │   │ clarify-          │   │ design-user-      │
+│ codebase     │   │ requirements      │   │ journey           │
+│ (haiku)      │   │ (opus)            │   │ (sonnet)          │
+└──────────────┘   └───────────────────┘   └───────────────────┘
+                                                    │
+                   ┌───────────────────┐            │
+                   │ Phase 4           │ ←──────────┘
+                   │ define-business-  │
+                   │ logic (sonnet)    │
+                   └───────────────────┘
+                            │
+                   ┌───────────────────┐
+                   │ Phase 5           │
+                   │ plan-             │
+                   │ implementation    │
+                   │ (haiku)           │
+                   └───────────────────┘
+```
+
+**중요**: Subagent는 다른 subagent를 호출할 수 없으므로 Main Claude가 순차적으로 오케스트레이션합니다.
+
+---
+
 ## Phase 0: 규모 판단 (즉시 실행)
 
 다음 기준으로 작업 규모를 판단하세요:
 
-| 기준 | Small | Medium | Large |
-|------|-------|--------|-------|
-| 영향 범위 | 1개 모듈 | 2-3개 모듈 | 4개+ 모듈 |
-| 데이터 변경 | 없음 | 기존 구조 확장 | 새 구조 추가 |
-| 비즈니스 규칙 | 기존 규칙 내 | 경미한 추가 | 핵심 규칙 변경 |
-| 사용자 흐름 | 변경 없음 | 기존 흐름 수정 | 새 흐름 추가 |
+| 기준          | Small        | Medium         | Large          |
+| ------------- | ------------ | -------------- | -------------- |
+| 영향 범위     | 1개 모듈     | 2-3개 모듈     | 4개+ 모듈      |
+| 데이터 변경   | 없음         | 기존 구조 확장 | 새 구조 추가   |
+| 비즈니스 규칙 | 기존 규칙 내 | 경미한 추가    | 핵심 규칙 변경 |
+| 사용자 흐름   | 변경 없음    | 기존 흐름 수정 | 새 흐름 추가   |
 
 ### 규모별 Planning 경로
 
 ```
-Small:  Phase 1 → Phase 2 → 완료
-Medium: Phase 1 → Phase 2 → Phase 3 → 완료
-Large:  Phase 1 → Phase 2 → Phase 3 → Phase 4 → 완료
+Small:  Phase 1 → Phase 2 → Phase 5 → 완료
+Medium: Phase 1 → Phase 2 → Phase 3 → Phase 5 → 완료
+Large:  Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → 완료
 ```
 
 **출력:**
+
 ```
 ## 규모 판단
 
@@ -47,7 +76,8 @@ Large:  Phase 1 → Phase 2 → Phase 3 → Phase 4 → 완료
 
 ```
 Task tool 사용:
-subagent_type: Explore
+subagent_type: explore-codebase
+model: haiku
 prompt: |
   요청: [사용자 요청]
 
@@ -65,10 +95,9 @@ prompt: |
 
 ```
 Task tool 사용:
-subagent_type: general-purpose
+subagent_type: clarify-requirements
+model: opus
 prompt: |
-  당신은 요구사항 분석 전문가입니다.
-
   [사용자 요청]
   [Phase 1 탐색 결과]
 
@@ -107,8 +136,9 @@ prompt: |
 ```
 
 **P0 모호함 발견 시:**
+
 - AskUserQuestion으로 사용자에게 질문
-- 답변 받은 후 Phase 2 재실행
+- 답변 받은 후 clarify-requirements 재호출
 
 ---
 
@@ -116,10 +146,9 @@ prompt: |
 
 ```
 Task tool 사용:
-subagent_type: general-purpose
+subagent_type: design-user-journey
+model: sonnet
 prompt: |
-  당신은 UX 설계 전문가입니다.
-
   [사용자 요청]
   [Phase 2 요구사항 결과]
 
@@ -132,29 +161,31 @@ prompt: |
   - 종료점: 완료 상태
 
   ### 2. 상태 다이어그램
-  ```
-  [초기] → [로딩] → [성공/실패]
-           ↓
-        [에러 처리]
-  ```
+```
 
-  ### 3. 에러 처리 전략
-  | 에러 유형 | 처리 방법 |
-  |----------|----------|
-  | 네트워크 | 재시도 UI |
-  | 권한 | 권한 요청 안내 |
-  | 데이터 | 사용자 피드백 |
-  | 입력 | 실시간 유효성 검사 |
+[초기] → [로딩] → [성공/실패]
+↓
+[에러 처리]
 
-  출력 형식:
-  ## 사용자 여정
-  [흐름 설명]
+```
 
-  ## 상태 다이어그램
-  [상태 전이]
+### 3. 에러 처리 전략
+| 에러 유형 | 처리 방법 |
+|----------|----------|
+| 네트워크 | 재시도 UI |
+| 권한 | 권한 요청 안내 |
+| 데이터 | 사용자 피드백 |
+| 입력 | 실시간 유효성 검사 |
 
-  ## 에러 처리 전략
-  [에러별 처리]
+출력 형식:
+## 사용자 여정
+[흐름 설명]
+
+## 상태 다이어그램
+[상태 전이]
+
+## 에러 처리 전략
+[에러별 처리]
 ```
 
 ---
@@ -163,10 +194,9 @@ prompt: |
 
 ```
 Task tool 사용:
-subagent_type: general-purpose
+subagent_type: define-business-logic
+model: sonnet
 prompt: |
-  당신은 비즈니스 분석가입니다.
-
   [사용자 요청]
   [Phase 2 요구사항]
   [Phase 3 사용자 여정]
@@ -205,33 +235,42 @@ prompt: |
 
 ## Phase 5: 구현 계획 수립 (필수)
 
-모든 Phase 완료 후, 구현 계획을 수립합니다:
-
-### 목표
-[Phase 2의 요구사항 요약]
-
-### 기술적 결정
-[선택한 접근 방식과 이유]
-
-### 작업 분해
 ```
-배치 1 (병렬 가능):
-  - [ ] 작업 1.1: [설명]
-  - [ ] 작업 1.2: [설명]
+Task tool 사용:
+subagent_type: plan-implementation
+model: haiku
+prompt: |
+  [사용자 요청]
+  [Phase 2 요구사항]
+  [Phase 3 사용자 여정 - 해당시]
+  [Phase 4 비즈니스 규칙 - 해당시]
 
-배치 2 (배치1 완료 후):
-  - [ ] 작업 2.1: [설명]
+  다음 구현 계획을 수립해주세요:
+
+  ### 목표
+  [요구사항 요약]
+
+  ### 기술적 결정
+  [선택한 접근 방식과 이유]
+
+  ### 작업 분해
+  배치 1 (병렬 가능):
+    - [ ] 작업 1.1: [설명]
+    - [ ] 작업 1.2: [설명]
+
+  배치 2 (배치1 완료 후):
+    - [ ] 작업 2.1: [설명]
+
+  ### 파일 변경 예상
+  | 파일 | 변경 내용 |
+  |------|----------|
+  | path/to/file | 추가/수정/삭제 내용 |
+
+  ### 리스크
+  | 리스크 | 대응책 |
+  |--------|--------|
+  | [예상 문제] | [해결 방법] |
 ```
-
-### 파일 변경 예상
-| 파일 | 변경 내용 |
-|------|----------|
-| path/to/file | 추가/수정/삭제 내용 |
-
-### 리스크
-| 리스크 | 대응책 |
-|--------|--------|
-| [예상 문제] | [해결 방법] |
 
 ---
 
