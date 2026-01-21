@@ -32,18 +32,18 @@ def _get_db_connection():
                     from sqlalchemy.orm import sessionmaker
                     from core.config import settings
 
-                    if settings.DB_TYPE == 'postgresql':
+                    if settings.DB_TYPE == "postgresql":
                         _engine = create_engine(
                             settings.DATABASE_URL,
                             pool_size=2,
                             max_overflow=3,
                             pool_timeout=10,
-                            pool_pre_ping=True
+                            pool_pre_ping=True,
                         )
                     else:
                         _engine = create_engine(
                             settings.DATABASE_URL,
-                            connect_args={'check_same_thread': False}
+                            connect_args={"check_same_thread": False},
                         )
 
                     _session_factory = sessionmaker(bind=_engine)
@@ -67,7 +67,7 @@ class PostgreSQLErrorHandler(logging.Handler):
         level: int = logging.ERROR,
         batch_size: int = 10,
         flush_interval: float = 5.0,
-        send_telegram: bool = True
+        send_telegram: bool = True,
     ):
         """
         초기화
@@ -110,25 +110,29 @@ class PostgreSQLErrorHandler(logging.Handler):
         # 스택 트레이스 추출
         stack_trace = None
         if record.exc_info:
-            stack_trace = ''.join(traceback.format_exception(*record.exc_info))
+            stack_trace = "".join(traceback.format_exception(*record.exc_info))
 
         # 컨텍스트 정보 추출
         context = {}
-        if hasattr(record, 'context_data'):
+        if hasattr(record, "context_data"):
             context = record.context_data
-        if hasattr(record, 'data'):
+        if hasattr(record, "data"):
             context.update(record.data)
 
         return {
-            'timestamp': datetime.now(),
-            'level': record.levelname,
-            'service': self.service_name,
-            'module': record.module,
-            'function': record.funcName,
-            'message': record.getMessage(),
-            'error_type': record.exc_info[0].__name__ if record.exc_info else None,
-            'stack_trace': stack_trace,
-            'context': json.dumps(context) if context else None,
+            "timestamp": datetime.now(),
+            "level": record.levelname,
+            "service": self.service_name,
+            "module": record.module,
+            "function": record.funcName,
+            "message": record.getMessage(),
+            "error_type": (
+                record.exc_info[0].__name__
+                if record.exc_info and record.exc_info[0]
+                else None
+            ),
+            "stack_trace": stack_trace,
+            "context": json.dumps(context) if context else None,
         }
 
     def _process_queue(self):
@@ -147,7 +151,9 @@ class PostgreSQLErrorHandler(logging.Handler):
 
                 # 배치 크기 도달 또는 플러시 간격 초과 시 저장
                 elapsed = (datetime.now() - last_flush).total_seconds()
-                if len(batch) >= self.batch_size or (batch and elapsed >= self.flush_interval):
+                if len(batch) >= self.batch_size or (
+                    batch and elapsed >= self.flush_interval
+                ):
                     self._flush_batch(batch)
                     batch = []
                     last_flush = datetime.now()
@@ -182,15 +188,15 @@ class PostgreSQLErrorHandler(logging.Handler):
             try:
                 for entry in batch:
                     error_log = ErrorLog(
-                        timestamp=entry['timestamp'],
-                        level=entry['level'],
-                        service=entry['service'],
-                        module=entry['module'],
-                        function=entry['function'],
-                        message=entry['message'],
-                        error_type=entry['error_type'],
-                        stack_trace=entry['stack_trace'],
-                        context=entry['context'],
+                        timestamp=entry["timestamp"],
+                        level=entry["level"],
+                        service=entry["service"],
+                        module=entry["module"],
+                        function=entry["function"],
+                        message=entry["message"],
+                        error_type=entry["error_type"],
+                        stack_trace=entry["stack_trace"],
+                        context=entry["context"],
                     )
                     session.add(error_log)
 
@@ -222,22 +228,22 @@ class PostgreSQLErrorHandler(logging.Handler):
                 return
 
             # 메시지 구성
-            timestamp = entry['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
-            level = entry['level']
-            service = entry['service']
-            module = entry['module']
-            function = entry['function'] or 'unknown'
-            message = entry['message'][:200]  # 메시지 길이 제한
-            error_type = entry['error_type'] or 'Unknown'
+            timestamp = entry["timestamp"].strftime("%Y-%m-%d %H:%M:%S")
+            level = entry["level"]
+            service = entry["service"]
+            module = entry["module"]
+            function = entry["function"] or "unknown"
+            message = entry["message"][:200]  # 메시지 길이 제한
+            error_type = entry["error_type"] or "Unknown"
 
             # 스택 트레이스 (축약)
-            stack_trace = entry.get('stack_trace', '')
+            stack_trace = entry.get("stack_trace", "")
             if stack_trace:
                 # 마지막 3줄만 표시
-                stack_lines = stack_trace.strip().split('\n')
-                stack_summary = '\n'.join(stack_lines[-3:])[:300]
+                stack_lines = stack_trace.strip().split("\n")
+                stack_summary = "\n".join(stack_lines[-3:])[:300]
             else:
-                stack_summary = 'N/A'
+                stack_summary = "N/A"
 
             alert_message = f"""🚨 *[{service}] 에러*
 `{timestamp}` | `{module}.{function}`
@@ -267,9 +273,7 @@ class PostgreSQLErrorHandler(logging.Handler):
 
 
 def setup_db_error_logging(
-    service_name: str,
-    logger_name: str = "",
-    level: int = logging.ERROR
+    service_name: str, logger_name: str = "", level: int = logging.ERROR
 ) -> Optional[PostgreSQLErrorHandler]:
     """
     DB 에러 로깅 설정
@@ -297,9 +301,7 @@ def setup_db_error_logging(
 
 
 def get_recent_errors(
-    service: Optional[str] = None,
-    level: Optional[str] = None,
-    limit: int = 50
+    service: Optional[str] = None, level: Optional[str] = None, limit: int = 50
 ) -> list:
     """
     최근 에러 조회
@@ -329,26 +331,21 @@ def get_recent_errors(
             if level:
                 query = query.filter(ErrorLog.level == level)
 
-            results = (
-                query
-                .order_by(desc(ErrorLog.timestamp))
-                .limit(limit)
-                .all()
-            )
+            results = query.order_by(desc(ErrorLog.timestamp)).limit(limit).all()
 
             return [
                 {
-                    'id': e.id,
-                    'timestamp': e.timestamp.isoformat() if e.timestamp else None,
-                    'level': e.level,
-                    'service': e.service,
-                    'module': e.module,
-                    'function': e.function,
-                    'message': e.message,
-                    'error_type': e.error_type,
-                    'stack_trace': e.stack_trace,
-                    'context': e.context,
-                    'resolved': e.resolved.isoformat() if e.resolved else None,
+                    "id": e.id,
+                    "timestamp": e.timestamp.isoformat() if e.timestamp else None,
+                    "level": e.level,
+                    "service": e.service,
+                    "module": e.module,
+                    "function": e.function,
+                    "message": e.message,
+                    "error_type": e.error_type,
+                    "stack_trace": e.stack_trace,
+                    "context": e.context,
+                    "resolved": e.resolved.isoformat() if e.resolved else None,
                 }
                 for e in results
             ]
