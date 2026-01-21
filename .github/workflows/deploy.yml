@@ -44,11 +44,12 @@ jobs:
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy to server
+        id: deploy
         run: |
           ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
             set -e  # 에러 발생 시 즉시 중단
 
-            cd ${{ env.DEPLOY_PATH }}
+            cd /opt/hantu_quant
 
             echo "=== Server Git Status Check ==="
             CURRENT_BRANCH=$(git branch --show-current)
@@ -72,31 +73,97 @@ jobs:
             fi
 
             git reset --hard origin/main
-            echo "✅ Now on main branch: $(git rev-parse --short HEAD)"
+            COMMIT_SHA=$(git rev-parse --short HEAD)
+            echo "✅ Now on main branch: $COMMIT_SHA"
 
-            # Install dependencies
+            # Install dependencies (--quiet 제거하여 오류 확인 가능)
+            echo "=== Installing dependencies ==="
             source venv/bin/activate
-            pip install -r requirements.txt --quiet
+            pip install -r requirements.txt
+            if [ $? -ne 0 ]; then
+              echo "❌ ERROR: pip install failed!"
+              python scripts/deployment/log_deploy_error.py \
+                --service "dependencies" \
+                --message "pip install 실패" \
+                --telegram \
+                --commit "$COMMIT_SHA" \
+                --branch "main" || true
+              exit 1
+            fi
+            echo "✅ Dependencies installed"
 
             # Run database migrations (if needed)
+            echo "=== Database migration ==="
             python -c "from core.database.session import DatabaseSession; db = DatabaseSession(); print('DB schema updated')"
+            if [ $? -ne 0 ]; then
+              echo "⚠️ WARNING: DB migration had issues, continuing..."
+            fi
 
-            # Restart services
+            # Restart API server
+            echo "=== Restarting API server ==="
             sudo systemctl restart hantu-api
-            sudo systemctl restart hantu-scheduler
-
-            # Verify services
             sleep 5
-            systemctl is-active hantu-api || echo "API server not running"
-            systemctl is-active hantu-scheduler || echo "Scheduler not running"
+            if ! systemctl is-active --quiet hantu-api; then
+              echo "❌ ERROR: API server failed to start!"
+              API_LOG=$(journalctl -u hantu-api -n 50 --no-pager 2>&1)
+              echo "$API_LOG"
+              python scripts/deployment/log_deploy_error.py \
+                --service "api-server" \
+                --message "API 서버 시작 실패" \
+                --log "$API_LOG" \
+                --telegram \
+                --commit "$COMMIT_SHA" \
+                --branch "main" || true
+              exit 1
+            fi
+            echo "✅ API server is running"
 
-            echo "Deployment complete!"
+            # Restart Scheduler (더 긴 대기시간 필요)
+            echo "=== Restarting Scheduler ==="
+            sudo systemctl restart hantu-scheduler
+            
+            # 스케줄러 초기화에 시간이 더 필요 (15초 대기)
+            echo "Waiting for scheduler initialization (15s)..."
+            sleep 15
+            
+            if ! systemctl is-active --quiet hantu-scheduler; then
+              echo "❌ ERROR: Scheduler failed to start!"
+              SCHEDULER_LOG=$(journalctl -u hantu-scheduler -n 50 --no-pager 2>&1)
+              echo "$SCHEDULER_LOG"
+              python scripts/deployment/log_deploy_error.py \
+                --service "scheduler" \
+                --message "스케줄러 시작 실패" \
+                --log "$SCHEDULER_LOG" \
+                --telegram \
+                --commit "$COMMIT_SHA" \
+                --branch "main" || true
+              exit 1
+            fi
+            echo "✅ Scheduler is running"
+
+            # Final verification
+            echo "=== Final Service Status ==="
+            systemctl status hantu-api --no-pager -l | head -20
+            systemctl status hantu-scheduler --no-pager -l | head -20
+
+            echo ""
+            echo "✅ Deployment complete! Commit: $COMMIT_SHA"
           ENDSSH
 
       - name: Health Check
+        if: success()
         run: |
+          echo "Waiting for services to stabilize (10s)..."
           sleep 10
-          curl -f http://${{ secrets.DEPLOY_HOST }}:8000/health || echo "Health check failed"
+          
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.DEPLOY_HOST }}:8000/health || echo "000")
+          
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ Health check passed (HTTP $HTTP_STATUS)"
+          else
+            echo "⚠️ Health check returned HTTP $HTTP_STATUS"
+            # 실패해도 배포는 완료된 상태이므로 warning만 출력
+          fi
 
       - name: Send Telegram Notification
         if: always()
@@ -119,7 +186,7 @@ jobs:
           *상태*: $MESSAGE
           *브랜치*: main
           *커밋*: ${COMMIT_SHA:0:7}
-          *시간*: $(date '+%Y-%m-%d %H:%M:%S')"
+          *시간*: $(TZ='Asia/Seoul' date '+%Y-%m-%d %H:%M:%S')"
 
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -d "chat_id=${TELEGRAM_CHAT_ID}" \
