@@ -236,6 +236,11 @@ class DailyUpdater(IDailyUpdater):
 
         self._logger.info("DailyUpdater 초기화 완료 (새 아키텍처)")
 
+    def initialize(self):
+        """플러그인 초기화 메서드 (플러그인 데코레이터 요구사항)"""
+        self._logger.info("DailyUpdater 플러그인 초기화 완료")
+        return True
+
     def _get_kis_api(self):
         """KIS API 싱글톤 인스턴스 반환 (rate limiting 공유)"""
         if self._kis_api is None:

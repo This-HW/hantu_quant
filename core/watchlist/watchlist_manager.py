@@ -123,6 +123,11 @@ class WatchlistManager(IWatchlistManager):
             f"WatchlistManager 초기화 완료 (새 아키텍처) - 종목 수: {len(self._stocks)}"
         )
 
+    def initialize(self):
+        """플러그인 초기화 메서드 (플러그인 데코레이터 요구사항)"""
+        self._logger.info("WatchlistManager 플러그인 초기화 완료")
+        return True
+
     def add_stock(self, entry: WatchlistEntry) -> bool:
         """종목 추가 (새 인터페이스 구현)
 
