@@ -14,6 +14,7 @@ tools:
 disallowedTools:
   - Write
   - Edit
+permissionMode: default
 ---
 
 # Component Architecture Designer
