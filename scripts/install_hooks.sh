@@ -86,6 +86,25 @@ EOF
 chmod +x "$PRE_COMMIT_HOOK"
 echo "✅ pre-commit hook 설치 완료: $PRE_COMMIT_HOOK"
 
+# post-commit hook 생성
+POST_COMMIT_HOOK="$HOOKS_DIR/post-commit"
+
+cat > "$POST_COMMIT_HOOK" << 'EOF'
+#!/bin/bash
+# Post-commit hook: 서버 환경 자동 배포
+
+# 프로젝트 루트로 이동
+cd "$(git rev-parse --show-toplevel)"
+
+# 서버 자동 배포 스크립트 실행
+if [ -f "scripts/hooks/post-commit-deploy.sh" ]; then
+    bash scripts/hooks/post-commit-deploy.sh
+fi
+EOF
+
+chmod +x "$POST_COMMIT_HOOK"
+echo "✅ post-commit hook 설치 완료: $POST_COMMIT_HOOK"
+
 echo ""
 echo "==================================="
 echo "설치 완료!"
@@ -94,7 +113,12 @@ echo ""
 echo "이제 다음 기능이 활성화됩니다:"
 echo "  - 커밋 전 민감한 파일 자동 검사"
 echo "  - 하드코딩된 API 키/토큰 자동 감지"
+echo "  - 서버 환경 커밋 시 자동 배포 (post-commit)"
+echo ""
+echo "서버 환경에서 커밋 시:"
+echo "  - hantu-api, hantu-scheduler 자동 재시작"
+echo "  - 텔레그램 알림 자동 발송"
 echo ""
 echo "Hook을 비활성화하려면:"
-echo "  rm $PRE_COMMIT_HOOK"
+echo "  rm $PRE_COMMIT_HOOK $POST_COMMIT_HOOK"
 echo ""
