@@ -667,6 +667,11 @@ class PriceAnalyzer(IPriceAnalyzer):
 
         self._logger.info("PriceAnalyzer 초기화 완료 (새 아키텍처)")
 
+    def initialize(self):
+        """플러그인 초기화 메서드 (플러그인 데코레이터 요구사항)"""
+        self._logger.info("PriceAnalyzer 플러그인 초기화 완료")
+        return True
+
     def analyze_price_attractiveness(self, p_stock_data: Dict) -> PriceAttractiveness:
         """단일 종목 가격 매력도 분석 (새 인터페이스 구현)"""
         try:
