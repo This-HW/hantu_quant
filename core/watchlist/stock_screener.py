@@ -66,6 +66,11 @@ class StockScreener(IStockScreener):
         self._v_sector_data = {}
         self._logger.info("StockScreener 초기화 완료 (새 아키텍처)")
 
+    def initialize(self):
+        """플러그인 초기화 메서드 (플러그인 데코레이터 요구사항)"""
+        self._logger.info("StockScreener 플러그인 초기화 완료")
+        return True
+
     def _load_screening_criteria(self) -> Dict:
         """스크리닝 기준 로드"""
         _v_default_criteria = {
