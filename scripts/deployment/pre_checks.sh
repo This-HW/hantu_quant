@@ -17,7 +17,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-MEMORY_THRESHOLD_MB=800
+MEMORY_THRESHOLD_MB=200  # Adjusted for 1GB OCI Free Tier
 MAX_RETRY_ATTEMPTS=3
 RETRY_WAIT_SECONDS=300  # 5 minutes
 
@@ -36,6 +36,51 @@ log_warn() {
 
 log_error() {
     log "${RED}[ERROR]${NC} $1"
+}
+
+# Clean up memory before deployment
+cleanup_memory() {
+    log_info "Cleaning up system memory..."
+
+    local freed_mb=0
+
+    # 1. Clear PageCache, dentries and inodes (safe operation)
+    log_info "  → Clearing system caches..."
+    if sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches' 2>/dev/null; then
+        log_info "  ✓ System caches cleared"
+    else
+        log_warn "  ⚠ Could not clear system caches (need sudo)"
+    fi
+
+    # 2. Remove old rotated logs (older than 30 days)
+    log_info "  → Removing old logs..."
+    local logs_removed=0
+    if [ -d "/opt/hantu_quant/logs" ]; then
+        logs_removed=$(find /opt/hantu_quant/logs -name "*.log.gz" -mtime +30 -delete -print 2>/dev/null | wc -l || echo 0)
+        if [ "$logs_removed" -gt 0 ]; then
+            log_info "  ✓ Removed $logs_removed old log files"
+        else
+            log_info "  ✓ No old logs to remove"
+        fi
+    fi
+
+    # 3. Clear Python cache files
+    log_info "  → Clearing Python cache..."
+    local cache_removed=0
+    if [ -d "/opt/hantu_quant" ]; then
+        cache_removed=$(find /opt/hantu_quant -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null; echo $?)
+        find /opt/hantu_quant -type f -name "*.pyc" -delete 2>/dev/null || true
+        log_info "  ✓ Python cache cleared"
+    fi
+
+    # 4. Show memory improvement
+    sleep 1  # Give system time to reclaim memory
+    local available_after
+    available_after=$(free -m | awk 'NR==2 {print $7}')
+    log_info "✓ Memory cleanup complete"
+    log_info "  Available memory: ${available_after} MB"
+
+    return 0
 }
 
 # Check available memory
@@ -64,6 +109,12 @@ run_pre_deployment_checks() {
     log_info "=========================================="
 
     local check_failed=0
+
+    # Check 0: Memory cleanup (proactive)
+    log_info ""
+    log_info "Step 0: Memory Cleanup"
+    log_info "------------------------------------------"
+    cleanup_memory
 
     # Check 1: Memory availability
     log_info ""
@@ -206,7 +257,7 @@ Usage: $0 <command> [args]
 
 Commands:
   check-memory           Check memory availability
-  check-all              Run all pre-deployment checks
+  check-all              Run all pre-deployment checks (includes memory cleanup)
   deploy-with-retry <cmd> Deploy with retry logic (max ${MAX_RETRY_ATTEMPTS} attempts)
   help                   Show this help message
 
@@ -214,6 +265,11 @@ Configuration:
   MEMORY_THRESHOLD_MB    Minimum available memory (default: ${MEMORY_THRESHOLD_MB} MB)
   MAX_RETRY_ATTEMPTS     Maximum retry attempts (default: ${MAX_RETRY_ATTEMPTS})
   RETRY_WAIT_SECONDS     Wait time between retries (default: ${RETRY_WAIT_SECONDS}s)
+
+Features:
+  - Automatic memory cleanup before deployment (clears caches, old logs, Python cache)
+  - Consecutive failure tracking with Telegram alerts
+  - Retry logic with configurable wait times
 
 Examples:
   $0 check-memory
