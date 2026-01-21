@@ -20,6 +20,8 @@ import sys
 import os
 import re
 import fnmatch
+from pathlib import Path
+from datetime import datetime
 
 # 공통 유틸리티 import (스크립트 위치 기반 동적 경로)
 hook_dir = os.path.dirname(os.path.abspath(__file__))

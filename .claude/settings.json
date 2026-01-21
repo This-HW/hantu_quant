@@ -175,7 +175,7 @@
         ]
       },
       {
-        "matcher": "Task",
+        "matcher": "Task|Skill",
         "hooks": [
           {
             "type": "command",
@@ -195,7 +195,7 @@
         ]
       },
       {
-        "matcher": "Task",
+        "matcher": "Task|Skill",
         "hooks": [
           {
             "type": "command",
