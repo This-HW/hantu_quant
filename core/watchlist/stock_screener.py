@@ -1345,19 +1345,28 @@ class StockScreener(IStockScreener):
                     _momentum = result.get("momentum", {})
                     _fundamental_details = _fundamental.get("details", {})
 
+                    # dict가 아닌 숫자 값만 추출하는 헬퍼
+                    def _safe_float(val):
+                        if val is None or isinstance(val, dict):
+                            return None
+                        try:
+                            return float(val)
+                        except (TypeError, ValueError):
+                            return None
+
                     screening_record = ScreeningResult(
                         screening_date=p_screening_date,
                         stock_code=result.get("stock_code", ""),
                         stock_name=result.get("stock_name", ""),
-                        total_score=result.get("overall_score", 0.0),
-                        fundamental_score=_fundamental.get("score", 0.0),
-                        technical_score=_technical.get("score", 0.0),
-                        momentum_score=_momentum.get("score", 0.0),
+                        total_score=_safe_float(result.get("overall_score", 0.0)),
+                        fundamental_score=_safe_float(_fundamental.get("score", 0.0)),
+                        technical_score=_safe_float(_technical.get("score", 0.0)),
+                        momentum_score=_safe_float(_momentum.get("score", 0.0)),
                         passed=1 if result.get("overall_passed", False) else 0,
-                        roe=_fundamental_details.get("roe"),
-                        per=_fundamental_details.get("per"),
-                        pbr=_fundamental_details.get("pbr"),
-                        debt_ratio=_fundamental_details.get("debt_ratio"),
+                        roe=_safe_float(_fundamental_details.get("roe")),
+                        per=_safe_float(_fundamental_details.get("per")),
+                        pbr=_safe_float(_fundamental_details.get("pbr")),
+                        debt_ratio=_safe_float(_fundamental_details.get("debt_ratio")),
                     )
                     session.add(screening_record)
                     saved_count += 1
