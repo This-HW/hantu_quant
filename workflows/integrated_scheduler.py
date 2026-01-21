@@ -431,8 +431,11 @@ class IntegratedScheduler:
             # 3. 자동 매매 (09:00~15:30 장중이면 시작)
             if now >= market_open and now < market_close:
                 print("🤖 자동 매매 시작...")
-                self._start_auto_trading()
-                recovered_tasks.append("자동 매매 시작")
+                trading_started = self._start_auto_trading(from_recovery=True)
+                if trading_started:
+                    recovered_tasks.append("자동 매매 시작")
+                else:
+                    logger.info("자동 매매 시작 스킵됨 (이미 실행 중이거나 실패)")
             elif now >= market_close and selection_file.exists():
                 # 장 마감 후지만 선정 파일 있으면 정리 작업 가능
                 pass
@@ -449,14 +452,35 @@ class IntegratedScheduler:
                 self._run_daily_performance_analysis()
                 recovered_tasks.append("일일 성과 분석")
 
-            # 복구 결과 알림
-            if recovered_tasks:
+            # 복구 결과 알림 (작업 유무와 관계없이 재시작 알림)
+            try:
                 if notifier.is_enabled():
-                    task_list = "\n• ".join(recovered_tasks)
-                    notifier.send_message(
-                        f"*스케줄러 재시작 복구*\n`{now.strftime('%H:%M')}` 재시작\n\n*복구된 작업:*\n• {task_list}",
-                        "high",
-                    )
+                    if recovered_tasks:
+                        task_list = "\n• ".join(recovered_tasks)
+                        success = notifier.send_message(
+                            f"🔄 *스케줄러 재시작 복구*\n"
+                            f"`{now.strftime('%H:%M')}` 재시작\n\n"
+                            f"*복구된 작업:*\n• {task_list}",
+                            "high",
+                        )
+                        if not success:
+                            logger.warning("복구 알림 전송 실패")
+                    else:
+                        # 복구 작업이 없어도 재시작 알림 전송
+                        success = notifier.send_message(
+                            f"🔄 *스케줄러 재시작*\n"
+                            f"`{now.strftime('%H:%M')}` 재시작\n\n"
+                            f"✅ 모든 작업이 이미 완료되어 추가 복구 불필요",
+                            "normal",
+                        )
+                        if not success:
+                            logger.warning("재시작 알림 전송 실패")
+                else:
+                    logger.warning("텔레그램 알림이 비활성화되어 있음")
+            except Exception as notify_error:
+                logger.error(f"복구 알림 전송 중 오류: {notify_error}", exc_info=True)
+
+            if recovered_tasks:
                 print(f"✅ 복구 작업 완료: {', '.join(recovered_tasks)}\n")
             else:
                 print("✅ 복구 필요 없음 - 모든 작업 이미 완료됨\n")
@@ -1631,8 +1655,15 @@ class IntegratedScheduler:
             logger.error(f"ML 학습 조건 체크 오류: {e}", exc_info=True)
             print(f"❌ ML 학습 조건 체크 오류: {e}")
 
-    def _start_auto_trading(self):
-        """자동 매매 시작 (싱글톤 사용으로 중복 실행 방지)"""
+    def _start_auto_trading(self, from_recovery: bool = False) -> bool:
+        """자동 매매 시작 (싱글톤 사용으로 중복 실행 방지)
+
+        Args:
+            from_recovery: 복구 작업에서 호출되었는지 여부
+
+        Returns:
+            bool: 실제로 자동 매매가 시작되었는지 여부
+        """
         try:
             logger.info("=== 자동 매매 시작 ===")
             print(f"🚀 자동 매매 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -1663,7 +1694,7 @@ class IntegratedScheduler:
                 if trading_engine.is_running:
                     logger.info("자동 매매가 이미 실행 중입니다. 중복 시작 방지.")
                     print("ℹ️ 자동 매매가 이미 실행 중입니다.")
-                    return
+                    return False
 
                 # 백그라운드에서 자동 매매 실행
                 def run_trading():
@@ -1688,12 +1719,26 @@ class IntegratedScheduler:
                 logger.info("자동 매매 시작 완료")
                 print("✅ 자동 매매가 백그라운드에서 시작되었습니다!")
 
-                # 텔레그램 알림은 trading_engine.start_trading() 내부에서 전송됨
-                # 중복 알림 방지를 위해 여기서는 전송하지 않음
+                # 복구 시에는 스케줄러에서 알림 전송 (trading_engine.start_trading() 내부 알림과 별개)
+                if from_recovery:
+                    try:
+                        notifier = get_telegram_notifier()
+                        if notifier.is_enabled():
+                            notifier.send_message(
+                                f"🔄 *자동 매매 복구 시작*\n\n"
+                                f"⏰ 시간: `{datetime.now().strftime('%H:%M:%S')}`\n"
+                                f"📋 CI/CD 배포 후 스케줄러 재시작으로 자동 매매를 복구합니다.",
+                                "high",
+                            )
+                    except Exception as e:
+                        logger.warning(f"복구 알림 전송 실패: {e}")
+
+                return True
 
             except ImportError as ie:
                 logger.error(f"매매 엔진 import 실패: {ie}", exc_info=True)
                 print(f"❌ 매매 엔진 import 실패: {ie}")
+                return False
 
         except Exception as e:
             logger.error(f"자동 매매 시작 오류: {e}", exc_info=True)
@@ -1701,6 +1746,7 @@ class IntegratedScheduler:
             import traceback
 
             logger.error(f"상세 오류:\n{traceback.format_exc()}", exc_info=True)
+            return False
 
     def _stop_auto_trading(self):
         """자동 매매 중지"""
