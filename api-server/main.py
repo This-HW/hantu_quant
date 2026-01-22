@@ -549,8 +549,16 @@ def load_latest_daily_selection_data() -> List[DailySelection]:
         with open(latest_file, "r", encoding="utf-8") as f:
             data = json.load(f)
 
+        # 다양한 데이터 형식 지원 (list, dict with data.selected_stocks, dict with stocks)
+        if isinstance(data, list):
+            stocks_list = data
+        elif isinstance(data, dict):
+            stocks_list = data.get("data", {}).get("selected_stocks", []) or data.get("stocks", [])
+        else:
+            stocks_list = []
+
         selections = []
-        for i, stock_data in enumerate(data.get("data", {}).get("selected_stocks", [])[:10]):
+        for i, stock_data in enumerate(stocks_list[:10]):
             stock_code = stock_data["stock_code"]
             stock_name = stock_data["stock_name"]
 
@@ -802,8 +810,16 @@ def load_daily_selections_with_real_prices() -> List[DailySelection]:
         
         print("📡 기존 데이터로 일일 선정 구성 중... (API 호출 제외)")
         
+        # 다양한 데이터 형식 지원 (list, dict with data.selected_stocks, dict with stocks)
+        if isinstance(data, list):
+            stocks_list = data
+        elif isinstance(data, dict):
+            stocks_list = data.get("data", {}).get("selected_stocks", []) or data.get("stocks", [])
+        else:
+            stocks_list = []
+        
         selections = []
-        for i, stock_data in enumerate(data["data"]["selected_stocks"][:10]):  # 상위 10개
+        for i, stock_data in enumerate(stocks_list[:10]):  # 상위 10개
             stock_code = stock_data["stock_code"]
             stock_name = stock_data["stock_name"]
             
