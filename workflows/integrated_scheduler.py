@@ -1894,18 +1894,24 @@ class IntegratedScheduler:
                 with open(selection_file, "r") as f:
                     selection_data = json.load(f)
 
-                selected_stocks = selection_data.get("data", {}).get(
-                    "selected_stocks", []
-                )
+                # 다양한 데이터 형식 지원 (list, dict with data.selected_stocks, dict with stocks)
+                if isinstance(selection_data, list):
+                    selected_stocks = selection_data
+                    filtering_criteria = {}
+                    market_condition = "neutral"
+                elif isinstance(selection_data, dict):
+                    selected_stocks = selection_data.get("data", {}).get("selected_stocks", []) or selection_data.get("stocks", [])
+                    filtering_criteria = selection_data.get("metadata", {}).get("filtering_criteria", {})
+                    market_condition = selection_data.get("market_condition", "neutral")
+                else:
+                    selected_stocks = []
+                    filtering_criteria = {}
+                    market_condition = "neutral"
 
                 return {
                     "total_selected_stocks": len(selected_stocks),
-                    "selection_criteria": selection_data.get("metadata", {}).get(
-                        "filtering_criteria", {}
-                    ),
-                    "market_condition": selection_data.get(
-                        "market_condition", "neutral"
-                    ),
+                    "selection_criteria": filtering_criteria,
+                    "market_condition": market_condition,
                     "status": "completed",
                 }
 
@@ -1950,10 +1956,16 @@ class IntegratedScheduler:
             )
 
             if _v_latest_selection:
-                _v_selected_stocks = _v_latest_selection.get("data", {}).get(
-                    "selected_stocks", []
-                )
-                _v_metadata = _v_latest_selection.get("metadata", {})
+                # 다양한 데이터 형식 지원 (list, dict with data.selected_stocks, dict with stocks)
+                if isinstance(_v_latest_selection, list):
+                    _v_selected_stocks = _v_latest_selection
+                    _v_metadata = {}
+                elif isinstance(_v_latest_selection, dict):
+                    _v_selected_stocks = _v_latest_selection.get("data", {}).get("selected_stocks", []) or _v_latest_selection.get("stocks", [])
+                    _v_metadata = _v_latest_selection.get("metadata", {})
+                else:
+                    _v_selected_stocks = []
+                    _v_metadata = {}
 
                 print("\n📋 일일 선정 결과 요약")
                 print(f"├─ 선정 종목: {len(_v_selected_stocks)}개")

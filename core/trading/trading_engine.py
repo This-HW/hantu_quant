@@ -257,10 +257,16 @@ class TradingEngine:
             with open(selection_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
-            selected_stocks = data.get("data", {}).get("selected_stocks", [])
-            # stocks 키도 확인 (호환성)
-            if not selected_stocks:
-                selected_stocks = data.get("stocks", [])
+            # 다양한 데이터 형식 지원 (list, dict with data.selected_stocks, dict with stocks)
+            if isinstance(data, list):
+                selected_stocks = data
+            elif isinstance(data, dict):
+                selected_stocks = data.get("data", {}).get("selected_stocks", [])
+                # stocks 키도 확인 (호환성)
+                if not selected_stocks:
+                    selected_stocks = data.get("stocks", [])
+            else:
+                selected_stocks = []
             self.logger.info(f"일일 선정 종목 JSON 로드: {len(selected_stocks)}개")
 
             return selected_stocks
