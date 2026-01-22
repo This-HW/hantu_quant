@@ -715,7 +715,13 @@ class Phase2CLI:
     
     def _print_selection_table(self, p_result: Dict):
         """선정 결과 테이블 출력"""
-        selected_stocks = p_result.get("data", {}).get("selected_stocks", [])
+        # 다양한 데이터 형식 지원 (list, dict with data.selected_stocks, dict with stocks)
+        if isinstance(p_result, list):
+            selected_stocks = p_result
+        elif isinstance(p_result, dict):
+            selected_stocks = p_result.get("data", {}).get("selected_stocks", []) or p_result.get("stocks", [])
+        else:
+            selected_stocks = []
         
         print(f"\n📅 {p_result.get('market_date')} 일일 선정 결과")
         print(f"🌊 시장 상황: {p_result.get('market_condition')}")
