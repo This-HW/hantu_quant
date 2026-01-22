@@ -1289,9 +1289,13 @@ class DailyUpdater(IDailyUpdater):
                         self._logger.info(
                             f"최신 선정 결과 DB 로드: {len(stocks)}개 ({latest_date})"
                         )
+                        # JSON 저장 형식과 일치하도록 반환
                         return {
                             "market_date": str(latest_date),
-                            "stocks": stocks,
+                            "data": {
+                                "selected_stocks": stocks
+                            },
+                            "stocks": stocks,  # 호환성 유지
                             "metadata": {
                                 "total_selected": len(stocks),
                                 "source": "database",
