@@ -27,8 +27,17 @@ except ImportError:
     AIOHTTP_AVAILABLE = False
 
 from core.config.api_config import APIConfig, KISErrorCode
+from core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# 글로벌 파일 락 기반 Rate Limiter (rest_client와 동기화)
+import fcntl
+import tempfile
+import os as _os
+
+_RATE_LIMIT_LOCK_FILE = _os.path.join(tempfile.gettempdir(), "hantu_api_rate_limit.lock")
+_RATE_LIMIT_TIME_FILE = _os.path.join(tempfile.gettempdir(), "hantu_api_last_request.txt")
 
 
 @dataclass
@@ -91,8 +100,9 @@ class AsyncKISClient:
 
     # Rate Limit 설정 (초당 최대 요청 수)
     # KIS API: 실전 20건/초, 모의 5건/초
-    # 안전 마진 적용하여 5건/초로 제한 (모의투자 기준, 슬라이딩 윈도우 대응)
-    DEFAULT_RATE_LIMIT_PER_SEC = 5
+    # 글로벌 설정(settings.RATE_LIMIT_PER_SEC)을 사용하여 rest_client와 동기화
+    # 기본값: 3건/초 (매우 보수적, Rate Limit 에러 방지)
+    DEFAULT_RATE_LIMIT_PER_SEC = getattr(settings, 'RATE_LIMIT_PER_SEC', 3)
 
     # Rate Limit 에러 발생 시 대기 시간 (초)
     RATE_LIMIT_WAIT_TIME = 10.0
@@ -168,10 +178,44 @@ class AsyncKISClient:
         }
 
     async def _rate_limit_wait(self):
-        """Rate Limit 준수를 위한 대기 (슬라이딩 윈도우 방식)
+        """Rate Limit 준수를 위한 대기 (글로벌 파일 락 + 슬라이딩 윈도우)
 
+        rest_client.py와 동일한 파일 락을 사용하여 프로세스 간 Rate Limit 동기화.
         1초 윈도우 내 요청 수를 추적하여 Rate Limit을 정확하게 준수합니다.
         """
+        # Step 1: 글로벌 파일 락 기반 동기화 (rest_client와 공유)
+        try:
+            with open(_RATE_LIMIT_LOCK_FILE, 'w') as lock_file:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+                try:
+                    # 글로벌 마지막 요청 시간 읽기
+                    global_last_time = 0.0
+                    if _os.path.exists(_RATE_LIMIT_TIME_FILE):
+                        try:
+                            with open(_RATE_LIMIT_TIME_FILE, 'r') as f:
+                                global_last_time = float(f.read().strip())
+                        except (ValueError, OSError):
+                            pass
+
+                    # 글로벌 최소 간격 적용 (0.5초 = 초당 2건, 매우 보수적)
+                    global_min_interval = 0.5
+                    now = time.time()
+                    if global_last_time > 0:
+                        elapsed = now - global_last_time
+                        if elapsed < global_min_interval:
+                            wait_time = global_min_interval - elapsed
+                            logger.debug(f"글로벌 Rate Limit 대기: {wait_time:.2f}초")
+                            await asyncio.sleep(wait_time)
+
+                    # 글로벌 시간 업데이트
+                    with open(_RATE_LIMIT_TIME_FILE, 'w') as f:
+                        f.write(str(time.time()))
+                finally:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        except Exception as e:
+            logger.warning(f"글로벌 Rate Limit 락 실패: {e}, 로컬 방식 사용")
+
+        # Step 2: 로컬 슬라이딩 윈도우 방식 (추가 안전장치)
         async with self._rate_limit_lock:
             now = time.time()
 
@@ -186,7 +230,7 @@ class AsyncKISClient:
                 oldest = self._request_timestamps[0]
                 wait_time = 1.0 - (now - oldest) + 0.05  # 50ms 여유
                 if wait_time > 0:
-                    logger.debug(f"Rate Limit 대기: {wait_time:.2f}초")
+                    logger.debug(f"로컬 Rate Limit 대기: {wait_time:.2f}초")
                     await asyncio.sleep(wait_time)
 
                 # 다시 확인

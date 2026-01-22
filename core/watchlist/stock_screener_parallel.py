@@ -29,12 +29,24 @@ class ParallelStockScreener(StockScreener):
             p_max_workers: 최대 워커 수 (None이면 1, API Rate Limit 준수)
 
         Note:
-            KIS API Rate Limit: 실전 20건/초, 모의 5건/초
-            Rate Limit 초과 방지를 위해 기본값 1로 설정 (순차 처리)
+            ⚠️ KIS API Rate Limit 에러(EGW00201) 방지를 위한 중요 설정:
+            - 기본값: 1 (순차 처리, 가장 안전)
+            - 최대 권장: 2 (병렬 처리 시에도 2 이하 권장)
+            - API Rate Limit: 실전 20건/초, 모의 5건/초 (슬라이딩 윈도우)
+
+            병렬 워커를 2 이상으로 설정하면 Rate Limit 에러가 발생할 수 있습니다.
+            rest_client.py의 파일 락 기반 Rate Limiter가 적용되지만,
+            멀티프로세스 환경에서는 완벽하지 않을 수 있습니다.
         """
         super().__init__()
-        # API rate limit 방지를 위해 워커 수 제한 (기본값 1, 순차 처리)
-        self._v_max_workers = p_max_workers or 1
+        # API rate limit 방지를 위해 워커 수 강제 제한
+        requested_workers = p_max_workers or 1
+        if requested_workers > 2:
+            logger.warning(
+                f"⚠️ 병렬 워커 {requested_workers}개 요청됨 - Rate Limit 에러 방지를 위해 2개로 제한"
+            )
+            requested_workers = 2
+        self._v_max_workers = requested_workers
         logger.info(f"병렬 스크리닝 초기화 완료 - 워커 수: {self._v_max_workers}")
     
     def parallel_comprehensive_screening(self, p_stock_list: List[str], p_batch_size: int = 50) -> List[Dict]:

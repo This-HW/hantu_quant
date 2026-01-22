@@ -32,7 +32,9 @@ _RATE_LIMIT_TIME_FILE = os.path.join(tempfile.gettempdir(), "hantu_api_last_requ
 _RATE_LIMIT_BACKOFF_FILE = os.path.join(tempfile.gettempdir(), "hantu_api_backoff.txt")
 
 # 적응형 Rate Limit 상수
-_DEFAULT_MIN_INTERVAL = 0.35  # 기본 최소 간격 (초)
+# KIS API Rate Limit 에러(EGW00201) 방지를 위해 보수적으로 설정
+# 초당 2건 (0.5초 간격), 모의투자 기준 5건보다 훨씬 안전
+_DEFAULT_MIN_INTERVAL = 0.5  # 기본 최소 간격 (초) - Rate Limit 에러 방지
 _MAX_BACKOFF_MULTIPLIER = 5.0  # 최대 백오프 배수
 _BACKOFF_DECAY_RATE = 0.9  # 성공 시 백오프 감소율
 
@@ -121,8 +123,8 @@ def _get_wait_time_for_kis_error(error_code: str) -> float:
         # EGW00203: 서버 과부하/점검 - 긴 대기 필요
         return 15.0
     elif error_code == KISErrorCode.RATE_LIMIT:
-        # EGW00201: Rate Limit - 중간 대기
-        return 5.0
+        # EGW00201: Rate Limit - 충분한 대기 (슬라이딩 윈도우 복구 대기)
+        return 10.0
     elif error_code == KISErrorCode.SERVICE_ERROR:
         # EGW00500: 서비스 오류 - 표준 대기
         return 10.0

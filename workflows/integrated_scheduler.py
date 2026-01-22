@@ -58,11 +58,14 @@ logger.info("=" * 50)
 class IntegratedScheduler:
     """통합 스케줄러 클래스"""
 
-    def __init__(self, p_parallel_workers: int = 4):
+    def __init__(self, p_parallel_workers: int = 1):
         """초기화
 
         Args:
-            p_parallel_workers: 병렬 처리 워커 수 (기본값: 4)
+            p_parallel_workers: 병렬 처리 워커 수 (기본값: 1)
+                              ⚠️ KIS API Rate Limit (EGW00201) 에러 방지를 위해
+                              기본값을 1로 설정합니다.
+                              병렬 처리가 필요한 경우에도 최대 2를 권장합니다.
         """
         try:
             logger.info(f"🔧 스케줄러 초기화 시작 (워커: {p_parallel_workers}개)")
