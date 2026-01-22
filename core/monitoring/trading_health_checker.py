@@ -326,9 +326,17 @@ class TradingHealthChecker:
             with open(selection_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
 
-            count = len(data.get('data', {}).get('selected_stocks', []))
-            if count == 0:
-                count = len(data.get('stocks', []))
+            # 데이터 타입에 따라 다르게 처리
+            if isinstance(data, list):
+                # 리스트 형식: [{"stock_code": "...", ...}, ...]
+                count = len(data)
+            elif isinstance(data, dict):
+                # 딕셔너리 형식: {"data": {"selected_stocks": [...]}} 또는 {"stocks": [...]}
+                count = len(data.get('data', {}).get('selected_stocks', []))
+                if count == 0:
+                    count = len(data.get('stocks', []))
+            else:
+                count = 0
 
             root_cause = None
             if count == 0:
