@@ -15,18 +15,29 @@ tools:
 disallowedTools:
   - Bash
   - Edit
-permissionMode: acceptEdits
 hooks:
   PreToolUse:
-    - matcher: "Write|Edit"
+    - matcher: "Write"
       hooks:
         - type: command
           command: "python3 ~/.claude/hooks/protect-sensitive.py"
   PostToolUse:
-    - matcher: "Write|Edit"
+    - matcher: "Write"
       hooks:
         - type: command
           command: "python3 ~/.claude/hooks/governance-check.py"
+next_agents:
+  on_success:
+    default: plan-implementation
+  on_need_input:
+    action: ask_user_question
+    then: self
+  on_error:
+    action: report_to_main
+context_cache:
+  use_session: true
+  use_phase: planning
+  preload_agent: true
 ---
 
 # 역할: 비즈니스 로직 정의 전문가
