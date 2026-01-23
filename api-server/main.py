@@ -4,7 +4,6 @@
 """
 
 import json
-import logging
 import sys
 import asyncio
 from pathlib import Path
@@ -55,9 +54,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 로깅 설정
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# 로깅 설정 - 표준 로거 사용
+from core.utils.log_utils import get_logger
+logger = get_logger(__name__)
 
 # DB 에러 로깅 설정 (PostgreSQL에 에러 저장)
 try:
@@ -66,7 +65,7 @@ try:
     if db_error_handler:
         logger.info("DB 에러 로깅 활성화됨 (PostgreSQL)")
 except Exception as e:
-    logger.warning(f"DB 에러 로깅 설정 실패: {e}")
+    logger.warning(f"DB 에러 로깅 설정 실패: {e}", exc_info=True)
 
 # ========== 보안: API 키 인증 설정 ==========
 # 환경변수에서 API 키 로드 (설정 안된 경우 기본값 사용 - 프로덕션에서는 반드시 설정 필요)
@@ -213,6 +212,7 @@ async def check_kis_api_health() -> Dict[str, Any]:
             return {"healthy": True, "latency_ms": 0, "message": "Connected"}
         return {"healthy": False, "latency_ms": 0, "message": "No response"}
     except Exception as e:
+        logger.debug(f"KIS API 헬스체크 실패: {e}", exc_info=True)
         return {"healthy": False, "latency_ms": 0, "message": str(e)}
 
 
@@ -265,7 +265,8 @@ def get_system_metrics() -> Dict[str, float]:
             "cpu_percent": psutil.cpu_percent(interval=0.1),
             "disk_percent": psutil.disk_usage('/').percent
         }
-    except Exception:
+    except Exception as e:
+        logger.debug(f"시스템 메트릭 조회 실패: {e}", exc_info=True)
         return {
             "memory_percent": 0.0,
             "cpu_percent": 0.0,
@@ -345,7 +346,7 @@ async def execute_real_screening() -> Dict[str, Any]:
                 "details": "새로운 로직으로 실제 종목 스크리닝 수행"
             }
         else:
-            logger.error(f"스크리닝 실행 실패: {process.stderr}", exc_info=True)
+            logger.error(f"스크리닝 실행 실패: {process.stderr}")
             return {
                 "success": False, 
                 "message": "스크리닝 실행 실패",
@@ -391,10 +392,10 @@ async def execute_real_daily_selection() -> Dict[str, Any]:
                 "details": "새로운 로직으로 실제 종목 선정 수행"
             }
         else:
-            logger.error(f"종목선정 실행 실패: {process.stderr}", exc_info=True)
+            logger.error(f"종목선정 실행 실패: {process.stderr}")
             return {
                 "success": False,
-                "message": "종목선정 실행 실패", 
+                "message": "종목선정 실행 실패",
                 "error": process.stderr
             }
             
@@ -508,19 +509,32 @@ def load_latest_daily_selection_data() -> List[DailySelection]:
                         marketCap=0
                     )
 
-                    risk_score = item_data.get('risk_score', 50) or 50
+                    risk_score = item_data.get('risk_score')
+                    if risk_score is None:
+                        risk_score = 50
                     risk_level = "LOW" if risk_score < 30 else "MEDIUM" if risk_score < 70 else "HIGH"
+
+                    # None 값 안전 처리
+                    technical_score = item_data.get('technical_score')
+                    if technical_score is None:
+                        technical_score = 50
+                    momentum_score = item_data.get('momentum_score')
+                    if momentum_score is None:
+                        momentum_score = 50
+                    signal_strength = item_data.get('signal_strength')
+                    if signal_strength is None:
+                        signal_strength = 0.7
 
                     selection = DailySelection(
                         id=str(i + 1),
                         stock=stock,
                         selectedAt=(item_data.get('selection_date') or datetime.now().strftime("%Y-%m-%d")) + "T09:00:00",
-                        attractivenessScore=item_data.get('technical_score', 50) or 50,
-                        technicalScore=item_data.get('technical_score', 50) or 50,
-                        momentumScore=item_data.get('momentum_score', 50) or 50,
+                        attractivenessScore=technical_score,
+                        technicalScore=technical_score,
+                        momentumScore=momentum_score,
                         reasons=[item_data.get('signal', 'buy'), "DB 분석"],
                         expectedReturn=10.0,
-                        confidence=item_data.get('signal_strength', 0.7) or 0.7,
+                        confidence=signal_strength,
                         riskLevel=risk_level
                     )
                     selections.append(selection)
@@ -597,17 +611,7 @@ def load_latest_daily_selection_data() -> List[DailySelection]:
         logger.error(f"최신 일일선정 로드 오류: {e}", exc_info=True)
         return []
 
-# 과거 함수 제거됨 - load_latest_watchlist_data()로 대체
-
-def load_watchlist_with_real_prices() -> List[WatchlistItem]:
-    """레거시 함수 - load_latest_watchlist_data() 사용 권장"""
-    logger.warning("load_watchlist_with_real_prices()는 레거시 함수입니다. load_latest_watchlist_data() 사용을 권장합니다.")
-    return load_latest_watchlist_data()
-
-def load_daily_selections_with_real_prices() -> List[DailySelection]:
-    """레거시 함수 - load_latest_daily_selection_data() 사용 권장"""
-    logger.warning("load_daily_selections_with_real_prices()는 레거시 함수입니다. load_latest_daily_selection_data() 사용을 권장합니다.")
-    return load_latest_daily_selection_data()
+# 과거 레거시 함수 제거됨 - load_latest_watchlist_data(), load_latest_daily_selection_data() 사용
 
 # ========== 통합 스케줄러 제어 함수들 ==========
 
@@ -680,8 +684,8 @@ async def stop_integrated_scheduler() -> Dict[str, Any]:
                 cmdline = proc.info.get('cmdline', [])
                 if cmdline and any('integrated_scheduler' in arg for arg in cmdline):
                     proc.kill()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"프로세스 강제 종료 실패: {e}", exc_info=True)
         
         # 종료 확인
         import time
@@ -728,154 +732,6 @@ def get_integrated_scheduler_status() -> Dict[str, Any]:
             "uptime": f"상태 조회 실패: {e}"
         }
 
-# ========== 과거 로직 제거 완료 ==========
-# 이전 load_watchlist_with_real_prices() 함수는 더미 데이터를 사용했습니다.
-# 새로운 load_latest_watchlist_data()는 실제 스크리닝 결과를 사용합니다.
-
-def _load_legacy_watchlist_code_placeholder():
-    """과거 로직 참고용 (실행되지 않음)"""
-    try:
-        # 이전 로직: 더미 데이터 사용
-        project_root = Path(__file__).parent.parent
-        watchlist_path = project_root / "data" / "watchlist" / "watchlist.json"
-        
-        print(f"📁 감시리스트 파일 경로: {watchlist_path}")
-        
-        with open(watchlist_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        
-        print("📡 기존 데이터로 감시리스트 구성 중... (API 호출 제외)")
-        
-        watchlist = []
-        for i, stock_data in enumerate(data["data"]["stocks"][:20]):  # 상위 20개
-            stock_code = stock_data["stock_code"] 
-            stock_name = stock_data["stock_name"]
-            
-            try:
-                # 기존 데이터 사용 (API 호출 제외)
-                price_info = {
-                    "price": 50000,  # 기본값
-                    "change": 0,
-                    "changePercent": 0.0, 
-                    "volume": 100000,
-                    "marketCap": 500000000
-                }
-                
-                stock = Stock(
-                    code=stock_code,
-                    name=stock_name,
-                    market="KOSPI" if stock_code.startswith(("00", "01", "02")) else "KOSDAQ",
-                    sector=stock_data.get("sector", "기타"),
-                    price=price_info["price"],
-                    change=price_info["change"],
-                    changePercent=price_info["changePercent"],
-                    volume=price_info["volume"],
-                    marketCap=price_info["marketCap"]
-                )
-                
-                item = WatchlistItem(
-                    id=str(i + 1),
-                    stock=stock,
-                    addedAt=stock_data.get("added_date", datetime.now().isoformat()),
-                    targetPrice=stock_data.get("target_price", price_info["price"]),
-                    reason=stock_data.get("added_reason", "스크리닝 상위 종목"),
-                    score=stock_data.get("screening_score", 50)
-                )
-                watchlist.append(item)
-                
-                print(f"✅ {stock_name} ({stock_code}): 기존 데이터 로딩")
-                
-            except Exception as e:
-                logger.error(f"❌ {stock_name} ({stock_code}): 가격 조회 실패 - {e}", exc_info=True)
-                continue
-        
-        print(f"🎯 실제 데이터 감시 리스트 로딩 완료: {len(watchlist)}개 종목")
-        return watchlist
-        
-    except Exception as e:
-        logger.error(f"감시 리스트 로딩 실패: {e}", exc_info=True)
-        return []
-
-def load_daily_selections_with_real_prices() -> List[DailySelection]:
-    """실제 API 호출로 일일 선정 로딩"""
-    try:
-        # 프로젝트 루트 경로 기준으로 수정
-        project_root = Path(__file__).parent.parent
-        selection_path = project_root / "data" / "daily_selection" / "latest_selection.json"
-        
-        print(f"📁 일일선정 파일 경로: {selection_path}")
-        
-        with open(selection_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        
-        print("📡 기존 데이터로 일일 선정 구성 중... (API 호출 제외)")
-        
-        # 다양한 데이터 형식 지원 (list, dict with data.selected_stocks, dict with stocks)
-        if isinstance(data, list):
-            stocks_list = data
-        elif isinstance(data, dict):
-            stocks_list = data.get("data", {}).get("selected_stocks", []) or data.get("stocks", [])
-        else:
-            stocks_list = []
-        
-        selections = []
-        for i, stock_data in enumerate(stocks_list[:10]):  # 상위 10개
-            stock_code = stock_data["stock_code"]
-            stock_name = stock_data["stock_name"]
-            
-            try:
-                # 기존 데이터 사용 (API 호출 제외)
-                price_info = {
-                    "price": 50000,  # 기본값
-                    "change": 0, 
-                    "changePercent": 0.0,
-                    "volume": 100000,
-                    "marketCap": 500000000
-                }
-                
-                stock = Stock(
-                    code=stock_code,
-                    name=stock_name,
-                    market="KOSPI" if stock_code.startswith(("00", "01", "02")) else "KOSDAQ",
-                    sector=stock_data.get("sector", "기타"),
-                    price=price_info["price"],
-                    change=price_info["change"],
-                    changePercent=price_info["changePercent"],
-                    volume=price_info["volume"],
-                    marketCap=price_info["marketCap"]
-                )
-                
-                # 리스크 레벨 계산
-                risk_score = stock_data.get("risk_score", 50)
-                risk_level = "LOW" if risk_score < 30 else "MEDIUM" if risk_score < 70 else "HIGH"
-                
-                selection = DailySelection(
-                    id=str(i + 1),
-                    stock=stock,
-                    selectedAt=stock_data.get("selection_date", datetime.now().strftime("%Y-%m-%d")) + "T09:00:00",
-                    attractivenessScore=stock_data.get("price_attractiveness", 50),
-                    technicalScore=min(stock_data.get("volume_score", 50) + 30, 100),
-                    momentumScore=min(stock_data.get("volume_score", 50) + 20, 100),
-                    reasons=stock_data.get("technical_signals", ["AI 분석", "실시간 모니터링"]),
-                    expectedReturn=stock_data.get("expected_return", 10.0),
-                    confidence=stock_data.get("confidence", 0.7),
-                    riskLevel=risk_level
-                )
-                selections.append(selection)
-                
-                print(f"🎯 {stock_name} ({stock_code}): 기존 데이터 로딩")
-                
-            except Exception as e:
-                logger.error(f"❌ {stock_name} ({stock_code}): 가격 조회 실패 - {e}", exc_info=True)
-                continue
-        
-        print(f"🚀 실제 데이터 일일 선정 로딩 완료: {len(selections)}개 종목")
-        return selections
-        
-    except Exception as e:
-        logger.error(f"일일 선정 로딩 실패: {e}", exc_info=True)
-        return []
-
 def load_stock_list() -> List[Dict]:
     """주식 리스트 로딩 (메타 정보만)"""
     try:
@@ -888,13 +744,13 @@ def load_stock_list() -> List[Dict]:
             data = json.load(f)
         return data.get("data", [])
     except Exception as e:
-        logger.warning(f"주식 리스트 로딩 실패: {e}")
+        logger.warning(f"주식 리스트 로딩 실패: {e}", exc_info=True)
         return []
 
 # 실제 데이터 로딩
 print("🔄 실제 투자 데이터 로딩 중...")
-REAL_DAILY_SELECTIONS = load_daily_selections_with_real_prices()
-REAL_WATCHLIST = load_watchlist_with_real_prices()
+REAL_DAILY_SELECTIONS = load_latest_daily_selection_data()
+REAL_WATCHLIST = load_latest_watchlist_data()
 REAL_STOCK_LIST = load_stock_list()
 
 # 실시간 모니터 상태 관리 (전역 변수)
