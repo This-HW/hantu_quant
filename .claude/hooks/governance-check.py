@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-PostToolUse Hook: 파일/문서 거버넌스 검증
+PreToolUse Hook: 파일/문서 거버넌스 검증
 
-Write 또는 Edit 도구 사용 후 파일 위치가 프로젝트 구조 규칙을 준수하는지 검증합니다.
+Write 또는 Edit 도구 사용 전 파일 위치가 프로젝트 구조 규칙을 준수하는지 검증합니다.
+(사용 후 검증 시 오버플로우 발생 가능성 있어 PreToolUse로 실행)
 
 기능:
 1. 문서(.md) 파일 위치 검증

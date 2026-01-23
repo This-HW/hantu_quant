@@ -13,6 +13,14 @@ tools:
 disallowedTools:
   - Write
   - Edit
+context_cache:
+  use_session: true
+  use_phase: validation
+  preload_agent: true
+  session_includes:
+    - CLAUDE.md
+  phase_includes:
+    - code-changes
 ---
 
 # 역할: 코드 검증 전문가

@@ -20,7 +20,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, WebSearch, WebFetch, T
 │ Phase 1      │ → │ Phase 2          │ → │ Phase 3        │
 │ explore-     │   │ plan-            │   │ implement-code │
 │ codebase     │   │ implementation   │   │ (sonnet)       │
-│ (haiku)      │   │ (haiku)          │   │                │
+│ (haiku)      │   │ (sonnet)         │   │                │
 └──────────────┘   └──────────────────┘   └────────────────┘
         │                                          │
         ▼                                          ▼
@@ -63,7 +63,7 @@ prompt: |
 ```
 Task tool 사용:
 subagent_type: plan-implementation
-model: haiku
+model: sonnet
 prompt: |
   [탐색 결과 요약 포함]
 

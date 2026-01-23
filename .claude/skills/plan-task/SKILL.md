@@ -1,6 +1,7 @@
 ---
 name: plan-task
 description: 체계적인 작업 계획 수립. 규모 판단 → 요구사항 명확화 → 사용자 여정 → 비즈니스 로직 순으로 진행합니다.
+model: sonnet
 argument-hint: [작업 설명]
 allowed-tools: Read, Glob, Grep, Task, TodoWrite, AskUserQuestion
 ---

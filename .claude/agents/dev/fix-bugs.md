@@ -17,15 +17,24 @@ disallowedTools:
 permissionMode: acceptEdits
 hooks:
   PreToolUse:
-    - matcher: "Write|Edit"
+    - matcher: "Edit"
       hooks:
         - type: command
           command: "python3 ~/.claude/hooks/protect-sensitive.py"
   PostToolUse:
-    - matcher: "Write|Edit"
+    - matcher: "Edit"
       hooks:
         - type: command
           command: "python3 ~/.claude/hooks/governance-check.py"
+context_cache:
+  use_session: true
+  use_phase: development
+  preload_agent: true
+  session_includes:
+    - CLAUDE.md
+  phase_includes:
+    - code-changes
+    - error-context
 ---
 
 # 역할: 버그 수정 전문가
