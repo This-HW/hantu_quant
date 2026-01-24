@@ -13,7 +13,7 @@ import json
 import sqlite3
 import numpy as np
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, TypedDict
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
@@ -58,6 +58,94 @@ class LearningInsight:
     confidence: float
     actionable: bool
     suggested_action: Optional[str] = None
+
+
+# TypedDict 정의 (반환 타입 명시)
+class SectorPerformanceDict(TypedDict):
+    """섹터 성과 데이터"""
+    total_stocks: int
+    avg_performance: float
+    volatility: float
+    win_rate: float
+    best_performance: float
+    worst_performance: float
+    risk_adjusted_return: float
+
+
+class SectorAnalysisDict(TypedDict):
+    """섹터 분석 결과"""
+    status: str
+    total_sectors: int
+    sector_performance: Dict[str, SectorPerformanceDict]
+    best_sectors: List[Dict[str, Any]]
+    worst_sectors: List[Dict[str, Any]]
+    analysis_date: str
+
+
+class DayPatternDict(TypedDict):
+    """요일 패턴 데이터"""
+    total_selections: int
+    avg_performance: float
+    win_rate: float
+
+
+class TemporalAnalysisDict(TypedDict):
+    """시간별 분석 결과"""
+    status: str
+    day_of_week_patterns: Dict[str, DayPatternDict]
+    monthly_patterns: Dict[str, DayPatternDict]
+    analysis_date: str
+
+
+class DataFreshnessDict(TypedDict):
+    """데이터 신선도"""
+    days_since_update: int
+    latest_date: Optional[str]
+    source: Optional[str]
+    is_fresh: bool
+
+
+class DatabaseHealthDict(TypedDict):
+    """데이터베이스 헬스 정보"""
+    status: bool
+    table_counts: Dict[str, int]
+    latest_screening_date: Optional[str]
+    total_records: int
+
+
+class PerformanceMetricsDict(TypedDict):
+    """성능 메트릭"""
+    avg_return: float
+    total_tracking: int
+    win_rate: float
+    performance_score: float
+
+
+class DiskUsageDict(TypedDict):
+    """디스크 사용량"""
+    data_size_mb: float
+    total_disk_gb: float
+    used_disk_gb: float
+    free_disk_gb: float
+    usage_pct: float
+
+
+class SystemHealthDict(TypedDict):
+    """시스템 헬스 체크 결과"""
+    database_health: DatabaseHealthDict
+    data_freshness: DataFreshnessDict
+    performance_metrics: PerformanceMetricsDict
+    disk_usage: DiskUsageDict
+    overall_status: str
+
+
+class AdaptationResultDict(TypedDict):
+    """파라미터 적응 결과"""
+    status: str
+    changes_made: List[str]
+    new_params: Dict[str, Any]
+    insights_applied: int
+
 
 class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
     """강화된 적응형 학습 시스템
@@ -113,7 +201,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             try:
                 return unified_db_func()
             except Exception as e:
-                self.logger.warning(f"통합 DB 실행 실패, SQLite 폴백: {e}")
+                self.logger.warning(f"통합 DB 실행 실패, SQLite 폴백: {e}", exc_info=True)
                 return sqlite_fallback_func()
         else:
             return sqlite_fallback_func()
@@ -188,22 +276,22 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                 query = session.query(
                     ScreeningHistory.screening_date,
                     func.count().label('total_screened'),
-                    func.sum(case((ScreeningHistory.passed == True, 1), else_=0)).label('passed_screening'),
+                    func.sum(case((ScreeningHistory.passed == 1, 1), else_=0)).label('passed_screening'),
                     func.count(PerformanceTracking.stock_code).label('tracked_stocks'),
                     func.sum(case((
-                        (ScreeningHistory.passed == True) & (PerformanceTracking.daily_return > 0),
+                        (ScreeningHistory.passed == 1) & (PerformanceTracking.daily_return > 0),
                         1
                     ), else_=0)).label('true_positives'),
                     func.sum(case((
-                        (ScreeningHistory.passed == True) & (PerformanceTracking.daily_return <= 0),
+                        (ScreeningHistory.passed == 1) & (PerformanceTracking.daily_return <= 0),
                         1
                     ), else_=0)).label('false_positives'),
                     func.sum(case((
-                        (ScreeningHistory.passed == False) & (PerformanceTracking.daily_return > 0),
+                        (ScreeningHistory.passed == 0) & (PerformanceTracking.daily_return > 0),
                         1
                     ), else_=0)).label('false_negatives'),
                     func.sum(case((
-                        (ScreeningHistory.passed == False) & (PerformanceTracking.daily_return <= 0),
+                        (ScreeningHistory.passed == 0) & (PerformanceTracking.daily_return <= 0),
                         1
                     ), else_=0)).label('true_negatives'),
                 ).outerjoin(
@@ -469,7 +557,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             self.logger.error(f"선정 정확도 분석 실패: {e}", exc_info=True)
             return None
 
-    def analyze_sector_performance_detailed(self) -> Dict[str, Any]:
+    def analyze_sector_performance_detailed(self) -> SectorAnalysisDict:
         """상세 섹터 성과 분석 (통합 DB 우선, SQLite 폴백)"""
 
         def _unified_db_impl():
@@ -499,7 +587,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                     (ScreeningHistory.stock_code == PerformanceTracking.stock_code) &
                     (ScreeningHistory.screening_date == PerformanceTracking.tracking_date)
                 ).filter(
-                    Stock.sector != None
+                    Stock.sector.isnot(None)
                 ).group_by(
                     Stock.sector
                 ).having(
@@ -606,7 +694,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             self.logger.error(f"섹터 성과 분석 실패: {e}", exc_info=True)
             return {'status': 'error', 'error': str(e)}
 
-    def analyze_temporal_patterns(self) -> Dict[str, Any]:
+    def analyze_temporal_patterns(self) -> TemporalAnalysisDict:
         """시간별 패턴 분석 (통합 DB 우선, SQLite 폴백)"""
 
         def _unified_db_impl():
@@ -845,7 +933,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
         screening_accuracy: Optional[ScreeningAccuracy],
         selection_accuracy: Optional[SelectionAccuracy],
         insights: List[LearningInsight]
-    ) -> Dict[str, Any]:
+    ) -> AdaptationResultDict:
         """강화된 파라미터 적응"""
         try:
             improved_params = AlgorithmParams(**self.current_params.to_dict())
@@ -995,7 +1083,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
         else:
             return obj
 
-    def check_system_health(self) -> Dict[str, Any]:
+    def check_system_health(self) -> SystemHealthDict:
         """시스템 헬스체크"""
         try:
             health = {
@@ -1028,7 +1116,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
     # 허용된 테이블 목록 (SQL 인젝션 방지용 화이트리스트)
     ALLOWED_TABLES = frozenset(['screening_history', 'selection_history', 'performance_tracking'])
 
-    def _check_database_health(self) -> Dict[str, Any]:
+    def _check_database_health(self) -> DatabaseHealthDict:
         """데이터베이스 헬스체크 (통합 DB 우선, SQLite 폴백)"""
 
         def _unified_db_impl():
@@ -1094,7 +1182,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             self.logger.error(f"데이터베이스 헬스체크 실패: {e}", exc_info=True)
             return {'status': False, 'error': str(e)}
 
-    def _check_data_freshness(self) -> Dict[str, Any]:
+    def _check_data_freshness(self) -> DataFreshnessDict:
         """데이터 신선도 확인 (DB 우선, JSON 폴백)"""
         try:
             days_since = 999
@@ -1140,7 +1228,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             self.logger.error(f"데이터 신선도 확인 실패: {e}", exc_info=True)
             return {'days_since_update': 999, 'error': str(e)}
 
-    def _check_performance_metrics(self) -> Dict[str, Any]:
+    def _check_performance_metrics(self) -> PerformanceMetricsDict:
         """성능 메트릭 확인 (통합 DB 우선, SQLite 폴백)"""
 
         def _unified_db_impl():
@@ -1202,7 +1290,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             self.logger.error(f"성능 메트릭 확인 실패: {e}", exc_info=True)
             return {'error': str(e)}
 
-    def _check_disk_usage(self) -> Dict[str, Any]:
+    def _check_disk_usage(self) -> DiskUsageDict:
         """디스크 사용량 확인"""
         try:
             import shutil
@@ -1356,16 +1444,17 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
         def _unified_db_impl():
             """통합 DB 구현 (PostgreSQL)"""
             from ..database.session import DatabaseSession
+            from sqlalchemy import text
 
             db = DatabaseSession()
             with db.get_session() as session:
                 # PostgreSQL VACUUM ANALYZE (테이블 통계 갱신 및 디스크 공간 회수)
-                # 주요 테이블에만 적용
+                # 주요 테이블에만 적용 (화이트리스트 검증됨)
                 tables = ['screening_history', 'selection_history', 'performance_tracking']
                 for table in tables:
                     try:
                         # VACUUM은 트랜잭션 외부에서 실행되어야 하므로 별도 연결 사용
-                        session.execute(f"VACUUM ANALYZE {table}")
+                        session.execute(text(f"VACUUM ANALYZE {table}"))
                     except Exception as e:
                         self.logger.warning(f"테이블 {table} 최적화 실패: {e}")
 
@@ -1453,7 +1542,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                     (SelectionHistory.stock_code == PerformanceTracking.stock_code) &
                     (SelectionHistory.selection_date == PerformanceTracking.tracking_date)
                 ).filter(
-                    PerformanceTracking.stock_code == None
+                    PerformanceTracking.stock_code.is_(None)
                 )
 
                 missing_performance = missing_query.scalar() or 0
