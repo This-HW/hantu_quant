@@ -95,6 +95,29 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
 
         self.logger.info("강화된 적응형 학습 시스템 초기화 완료")
 
+    def _use_unified_db(self):
+        """통합 DB 사용 가능 여부 확인"""
+        return self._unified_db_available
+
+    def _execute_with_fallback(self, unified_db_func, sqlite_fallback_func):
+        """통합 DB 우선 실행, 실패 시 SQLite 폴백
+
+        Args:
+            unified_db_func: 통합 DB 사용 함수
+            sqlite_fallback_func: SQLite 폴백 함수
+
+        Returns:
+            실행 결과
+        """
+        if self._use_unified_db():
+            try:
+                return unified_db_func()
+            except Exception as e:
+                self.logger.warning(f"통합 DB 실행 실패, SQLite 폴백: {e}")
+                return sqlite_fallback_func()
+        else:
+            return sqlite_fallback_func()
+
     def run_comprehensive_analysis(self) -> Dict[str, Any]:
         """포괄적 학습 분석 실행"""
         try:
@@ -149,45 +172,64 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             return {'error': str(e), 'status': 'failed'}
 
     def analyze_screening_accuracy(self, days_back: int = 30) -> Optional[ScreeningAccuracy]:
-        """스크리닝 정확도 분석"""
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
+        """스크리닝 정확도 분석 (통합 DB 우선, SQLite 폴백)"""
 
-                # 스크리닝 결과와 실제 성과 조인
-                cutoff_date = (datetime.now() - timedelta(days=days_back)).strftime('%Y%m%d')
+        def _unified_db_impl():
+            """통합 DB 구현"""
+            from ..database.session import DatabaseSession
+            from ..database.models import ScreeningHistory, PerformanceTracking
+            from sqlalchemy import func, case
 
-                cursor.execute("""
-                    SELECT
-                        sh.screening_date,
-                        COUNT(*) as total_screened,
-                        SUM(CASE WHEN sh.passed = 1 THEN 1 ELSE 0 END) as passed_screening,
-                        COUNT(pt.stock_code) as tracked_stocks,
-                        SUM(CASE WHEN sh.passed = 1 AND pt.price_change_pct > 0 THEN 1 ELSE 0 END) as true_positives,
-                        SUM(CASE WHEN sh.passed = 1 AND pt.price_change_pct <= 0 THEN 1 ELSE 0 END) as false_positives,
-                        SUM(CASE WHEN sh.passed = 0 AND pt.price_change_pct > 0 THEN 1 ELSE 0 END) as false_negatives,
-                        SUM(CASE WHEN sh.passed = 0 AND pt.price_change_pct <= 0 THEN 1 ELSE 0 END) as true_negatives
-                    FROM screening_history sh
-                    LEFT JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
-                        AND sh.screening_date = pt.tracking_date
-                    WHERE sh.screening_date >= ?
-                    GROUP BY sh.screening_date
-                    ORDER BY sh.screening_date DESC
-                """, (cutoff_date,))
+            cutoff_date = datetime.now() - timedelta(days=days_back)
 
-                results = cursor.fetchall()
+            db = DatabaseSession()
+            with db.get_session() as session:
+                # 복잡한 집계 쿼리
+                query = session.query(
+                    ScreeningHistory.screening_date,
+                    func.count().label('total_screened'),
+                    func.sum(case((ScreeningHistory.passed == True, 1), else_=0)).label('passed_screening'),
+                    func.count(PerformanceTracking.stock_code).label('tracked_stocks'),
+                    func.sum(case((
+                        (ScreeningHistory.passed == True) & (PerformanceTracking.price_change_pct > 0),
+                        1
+                    ), else_=0)).label('true_positives'),
+                    func.sum(case((
+                        (ScreeningHistory.passed == True) & (PerformanceTracking.price_change_pct <= 0),
+                        1
+                    ), else_=0)).label('false_positives'),
+                    func.sum(case((
+                        (ScreeningHistory.passed == False) & (PerformanceTracking.price_change_pct > 0),
+                        1
+                    ), else_=0)).label('false_negatives'),
+                    func.sum(case((
+                        (ScreeningHistory.passed == False) & (PerformanceTracking.price_change_pct <= 0),
+                        1
+                    ), else_=0)).label('true_negatives'),
+                ).outerjoin(
+                    PerformanceTracking,
+                    (ScreeningHistory.stock_code == PerformanceTracking.stock_code) &
+                    (ScreeningHistory.screening_date == PerformanceTracking.tracking_date)
+                ).filter(
+                    ScreeningHistory.screening_date >= cutoff_date
+                ).group_by(
+                    ScreeningHistory.screening_date
+                ).order_by(
+                    ScreeningHistory.screening_date.desc()
+                )
+
+                results = query.all()
 
                 if not results:
                     return None
 
                 # 최신 날짜 데이터 사용
                 latest = results[0]
-                total_screened = latest[1]
-                passed_screening = latest[2]
-                true_positives = latest[4] or 0
-                false_positives = latest[5] or 0
-                false_negatives = latest[6] or 0
-                latest[7] or 0
+                total_screened = latest.total_screened
+                passed_screening = latest.passed_screening or 0
+                true_positives = latest.true_positives or 0
+                false_positives = latest.false_positives or 0
+                false_negatives = latest.false_negatives or 0
 
                 # 정확도 메트릭 계산
                 if passed_screening > 0:
@@ -200,7 +242,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                     precision = recall = f1_score = false_positive_rate = true_positive_rate = 0
 
                 return ScreeningAccuracy(
-                    date=latest[0],
+                    date=str(latest.screening_date),
                     total_screened=total_screened,
                     passed_screening=passed_screening,
                     actual_positive_performance=true_positives,
@@ -211,6 +253,73 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                     f1_score=f1_score
                 )
 
+        def _sqlite_fallback():
+            """SQLite 폴백 구현"""
+            try:
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+
+                    # 스크리닝 결과와 실제 성과 조인
+                    cutoff_date = (datetime.now() - timedelta(days=days_back)).strftime('%Y%m%d')
+
+                    cursor.execute("""
+                        SELECT
+                            sh.screening_date,
+                            COUNT(*) as total_screened,
+                            SUM(CASE WHEN sh.passed = 1 THEN 1 ELSE 0 END) as passed_screening,
+                            COUNT(pt.stock_code) as tracked_stocks,
+                            SUM(CASE WHEN sh.passed = 1 AND pt.price_change_pct > 0 THEN 1 ELSE 0 END) as true_positives,
+                            SUM(CASE WHEN sh.passed = 1 AND pt.price_change_pct <= 0 THEN 1 ELSE 0 END) as false_positives,
+                            SUM(CASE WHEN sh.passed = 0 AND pt.price_change_pct > 0 THEN 1 ELSE 0 END) as false_negatives,
+                            SUM(CASE WHEN sh.passed = 0 AND pt.price_change_pct <= 0 THEN 1 ELSE 0 END) as true_negatives
+                        FROM screening_history sh
+                        LEFT JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
+                            AND sh.screening_date = pt.tracking_date
+                        WHERE sh.screening_date >= ?
+                        GROUP BY sh.screening_date
+                        ORDER BY sh.screening_date DESC
+                    """, (cutoff_date,))
+
+                    results = cursor.fetchall()
+
+                    if not results:
+                        return None
+
+                    # 최신 날짜 데이터 사용
+                    latest = results[0]
+                    total_screened = latest[1]
+                    passed_screening = latest[2]
+                    true_positives = latest[4] or 0
+                    false_positives = latest[5] or 0
+                    false_negatives = latest[6] or 0
+
+                    # 정확도 메트릭 계산
+                    if passed_screening > 0:
+                        precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
+                        recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
+                        f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+                        false_positive_rate = false_positives / passed_screening
+                        true_positive_rate = true_positives / passed_screening
+                    else:
+                        precision = recall = f1_score = false_positive_rate = true_positive_rate = 0
+
+                    return ScreeningAccuracy(
+                        date=latest[0],
+                        total_screened=total_screened,
+                        passed_screening=passed_screening,
+                        actual_positive_performance=true_positives,
+                        false_positive_rate=false_positive_rate,
+                        true_positive_rate=true_positive_rate,
+                        precision=precision,
+                        recall=recall,
+                        f1_score=f1_score
+                    )
+            except Exception as e:
+                self.logger.error(f"SQLite 스크리닝 정확도 분석 실패: {e}", exc_info=True)
+                return None
+
+        try:
+            return self._execute_with_fallback(_unified_db_impl, _sqlite_fallback)
         except Exception as e:
             self.logger.error(f"스크리닝 정확도 분석 실패: {e}", exc_info=True)
             return None
@@ -681,25 +790,26 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
     ALLOWED_TABLES = frozenset(['screening_history', 'selection_history', 'performance_tracking'])
 
     def _check_database_health(self) -> Dict[str, Any]:
-        """데이터베이스 헬스체크"""
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
+        """데이터베이스 헬스체크 (통합 DB 우선, SQLite 폴백)"""
 
-                # 테이블별 레코드 수 확인 (화이트리스트 검증)
-                table_counts = {}
+        def _unified_db_impl():
+            """통합 DB 구현"""
+            from ..database.session import DatabaseSession
+            from ..database.models import ScreeningHistory, SelectionHistory, PerformanceTracking
+            from sqlalchemy import func
 
-                for table in self.ALLOWED_TABLES:
-                    # 테이블명 화이트리스트 검증 (SQL 인젝션 방지)
-                    if table not in self.ALLOWED_TABLES:
-                        continue
-                    cursor.execute(f"SELECT COUNT(*) FROM {table}")
-                    count = cursor.fetchone()[0]
-                    table_counts[table] = count
+            db = DatabaseSession()
+            with db.get_session() as session:
+                # 테이블별 레코드 수 확인
+                table_counts = {
+                    'screening_history': session.query(func.count(ScreeningHistory.id)).scalar() or 0,
+                    'selection_history': session.query(func.count(SelectionHistory.id)).scalar() or 0,
+                    'performance_tracking': session.query(func.count(PerformanceTracking.id)).scalar() or 0,
+                }
 
-                # 최신 데이터 확인
-                cursor.execute("SELECT MAX(screening_date) FROM screening_history")
-                latest_screening = cursor.fetchone()[0]
+                # 최신 스크리닝 날짜 확인
+                latest_screening_date = session.query(func.max(ScreeningHistory.screening_date)).scalar()
+                latest_screening = latest_screening_date.strftime('%Y%m%d') if latest_screening_date else None
 
                 return {
                     'status': True,
@@ -708,7 +818,41 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                     'total_records': sum(table_counts.values())
                 }
 
+        def _sqlite_fallback():
+            """SQLite 폴백 구현"""
+            try:
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+
+                    # 테이블별 레코드 수 확인 (화이트리스트 검증)
+                    table_counts = {}
+
+                    for table in self.ALLOWED_TABLES:
+                        # 테이블명 화이트리스트 검증 (SQL 인젝션 방지)
+                        if table not in self.ALLOWED_TABLES:
+                            continue
+                        cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                        count = cursor.fetchone()[0]
+                        table_counts[table] = count
+
+                    # 최신 데이터 확인
+                    cursor.execute("SELECT MAX(screening_date) FROM screening_history")
+                    latest_screening = cursor.fetchone()[0]
+
+                    return {
+                        'status': True,
+                        'table_counts': table_counts,
+                        'latest_screening_date': latest_screening,
+                        'total_records': sum(table_counts.values())
+                    }
+
+            except Exception as e:
+                return {'status': False, 'error': str(e)}
+
+        try:
+            return self._execute_with_fallback(_unified_db_impl, _sqlite_fallback)
         except Exception as e:
+            self.logger.error(f"데이터베이스 헬스체크 실패: {e}", exc_info=True)
             return {'status': False, 'error': str(e)}
 
     def _check_data_freshness(self) -> Dict[str, Any]:
@@ -758,31 +902,68 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             return {'days_since_update': 999, 'error': str(e)}
 
     def _check_performance_metrics(self) -> Dict[str, Any]:
-        """성능 메트릭 확인"""
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
+        """성능 메트릭 확인 (통합 DB 우선, SQLite 폴백)"""
 
+        def _unified_db_impl():
+            """통합 DB 구현"""
+            from ..database.session import DatabaseSession
+            from ..database.models import PerformanceTracking
+            from sqlalchemy import func, case
+
+            db = DatabaseSession()
+            with db.get_session() as session:
                 # 최근 30일 성과 요약
-                cursor.execute("""
-                    SELECT
-                        AVG(price_change_pct) as avg_return,
-                        COUNT(*) as total_tracking,
-                        SUM(CASE WHEN price_change_pct > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate
-                    FROM performance_tracking
-                    WHERE is_active = 1
-                """)
+                result = session.query(
+                    func.avg(PerformanceTracking.price_change_pct).label('avg_return'),
+                    func.count().label('total_tracking'),
+                    (func.sum(case((PerformanceTracking.price_change_pct > 0, 1), else_=0)) * 100.0 / func.count()).label('win_rate')
+                ).filter(
+                    PerformanceTracking.is_active == True
+                ).first()
 
-                result = cursor.fetchone()
+                avg_return = float(result.avg_return or 0)
+                total_tracking = int(result.total_tracking or 0)
+                win_rate = float(result.win_rate or 0)
 
                 return {
-                    'avg_return': result[0] or 0,
-                    'total_tracking': result[1] or 0,
-                    'win_rate': result[2] or 0,
-                    'performance_score': (result[2] or 0) * 0.6 + (result[0] or 0) * 40  # 간단한 점수
+                    'avg_return': avg_return,
+                    'total_tracking': total_tracking,
+                    'win_rate': win_rate,
+                    'performance_score': win_rate * 0.6 + avg_return * 40  # 간단한 점수
                 }
 
+        def _sqlite_fallback():
+            """SQLite 폴백 구현"""
+            try:
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+
+                    # 최근 30일 성과 요약
+                    cursor.execute("""
+                        SELECT
+                            AVG(price_change_pct) as avg_return,
+                            COUNT(*) as total_tracking,
+                            SUM(CASE WHEN price_change_pct > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate
+                        FROM performance_tracking
+                        WHERE is_active = 1
+                    """)
+
+                    result = cursor.fetchone()
+
+                    return {
+                        'avg_return': result[0] or 0,
+                        'total_tracking': result[1] or 0,
+                        'win_rate': result[2] or 0,
+                        'performance_score': (result[2] or 0) * 0.6 + (result[0] or 0) * 40  # 간단한 점수
+                    }
+
+            except Exception as e:
+                return {'error': str(e)}
+
+        try:
+            return self._execute_with_fallback(_unified_db_impl, _sqlite_fallback)
         except Exception as e:
+            self.logger.error(f"성능 메트릭 확인 실패: {e}", exc_info=True)
             return {'error': str(e)}
 
     def _check_disk_usage(self) -> Dict[str, Any]:
@@ -852,22 +1033,27 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             return {'status': 'error', 'error': str(e)}
 
     def _cleanup_old_data(self) -> Dict[str, Any]:
-        """오래된 데이터 정리"""
-        try:
-            cutoff_date = (datetime.now() - timedelta(days=self.cleanup_days)).strftime('%Y%m%d')
+        """오래된 데이터 정리 (통합 DB 우선, SQLite 폴백)"""
+
+        def _unified_db_impl():
+            """통합 DB 구현"""
+            from ..database.session import DatabaseSession
+            from ..database.models import PerformanceTracking
+
+            cutoff_date_obj = datetime.now().date() - timedelta(days=self.cleanup_days)
+            cutoff_date = cutoff_date_obj.strftime('%Y%m%d')
             deleted_count = 0
 
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-
+            db = DatabaseSession()
+            with db.get_session() as session:
                 # 오래된 성과 추적 데이터 비활성화
-                cursor.execute("""
-                    UPDATE performance_tracking
-                    SET is_active = 0
-                    WHERE tracking_date < ? AND is_active = 1
-                """, (cutoff_date,))
+                updated = session.query(PerformanceTracking).filter(
+                    PerformanceTracking.tracking_date < cutoff_date_obj,
+                    PerformanceTracking.is_active == True
+                ).update({'is_active': False})
 
-                deleted_count += cursor.rowcount
+                deleted_count += updated
+                session.commit()
 
                 # 오래된 JSON 파일들 정리 (90일 이상)
                 data_dirs = ['data/learning/raw_data', 'data/learning/feedback']
@@ -879,30 +1065,97 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                                 file_path.unlink()
                                 deleted_count += 1
 
-                conn.commit()
+                return {
+                    'status': 'completed',
+                    'deleted_records': deleted_count,
+                    'cutoff_date': cutoff_date
+                }
 
-            return {
-                'status': 'completed',
-                'deleted_records': deleted_count,
-                'cutoff_date': cutoff_date
-            }
+        def _sqlite_fallback():
+            """SQLite 폴백 구현"""
+            try:
+                cutoff_date = (datetime.now() - timedelta(days=self.cleanup_days)).strftime('%Y%m%d')
+                deleted_count = 0
 
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+
+                    # 오래된 성과 추적 데이터 비활성화
+                    cursor.execute("""
+                        UPDATE performance_tracking
+                        SET is_active = 0
+                        WHERE tracking_date < ? AND is_active = 1
+                    """, (cutoff_date,))
+
+                    deleted_count += cursor.rowcount
+
+                    # 오래된 JSON 파일들 정리 (90일 이상)
+                    data_dirs = ['data/learning/raw_data', 'data/learning/feedback']
+                    for data_dir in data_dirs:
+                        data_path = Path(data_dir)
+                        if data_path.exists():
+                            for file_path in data_path.rglob('*.json'):
+                                if file_path.stat().st_mtime < (datetime.now() - timedelta(days=90)).timestamp():
+                                    file_path.unlink()
+                                    deleted_count += 1
+
+                    conn.commit()
+
+                return {
+                    'status': 'completed',
+                    'deleted_records': deleted_count,
+                    'cutoff_date': cutoff_date
+                }
+
+            except Exception as e:
+                return {'status': 'error', 'error': str(e)}
+
+        try:
+            return self._execute_with_fallback(_unified_db_impl, _sqlite_fallback)
         except Exception as e:
+            self.logger.error(f"오래된 데이터 정리 실패: {e}", exc_info=True)
             return {'status': 'error', 'error': str(e)}
 
     def _optimize_database(self) -> Dict[str, Any]:
-        """데이터베이스 최적화"""
+        """데이터베이스 최적화 (통합 DB 우선, SQLite 폴백)"""
+
+        def _unified_db_impl():
+            """통합 DB 구현 (PostgreSQL)"""
+            from ..database.session import DatabaseSession
+
+            db = DatabaseSession()
+            with db.get_session() as session:
+                # PostgreSQL VACUUM ANALYZE (테이블 통계 갱신 및 디스크 공간 회수)
+                # 주요 테이블에만 적용
+                tables = ['screening_history', 'selection_history', 'performance_tracking']
+                for table in tables:
+                    try:
+                        # VACUUM은 트랜잭션 외부에서 실행되어야 하므로 별도 연결 사용
+                        session.execute(f"VACUUM ANALYZE {table}")
+                    except Exception as e:
+                        self.logger.warning(f"테이블 {table} 최적화 실패: {e}")
+
+                return {'status': 'completed', 'optimized_tables': len(tables)}
+
+        def _sqlite_fallback():
+            """SQLite 폴백 구현"""
+            try:
+                with sqlite3.connect(self.db_path) as conn:
+                    # VACUUM으로 데이터베이스 최적화
+                    conn.execute("VACUUM")
+
+                    # 인덱스 재구성
+                    conn.execute("REINDEX")
+
+                return {'status': 'completed'}
+
+            except Exception as e:
+                return {'status': 'error', 'error': str(e)}
+
         try:
-            with sqlite3.connect(self.db_path) as conn:
-                # VACUUM으로 데이터베이스 최적화
-                conn.execute("VACUUM")
-
-                # 인덱스 재구성
-                conn.execute("REINDEX")
-
-            return {'status': 'completed'}
-
+            return self._execute_with_fallback(_unified_db_impl, _sqlite_fallback)
         except Exception as e:
+            self.logger.error(f"데이터베이스 최적화 실패: {e}", exc_info=True)
             return {'status': 'error', 'error': str(e)}
 
     def _cleanup_logs(self) -> Dict[str, Any]:
