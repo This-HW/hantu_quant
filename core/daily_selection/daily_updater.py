@@ -1067,16 +1067,18 @@ class DailyUpdater(IDailyUpdater):
         }
 
         # 최종 일일 매매 리스트 구성
+        # 선정 종목 리스트 생성
+        selected_stocks_list = [selection.to_dict() for selection in _v_daily_selections]
+
         _v_daily_list = {
             "timestamp": datetime.now().isoformat(),
             "version": "1.0.0",
             "market_date": datetime.now().strftime("%Y-%m-%d"),
             "market_condition": p_market_condition,
             "data": {
-                "selected_stocks": [
-                    selection.to_dict() for selection in _v_daily_selections
-                ]
+                "selected_stocks": selected_stocks_list
             },
+            "stocks": selected_stocks_list,  # 호환성 유지 (DB 로드 형식과 통일)
             "metadata": _v_metadata,
         }
 

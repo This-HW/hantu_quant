@@ -92,16 +92,30 @@ class BacktestResult:
     def to_dict(self) -> Dict[str, Any]:
         """딕셔너리 변환 (JSON 직렬화 가능)"""
         result_dict = asdict(self)
-        
+
         # Enum과 datetime 처리
         result_dict['status'] = self.status.value
-        result_dict['start_time'] = self.start_time.isoformat()
+
+        # start_time 타입 체크
+        if isinstance(self.start_time, datetime):
+            result_dict['start_time'] = self.start_time.isoformat()
+        elif isinstance(self.start_time, str):
+            result_dict['start_time'] = self.start_time
+        else:
+            result_dict['start_time'] = str(self.start_time)
+
+        # end_time 타입 체크
         if self.end_time:
-            result_dict['end_time'] = self.end_time.isoformat()
-        
+            if isinstance(self.end_time, datetime):
+                result_dict['end_time'] = self.end_time.isoformat()
+            elif isinstance(self.end_time, str):
+                result_dict['end_time'] = self.end_time
+            else:
+                result_dict['end_time'] = str(self.end_time)
+
         # BacktestConfig 처리
         result_dict['config'] = self.config.to_dict()
-        
+
         return result_dict
 
 class BacktestEngine:
