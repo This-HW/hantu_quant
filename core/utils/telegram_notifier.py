@@ -7,6 +7,7 @@ import json
 import os
 import requests
 import logging
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict
@@ -74,8 +75,10 @@ class TelegramNotifier:
             logger.error(f"텔레그램 설정 로드 실패: {e}", exc_info=True)
             self._enabled = False
 
-    def send_message(self, message: str, priority: str = "normal") -> bool:
-        """텔레그램 메시지 전송
+    def send_message(
+        self, message: str, priority: str = "normal", max_retries: int = 3
+    ) -> bool:
+        """텔레그램 메시지 전송 (재시도 로직 포함)
 
         Args:
             message: 전송할 메시지
@@ -86,6 +89,7 @@ class TelegramNotifier:
                 - normal: 📢 일반 알림
                 - low: ℹ️ 정보성 알림
                 - info: 💡 참고 정보
+            max_retries: 최대 재시도 횟수 (기본값 3)
 
         Returns:
             전송 성공 여부
@@ -94,64 +98,132 @@ class TelegramNotifier:
             logger.warning("텔레그램 알림이 비활성화됨")
             return False
 
-        try:
-            # 우선순위에 따른 메시지 포맷 추가
-            formatted_message = self._format_message_by_priority(message, priority)
+        # 우선순위에 따른 메시지 포맷 추가
+        formatted_message = self._format_message_by_priority(message, priority)
+        url = f"https://api.telegram.org/bot{self._bot_token}/sendMessage"
 
-            url = f"https://api.telegram.org/bot{self._bot_token}/sendMessage"
-            success_count = 0
+        # 우선순위에 따른 알림 설정
+        disable_notification = self._should_silent_notification(priority)
 
-            # 우선순위에 따른 알림 설정
-            disable_notification = self._should_silent_notification(priority)
+        # 각 채팅방에 대해 재시도 로직 적용
+        success_count = 0
+        for chat_id in self._chat_ids:
+            payload = {
+                "chat_id": chat_id,
+                "text": formatted_message,
+                "parse_mode": "Markdown",
+                "disable_web_page_preview": False,
+                "disable_notification": disable_notification,
+            }
 
-            for chat_id in self._chat_ids:
-                payload = {
-                    "chat_id": chat_id,
-                    "text": formatted_message,
-                    "parse_mode": "Markdown",
-                    "disable_web_page_preview": False,
-                    "disable_notification": disable_notification,
-                }
+            # 재시도 루프
+            sent = False
+            for attempt in range(max_retries):
+                try:
+                    response = requests.post(url, json=payload, timeout=10)
+                    response.raise_for_status()
 
-                response = requests.post(url, json=payload, timeout=10)
-
-                if response.status_code == 200:
+                    # 성공
                     success_count += 1
                     logger.debug(f"텔레그램 메시지 전송 성공: {chat_id}")
-                else:
-                    # 에러 응답 상세 정보 로깅
-                    try:
-                        error_detail = response.json()
-                        error_description = error_detail.get(
-                            "description", "Unknown error"
-                        )
-                        error_code = error_detail.get("error_code", "N/A")
-                        logger.error(
-                            f"텔레그램 메시지 전송 실패: {chat_id}, "
-                            f"상태코드: {response.status_code}, "
-                            f"에러코드: {error_code}, "
-                            f"설명: {error_description}",
-                            exc_info=True,
-                        )
-                    except Exception:
-                        logger.error(
-                            f"텔레그램 메시지 전송 실패: {chat_id}, "
-                            f"상태코드: {response.status_code}, "
-                            f"응답: {response.text[:200] if response.text else 'Empty'}",
-                            exc_info=True,
-                        )
+                    sent = True
+                    break
 
-            if success_count > 0:
-                logger.info(
-                    f"텔레그램 알림 전송 완료 ({priority}): {success_count}/{len(self._chat_ids)}"
+                except requests.exceptions.HTTPError as e:
+                    status_code = e.response.status_code
+
+                    # Rate Limit (429)
+                    if status_code == 429:
+                        retry_after = int(e.response.headers.get("Retry-After", 5))
+                        wait_time = min(retry_after, 60)  # 최대 60초
+
+                        if attempt < max_retries - 1:
+                            logger.warning(
+                                f"Rate Limit 발생 ({chat_id}): {wait_time}초 대기 (재시도 {attempt + 1}/{max_retries})"
+                            )
+                            time.sleep(wait_time)
+                            continue
+                        else:
+                            logger.error(
+                                f"Rate Limit 최대 재시도 초과 ({chat_id})",
+                                exc_info=True,
+                            )
+                            break
+
+                    # Server Error (5xx)
+                    elif 500 <= status_code < 600:
+                        if attempt < max_retries - 1:
+                            wait_time = 2**attempt
+                            logger.warning(
+                                f"서버 오류 ({status_code}, {chat_id}): {wait_time}초 후 재시도 ({attempt + 1}/{max_retries})"
+                            )
+                            time.sleep(wait_time)
+                            continue
+                        else:
+                            logger.error(
+                                f"서버 오류 최대 재시도 초과 ({status_code}, {chat_id}): {e}",
+                                exc_info=True,
+                            )
+                            break
+
+                    # Client Error (4xx) - 재시도 안함
+                    else:
+                        try:
+                            error_detail = e.response.json()
+                            error_description = error_detail.get(
+                                "description", "Unknown error"
+                            )
+                            error_code = error_detail.get("error_code", "N/A")
+                            logger.error(
+                                f"텔레그램 메시지 전송 실패 ({chat_id}): "
+                                f"상태코드 {status_code}, "
+                                f"에러코드 {error_code}, "
+                                f"설명: {error_description}",
+                                exc_info=True,
+                            )
+                        except Exception:
+                            logger.error(
+                                f"텔레그램 메시지 전송 실패 ({chat_id}): "
+                                f"상태코드 {status_code}, "
+                                f"응답: {e.response.text[:200] if e.response.text else 'Empty'}",
+                                exc_info=True,
+                            )
+                        break
+
+                except requests.exceptions.Timeout:
+                    if attempt < max_retries - 1:
+                        wait_time = 2**attempt
+                        logger.warning(
+                            f"Timeout 발생 ({chat_id}): {wait_time}초 후 재시도 ({attempt + 1}/{max_retries})"
+                        )
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        logger.error(
+                            f"Timeout 최대 재시도 초과 ({chat_id})", exc_info=True
+                        )
+                        break
+
+                except Exception as e:
+                    logger.error(
+                        f"메시지 전송 중 예상치 못한 오류 ({chat_id}): {e}",
+                        exc_info=True,
+                    )
+                    break
+
+            if not sent:
+                logger.error(
+                    f"최대 재시도 횟수 ({max_retries}) 초과: {chat_id}", exc_info=True
                 )
-                return True
-            else:
-                logger.error("모든 채널에서 텔레그램 전송 실패")
-                return False
 
-        except Exception as e:
-            logger.error(f"텔레그램 메시지 전송 오류: {e}", exc_info=True)
+        # 최종 결과
+        if success_count > 0:
+            logger.info(
+                f"텔레그램 알림 전송 완료 ({priority}): {success_count}/{len(self._chat_ids)}"
+            )
+            return True
+        else:
+            logger.error("모든 채널에서 텔레그램 전송 실패", exc_info=True)
             return False
 
     def _format_message_by_priority(self, message: str, priority: str) -> str:
