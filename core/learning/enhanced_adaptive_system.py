@@ -325,52 +325,62 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             return None
 
     def analyze_selection_accuracy(self, days_back: int = 30) -> Optional[SelectionAccuracy]:
-        """선정 정확도 분석"""
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
+        """선정 정확도 분석 (통합 DB 우선, SQLite 폴백)"""
 
-                cutoff_date = (datetime.now() - timedelta(days=days_back)).strftime('%Y%m%d')
+        def _unified_db_impl():
+            """통합 DB 구현"""
+            from ..database.session import DatabaseSession
+            from ..database.models import SelectionHistory, PerformanceTracking
+            from sqlalchemy import func, case
 
-                cursor.execute("""
-                    SELECT
-                        sh.selection_date,
-                        COUNT(*) as total_selected,
-                        SUM(CASE WHEN pt.price_change_pct > 0 THEN 1 ELSE 0 END) as profitable_count,
-                        SUM(CASE WHEN pt.price_change_pct <= 0 THEN 1 ELSE 0 END) as loss_count,
-                        AVG(pt.price_change_pct) as avg_return,
-                        MAX(pt.price_change_pct) as best_return,
-                        MIN(pt.price_change_pct) as worst_return,
-                        AVG(pt.max_gain) as avg_max_gain,
-                        AVG(pt.max_loss) as avg_max_loss
-                    FROM selection_history sh
-                    JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
-                        AND sh.selection_date = pt.tracking_date
-                    WHERE sh.selection_date >= ? AND pt.is_active = 1
-                    GROUP BY sh.selection_date
-                    ORDER BY sh.selection_date DESC
-                """, (cutoff_date,))
+            cutoff_date = datetime.now() - timedelta(days=days_back)
 
-                results = cursor.fetchall()
+            db = DatabaseSession()
+            with db.get_session() as session:
+                # NOTE: PerformanceTracking 모델에 price_change_pct, max_gain, max_loss, is_active 컬럼 필요
+                query = session.query(
+                    SelectionHistory.selection_date,
+                    func.count().label('total_selected'),
+                    func.sum(case((PerformanceTracking.price_change_pct > 0, 1), else_=0)).label('profitable_count'),
+                    func.sum(case((PerformanceTracking.price_change_pct <= 0, 1), else_=0)).label('loss_count'),
+                    func.avg(PerformanceTracking.price_change_pct).label('avg_return'),
+                    func.max(PerformanceTracking.price_change_pct).label('best_return'),
+                    func.min(PerformanceTracking.price_change_pct).label('worst_return'),
+                    func.avg(PerformanceTracking.max_gain).label('avg_max_gain'),
+                    func.avg(PerformanceTracking.max_loss).label('avg_max_loss')
+                ).join(
+                    PerformanceTracking,
+                    (SelectionHistory.stock_code == PerformanceTracking.stock_code) &
+                    (SelectionHistory.selection_date == PerformanceTracking.tracking_date)
+                ).filter(
+                    SelectionHistory.selection_date >= cutoff_date,
+                    PerformanceTracking.is_active == True
+                ).group_by(
+                    SelectionHistory.selection_date
+                ).order_by(
+                    SelectionHistory.selection_date.desc()
+                )
+
+                results = query.all()
 
                 if not results:
                     return None
 
                 # 전체 기간 통합 계산
-                total_selected = sum(row[1] for row in results)
-                profitable_count = sum(row[2] for row in results)
-                loss_count = sum(row[3] for row in results)
+                total_selected = sum(row.total_selected for row in results)
+                profitable_count = sum(row.profitable_count for row in results)
+                loss_count = sum(row.loss_count for row in results)
 
                 if total_selected == 0:
                     return None
 
                 win_rate = profitable_count / total_selected
-                avg_return = np.mean([row[4] for row in results if row[4] is not None])
-                best_return = max([row[5] for row in results if row[5] is not None], default=0)
-                worst_return = min([row[6] for row in results if row[6] is not None], default=0)
+                avg_return = np.mean([row.avg_return for row in results if row.avg_return is not None])
+                best_return = max([row.best_return for row in results if row.best_return is not None], default=0)
+                worst_return = min([row.worst_return for row in results if row.worst_return is not None], default=0)
 
                 # 샤프 비율 계산
-                returns = [row[4] for row in results if row[4] is not None]
+                returns = [row.avg_return for row in results if row.avg_return is not None]
                 if len(returns) > 1:
                     return_std = np.std(returns)
                     sharpe_ratio = avg_return / return_std if return_std > 0 else 0
@@ -378,7 +388,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                     sharpe_ratio = 0
 
                 return SelectionAccuracy(
-                    date=results[0][0],
+                    date=str(results[0].selection_date),
                     total_selected=total_selected,
                     profitable_count=profitable_count,
                     loss_count=loss_count,
@@ -389,50 +399,137 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                     sharpe_ratio=sharpe_ratio
                 )
 
+        def _sqlite_fallback():
+            """SQLite 폴백 구현"""
+            try:
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+
+                    cutoff_date = (datetime.now() - timedelta(days=days_back)).strftime('%Y%m%d')
+
+                    cursor.execute("""
+                        SELECT
+                            sh.selection_date,
+                            COUNT(*) as total_selected,
+                            SUM(CASE WHEN pt.price_change_pct > 0 THEN 1 ELSE 0 END) as profitable_count,
+                            SUM(CASE WHEN pt.price_change_pct <= 0 THEN 1 ELSE 0 END) as loss_count,
+                            AVG(pt.price_change_pct) as avg_return,
+                            MAX(pt.price_change_pct) as best_return,
+                            MIN(pt.price_change_pct) as worst_return,
+                            AVG(pt.max_gain) as avg_max_gain,
+                            AVG(pt.max_loss) as avg_max_loss
+                        FROM selection_history sh
+                        JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
+                            AND sh.selection_date = pt.tracking_date
+                        WHERE sh.selection_date >= ? AND pt.is_active = 1
+                        GROUP BY sh.selection_date
+                        ORDER BY sh.selection_date DESC
+                    """, (cutoff_date,))
+
+                    results = cursor.fetchall()
+
+                    if not results:
+                        return None
+
+                    # 전체 기간 통합 계산
+                    total_selected = sum(row[1] for row in results)
+                    profitable_count = sum(row[2] for row in results)
+                    loss_count = sum(row[3] for row in results)
+
+                    if total_selected == 0:
+                        return None
+
+                    win_rate = profitable_count / total_selected
+                    avg_return = np.mean([row[4] for row in results if row[4] is not None])
+                    best_return = max([row[5] for row in results if row[5] is not None], default=0)
+                    worst_return = min([row[6] for row in results if row[6] is not None], default=0)
+
+                    # 샤프 비율 계산
+                    returns = [row[4] for row in results if row[4] is not None]
+                    if len(returns) > 1:
+                        return_std = np.std(returns)
+                        sharpe_ratio = avg_return / return_std if return_std > 0 else 0
+                    else:
+                        sharpe_ratio = 0
+
+                    return SelectionAccuracy(
+                        date=results[0][0],
+                        total_selected=total_selected,
+                        profitable_count=profitable_count,
+                        loss_count=loss_count,
+                        win_rate=win_rate,
+                        avg_return=avg_return,
+                        best_return=best_return,
+                        worst_return=worst_return,
+                        sharpe_ratio=sharpe_ratio
+                    )
+
+            except Exception as e:
+                self.logger.error(f"SQLite 선정 정확도 분석 실패: {e}", exc_info=True)
+                return None
+
+        try:
+            return self._execute_with_fallback(_unified_db_impl, _sqlite_fallback)
         except Exception as e:
             self.logger.error(f"선정 정확도 분석 실패: {e}", exc_info=True)
             return None
 
     def analyze_sector_performance_detailed(self) -> Dict[str, Any]:
-        """상세 섹터 성과 분석"""
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
+        """상세 섹터 성과 분석 (통합 DB 우선, SQLite 폴백)"""
 
-                # SQLite doesn't have STDDEV function, calculate manually
-                cursor.execute("""
-                    SELECT
-                        sh.sector,
-                        COUNT(*) as total_stocks,
-                        AVG(pt.price_change_pct) as avg_performance,
-                        SUM(CASE WHEN pt.price_change_pct > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate,
-                        MAX(pt.price_change_pct) as best_performance,
-                        MIN(pt.price_change_pct) as worst_performance
-                    FROM screening_history sh
-                    JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
-                        AND sh.screening_date = pt.tracking_date
-                    WHERE pt.is_active = 1 AND sh.sector IS NOT NULL
-                    GROUP BY sh.sector
-                    HAVING COUNT(*) >= 3
-                    ORDER BY avg_performance DESC
-                """)
+        def _unified_db_impl():
+            """통합 DB 구현"""
+            from ..database.session import DatabaseSession
+            from ..database.models import ScreeningHistory, PerformanceTracking, Stock
+            from sqlalchemy import func, case
 
-                sector_data = cursor.fetchall()
+            db = DatabaseSession()
+            with db.get_session() as session:
+                # NOTE: ScreeningHistory에 sector 컬럼이 없으므로 Stock 테이블과 JOIN
+                # 또는 ScreeningHistory에 sector 컬럼 추가 필요
+                query = session.query(
+                    Stock.sector,
+                    func.count().label('total_stocks'),
+                    func.avg(PerformanceTracking.price_change_pct).label('avg_performance'),
+                    (func.sum(case((PerformanceTracking.price_change_pct > 0, 1), else_=0)) * 100.0 / func.count()).label('win_rate'),
+                    func.max(PerformanceTracking.price_change_pct).label('best_performance'),
+                    func.min(PerformanceTracking.price_change_pct).label('worst_performance')
+                ).select_from(
+                    ScreeningHistory
+                ).join(
+                    Stock,
+                    ScreeningHistory.stock_code == Stock.code
+                ).join(
+                    PerformanceTracking,
+                    (ScreeningHistory.stock_code == PerformanceTracking.stock_code) &
+                    (ScreeningHistory.screening_date == PerformanceTracking.tracking_date)
+                ).filter(
+                    PerformanceTracking.is_active == True,
+                    Stock.sector != None
+                ).group_by(
+                    Stock.sector
+                ).having(
+                    func.count() >= 3
+                ).order_by(
+                    func.avg(PerformanceTracking.price_change_pct).desc()
+                )
+
+                sector_data = query.all()
 
                 if not sector_data:
                     return {'status': 'no_data'}
 
                 sectors = {}
                 for row in sector_data:
-                    sector = row[0]
+                    sector = row.sector
                     sectors[sector] = {
-                        'total_stocks': row[1],
-                        'avg_performance': row[2],
-                        'volatility': 0,  # 계산하지 않음 (SQLite 한계)
-                        'win_rate': row[3],
-                        'best_performance': row[4],
-                        'worst_performance': row[5],
-                        'risk_adjusted_return': abs(row[2]) if row[2] else 0  # 단순화된 계산
+                        'total_stocks': row.total_stocks,
+                        'avg_performance': row.avg_performance,
+                        'volatility': 0,  # 계산하지 않음 (집계 쿼리 복잡도)
+                        'win_rate': row.win_rate,
+                        'best_performance': row.best_performance,
+                        'worst_performance': row.worst_performance,
+                        'risk_adjusted_return': abs(row.avg_performance) if row.avg_performance else 0
                     }
 
                 # 섹터 순위 매기기
@@ -448,86 +545,238 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                     'analysis_date': datetime.now().isoformat()
                 }
 
+        def _sqlite_fallback():
+            """SQLite 폴백 구현"""
+            try:
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+
+                    # SQLite doesn't have STDDEV function, calculate manually
+                    cursor.execute("""
+                        SELECT
+                            sh.sector,
+                            COUNT(*) as total_stocks,
+                            AVG(pt.price_change_pct) as avg_performance,
+                            SUM(CASE WHEN pt.price_change_pct > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate,
+                            MAX(pt.price_change_pct) as best_performance,
+                            MIN(pt.price_change_pct) as worst_performance
+                        FROM screening_history sh
+                        JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
+                            AND sh.screening_date = pt.tracking_date
+                        WHERE pt.is_active = 1 AND sh.sector IS NOT NULL
+                        GROUP BY sh.sector
+                        HAVING COUNT(*) >= 3
+                        ORDER BY avg_performance DESC
+                    """)
+
+                    sector_data = cursor.fetchall()
+
+                    if not sector_data:
+                        return {'status': 'no_data'}
+
+                    sectors = {}
+                    for row in sector_data:
+                        sector = row[0]
+                        sectors[sector] = {
+                            'total_stocks': row[1],
+                            'avg_performance': row[2],
+                            'volatility': 0,  # 계산하지 않음 (SQLite 한계)
+                            'win_rate': row[3],
+                            'best_performance': row[4],
+                            'worst_performance': row[5],
+                            'risk_adjusted_return': abs(row[2]) if row[2] else 0  # 단순화된 계산
+                        }
+
+                    # 섹터 순위 매기기
+                    best_sectors = sorted(sectors.items(), key=lambda x: x[1]['avg_performance'], reverse=True)[:3]
+                    worst_sectors = sorted(sectors.items(), key=lambda x: x[1]['avg_performance'])[:3]
+
+                    return {
+                        'status': 'success',
+                        'total_sectors': len(sectors),
+                        'sector_performance': sectors,
+                        'best_sectors': [{'sector': s[0], **s[1]} for s in best_sectors],
+                        'worst_sectors': [{'sector': s[0], **s[1]} for s in worst_sectors],
+                        'analysis_date': datetime.now().isoformat()
+                    }
+
+            except Exception as e:
+                self.logger.error(f"SQLite 섹터 성과 분석 실패: {e}", exc_info=True)
+                return {'status': 'error', 'error': str(e)}
+
+        try:
+            return self._execute_with_fallback(_unified_db_impl, _sqlite_fallback)
         except Exception as e:
             self.logger.error(f"섹터 성과 분석 실패: {e}", exc_info=True)
             return {'status': 'error', 'error': str(e)}
 
     def analyze_temporal_patterns(self) -> Dict[str, Any]:
-        """시간별 패턴 분석"""
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
+        """시간별 패턴 분석 (통합 DB 우선, SQLite 폴백)"""
 
-                # 요일별 성과 분석 (선정일 기준)
-                cursor.execute("""
-                    SELECT
-                        CASE CAST(strftime('%w', date(
-                            substr(sh.selection_date, 1, 4) || '-' ||
-                            substr(sh.selection_date, 5, 2) || '-' ||
-                            substr(sh.selection_date, 7, 2)
-                        )) AS INTEGER)
-                            WHEN 0 THEN 'Sunday'
-                            WHEN 1 THEN 'Monday'
-                            WHEN 2 THEN 'Tuesday'
-                            WHEN 3 THEN 'Wednesday'
-                            WHEN 4 THEN 'Thursday'
-                            WHEN 5 THEN 'Friday'
-                            WHEN 6 THEN 'Saturday'
-                        END as day_of_week,
-                        COUNT(*) as total_selections,
-                        AVG(pt.price_change_pct) as avg_performance,
-                        SUM(CASE WHEN pt.price_change_pct > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate
-                    FROM selection_history sh
-                    JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
-                        AND sh.selection_date = pt.tracking_date
-                    WHERE pt.is_active = 1
-                    GROUP BY CAST(strftime('%w', date(
-                        substr(sh.selection_date, 1, 4) || '-' ||
-                        substr(sh.selection_date, 5, 2) || '-' ||
-                        substr(sh.selection_date, 7, 2)
-                    )) AS INTEGER)
-                    ORDER BY avg_performance DESC
-                """)
+        def _unified_db_impl():
+            """통합 DB 구현"""
+            from ..database.session import DatabaseSession
+            from ..database.models import SelectionHistory, PerformanceTracking
+            from sqlalchemy import func, case
 
-                day_patterns = cursor.fetchall()
+            db = DatabaseSession()
+            with db.get_session() as session:
+                # 요일별 성과 분석 (PostgreSQL extract 사용)
+                dow_case = case(
+                    (func.extract('dow', SelectionHistory.selection_date) == 0, 'Sunday'),
+                    (func.extract('dow', SelectionHistory.selection_date) == 1, 'Monday'),
+                    (func.extract('dow', SelectionHistory.selection_date) == 2, 'Tuesday'),
+                    (func.extract('dow', SelectionHistory.selection_date) == 3, 'Wednesday'),
+                    (func.extract('dow', SelectionHistory.selection_date) == 4, 'Thursday'),
+                    (func.extract('dow', SelectionHistory.selection_date) == 5, 'Friday'),
+                    (func.extract('dow', SelectionHistory.selection_date) == 6, 'Saturday'),
+                    else_='Unknown'
+                ).label('day_of_week')
 
-                # 월별 성과 분석
-                cursor.execute("""
-                    SELECT
-                        substr(sh.selection_date, 1, 6) as year_month,
-                        COUNT(*) as total_selections,
-                        AVG(pt.price_change_pct) as avg_performance,
-                        SUM(CASE WHEN pt.price_change_pct > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate
-                    FROM selection_history sh
-                    JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
-                        AND sh.selection_date = pt.tracking_date
-                    WHERE pt.is_active = 1
-                    GROUP BY substr(sh.selection_date, 1, 6)
-                    ORDER BY year_month DESC
-                    LIMIT 6
-                """)
+                day_query = session.query(
+                    dow_case,
+                    func.count().label('total_selections'),
+                    func.avg(PerformanceTracking.price_change_pct).label('avg_performance'),
+                    (func.sum(case((PerformanceTracking.price_change_pct > 0, 1), else_=0)) * 100.0 / func.count()).label('win_rate')
+                ).select_from(
+                    SelectionHistory
+                ).join(
+                    PerformanceTracking,
+                    (SelectionHistory.stock_code == PerformanceTracking.stock_code) &
+                    (SelectionHistory.selection_date == PerformanceTracking.tracking_date)
+                ).filter(
+                    PerformanceTracking.is_active == True
+                ).group_by(
+                    func.extract('dow', SelectionHistory.selection_date)
+                ).order_by(
+                    func.avg(PerformanceTracking.price_change_pct).desc()
+                )
 
-                month_patterns = cursor.fetchall()
+                day_patterns = day_query.all()
+
+                # 월별 성과 분석 (PostgreSQL to_char 사용)
+                month_query = session.query(
+                    func.to_char(SelectionHistory.selection_date, 'YYYYMM').label('year_month'),
+                    func.count().label('total_selections'),
+                    func.avg(PerformanceTracking.price_change_pct).label('avg_performance'),
+                    (func.sum(case((PerformanceTracking.price_change_pct > 0, 1), else_=0)) * 100.0 / func.count()).label('win_rate')
+                ).select_from(
+                    SelectionHistory
+                ).join(
+                    PerformanceTracking,
+                    (SelectionHistory.stock_code == PerformanceTracking.stock_code) &
+                    (SelectionHistory.selection_date == PerformanceTracking.tracking_date)
+                ).filter(
+                    PerformanceTracking.is_active == True
+                ).group_by(
+                    func.to_char(SelectionHistory.selection_date, 'YYYYMM')
+                ).order_by(
+                    func.to_char(SelectionHistory.selection_date, 'YYYYMM').desc()
+                ).limit(6)
+
+                month_patterns = month_query.all()
 
                 return {
                     'status': 'success',
                     'day_of_week_patterns': {
-                        row[0]: {
-                            'total_selections': row[1],
-                            'avg_performance': row[2],
-                            'win_rate': row[3]
+                        row.day_of_week: {
+                            'total_selections': row.total_selections,
+                            'avg_performance': row.avg_performance,
+                            'win_rate': row.win_rate
                         } for row in day_patterns
                     },
                     'monthly_patterns': {
-                        row[0]: {
-                            'total_selections': row[1],
-                            'avg_performance': row[2],
-                            'win_rate': row[3]
+                        row.year_month: {
+                            'total_selections': row.total_selections,
+                            'avg_performance': row.avg_performance,
+                            'win_rate': row.win_rate
                         } for row in month_patterns
                     },
                     'analysis_date': datetime.now().isoformat()
                 }
 
+        def _sqlite_fallback():
+            """SQLite 폴백 구현"""
+            try:
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+
+                    # 요일별 성과 분석 (선정일 기준)
+                    cursor.execute("""
+                        SELECT
+                            CASE CAST(strftime('%w', date(
+                                substr(sh.selection_date, 1, 4) || '-' ||
+                                substr(sh.selection_date, 5, 2) || '-' ||
+                                substr(sh.selection_date, 7, 2)
+                            )) AS INTEGER)
+                                WHEN 0 THEN 'Sunday'
+                                WHEN 1 THEN 'Monday'
+                                WHEN 2 THEN 'Tuesday'
+                                WHEN 3 THEN 'Wednesday'
+                                WHEN 4 THEN 'Thursday'
+                                WHEN 5 THEN 'Friday'
+                                WHEN 6 THEN 'Saturday'
+                            END as day_of_week,
+                            COUNT(*) as total_selections,
+                            AVG(pt.price_change_pct) as avg_performance,
+                            SUM(CASE WHEN pt.price_change_pct > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate
+                        FROM selection_history sh
+                        JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
+                            AND sh.selection_date = pt.tracking_date
+                        WHERE pt.is_active = 1
+                        GROUP BY CAST(strftime('%w', date(
+                            substr(sh.selection_date, 1, 4) || '-' ||
+                            substr(sh.selection_date, 5, 2) || '-' ||
+                            substr(sh.selection_date, 7, 2)
+                        )) AS INTEGER)
+                        ORDER BY avg_performance DESC
+                    """)
+
+                    day_patterns = cursor.fetchall()
+
+                    # 월별 성과 분석
+                    cursor.execute("""
+                        SELECT
+                            substr(sh.selection_date, 1, 6) as year_month,
+                            COUNT(*) as total_selections,
+                            AVG(pt.price_change_pct) as avg_performance,
+                            SUM(CASE WHEN pt.price_change_pct > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate
+                        FROM selection_history sh
+                        JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
+                            AND sh.selection_date = pt.tracking_date
+                        WHERE pt.is_active = 1
+                        GROUP BY substr(sh.selection_date, 1, 6)
+                        ORDER BY year_month DESC
+                        LIMIT 6
+                    """)
+
+                    month_patterns = cursor.fetchall()
+
+                    return {
+                        'status': 'success',
+                        'day_of_week_patterns': {
+                            row[0]: {
+                                'total_selections': row[1],
+                                'avg_performance': row[2],
+                                'win_rate': row[3]
+                            } for row in day_patterns
+                        },
+                        'monthly_patterns': {
+                            row[0]: {
+                                'total_selections': row[1],
+                                'avg_performance': row[2],
+                                'win_rate': row[3]
+                            } for row in month_patterns
+                        },
+                        'analysis_date': datetime.now().isoformat()
+                    }
+
+            except Exception as e:
+                self.logger.error(f"SQLite 시간별 패턴 분석 실패: {e}", exc_info=True)
+                return {'status': 'error', 'error': str(e)}
+
+        try:
+            return self._execute_with_fallback(_unified_db_impl, _sqlite_fallback)
         except Exception as e:
             self.logger.error(f"시간별 패턴 분석 실패: {e}", exc_info=True)
             return {'status': 'error', 'error': str(e)}
@@ -1181,35 +1430,48 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             return {'status': 'error', 'error': str(e)}
 
     def _check_data_integrity(self) -> Dict[str, Any]:
-        """데이터 무결성 검사"""
-        try:
+        """데이터 무결성 검사 (통합 DB 우선, SQLite 폴백)"""
+
+        def _unified_db_impl():
+            """통합 DB 구현"""
+            from ..database.session import DatabaseSession
+            from ..database.models import ScreeningHistory, SelectionHistory, PerformanceTracking
+            from sqlalchemy import func
+
             issues = []
+            db = DatabaseSession()
 
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-
+            with db.get_session() as session:
                 # 중복 데이터 확인
-                cursor.execute("""
-                    SELECT stock_code, screening_date, COUNT(*) as cnt
-                    FROM screening_history
-                    GROUP BY stock_code, screening_date
-                    HAVING cnt > 1
-                """)
+                duplicate_query = session.query(
+                    ScreeningHistory.stock_code,
+                    ScreeningHistory.screening_date,
+                    func.count().label('cnt')
+                ).group_by(
+                    ScreeningHistory.stock_code,
+                    ScreeningHistory.screening_date
+                ).having(
+                    func.count() > 1
+                )
 
-                duplicates = cursor.fetchall()
+                duplicates = duplicate_query.all()
                 if duplicates:
                     issues.append(f"스크리닝 데이터 중복: {len(duplicates)}건")
 
                 # 누락된 성과 데이터 확인
-                cursor.execute("""
-                    SELECT COUNT(*)
-                    FROM selection_history sh
-                    LEFT JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
-                        AND sh.selection_date = pt.tracking_date
-                    WHERE pt.stock_code IS NULL
-                """)
+                missing_query = session.query(
+                    func.count()
+                ).select_from(
+                    SelectionHistory
+                ).outerjoin(
+                    PerformanceTracking,
+                    (SelectionHistory.stock_code == PerformanceTracking.stock_code) &
+                    (SelectionHistory.selection_date == PerformanceTracking.tracking_date)
+                ).filter(
+                    PerformanceTracking.stock_code == None
+                )
 
-                missing_performance = cursor.fetchone()[0]
+                missing_performance = missing_query.scalar() or 0
                 if missing_performance > 0:
                     issues.append(f"성과 데이터 누락: {missing_performance}건")
 
@@ -1219,7 +1481,53 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                 'issues': issues
             }
 
+        def _sqlite_fallback():
+            """SQLite 폴백 구현"""
+            try:
+                issues = []
+
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+
+                    # 중복 데이터 확인
+                    cursor.execute("""
+                        SELECT stock_code, screening_date, COUNT(*) as cnt
+                        FROM screening_history
+                        GROUP BY stock_code, screening_date
+                        HAVING cnt > 1
+                    """)
+
+                    duplicates = cursor.fetchall()
+                    if duplicates:
+                        issues.append(f"스크리닝 데이터 중복: {len(duplicates)}건")
+
+                    # 누락된 성과 데이터 확인
+                    cursor.execute("""
+                        SELECT COUNT(*)
+                        FROM selection_history sh
+                        LEFT JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
+                            AND sh.selection_date = pt.tracking_date
+                        WHERE pt.stock_code IS NULL
+                    """)
+
+                    missing_performance = cursor.fetchone()[0]
+                    if missing_performance > 0:
+                        issues.append(f"성과 데이터 누락: {missing_performance}건")
+
+                return {
+                    'status': 'completed',
+                    'issues_found': len(issues),
+                    'issues': issues
+                }
+
+            except Exception as e:
+                self.logger.error(f"SQLite 데이터 무결성 검사 실패: {e}", exc_info=True)
+                return {'status': 'error', 'error': str(e)}
+
+        try:
+            return self._execute_with_fallback(_unified_db_impl, _sqlite_fallback)
         except Exception as e:
+            self.logger.error(f"데이터 무결성 검사 실패: {e}", exc_info=True)
             return {'status': 'error', 'error': str(e)}
 
 # 싱글톤 인스턴스
