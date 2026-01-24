@@ -221,6 +221,6 @@ bypass:
 
 ## 참고
 
-- Phase Gate 패턴 상세: docs/phase-gate-pattern.md
-- 에이전트 선택: docs/agent-selection-pattern.md
+- Phase Gate 패턴 상세: docs/architecture/phase-gate-pattern.md
+- 에이전트 선택: docs/architecture/agent-selection-pattern.md
 - 병렬화 설계: .claude/design/phase-parallelization.md
