@@ -191,19 +191,19 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                     func.sum(case((ScreeningHistory.passed == True, 1), else_=0)).label('passed_screening'),
                     func.count(PerformanceTracking.stock_code).label('tracked_stocks'),
                     func.sum(case((
-                        (ScreeningHistory.passed == True) & (PerformanceTracking.price_change_pct > 0),
+                        (ScreeningHistory.passed == True) & (PerformanceTracking.daily_return > 0),
                         1
                     ), else_=0)).label('true_positives'),
                     func.sum(case((
-                        (ScreeningHistory.passed == True) & (PerformanceTracking.price_change_pct <= 0),
+                        (ScreeningHistory.passed == True) & (PerformanceTracking.daily_return <= 0),
                         1
                     ), else_=0)).label('false_positives'),
                     func.sum(case((
-                        (ScreeningHistory.passed == False) & (PerformanceTracking.price_change_pct > 0),
+                        (ScreeningHistory.passed == False) & (PerformanceTracking.daily_return > 0),
                         1
                     ), else_=0)).label('false_negatives'),
                     func.sum(case((
-                        (ScreeningHistory.passed == False) & (PerformanceTracking.price_change_pct <= 0),
+                        (ScreeningHistory.passed == False) & (PerformanceTracking.daily_return <= 0),
                         1
                     ), else_=0)).label('true_negatives'),
                 ).outerjoin(
@@ -268,10 +268,10 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                             COUNT(*) as total_screened,
                             SUM(CASE WHEN sh.passed = 1 THEN 1 ELSE 0 END) as passed_screening,
                             COUNT(pt.stock_code) as tracked_stocks,
-                            SUM(CASE WHEN sh.passed = 1 AND pt.price_change_pct > 0 THEN 1 ELSE 0 END) as true_positives,
-                            SUM(CASE WHEN sh.passed = 1 AND pt.price_change_pct <= 0 THEN 1 ELSE 0 END) as false_positives,
-                            SUM(CASE WHEN sh.passed = 0 AND pt.price_change_pct > 0 THEN 1 ELSE 0 END) as false_negatives,
-                            SUM(CASE WHEN sh.passed = 0 AND pt.price_change_pct <= 0 THEN 1 ELSE 0 END) as true_negatives
+                            SUM(CASE WHEN sh.passed = 1 AND pt.daily_return > 0 THEN 1 ELSE 0 END) as true_positives,
+                            SUM(CASE WHEN sh.passed = 1 AND pt.daily_return <= 0 THEN 1 ELSE 0 END) as false_positives,
+                            SUM(CASE WHEN sh.passed = 0 AND pt.daily_return > 0 THEN 1 ELSE 0 END) as false_negatives,
+                            SUM(CASE WHEN sh.passed = 0 AND pt.daily_return <= 0 THEN 1 ELSE 0 END) as true_negatives
                         FROM screening_history sh
                         LEFT JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
                             AND sh.screening_date = pt.tracking_date
@@ -337,24 +337,21 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
 
             db = DatabaseSession()
             with db.get_session() as session:
-                # NOTE: PerformanceTracking 모델에 price_change_pct, max_gain, max_loss, is_active 컬럼 필요
+                # NOTE: max_gain, max_loss 컬럼은 현재 모델에 없어 제거됨
                 query = session.query(
                     SelectionHistory.selection_date,
                     func.count().label('total_selected'),
-                    func.sum(case((PerformanceTracking.price_change_pct > 0, 1), else_=0)).label('profitable_count'),
-                    func.sum(case((PerformanceTracking.price_change_pct <= 0, 1), else_=0)).label('loss_count'),
-                    func.avg(PerformanceTracking.price_change_pct).label('avg_return'),
-                    func.max(PerformanceTracking.price_change_pct).label('best_return'),
-                    func.min(PerformanceTracking.price_change_pct).label('worst_return'),
-                    func.avg(PerformanceTracking.max_gain).label('avg_max_gain'),
-                    func.avg(PerformanceTracking.max_loss).label('avg_max_loss')
+                    func.sum(case((PerformanceTracking.daily_return > 0, 1), else_=0)).label('profitable_count'),
+                    func.sum(case((PerformanceTracking.daily_return <= 0, 1), else_=0)).label('loss_count'),
+                    func.avg(PerformanceTracking.daily_return).label('avg_return'),
+                    func.max(PerformanceTracking.daily_return).label('best_return'),
+                    func.min(PerformanceTracking.daily_return).label('worst_return')
                 ).join(
                     PerformanceTracking,
                     (SelectionHistory.stock_code == PerformanceTracking.stock_code) &
                     (SelectionHistory.selection_date == PerformanceTracking.tracking_date)
                 ).filter(
-                    SelectionHistory.selection_date >= cutoff_date,
-                    PerformanceTracking.is_active == True
+                    SelectionHistory.selection_date >= cutoff_date
                 ).group_by(
                     SelectionHistory.selection_date
                 ).order_by(
@@ -411,17 +408,15 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                         SELECT
                             sh.selection_date,
                             COUNT(*) as total_selected,
-                            SUM(CASE WHEN pt.price_change_pct > 0 THEN 1 ELSE 0 END) as profitable_count,
-                            SUM(CASE WHEN pt.price_change_pct <= 0 THEN 1 ELSE 0 END) as loss_count,
-                            AVG(pt.price_change_pct) as avg_return,
-                            MAX(pt.price_change_pct) as best_return,
-                            MIN(pt.price_change_pct) as worst_return,
-                            AVG(pt.max_gain) as avg_max_gain,
-                            AVG(pt.max_loss) as avg_max_loss
+                            SUM(CASE WHEN pt.daily_return > 0 THEN 1 ELSE 0 END) as profitable_count,
+                            SUM(CASE WHEN pt.daily_return <= 0 THEN 1 ELSE 0 END) as loss_count,
+                            AVG(pt.daily_return) as avg_return,
+                            MAX(pt.daily_return) as best_return,
+                            MIN(pt.daily_return) as worst_return
                         FROM selection_history sh
                         JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
                             AND sh.selection_date = pt.tracking_date
-                        WHERE sh.selection_date >= ? AND pt.is_active = 1
+                        WHERE sh.selection_date >= ?
                         GROUP BY sh.selection_date
                         ORDER BY sh.selection_date DESC
                     """, (cutoff_date,))
@@ -490,10 +485,10 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                 query = session.query(
                     Stock.sector,
                     func.count().label('total_stocks'),
-                    func.avg(PerformanceTracking.price_change_pct).label('avg_performance'),
-                    (func.sum(case((PerformanceTracking.price_change_pct > 0, 1), else_=0)) * 100.0 / func.count()).label('win_rate'),
-                    func.max(PerformanceTracking.price_change_pct).label('best_performance'),
-                    func.min(PerformanceTracking.price_change_pct).label('worst_performance')
+                    func.avg(PerformanceTracking.daily_return).label('avg_performance'),
+                    (func.sum(case((PerformanceTracking.daily_return > 0, 1), else_=0)) * 100.0 / func.count()).label('win_rate'),
+                    func.max(PerformanceTracking.daily_return).label('best_performance'),
+                    func.min(PerformanceTracking.daily_return).label('worst_performance')
                 ).select_from(
                     ScreeningHistory
                 ).join(
@@ -504,14 +499,13 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                     (ScreeningHistory.stock_code == PerformanceTracking.stock_code) &
                     (ScreeningHistory.screening_date == PerformanceTracking.tracking_date)
                 ).filter(
-                    PerformanceTracking.is_active == True,
                     Stock.sector != None
                 ).group_by(
                     Stock.sector
                 ).having(
                     func.count() >= 3
                 ).order_by(
-                    func.avg(PerformanceTracking.price_change_pct).desc()
+                    func.avg(PerformanceTracking.daily_return).desc()
                 )
 
                 sector_data = query.all()
@@ -552,19 +546,21 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                     cursor = conn.cursor()
 
                     # SQLite doesn't have STDDEV function, calculate manually
+                    # Fixed: Stock 테이블 JOIN으로 sector 정보 가져오기
                     cursor.execute("""
                         SELECT
-                            sh.sector,
+                            s.sector,
                             COUNT(*) as total_stocks,
-                            AVG(pt.price_change_pct) as avg_performance,
-                            SUM(CASE WHEN pt.price_change_pct > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate,
-                            MAX(pt.price_change_pct) as best_performance,
-                            MIN(pt.price_change_pct) as worst_performance
+                            AVG(pt.daily_return) as avg_performance,
+                            SUM(CASE WHEN pt.daily_return > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate,
+                            MAX(pt.daily_return) as best_performance,
+                            MIN(pt.daily_return) as worst_performance
                         FROM screening_history sh
+                        JOIN stock s ON sh.stock_code = s.code
                         JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
                             AND sh.screening_date = pt.tracking_date
-                        WHERE pt.is_active = 1 AND sh.sector IS NOT NULL
-                        GROUP BY sh.sector
+                        WHERE s.sector IS NOT NULL
+                        GROUP BY s.sector
                         HAVING COUNT(*) >= 3
                         ORDER BY avg_performance DESC
                     """)
@@ -636,20 +632,18 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                 day_query = session.query(
                     dow_case,
                     func.count().label('total_selections'),
-                    func.avg(PerformanceTracking.price_change_pct).label('avg_performance'),
-                    (func.sum(case((PerformanceTracking.price_change_pct > 0, 1), else_=0)) * 100.0 / func.count()).label('win_rate')
+                    func.avg(PerformanceTracking.daily_return).label('avg_performance'),
+                    (func.sum(case((PerformanceTracking.daily_return > 0, 1), else_=0)) * 100.0 / func.count()).label('win_rate')
                 ).select_from(
                     SelectionHistory
                 ).join(
                     PerformanceTracking,
                     (SelectionHistory.stock_code == PerformanceTracking.stock_code) &
                     (SelectionHistory.selection_date == PerformanceTracking.tracking_date)
-                ).filter(
-                    PerformanceTracking.is_active == True
                 ).group_by(
-                    func.extract('dow', SelectionHistory.selection_date)
+                    dow_case
                 ).order_by(
-                    func.avg(PerformanceTracking.price_change_pct).desc()
+                    func.avg(PerformanceTracking.daily_return).desc()
                 )
 
                 day_patterns = day_query.all()
@@ -658,16 +652,14 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                 month_query = session.query(
                     func.to_char(SelectionHistory.selection_date, 'YYYYMM').label('year_month'),
                     func.count().label('total_selections'),
-                    func.avg(PerformanceTracking.price_change_pct).label('avg_performance'),
-                    (func.sum(case((PerformanceTracking.price_change_pct > 0, 1), else_=0)) * 100.0 / func.count()).label('win_rate')
+                    func.avg(PerformanceTracking.daily_return).label('avg_performance'),
+                    (func.sum(case((PerformanceTracking.daily_return > 0, 1), else_=0)) * 100.0 / func.count()).label('win_rate')
                 ).select_from(
                     SelectionHistory
                 ).join(
                     PerformanceTracking,
                     (SelectionHistory.stock_code == PerformanceTracking.stock_code) &
                     (SelectionHistory.selection_date == PerformanceTracking.tracking_date)
-                ).filter(
-                    PerformanceTracking.is_active == True
                 ).group_by(
                     func.to_char(SelectionHistory.selection_date, 'YYYYMM')
                 ).order_by(
@@ -718,12 +710,11 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                                 WHEN 6 THEN 'Saturday'
                             END as day_of_week,
                             COUNT(*) as total_selections,
-                            AVG(pt.price_change_pct) as avg_performance,
-                            SUM(CASE WHEN pt.price_change_pct > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate
+                            AVG(pt.daily_return) as avg_performance,
+                            SUM(CASE WHEN pt.daily_return > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate
                         FROM selection_history sh
                         JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
                             AND sh.selection_date = pt.tracking_date
-                        WHERE pt.is_active = 1
                         GROUP BY CAST(strftime('%w', date(
                             substr(sh.selection_date, 1, 4) || '-' ||
                             substr(sh.selection_date, 5, 2) || '-' ||
@@ -739,12 +730,11 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                         SELECT
                             substr(sh.selection_date, 1, 6) as year_month,
                             COUNT(*) as total_selections,
-                            AVG(pt.price_change_pct) as avg_performance,
-                            SUM(CASE WHEN pt.price_change_pct > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate
+                            AVG(pt.daily_return) as avg_performance,
+                            SUM(CASE WHEN pt.daily_return > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate
                         FROM selection_history sh
                         JOIN performance_tracking pt ON sh.stock_code = pt.stock_code
                             AND sh.selection_date = pt.tracking_date
-                        WHERE pt.is_active = 1
                         GROUP BY substr(sh.selection_date, 1, 6)
                         ORDER BY year_month DESC
                         LIMIT 6
@@ -1163,11 +1153,9 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             with db.get_session() as session:
                 # 최근 30일 성과 요약
                 result = session.query(
-                    func.avg(PerformanceTracking.price_change_pct).label('avg_return'),
+                    func.avg(PerformanceTracking.daily_return).label('avg_return'),
                     func.count().label('total_tracking'),
-                    (func.sum(case((PerformanceTracking.price_change_pct > 0, 1), else_=0)) * 100.0 / func.count()).label('win_rate')
-                ).filter(
-                    PerformanceTracking.is_active == True
+                    (func.sum(case((PerformanceTracking.daily_return > 0, 1), else_=0)) * 100.0 / func.count()).label('win_rate')
                 ).first()
 
                 avg_return = float(result.avg_return or 0)
@@ -1190,11 +1178,10 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                     # 최근 30일 성과 요약
                     cursor.execute("""
                         SELECT
-                            AVG(price_change_pct) as avg_return,
+                            AVG(daily_return) as avg_return,
                             COUNT(*) as total_tracking,
-                            SUM(CASE WHEN price_change_pct > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate
+                            SUM(CASE WHEN daily_return > 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) as win_rate
                         FROM performance_tracking
-                        WHERE is_active = 1
                     """)
 
                     result = cursor.fetchone()
@@ -1295,13 +1282,12 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
 
             db = DatabaseSession()
             with db.get_session() as session:
-                # 오래된 성과 추적 데이터 비활성화
-                updated = session.query(PerformanceTracking).filter(
-                    PerformanceTracking.tracking_date < cutoff_date_obj,
-                    PerformanceTracking.is_active == True
-                ).update({'is_active': False})
+                # 오래된 성과 추적 데이터 삭제 (is_active 컬럼 없음)
+                deleted = session.query(PerformanceTracking).filter(
+                    PerformanceTracking.tracking_date < cutoff_date_obj
+                ).delete()
 
-                deleted_count += updated
+                deleted_count += deleted
                 session.commit()
 
                 # 오래된 JSON 파일들 정리 (90일 이상)
@@ -1329,11 +1315,10 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
                 with sqlite3.connect(self.db_path) as conn:
                     cursor = conn.cursor()
 
-                    # 오래된 성과 추적 데이터 비활성화
+                    # 오래된 성과 추적 데이터 삭제 (is_active 컬럼 없음)
                     cursor.execute("""
-                        UPDATE performance_tracking
-                        SET is_active = 0
-                        WHERE tracking_date < ? AND is_active = 1
+                        DELETE FROM performance_tracking
+                        WHERE tracking_date < ?
                     """, (cutoff_date,))
 
                     deleted_count += cursor.rowcount
