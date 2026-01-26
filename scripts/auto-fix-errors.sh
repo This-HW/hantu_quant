@@ -101,7 +101,7 @@ LIMIT 20
 
 # ===== 2. 에러 없으면 즉시 종료 (토큰 절약) =====
 if [ -z "$LOCAL_ERRORS" ] && [ -z "$SYSTEM_ERRORS" ] && [ -z "$DB_ERRORS" ]; then
-    log "✅ 정상 - 에러 없음 (로컬:${LOCAL_COUNT}, 시스템:${SYSTEM_COUNT}, DB:${DB_COUNT})"
+    log "✅ 정상 - 에러 없음 (체크 완료)"
     exit 0
 fi
 
