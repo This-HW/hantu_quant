@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from core.utils.log_utils import get_logger
+from sqlalchemy import text
 
 
 logger = get_logger(__name__)
@@ -80,7 +81,7 @@ class TradeJournal:
         if get_session and TradeHistory:
             try:
                 with get_session() as session:
-                    session.execute("SELECT 1")
+                    session.execute(text("SELECT 1"))
                 self._db_connected = True
                 logger.info("TradeJournal DB 연결 확인 완료")
             except Exception as e:
