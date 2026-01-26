@@ -13,6 +13,10 @@ from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, asdict
 import threading
 
+from core.database.unified_db import get_session
+from core.database.models import Stock as DBStock, WatchlistStock as DBWatchlistStock
+from sqlalchemy import and_
+
 from core.utils.log_utils import get_logger
 from core.interfaces.trading import IWatchlistManager, WatchlistEntry
 
@@ -115,6 +119,18 @@ class WatchlistManager(IWatchlistManager):
 
         # 데이터 디렉토리 생성
         os.makedirs(os.path.dirname(self._data_file), exist_ok=True)
+
+
+        # DB 연결 초기화
+        self._use_db = True  # DB 우선 사용
+        try:
+            # DB 연결 테스트
+            with get_session() as session:
+                session.query(DBWatchlistStock).limit(1).first()
+            self._logger.info("WatchlistManager DB 연결 성공")
+        except Exception as e:
+            self._logger.warning(f"DB 연결 실패, JSON 폴백 사용: {e}")
+            self._use_db = False
 
         # 기존 데이터 로드
         self._load_data()
@@ -533,59 +549,135 @@ class WatchlistManager(IWatchlistManager):
             return False
 
     def _load_data(self) -> None:
-        """데이터 로드"""
+        """데이터 로드 (DB 우선, JSON 폴백)"""
         try:
-            if os.path.exists(self._data_file):
-                with open(self._data_file, "r", encoding="utf-8") as f:
-                    _v_data = json.load(f)
-
-                # 감시 리스트 로드 (새로운 형식과 기존 형식 모두 지원)
-                if "data" in _v_data and "stocks" in _v_data["data"]:
-                    # 새로운 형식
-                    _v_watchlist_data = _v_data["data"]["stocks"]
-                else:
-                    # 기존 형식 (직접 stocks 리스트)
-                    _v_watchlist_data = _v_data.get("stocks", [])
-
-                self._stocks = {}
-                for stock_data in _v_watchlist_data:
-                    _v_stock = WatchlistStock.from_dict(stock_data)
-                    self._stocks[_v_stock.stock_code] = _v_stock
-
-                self._logger.info(
-                    f"감시 리스트 데이터 로드 완료: {len(self._stocks)}개 종목"
-                )
+            if self._use_db:
+                # DB에서 로드
+                self._load_from_db()
             else:
-                self._logger.info(
-                    "감시 리스트 데이터 파일이 없습니다. 새로 생성합니다."
-                )
-                self._save_data()
-
+                # JSON에서 로드 (폴백)
+                self._load_from_json()
         except Exception as e:
             self._logger.error(f"데이터 로드 오류: {e}", exc_info=True)
+            # JSON 폴백 시도
+            if self._use_db:
+                self._logger.warning("DB 로드 실패, JSON 폴백 시도")
+                try:
+                    self._load_from_json()
+                except:
+                    self._stocks = {}
+            else:
+                self._stocks = {}
+
+    def _load_from_db(self) -> None:
+        """DB에서 감시 리스트 로드"""
+        with get_session() as session:
+            # JOIN하여 종목 정보와 함께 조회
+            watchlist_items = session.query(DBWatchlistStock, DBStock)\
+                .join(DBStock, DBWatchlistStock.stock_id == DBStock.id)\
+                .filter(DBWatchlistStock.status == 'active')\
+                .all()
+            
+            self._stocks = {}
+            for ws, stock in watchlist_items:
+                # DB 모델 → WatchlistStock 변환
+                _v_stock = WatchlistStock(
+                    stock_code=stock.code,
+                    stock_name=stock.name,
+                    added_date=ws.added_date.isoformat(),
+                    added_reason="DB 마이그레이션",
+                    target_price=0.0,  # 추후 계산
+                    stop_loss=0.0,
+                    sector=stock.sector or "기타",
+                    screening_score=ws.total_score,
+                    last_updated=datetime.now().isoformat(),
+                    notes=f"점수: {ws.total_score:.2f}",
+                    status=ws.status
+                )
+                self._stocks[stock.code] = _v_stock
+            
+            self._logger.info(f"감시 리스트 데이터 로드 완료: {len(self._stocks)}개 종목 (DB)")
+
+    def _load_from_json(self) -> None:
+        """JSON 파일에서 감시 리스트 로드 (폴백)"""
+        if os.path.exists(self._data_file):
+            with open(self._data_file, "r", encoding="utf-8") as f:
+                _v_data = json.load(f)
+
+            # 감시 리스트 로드
+            if "data" in _v_data and "stocks" in _v_data["data"]:
+                _v_watchlist_data = _v_data["data"]["stocks"]
+            else:
+                _v_watchlist_data = _v_data.get("stocks", [])
+
+            self._stocks = {}
+            for stock_data in _v_watchlist_data:
+                _v_stock = WatchlistStock.from_dict(stock_data)
+                self._stocks[_v_stock.stock_code] = _v_stock
+
+            self._logger.info(f"감시 리스트 데이터 로드 완료: {len(self._stocks)}개 종목 (JSON)")
+        else:
+            self._logger.info("감시 리스트 데이터 파일이 없습니다.")
             self._stocks = {}
 
     def _save_data(self) -> None:
-        """데이터 저장"""
+        """데이터 저장 (DB 우선, JSON 백업)"""
         try:
-            # 디렉토리 생성
-            os.makedirs(os.path.dirname(self._data_file), exist_ok=True)
-
-            _v_save_data = {
-                "timestamp": datetime.now().isoformat(),
-                "version": "1.0.0",
-                "data": {
-                    "stocks": [stock.to_dict() for stock in self._stocks.values()]
-                },
-            }
-
-            with open(self._data_file, "w", encoding="utf-8") as f:
-                json.dump(_v_save_data, f, ensure_ascii=False, indent=2)
-
-            self._logger.debug("감시 리스트 데이터 저장 완료")
-
+            if self._use_db:
+                self._save_to_db()
+            
+            # JSON 백업은 항상 유지
+            self._save_to_json()
+            
         except Exception as e:
             self._logger.error(f"데이터 저장 오류: {e}", exc_info=True)
+
+    def _save_to_db(self) -> None:
+        """DB에 감시 리스트 저장"""
+        with get_session() as session:
+            # 기존 active 상태를 모두 제거
+            session.query(DBWatchlistStock)\
+                .filter(DBWatchlistStock.status == 'active')\
+                .delete()
+            
+            # 새 데이터 저장
+            for stock_code, stock in self._stocks.items():
+                # stock_code → stock_id 조회
+                db_stock = session.query(DBStock).filter_by(code=stock_code).first()
+                if not db_stock:
+                    self._logger.warning(f"종목 없음: {stock_code}")
+                    continue
+                
+                # DB 저장
+                db_watchlist = DBWatchlistStock(
+                    stock_id=db_stock.id,
+                    added_date=datetime.fromisoformat(stock.added_date.replace('Z', '+00:00')).date()
+                        if isinstance(stock.added_date, str)
+                        else stock.added_date,
+                    total_score=stock.screening_score,
+                    status=stock.status
+                )
+                session.add(db_watchlist)
+            
+            session.commit()
+            self._logger.debug("감시 리스트 데이터 저장 완료 (DB)")
+
+    def _save_to_json(self) -> None:
+        """JSON 파일에 백업 저장"""
+        os.makedirs(os.path.dirname(self._data_file), exist_ok=True)
+        
+        _v_save_data = {
+            "timestamp": datetime.now().isoformat(),
+            "version": "1.0.0",
+            "data": {
+                "stocks": [stock.to_dict() for stock in self._stocks.values()]
+            },
+        }
+
+        with open(self._data_file, "w", encoding="utf-8") as f:
+            json.dump(_v_save_data, f, ensure_ascii=False, indent=2)
+
+        self._logger.debug("감시 리스트 데이터 저장 완료 (JSON 백업)")
 
     def validate_data(self) -> Tuple[bool, List[str]]:
         """데이터 무결성 검증
