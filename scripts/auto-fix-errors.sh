@@ -3,7 +3,7 @@
 # 자동 에러 수정 스크립트
 #
 # 목적: 에러 로그를 수집하고 Claude Code로 자동 분석/수정
-# 실행: crontab으로 8:00~15:30 30분마다 실행
+# 실행: crontab으로 평일 6:00~17:30 30분마다 실행 (24회/일)
 #
 # 주요 기능:
 #   1. 로컬 로그, systemd 로그, DB 에러 로그 수집
@@ -101,7 +101,7 @@ LIMIT 20
 
 # ===== 2. 에러 없으면 즉시 종료 (토큰 절약) =====
 if [ -z "$LOCAL_ERRORS" ] && [ -z "$SYSTEM_ERRORS" ] && [ -z "$DB_ERRORS" ]; then
-    log "에러 없음 - 종료"
+    log "✅ 정상 - 에러 없음 (로컬:${LOCAL_COUNT}, 시스템:${SYSTEM_COUNT}, DB:${DB_COUNT})"
     exit 0
 fi
 
