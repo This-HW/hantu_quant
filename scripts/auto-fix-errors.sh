@@ -99,16 +99,18 @@ ORDER BY timestamp DESC
 LIMIT 20
 " 2>/dev/null || true)
 
-# ===== 2. 에러 없으면 즉시 종료 (토큰 절약) =====
+# ===== 2. 에러 개수 계산 =====
+LOCAL_COUNT=$(echo "$LOCAL_ERRORS" | grep -c . || echo 0)
+SYSTEM_COUNT=$(echo "$SYSTEM_ERRORS" | grep -c . || echo 0)
+DB_COUNT=$(echo "$DB_ERRORS" | grep -c . || echo 0)
+
+# ===== 3. 에러 없으면 즉시 종료 (토큰 절약) =====
 if [ -z "$LOCAL_ERRORS" ] && [ -z "$SYSTEM_ERRORS" ] && [ -z "$DB_ERRORS" ]; then
-    log "✅ 정상 - 에러 없음 (체크 완료)"
+    log "✅ 정상 - 에러 없음 (로컬:${LOCAL_COUNT}, 시스템:${SYSTEM_COUNT}, DB:${DB_COUNT})"
     exit 0
 fi
 
 # 에러 개수 로깅
-LOCAL_COUNT=$(echo "$LOCAL_ERRORS" | grep -c . || echo 0)
-SYSTEM_COUNT=$(echo "$SYSTEM_ERRORS" | grep -c . || echo 0)
-DB_COUNT=$(echo "$DB_ERRORS" | grep -c . || echo 0)
 log "에러 발견 - 로컬: ${LOCAL_COUNT}건, 시스템: ${SYSTEM_COUNT}건, DB: ${DB_COUNT}건"
 
 # ===== 3. Claude Code로 분석 및 수정 =====
