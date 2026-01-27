@@ -305,12 +305,13 @@ class DailyUpdater(IDailyUpdater):
             _v_save_success = self._save_daily_list(_v_daily_list)
 
             if _v_save_success:
+                _v_stock_count = len(_v_daily_list.get("stocks", []))
                 self._logger.info(
-                    f"일일 업데이트 완료 - 선정 종목: {len(_v_daily_list)}개"
+                    f"일일 업데이트 완료 - 선정 종목: {_v_stock_count}개"
                 )
 
                 # 텔레그램 알림
-                self._send_daily_update_complete_notification(len(_v_daily_list))
+                self._send_daily_update_complete_notification(_v_stock_count)
 
                 return True
             else:
@@ -326,7 +327,7 @@ class DailyUpdater(IDailyUpdater):
 
     def _run_momentum_selection(
         self, watchlist_stocks: List[Dict], market_condition: str
-    ) -> List[Dict]:
+    ) -> Dict:
         """
         새로운 모멘텀 기반 종목 선정
 
@@ -335,7 +336,7 @@ class DailyUpdater(IDailyUpdater):
             market_condition: 시장 상황
 
         Returns:
-            List[Dict]: 선정 종목 리스트 (기존 형식 호환)
+            Dict: 선정 결과 (stocks 키 포함, DB 저장 형식 호환)
         """
         try:
             self._logger.info("=== 모멘텀 기반 선정 시작 ===")
@@ -384,7 +385,24 @@ class DailyUpdater(IDailyUpdater):
                 }
                 daily_list.append(daily_item)
 
-            return daily_list
+            # DB 저장 형식에 맞게 dict로 래핑 (fix: AttributeError 'list' has no .get())
+            metadata = {
+                "selection_method": "momentum",
+                "total_stocks": len(daily_list),
+                "selector_version": selector.__class__.__name__,
+            }
+
+            return {
+                "timestamp": datetime.now().isoformat(),
+                "version": "1.0.0",
+                "market_date": datetime.now().strftime("%Y-%m-%d"),
+                "market_condition": market_condition,
+                "data": {
+                    "selected_stocks": daily_list
+                },
+                "stocks": daily_list,  # 호환성 유지 (DB 로드 형식과 통일)
+                "metadata": metadata,
+            }
 
         except Exception as e:
             self._logger.error(
