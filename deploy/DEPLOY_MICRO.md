@@ -268,6 +268,68 @@ sudo iptables -L -n | grep 8000
 sudo ss -tlnp | grep 8000
 ```
 
+### psycopg2 모듈 누락 (2026-01-29 해결)
+
+**증상:**
+
+```
+WARNING - 통합 DB 초기화 실패, SQLite 폴백 사용: No module named 'psycopg2'
+```
+
+**원인:**
+
+- 가상환경에 여러 Python 버전이 혼재 (3.9, 3.12, 3.14)
+- psycopg2가 다른 Python 버전 디렉토리에만 설치됨
+- 실행 중인 Python 버전과 psycopg2 설치 위치 불일치
+
+**진단:**
+
+```bash
+# 가상환경 Python 버전 확인
+venv/bin/python --version
+
+# psycopg2 임포트 테스트
+venv/bin/python -c "import psycopg2; print(psycopg2.__version__)"
+
+# 가상환경 구조 확인
+ls -la venv/lib/
+```
+
+**해결:**
+
+```bash
+# 현재 가상환경에 psycopg2 재설치
+venv/bin/pip install --force-reinstall psycopg2-binary
+
+# 설치 확인
+venv/bin/python -c "import psycopg2; print('✅ 설치 성공:', psycopg2.__version__)"
+```
+
+### systemd 설정 변경 경고 (2026-01-29 해결)
+
+**증상:**
+
+```
+Warning: The unit file, source configuration file or drop-ins of hantu-scheduler.service changed on disk. Run 'systemctl daemon-reload' to reload units.
+```
+
+**원인:**
+
+- systemd 서비스 파일이 수정되었으나 daemon이 리로드되지 않음
+
+**해결:**
+
+```bash
+# systemd 설정 리로드
+sudo systemctl daemon-reload
+
+# 서비스 재시작
+sudo systemctl restart hantu-scheduler.service hantu-api.service
+
+# 상태 확인
+sudo systemctl status hantu-scheduler.service hantu-api.service
+```
+
 ---
 
 ## 10. Auto-Fix Error Improvements (자동 에러 수정 개선)
