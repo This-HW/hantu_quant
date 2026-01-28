@@ -1179,6 +1179,22 @@ class DailyUpdater(IDailyUpdater):
             self._logger.error(f"일일 매매 리스트 저장 실패: {e}", exc_info=True)
             return False
 
+    def _convert_to_native_type(self, value):
+        """Numpy 타입을 Python 네이티브 타입으로 변환
+
+        Args:
+            value: 변환할 값
+
+        Returns:
+            Python 네이티브 타입으로 변환된 값
+        """
+        if value is None:
+            return None
+        # numpy 타입 확인 (hasattr로 item 메서드 확인)
+        if hasattr(value, "item"):
+            return value.item()
+        return value
+
     def _save_selection_to_db(self, p_daily_list: Dict, p_selection_date) -> bool:
         """선정 결과를 DB에 저장
 
@@ -1210,16 +1226,34 @@ class DailyUpdater(IDailyUpdater):
                         selection_date=p_selection_date,
                         stock_code=stock.get("stock_code", ""),
                         stock_name=stock.get("stock_name", ""),
-                        total_score=stock.get("total_score", 0.0),
-                        technical_score=stock.get("technical_score", 0.0),
-                        volume_score=stock.get("volume_score", 0.0),
-                        pattern_score=stock.get("pattern_score", 0.0),
-                        risk_score=stock.get("risk_score", 0.0),
-                        entry_price=stock.get("entry_price"),
-                        target_price=stock.get("target_price"),
-                        stop_loss=stock.get("stop_loss"),
-                        expected_return=stock.get("expected_return"),
-                        confidence=stock.get("confidence"),
+                        total_score=self._convert_to_native_type(
+                            stock.get("total_score", 0.0)
+                        ),
+                        technical_score=self._convert_to_native_type(
+                            stock.get("technical_score", 0.0)
+                        ),
+                        volume_score=self._convert_to_native_type(
+                            stock.get("volume_score", 0.0)
+                        ),
+                        pattern_score=self._convert_to_native_type(
+                            stock.get("pattern_score", 0.0)
+                        ),
+                        risk_score=self._convert_to_native_type(
+                            stock.get("risk_score", 0.0)
+                        ),
+                        entry_price=self._convert_to_native_type(
+                            stock.get("entry_price")
+                        ),
+                        target_price=self._convert_to_native_type(
+                            stock.get("target_price")
+                        ),
+                        stop_loss=self._convert_to_native_type(stock.get("stop_loss")),
+                        expected_return=self._convert_to_native_type(
+                            stock.get("expected_return")
+                        ),
+                        confidence=self._convert_to_native_type(
+                            stock.get("confidence")
+                        ),
                         signal=stock.get("signal", "buy"),
                         selection_reason=stock.get("selection_reason", ""),
                         market_condition=market_condition,
