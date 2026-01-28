@@ -1,16 +1,18 @@
 """
-비동기 KIS API 클라이언트 (P2-4)
+비동기 KIS API 클라이언트 (B3: 캐시 통합 + 멀티 윈도우 Rate Limiter)
 
 기능:
 - aiohttp 기반 비동기 HTTP 요청
 - 동시 요청 제한 (세마포어)
-- 요청 간 Rate Limit 준수 (초당 최대 요청 수 제한)
+- 멀티 윈도우 Rate Limit (1초/1분/1시간 3단계)
+- Redis 캐싱 (TTL 300초, 자동 폴백)
 - 배치 가격 조회
 - 부분 실패 허용
 
 성능 개선:
 - 100개 종목 순차 조회: ~30초
 - 100개 종목 병렬 조회 (Rate Limit 적용): ~10초
+- 캐시 히트 시: 즉시 반환 (0초)
 """
 
 import asyncio
@@ -27,6 +29,7 @@ except ImportError:
     AIOHTTP_AVAILABLE = False
 
 from core.config.api_config import APIConfig, KISErrorCode
+from core.api.redis_client import cache
 
 logger = logging.getLogger(__name__)
 
@@ -70,13 +73,18 @@ class BatchResult:
 class AsyncKISClient:
     """비동기 KIS API 클라이언트
 
-    동시 요청 제한 + Rate Limit을 통해 API 서버 부하를 방지하면서
+    동시 요청 제한 + 멀티 윈도우 Rate Limit + 캐시를 통해 API 서버 부하를 방지하면서
     빠른 배치 조회를 수행합니다.
 
-    Rate Limit 정책:
-    - KIS API 공식 제한: 실전 초당 20건, 모의 초당 5건
-    - 안전 마진 적용: 초당 10건으로 제한 (슬라이딩 윈도우 대응)
-    - 동시 요청은 세마포어로 제한, 요청 간격은 Rate Limiter로 제어
+    멀티 윈도우 Rate Limit 정책 (3단계):
+    - 1초 윈도우: 최대 5건 (모의투자 기준)
+    - 1분 윈도우: 최대 100건 (슬라이딩 윈도우 버스트 방지)
+    - 1시간 윈도우: 최대 1500건 (일일 제한 근접 방지)
+
+    캐시 정책:
+    - 가격 데이터: TTL 300초 (5분)
+    - Redis 우선, 실패 시 MemoryCache 자동 폴백
+    - 캐시 히트 시 API 호출 생략
 
     Usage:
         # 비동기 컨텍스트에서 사용
@@ -134,8 +142,10 @@ class AsyncKISClient:
         self._rate_limit_lock = asyncio.Lock()
         self._last_request_time: float = 0.0
 
-        # 슬라이딩 윈도우 기반 Rate Limit 추적
-        self._request_timestamps: List[float] = []
+        # 멀티 윈도우 Rate Limit 추적 (3단계)
+        self._timestamps_1s: List[float] = []   # 1초 윈도우: 5건
+        self._timestamps_1m: List[float] = []   # 1분 윈도우: 100건
+        self._timestamps_1h: List[float] = []   # 1시간 윈도우: 1500건
 
     async def __aenter__(self):
         """컨텍스트 매니저 진입"""
@@ -168,42 +178,53 @@ class AsyncKISClient:
         }
 
     async def _rate_limit_wait(self):
-        """Rate Limit 준수를 위한 대기 (슬라이딩 윈도우 방식)
+        """멀티 윈도우 Rate Limit 대기 (3단계)
 
-        1초 윈도우 내 요청 수를 추적하여 Rate Limit을 정확하게 준수합니다.
+        1. 1초 윈도우: 최대 5건
+        2. 1분 윈도우: 최대 100건
+        3. 1시간 윈도우: 최대 1500건
         """
         async with self._rate_limit_lock:
             now = time.time()
 
-            # 1초 이전 타임스탬프 제거 (슬라이딩 윈도우)
-            self._request_timestamps = [
-                ts for ts in self._request_timestamps if now - ts < 1.0
-            ]
-
-            # 현재 윈도우 내 요청 수가 제한에 도달한 경우 대기
-            while len(self._request_timestamps) >= self.rate_limit_per_sec:
-                # 가장 오래된 요청이 윈도우를 벗어날 때까지 대기
-                oldest = self._request_timestamps[0]
-                wait_time = 1.0 - (now - oldest) + 0.05  # 50ms 여유
+            # 1초 윈도우 체크 (초당 5건)
+            self._timestamps_1s = [t for t in self._timestamps_1s if now - t < 1.0]
+            if len(self._timestamps_1s) >= 5:
+                wait_time = 1.0 - (now - self._timestamps_1s[0]) + 0.05  # 50ms 여유
                 if wait_time > 0:
-                    logger.debug(f"Rate Limit 대기: {wait_time:.2f}초")
+                    logger.debug(f"1초 Rate Limit 대기: {wait_time:.2f}초")
                     await asyncio.sleep(wait_time)
+                    now = time.time()
 
-                # 다시 확인
-                now = time.time()
-                self._request_timestamps = [
-                    ts for ts in self._request_timestamps if now - ts < 1.0
-                ]
+            # 1분 윈도우 체크 (분당 100건)
+            self._timestamps_1m = [t for t in self._timestamps_1m if now - t < 60.0]
+            if len(self._timestamps_1m) >= 100:
+                wait_time = 60.0 - (now - self._timestamps_1m[0]) + 0.1  # 100ms 여유
+                if wait_time > 0:
+                    logger.warning(f"1분 Rate Limit 근접, {wait_time:.1f}초 대기")
+                    await asyncio.sleep(wait_time)
+                    now = time.time()
 
-            # 요청 간 최소 간격도 유지
+            # 1시간 윈도우 체크 (시간당 1500건)
+            self._timestamps_1h = [t for t in self._timestamps_1h if now - t < 3600.0]
+            if len(self._timestamps_1h) >= 1500:
+                wait_time = 3600.0 - (now - self._timestamps_1h[0]) + 1.0  # 1초 여유
+                if wait_time > 0:
+                    logger.error(f"시간당 Rate Limit 도달, {wait_time:.1f}초 대기", exc_info=True)
+                    await asyncio.sleep(wait_time)
+                    now = time.time()
+
+            # 요청 간 최소 간격 유지
             if self._last_request_time > 0:
                 elapsed = now - self._last_request_time
                 if elapsed < self.min_interval:
                     await asyncio.sleep(self.min_interval - elapsed)
+                    now = time.time()
 
-            # 현재 요청 시간 기록
-            now = time.time()
-            self._request_timestamps.append(now)
+            # 모든 윈도우에 타임스탬프 추가
+            self._timestamps_1s.append(now)
+            self._timestamps_1m.append(now)
+            self._timestamps_1h.append(now)
             self._last_request_time = now
 
     def _is_rate_limit_error(self, data: dict) -> bool:
@@ -225,7 +246,7 @@ class AsyncKISClient:
         self,
         stock_code: str
     ) -> Tuple[str, Optional[PriceData], Optional[str]]:
-        """단일 종목 가격 조회 (세마포어 + Rate Limit 적용)
+        """단일 종목 가격 조회 (세마포어 + Rate Limit + 캐시 적용)
 
         Args:
             stock_code: 종목코드
@@ -233,6 +254,13 @@ class AsyncKISClient:
         Returns:
             (stock_code, price_data or None, error_message or None)
         """
+        # 캐시 확인 (동기 호출을 비동기 래퍼로 변환)
+        cache_key = f"async:price:{stock_code}"
+        cached = await asyncio.to_thread(cache.get, cache_key)
+        if cached:
+            logger.debug(f"캐시 히트 (async): {stock_code}")
+            return (stock_code, cached, None)
+
         async with self.semaphore:
             for attempt in range(self.retry_count + 1):
                 try:
@@ -290,6 +318,11 @@ class AsyncKISClient:
                                 open_price=float(output.get("stck_oprc", 0)),
                                 prev_close=float(output.get("stck_sdpr", 0)),
                             )
+
+                            # 성공 시 캐시 저장 (TTL 300초)
+                            await asyncio.to_thread(cache.set, cache_key, price_data, 300)
+                            logger.debug(f"캐시 저장 (async): {stock_code}")
+
                             return (stock_code, price_data, None)
 
                         elif response.status >= 500:

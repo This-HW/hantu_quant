@@ -77,7 +77,7 @@ ALTER TABLE trade_history DROP COLUMN IF EXISTS model_name;
 
 ```bash
 # SSH 접속 후 실행
-ssh ubuntu@168.107.3.196
+ssh ubuntu@158.180.87.156  # 마이그레이션 후: hantu-server로 이전
 cd /tmp
 # 스크립트 복사 후
 psql -U hantu_quant -d hantu_quant -f migrate_trade_history_v1.1.sql

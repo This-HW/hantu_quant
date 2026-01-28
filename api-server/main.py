@@ -484,7 +484,7 @@ def load_latest_watchlist_data() -> List[WatchlistItem]:
         return watchlist
 
     except FileNotFoundError:
-        logger.warning("watchlist.json 파일 미존재 - 스케줄러 실행 후 생성됨")
+        logger.warning(f"watchlist.json 파일 미존재 ({watchlist_path}) - 스케줄러 실행 후 생성됨")
         return []
     except Exception as e:
         logger.error(f"최신 감시리스트 로드 오류: {e}", exc_info=True)

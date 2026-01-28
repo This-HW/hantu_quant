@@ -174,7 +174,7 @@
 **⚠️ 사전 요구사항:**
 ```bash
 # SSH 터널 실행 필요 (세션 시작 전)
-ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@168.107.3.196
+ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156
 ```
 
 **예시:**
@@ -344,7 +344,7 @@ MCP 조회 시 버전을 명시하세요:
 
 ```bash
 # 세션 시작 전 실행 필요
-ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@168.107.3.196
+ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156
 
 # 터널 상태 확인
 lsof -i:15432

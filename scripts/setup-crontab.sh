@@ -41,13 +41,13 @@ CRON_COMMAND="$AUTO_FIX_SCRIPT"
 CRON_ENTRY="$CRON_SCHEDULE $CRON_COMMAND"
 
 # 환경변수 로드 설정 (cron에서 환경변수 사용을 위해)
-ENV_LOADER="set -a; source /opt/hantu_quant/.env 2>/dev/null || true; set +a; "
+ENV_LOADER="set -a; source $PROJECT_DIR/.env 2>/dev/null || true; set +a; "
 CRON_ENTRY_FULL="$CRON_SCHEDULE ${ENV_LOADER}${CRON_COMMAND}"
 
 # Log rotation cron entry
 LOG_ROTATE_COMMENT="# Log rotation (hantu_quant)"
 LOG_ROTATE_SCHEDULE="0 2 * * *"
-LOG_ROTATE_COMMAND="cd /opt/hantu_quant && bash scripts/log_rotate.sh >> logs/log_rotate.log 2>&1"
+LOG_ROTATE_COMMAND="cd $PROJECT_DIR && bash scripts/log_rotate.sh >> logs/log_rotate.log 2>&1"
 LOG_ROTATE_ENTRY="$LOG_ROTATE_SCHEDULE $LOG_ROTATE_COMMAND"
 
 # 기존 crontab 백업 및 확인
@@ -96,4 +96,5 @@ crontab -l | grep -E "(Auto-fix|Log rotation)" -A1 || true
 
 log_info ""
 log_info "타임존: Asia/Seoul (CRON_TZ 설정됨)"
-log_info "환경변수는 /opt/hantu_quant/.env 에서 로드됩니다."
+log_info "환경변수는 $PROJECT_DIR/.env 에서 로드됩니다."
+log_info "프로젝트 경로: $PROJECT_DIR"

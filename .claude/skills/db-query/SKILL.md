@@ -13,7 +13,7 @@ SSH 터널이 실행 중이어야 합니다:
 
 ```bash
 # 터널 시작
-ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@168.107.3.196
+ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156
 
 # 또는 스크립트 사용
 ./scripts/ssh-tunnel.sh start

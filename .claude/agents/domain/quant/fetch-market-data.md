@@ -22,7 +22,7 @@ tools:
 > **MCP 활용**: PostgreSQL MCP로 hantu_quant 데이터베이스에서 직접 시장 데이터를 조회하세요.
 > - 기존 수집된 OHLCV 데이터, 종목 정보, 지표 데이터 조회
 > - 데이터 품질 검증 쿼리 직접 실행
-> - SSH 터널 필요: `ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@168.107.3.196`
+> - SSH 터널 필요: `ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156`
 
 # Market Data Fetcher
 
