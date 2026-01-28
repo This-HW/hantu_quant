@@ -1,0 +1,1 @@
+scripts/deployment/check_scheduler.sh
