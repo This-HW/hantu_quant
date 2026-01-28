@@ -21,9 +21,15 @@
 set -euo pipefail
 
 # ===== 설정 =====
-LOG_DIR="/opt/hantu_quant/logs"
-PROJECT_DIR="/opt/hantu_quant"
-RESULT_LOG="$LOG_DIR/auto-fix.log"
+# 프로덕션 환경 (로그 읽기용)
+PROD_LOG_DIR="/opt/hantu_quant/logs"
+PROD_PROJECT_DIR="/opt/hantu_quant"
+
+# 개발 레포 (코드 수정용)
+DEV_PROJECT_DIR="$HOME/hantu_quant_dev"
+
+# Auto-fix 결과 로그는 개발 레포에 저장
+RESULT_LOG="$DEV_PROJECT_DIR/logs/auto-fix.log"
 LOCKFILE="/tmp/auto-fix-errors.lock"
 CLAUDE_PATH="/home/ubuntu/.local/bin/claude"
 
@@ -46,8 +52,8 @@ if [ ! -x "$CLAUDE_PATH" ]; then
     exit 1
 fi
 
-# 로그 디렉토리 생성
-mkdir -p "$LOG_DIR"
+# 로그 디렉토리 생성 (개발 레포)
+mkdir -p "$DEV_PROJECT_DIR/logs"
 
 # 로그 함수
 log() {
@@ -76,8 +82,8 @@ log "===== 자동 에러 수정 시작 ====="
 
 # ===== 1. 에러 로그 수집 =====
 
-# 로컬 애플리케이션 로그 (최근 30분 이내 에러)
-LOCAL_ERRORS=$(cat "$LOG_DIR/$(date +%Y%m%d).log" 2>/dev/null | grep -i 'error\|exception\|traceback' | tail -30 || true)
+# 프로덕션 로그 읽기 (최근 30분 이내 에러)
+LOCAL_ERRORS=$(cat "$PROD_LOG_DIR/$(date +%Y%m%d).log" 2>/dev/null | grep -i 'error\|exception\|traceback' | tail -30 || true)
 
 # systemd 서비스 로그 (최근 30분)
 SYSTEM_ERRORS=$(journalctl -u hantu-api -u hantu-scheduler --since '30 minutes ago' --no-pager 2>/dev/null | grep -i 'error\|exception\|traceback' | tail -30 || true)
@@ -114,10 +120,11 @@ fi
 log "에러 발견 - 로컬: ${LOCAL_COUNT}건, 시스템: ${SYSTEM_COUNT}건, DB: ${DB_COUNT}건"
 
 # ===== 3. Claude Code로 분석 및 수정 =====
-cd "$PROJECT_DIR"
+# 개발 레포로 이동
+cd "$DEV_PROJECT_DIR"
 
 # 가상환경 활성화
-source "$PROJECT_DIR/venv/bin/activate"
+source "$DEV_PROJECT_DIR/venv/bin/activate"
 
 PROMPT="에러 로그를 분석하고 수정해줘.
 
@@ -135,10 +142,11 @@ ${DB_ERRORS:-없음}
 2. 수정 후 pytest tests/unit/ -x --tb=short 실행
 3. 테스트 통과하면:
    - git add -A
-   - git commit -m '[skip ci] fix: 자동 에러 수정 - \$(date +%Y%m%d_%H%M)
+   - git commit -m 'fix: 자동 에러 수정 - \$(date +%Y%m%d_%H%M)
 
      Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>'
-   - sudo systemctl restart hantu-api hantu-scheduler
+   - git push origin main
+   - (배포는 CI/CD가 자동 처리)
 4. 테스트 실패하면:
    - git checkout -- . 로 모든 변경사항 롤백
    - 실패 원인만 간단히 보고

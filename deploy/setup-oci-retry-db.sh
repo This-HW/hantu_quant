@@ -1,5 +1,6 @@
 #!/bin/bash
 #
+# ⚠️ DEPRECATED (2026-01): DB를 hantu-server (158.180.87.156)로 마이그레이션 완료
 # DB 서버에 OCI VM 생성 재시도 스크립트 설정
 # 로컬에서 실행: bash deploy/setup-oci-retry-db.sh
 #

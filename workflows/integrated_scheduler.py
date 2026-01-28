@@ -30,6 +30,10 @@ import requests
 from pathlib import Path
 from core.utils.telegram_notifier import get_telegram_notifier
 
+# Redis 캐시 및 DailyUpdater 추가
+from core.api.redis_client import cache
+from core.daily_selection.daily_updater import DailyUpdater
+
 # 자동 매매 엔진 추가
 
 # 강화된 로깅 설정
@@ -74,6 +78,13 @@ class IntegratedScheduler:
 
             self._v_phase2_cli = Phase2CLI(p_parallel_workers=p_parallel_workers)
             logger.info("✅ Phase2 CLI 초기화 완료")
+
+            # DailyUpdater 초기화 (분산 모드 지원)
+            self._v_daily_updater = DailyUpdater(
+                p_watchlist_file="data/watchlist/watchlist.json",
+                p_output_dir="data/daily_selection"
+            )
+            logger.info("✅ DailyUpdater 초기화 완료")
 
             self._v_parallel_workers = p_parallel_workers
 
@@ -162,6 +173,172 @@ class IntegratedScheduler:
             logger.error(f"텔레그램 알람 전송 오류: {e}", exc_info=True)
             return False
 
+    def _run_cache_initialization(self):
+        """자정 캐시 초기화 (00:00 실행)
+
+        목적:
+        - 전날 캐시 데이터 삭제
+        - Redis 연결 상태 확인
+        - 당일 시작 준비
+
+        처리:
+        1. Redis 연결 확인
+        2. hantu:* 패턴 키 삭제
+        3. 텔레그램 알림 (삭제된 키 개수)
+        4. 에러 시 경고 로그 (서비스 지속)
+        """
+        try:
+            logger.info("=" * 50)
+            logger.info("🗑️ 캐시 초기화 시작")
+
+            # Redis 클라이언트 확인
+            if not hasattr(cache, 'client') or cache.client is None:
+                logger.warning("Redis 클라이언트가 초기화되지 않음 - 캐시 초기화 스킵")
+                return False
+
+            # Redis SCAN으로 hantu:* 패턴 키 찾기 (KEYS * 대신 SCAN 사용)
+            deleted_count = 0
+            cursor = 0
+            pattern = "hantu:*"
+
+            while True:
+                cursor, keys = cache.client.scan(cursor=cursor, match=pattern, count=100)
+                if keys:
+                    # 키 삭제
+                    cache.client.delete(*keys)
+                    deleted_count += len(keys)
+                    logger.info(f"캐시 삭제 중: {len(keys)}개 키 삭제 (총 {deleted_count}개)")
+
+                if cursor == 0:
+                    break
+
+            logger.info(f"✅ 캐시 초기화 완료: {deleted_count}개 키 삭제")
+
+            # 텔레그램 알림
+            try:
+                notifier = get_telegram_notifier()
+                if notifier.is_enabled():
+                    message = (
+                        f"🗑️ *캐시 초기화 완료*\n\n"
+                        f"• 삭제된 키: {deleted_count}개\n"
+                        f"• 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`"
+                    )
+                    notifier.send_message(message, "normal")
+            except Exception as e:
+                logger.warning(f"텔레그램 알림 전송 실패: {e}")
+
+            return True
+
+        except Exception as e:
+            logger.warning(f"캐시 초기화 실패: {e} - 서비스 계속", exc_info=True)
+            return False
+
+    def _run_distributed_batch(self, batch_index: int):
+        """Phase 2 분산 배치 실행 (07:00-08:30, 5분 간격)
+
+        Args:
+            batch_index: 배치 번호 (0-17)
+
+        처리 흐름:
+        1. 배치 시작 로깅
+        2. DailyUpdater.run_daily_update(distributed_mode=True, batch_index=batch_index)
+        3. 성공/실패 로깅
+        4. 에러 시 텔레그램 알림 (부분 실패는 다음 배치 진행)
+
+        특수 처리:
+        - batch_index == 0: "Phase 2 시작" 텔레그램 알림
+        - batch_index == 17: "Phase 2 완료" 텔레그램 알림 (총 선정 종목 수 포함)
+        """
+        try:
+            logger.info(f"📦 배치 {batch_index}/17 시작")
+
+            # 첫 번째 배치: Phase 2 시작 알림
+            if batch_index == 0:
+                logger.info("=" * 50)
+                logger.info("📦 Phase 2 분산 배치 실행 시작")
+                try:
+                    notifier = get_telegram_notifier()
+                    if notifier.is_enabled():
+                        message = (
+                            f"📦 *Phase 2 시작*\n\n"
+                            f"• 총 배치: 18개\n"
+                            f"• 예상 완료: 08:30"
+                        )
+                        notifier.send_message(message, "normal")
+                except Exception as e:
+                    logger.warning(f"Phase 2 시작 알림 전송 실패: {e}")
+
+            # 배치 실행
+            success = self._v_daily_updater.run_daily_update(
+                distributed_mode=True,
+                batch_index=batch_index
+            )
+
+            if success:
+                logger.info(f"✅ 배치 {batch_index}/17 완료")
+
+                # 마지막 배치: Phase 2 완료 알림
+                if batch_index == 17:
+                    logger.info("=" * 50)
+                    logger.info("✅ Phase 2 분산 배치 실행 완료")
+
+                    # 선정 결과 파일 확인
+                    today_str = datetime.now().strftime("%Y%m%d")
+                    selection_file = Path(f"data/daily_selection/daily_selection_{today_str}.json")
+
+                    total_selected = 0
+                    if selection_file.exists():
+                        try:
+                            with open(selection_file, "r", encoding="utf-8") as f:
+                                selection_data = json.load(f)
+                                total_selected = len(selection_data.get("selected_stocks", []))
+                        except Exception as e:
+                            logger.warning(f"선정 결과 파일 읽기 실패: {e}")
+
+                    try:
+                        notifier = get_telegram_notifier()
+                        if notifier.is_enabled():
+                            message = (
+                                f"✅ *Phase 2 완료*\n\n"
+                                f"• 총 선정 종목: {total_selected}개\n"
+                                f"• 소요 시간: 90분\n"
+                                f"• 파일: `daily_selection_{today_str}.json`"
+                            )
+                            notifier.send_message(message, "normal")
+                    except Exception as e:
+                        logger.warning(f"Phase 2 완료 알림 전송 실패: {e}")
+            else:
+                logger.error(f"❌ 배치 {batch_index}/17 실패")
+
+                # 배치 실패 알림
+                try:
+                    notifier = get_telegram_notifier()
+                    if notifier.is_enabled():
+                        message = (
+                            f"⚠️ *배치 {batch_index} 실패*\n\n"
+                            f"• 에러: 배치 실행 실패\n"
+                            f"• 다음 배치 진행 중..."
+                        )
+                        notifier.send_message(message, "high")
+                except Exception as e:
+                    logger.warning(f"배치 실패 알림 전송 실패: {e}")
+
+        except Exception as e:
+            logger.error(f"❌ 배치 {batch_index}/17 실행 오류: {e}", exc_info=True)
+
+            # 에러 알림
+            try:
+                notifier = get_telegram_notifier()
+                if notifier.is_enabled():
+                    message = (
+                        f"⚠️ *배치 {batch_index} 실패*\n\n"
+                        f"• 에러: {str(e)[:50]}...\n"
+                        f"• 다음 배치 진행 중..."
+                    )
+                    notifier.send_message(message, "high")
+            except Exception as notify_error:
+                logger.warning(f"배치 에러 알림 전송 실패: {notify_error}")
+
     def start_scheduler(self):
         """통합 스케줄러 시작"""
         if self._v_scheduler_running:
@@ -171,15 +348,36 @@ class IntegratedScheduler:
         # 스케줄 설정
         schedule.clear()
 
+        # ========================================
+        # 캐시 초기화 (자정)
+        # ========================================
+        schedule.every().day.at("00:00").do(self._run_cache_initialization)
+
+        # ========================================
         # Phase 1: 일간 스크리닝 (매일 06:00, 주말 제외)
+        # ========================================
         schedule.every().monday.at("06:00").do(self._run_daily_screening)
         schedule.every().tuesday.at("06:00").do(self._run_daily_screening)
         schedule.every().wednesday.at("06:00").do(self._run_daily_screening)
         schedule.every().thursday.at("06:00").do(self._run_daily_screening)
         schedule.every().friday.at("06:00").do(self._run_daily_screening)
 
-        # Phase 2: 일일 업데이트 (Phase 1 완료 후 자동 실행)
-        # Phase 1 완료 후 _run_daily_screening에서 직접 호출
+        # ========================================
+        # Phase 2: 분산 배치 실행 (07:00-08:30, 5분 간격, 평일만)
+        # ========================================
+        # 18개 배치를 5분 간격으로 스케줄링
+        batch_times = [
+            "07:00", "07:05", "07:10", "07:15", "07:20", "07:25", "07:30", "07:35", "07:40",
+            "07:45", "07:50", "07:55", "08:00", "08:05", "08:10", "08:15", "08:20", "08:25"
+        ]
+
+        for batch_index, time_str in enumerate(batch_times):
+            # 평일에만 실행
+            schedule.every().monday.at(time_str).do(self._run_distributed_batch, batch_index)
+            schedule.every().tuesday.at(time_str).do(self._run_distributed_batch, batch_index)
+            schedule.every().wednesday.at(time_str).do(self._run_distributed_batch, batch_index)
+            schedule.every().thursday.at(time_str).do(self._run_distributed_batch, batch_index)
+            schedule.every().friday.at(time_str).do(self._run_distributed_batch, batch_index)
 
         # Phase 3: 자동 매매 시작 (장 시작 시간, 주말 제외)
         schedule.every().monday.at("09:00").do(self._start_auto_trading)
@@ -304,8 +502,9 @@ class IntegratedScheduler:
 
         logger.info("통합 스케줄러 시작됨")
         print("🚀 통합 스케줄러 시작!")
+        print("├─ 캐시 초기화: 매일 00:00")
         print("├─ 일간 스크리닝: 매일 06:00")
-        print("├─ 일일 업데이트: Phase 1 완료 후 자동 실행")
+        print("├─ 일일 업데이트: 07:00-08:30 (18개 배치, 5분 간격)")
         print("├─ 자동 매매 시작: 매일 09:00 (평일)")
         print("├─ 자동 매매 중지: 매일 15:30 (평일)")
         print("├─ 매매 헬스체크: 장 시간 중 30분마다 (평일)")
@@ -341,8 +540,9 @@ class IntegratedScheduler:
         """스케줄러 재시작 시 누락된 작업 자동 실행
 
         복구 시나리오 (평일만):
-        - 06:00~09:00: Phase 1/2 실행 (매매는 09:00부터)
-        - 09:00~15:30: Phase 1/2 + 매매 실행
+        - 06:00~07:00: Phase 1 실행
+        - 07:00~09:00: Phase 2 미완료 배치 실행
+        - 09:00~15:30: 매매 실행
         - 15:30~16:00: 시장 마감 정리 실행
         - 16:00~17:00: 시장 마감 정리 + 일일 성과 분석 실행
         - 17:00 이후: 모든 정리 작업 실행
@@ -359,6 +559,8 @@ class IntegratedScheduler:
 
             # 시간대 정의
             screening_time = now.replace(hour=6, minute=0, second=0, microsecond=0)
+            phase2_start = now.replace(hour=7, minute=0, second=0, microsecond=0)
+            phase2_end = now.replace(hour=8, minute=30, second=0, microsecond=0)
             market_open = now.replace(hour=9, minute=0, second=0, microsecond=0)
             market_close = now.replace(hour=15, minute=30, second=0, microsecond=0)
             cleanup_time = now.replace(hour=16, minute=0, second=0, microsecond=0)
@@ -426,7 +628,21 @@ class IntegratedScheduler:
                 print("📋 일간 스크리닝 실행...")
                 self._run_daily_screening()
                 recovered_tasks.append("일간 스크리닝")
-                # Phase 2는 _run_daily_screening에서 자동 호출됨
+
+            # 2. Phase 2 미완료 배치 복구 (07:00~08:30 시간대 재시작)
+            if phase2_start <= now < market_open:
+                # 현재 시간 기준으로 미완료 배치 계산
+                elapsed_minutes = (now.hour - 7) * 60 + now.minute
+                completed_batches = elapsed_minutes // 5
+
+                if completed_batches < 18:
+                    logger.info(f"Phase 2 시간대 재시작 감지 - 배치 {completed_batches}-17 복구 실행 시작")
+                    print(f"📦 Phase 2 복구: 배치 {completed_batches}-17 실행...")
+
+                    for i in range(completed_batches, 18):
+                        self._run_distributed_batch(i)
+
+                    recovered_tasks.append(f"Phase 2 배치 {completed_batches}-17")
 
             # 3. 자동 매매 (09:00~15:30 장중이면 시작)
             if now >= market_open and now < market_close:
@@ -710,20 +926,11 @@ class IntegratedScheduler:
                 print("✅ 일간 스크리닝 완료!")
 
                 # 알림은 Phase1이 이미 발송함. 스케줄러에서는 중복 전송하지 않음.
-
-                # Phase 1 성공 시 Phase 2 자동 실행
-                self._v_phase1_completed = True
-                print("\n2. 일일 업데이트 자동 실행...")
-                self._run_daily_update()
-
-                # Phase 1,2 완료 후 AI 학습 시스템에 데이터 전달
-                print("\n3. AI 학습 시스템 데이터 연동...")
-                self._send_data_to_ai_system()
+                # Phase 2는 분산 스케줄로 07:00-08:30에 자동 실행됨
 
             else:
                 logger.error("일간 스크리닝 실패")
                 print("❌ 일간 스크리닝 실패")
-                self._v_phase1_completed = False
 
                 # 실패 알람 전송
                 _v_error_message = f"🚨 *한투 퀀트 스크리닝 실패*\n\n⏰ 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n❌ 상태: 일간 스크리닝 실패\n\n⚠️ 시스템 점검이 필요합니다."

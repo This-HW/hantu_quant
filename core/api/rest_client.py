@@ -23,6 +23,7 @@ from tenacity import (
 
 from core.config import settings
 from core.config.api_config import APIConfig, KISErrorCode, KISEndpoint
+from core.api.redis_client import cache_with_ttl, invalidate_function_cache
 
 logger = logging.getLogger(__name__)
 
@@ -410,14 +411,18 @@ class KISRestClient:
             logger.error(f"[request_endpoint] 오류: {e}", exc_info=True)
             return {"error": str(e)}
 
+    @cache_with_ttl(ttl=300, key_prefix="price")
     def get_current_price(self, stock_code: str) -> Optional[Dict]:
         """현재가 조회
-        
+
         Args:
             stock_code: 종목코드
-            
+
         Returns:
             Optional[Dict]: 현재가 정보
+
+        Note:
+            캐시 TTL: 300초 (5분)
         """
         try:
             # 토큰 유효성 선확보 (헤더 생성 전)
@@ -455,15 +460,19 @@ class KISRestClient:
             logger.error(f"현재가 조회 오류: {e}", exc_info=True)
             return None
     
+    @cache_with_ttl(ttl=600, key_prefix="daily_chart")
     def get_daily_chart(self, stock_code: str, period_days: int = 100) -> Optional[pd.DataFrame]:
         """일봉 데이터 조회
-        
+
         Args:
             stock_code: 종목코드
             period_days: 조회 기간 (일)
-            
+
         Returns:
             Optional[pd.DataFrame]: OHLCV 데이터프레임
+
+        Note:
+            캐시 TTL: 600초 (10분)
         """
         try:
             if not self.config.ensure_valid_token():
@@ -514,14 +523,18 @@ class KISRestClient:
             logger.error(f"일봉 데이터 조회 오류: {e}", exc_info=True)
             return None
     
+    @cache_with_ttl(ttl=600, key_prefix="stock_info")
     def get_stock_info(self, stock_code: str) -> Optional[Dict]:
         """종목 정보 조회
-        
+
         Args:
             stock_code: 종목코드
-            
+
         Returns:
             Optional[Dict]: 종목 정보
+
+        Note:
+            캐시 TTL: 600초 (10분)
         """
         try:
             if not self.config.ensure_valid_token():
@@ -956,3 +969,93 @@ class KISRestClient:
         except Exception as e:
             logger.error(f"[get_member_flow] 오류: {e}", exc_info=True)
             return None
+
+    # ====== 캐시 관리 메서드 ======
+    def clear_price_cache(self, stock_code: Optional[str] = None):
+        """가격 캐시 무효화
+
+        Args:
+            stock_code: 특정 종목 캐시만 삭제. None이면 전체 가격 캐시 삭제
+
+        Example:
+            # 특정 종목 캐시 삭제
+            client.clear_price_cache("005930")
+
+            # 전체 가격 캐시 삭제
+            client.clear_price_cache()
+        """
+        if stock_code:
+            # 특정 종목 캐시 삭제
+            from core.api.redis_client import invalidate_cache
+            invalidate_cache(self.get_current_price, stock_code)
+            logger.info(f"가격 캐시 무효화: {stock_code}")
+        else:
+            # 전체 가격 캐시 삭제
+            invalidate_function_cache(self.get_current_price)
+            logger.info("전체 가격 캐시 무효화")
+
+    def clear_daily_chart_cache(self, stock_code: Optional[str] = None, period_days: Optional[int] = None):
+        """일봉 차트 캐시 무효화
+
+        Args:
+            stock_code: 특정 종목 캐시만 삭제. None이면 전체 삭제
+            period_days: 특정 기간 캐시만 삭제. None이면 해당 종목의 모든 기간 삭제
+
+        Example:
+            # 특정 종목+기간 캐시 삭제
+            client.clear_daily_chart_cache("005930", 100)
+
+            # 특정 종목의 모든 기간 삭제
+            client.clear_daily_chart_cache("005930")
+
+            # 전체 차트 캐시 삭제
+            client.clear_daily_chart_cache()
+        """
+        if stock_code and period_days:
+            # 특정 종목+기간 캐시 삭제
+            from core.api.redis_client import invalidate_cache
+            invalidate_cache(self.get_daily_chart, stock_code, period_days)
+            logger.info(f"일봉 차트 캐시 무효화: {stock_code} (period={period_days})")
+        else:
+            # 전체 또는 종목별 캐시 삭제
+            invalidate_function_cache(self.get_daily_chart)
+            if stock_code:
+                logger.info(f"일봉 차트 캐시 무효화: {stock_code} (모든 기간)")
+            else:
+                logger.info("전체 일봉 차트 캐시 무효화")
+
+    def clear_stock_info_cache(self, stock_code: Optional[str] = None):
+        """종목 정보 캐시 무효화
+
+        Args:
+            stock_code: 특정 종목 캐시만 삭제. None이면 전체 삭제
+
+        Example:
+            # 특정 종목 캐시 삭제
+            client.clear_stock_info_cache("005930")
+
+            # 전체 종목 정보 캐시 삭제
+            client.clear_stock_info_cache()
+        """
+        if stock_code:
+            # 특정 종목 캐시 삭제
+            from core.api.redis_client import invalidate_cache
+            invalidate_cache(self.get_stock_info, stock_code)
+            logger.info(f"종목 정보 캐시 무효화: {stock_code}")
+        else:
+            # 전체 종목 정보 캐시 삭제
+            invalidate_function_cache(self.get_stock_info)
+            logger.info("전체 종목 정보 캐시 무효화")
+
+    def clear_all_cache(self):
+        """모든 REST API 캐시 무효화
+
+        가격, 차트, 종목 정보 캐시를 모두 삭제합니다.
+
+        Example:
+            client.clear_all_cache()
+        """
+        self.clear_price_cache()
+        self.clear_daily_chart_cache()
+        self.clear_stock_info_cache()
+        logger.info("모든 REST API 캐시 무효화 완료")

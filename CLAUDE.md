@@ -151,8 +151,93 @@ logger = get_logger(__name__)
 | API 서버 | FastAPI                          |
 | 스케줄러 | Schedule, APScheduler            |
 | DB       | SQLite (로컬), PostgreSQL (운영) |
+| 캐시     | Redis (자동 MemoryCache 폴백)    |
 | 알림     | Telegram Bot                     |
 | 배포     | Docker, OCI                      |
+
+---
+
+## 캐싱 시스템
+
+### 개요
+
+Redis 기반 2-Tier 캐싱으로 API 호출을 50-70% 감소시킵니다. Redis 장애 시 자동으로 MemoryCache로 폴백되어 서비스 가용성을 유지합니다.
+
+### 캐시 TTL 전략
+
+| 데이터 유형 | TTL   | 이유          |
+| ----------- | ----- | ------------- |
+| 현재가      | 5분   | 실시간성 중요 |
+| 일봉 차트   | 10분  | 변동성 낮음   |
+| 재무 정보   | 6시간 | 일간 업데이트 |
+
+### 사용 예시
+
+```python
+from core.api.redis_client import cache_with_ttl
+
+@cache_with_ttl(ttl=300, key_prefix="price")
+def get_price(stock_code: str):
+    # API 호출
+    ...
+```
+
+### 설정
+
+- **환경 변수**: `REDIS_URL=redis://localhost:6379/0` (선택)
+- **폴백**: Redis 연결 실패 시 자동으로 MemoryCache 사용
+- **초기화**: 매일 00:00 자동 캐시 초기화
+- **보안**: JSON 직렬화 (pickle 대신), SHA-256 해싱
+
+---
+
+## Rate Limiting
+
+### 멀티 윈도우 전략
+
+| 윈도우 | 최대 요청 | 목적           |
+| ------ | --------- | -------------- |
+| 1초    | 5건       | 버스트 방지    |
+| 1분    | 100건     | 단기 제한      |
+| 1시간  | 1,500건   | 일일 할당 관리 |
+
+### 구현 위치
+
+- **모듈**: `core/api/async_client.py`
+- **클래스**: `MultiWindowRateLimiter`
+- **동시성**: asyncio.Lock으로 안전 보장
+
+---
+
+## 배치 분산 처리 (Phase 2)
+
+### 스케줄
+
+- **Phase 1**: 06:00 - 전체 종목 스크리닝 (감시 리스트 생성)
+- **Phase 2**: 07:00-08:30 - 18개 배치, 5분 간격
+  - 배치 0: 07:00
+  - 배치 1: 07:05
+  - ...
+  - 배치 17: 08:25
+
+### 우선순위 점수
+
+- **Technical Score**: 50% (기술적 지표)
+- **Volume Score**: 30% (거래량 추세)
+- **Volatility Score**: 20% (변동성)
+
+### 배치 분산 방식
+
+1. 감시 리스트 종목에 우선순위 점수 계산
+2. 점수 기준 내림차순 정렬
+3. 라운드로빈으로 18개 배치에 균등 분산
+4. 각 배치는 5분 간격으로 실행
+
+### 구현 위치
+
+- **모듈**: `core/daily_selection/daily_updater.py`
+- **함수**: `distribute_to_batches()`, `calculate_priority_score()`
+- **스케줄러**: `workflows/integrated_scheduler.py`
 
 ---
 
@@ -188,14 +273,20 @@ python3 scripts/security_check.py --fix
 
 ## 환경 변수
 
-| 변수                 | 설명             |
-| -------------------- | ---------------- |
-| `KIS_APP_KEY`        | 한투 API 앱 키   |
-| `KIS_APP_SECRET`     | 한투 API 시크릿  |
-| `KIS_ACCOUNT_NO`     | 계좌 번호        |
-| `API_SERVER_KEY`     | API 서버 인증 키 |
-| `TELEGRAM_BOT_TOKEN` | 텔레그램 봇 토큰 |
-| `TELEGRAM_CHAT_ID`   | 텔레그램 채팅 ID |
+| 변수                 | 설명                                          | 필수 여부 |
+| -------------------- | --------------------------------------------- | --------- |
+| `KIS_APP_KEY`        | 한투 API 앱 키                                | ✅        |
+| `KIS_APP_SECRET`     | 한투 API 시크릿                               | ✅        |
+| `KIS_ACCOUNT_NO`     | 계좌 번호                                     | ✅        |
+| `API_SERVER_KEY`     | API 서버 인증 키                              | ✅        |
+| `TELEGRAM_BOT_TOKEN` | 텔레그램 봇 토큰                              | ✅        |
+| `TELEGRAM_CHAT_ID`   | 텔레그램 채팅 ID                              | ✅        |
+| `REDIS_URL`          | Redis 연결 URL (예: redis://localhost:6379/0) | ⭕ (선택) |
+
+**참고**:
+
+- `REDIS_URL` 미설정 시 자동으로 MemoryCache 사용
+- Redis 연결 실패 시에도 MemoryCache로 폴백되어 서비스 정상 동작
 
 ---
 
