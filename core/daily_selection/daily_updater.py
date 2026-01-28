@@ -1971,10 +1971,19 @@ class DailyUpdater(IDailyUpdater):
                 }
             }
 
-            with open(final_file, "w", encoding="utf-8") as f:
-                json.dump(final_data, f, ensure_ascii=False, indent=2)
+            # === DB에 저장 (우선) ===
+            selection_date = datetime.now().date()
+            db_saved = self._save_selection_to_db(final_data, selection_date)
+            if db_saved:
+                self._logger.info(f"최종 결과 DB 저장 완료: {len(final_stocks)}건")
+            else:
+                self._logger.warning("최종 결과 DB 저장 실패 - JSON 폴백 저장")
 
-            self._logger.info(f"최종 결과 저장: {final_file}")
+            # === JSON 폴백 저장 (DB 실패 시) ===
+            if not db_saved:
+                with open(final_file, "w", encoding="utf-8") as f:
+                    json.dump(final_data, f, ensure_ascii=False, indent=2)
+                self._logger.info(f"최종 결과 JSON 폴백 저장: {final_file}")
 
             # 배치 파일 정리 (선택적)
             # for i in range(total_batches):
