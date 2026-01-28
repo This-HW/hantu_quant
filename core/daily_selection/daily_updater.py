@@ -1161,6 +1161,10 @@ class DailyUpdater(IDailyUpdater):
             _v_date = datetime.now().strftime("%Y%m%d")
             _v_selection_date = datetime.now().date()
 
+            # list가 전달된 경우 dict로 감싸기
+            if isinstance(p_daily_list, list):
+                p_daily_list = {"stocks": p_daily_list, "market_condition": ""}
+
             # === 1. DB에 저장 시도 ===
             db_saved = self._save_selection_to_db(p_daily_list, _v_selection_date)
             if db_saved:
@@ -1225,10 +1229,6 @@ class DailyUpdater(IDailyUpdater):
         try:
             from core.database.session import DatabaseSession
             from core.database.models import SelectionResult
-
-            # list가 전달된 경우 dict로 감싸기
-            if isinstance(p_daily_list, list):
-                p_daily_list = {"stocks": p_daily_list, "market_condition": ""}
 
             db = DatabaseSession()
             with db.get_session() as session:
