@@ -9,9 +9,11 @@ import sys
 import json
 import schedule
 import time
+import asyncio
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
+from pathlib import Path
 import threading
 
 # 프로젝트 루트 디렉토리를 Python 경로에 추가
@@ -260,18 +262,33 @@ class DailyUpdater(IDailyUpdater):
             self._logger.info("MomentumSelector 인스턴스 초기화 완료 (API 공유)")
         return self._momentum_selector
 
-    def run_daily_update(self, p_force_run: bool = False) -> bool:
+    def run_daily_update(
+        self,
+        p_force_run: bool = False,
+        distributed_mode: bool = False,
+        batch_index: Optional[int] = None
+    ) -> bool:
         """일일 업데이트 실행 (새 인터페이스 구현)
 
         Args:
             p_force_run: 강제 실행 여부
+            distributed_mode: 분산 모드 활성화 (스케줄러 사용)
+            batch_index: 배치 번호 (분산 모드 시)
 
         Returns:
             bool: 성공 여부
         """
         try:
+            # 분산 모드 분기
+            if distributed_mode:
+                if batch_index is None:
+                    self._logger.error("분산 모드에서 batch_index 필수")
+                    return False
+                return self.run_distributed_update(batch_index)
+
+            # 기존 단일 실행 모드 (하위 호환)
             self._logger.info("=" * 50)
-            self._logger.info("일일 업데이트 시작")
+            self._logger.info("일일 업데이트 시작 (단일 실행 모드)")
             self._logger.info(
                 f"선정 방식: {'모멘텀 기반 (신규)' if self._use_momentum_selector else '기존 방식'}"
             )
@@ -1209,6 +1226,10 @@ class DailyUpdater(IDailyUpdater):
             from core.database.session import DatabaseSession
             from core.database.models import SelectionResult
 
+            # list가 전달된 경우 dict로 감싸기
+            if isinstance(p_daily_list, list):
+                p_daily_list = {"stocks": p_daily_list, "market_condition": ""}
+
             db = DatabaseSession()
             with db.get_session() as session:
                 # 기존 데이터 삭제 (같은 날짜)
@@ -1485,6 +1506,499 @@ class DailyUpdater(IDailyUpdater):
 
         except Exception as e:
             self._logger.error(f"일일 업데이트 완료 알림 전송 오류: {e}", exc_info=True)
+
+    # ==================== 분산 배치 처리 메서드 ====================
+
+    def calculate_composite_priority(self, stock_dict: Dict) -> float:
+        """복합 우선순위 계산 (기술적 점수 50% + 거래량 30% + 변동성 20%)
+
+        Args:
+            stock_dict: 종목 딕셔너리
+
+        Returns:
+            float: 0-100점 정규화된 우선순위
+        """
+        try:
+            # 기술적 점수 (0-100)
+            technical = stock_dict.get("technical_score", 50.0)
+
+            # 거래량 점수 (0-100)
+            volume = stock_dict.get("volume_score", 50.0)
+
+            # 변동성 점수 (0-100, 변동성이 적절한 범위일수록 높음)
+            volatility_raw = stock_dict.get("volatility", 0.15)
+            # 변동성 10-30%를 최적 범위로 정규화
+            if volatility_raw < 0.1:
+                volatility_score = volatility_raw * 500  # 0-50점
+            elif volatility_raw <= 0.3:
+                volatility_score = 100.0  # 최적 범위
+            else:
+                volatility_score = max(0, 100 - (volatility_raw - 0.3) * 200)  # 감점
+
+            # 복합 우선순위 계산
+            composite = (
+                technical * 0.5 +
+                volume * 0.3 +
+                volatility_score * 0.2
+            )
+
+            return max(0.0, min(100.0, composite))
+
+        except Exception as e:
+            self._logger.warning(f"우선순위 계산 실패: {e}", exc_info=True)
+            return 50.0  # 기본값
+
+    def distribute_stocks_to_batches(
+        self,
+        watchlist_stocks: List[Dict],
+        num_batches: int = 18
+    ) -> List[List[Dict]]:
+        """감시 리스트를 18개 배치로 균등 분산
+
+        Args:
+            watchlist_stocks: 전체 감시 리스트 (Phase 1 완료 후)
+            num_batches: 배치 수 (기본 18개)
+
+        Returns:
+            List[List[Dict]]: 18개 배치 리스트
+
+        배치 전략:
+        - 총 종목 수를 18로 나눔 (예: 360개 → 20개/배치)
+        - 우선순위 순으로 라운드로빈 배치 (고른 분산)
+        - 마지막 배치는 나머지 종목 포함
+        """
+        try:
+            total_count = len(watchlist_stocks)
+            self._logger.info(f"배치 분산 시작: 총 {total_count}개 종목 → {num_batches}개 배치")
+
+            if total_count == 0:
+                self._logger.warning("감시 리스트가 비어있음")
+                return [[] for _ in range(num_batches)]
+
+            # 1. 우선순위 계산 및 정렬
+            stocks_with_priority = []
+            for stock in watchlist_stocks:
+                priority = self.calculate_composite_priority(stock)
+                stocks_with_priority.append({
+                    **stock,
+                    "composite_priority": priority
+                })
+
+            # 우선순위 내림차순 정렬 (높은 우선순위가 앞)
+            stocks_with_priority.sort(key=lambda x: x["composite_priority"], reverse=True)
+
+            # 2. 라운드로빈 배치 분산
+            batches = [[] for _ in range(num_batches)]
+            for idx, stock in enumerate(stocks_with_priority):
+                batch_idx = idx % num_batches
+                batches[batch_idx].append(stock)
+
+            # 3. 배치별 통계 로깅
+            for i, batch in enumerate(batches):
+                if batch:
+                    priorities = [s["composite_priority"] for s in batch]
+                    avg_priority = sum(priorities) / len(priorities)
+                    self._logger.info(
+                        f"배치 {i}: {len(batch)}개 종목, "
+                        f"평균 우선순위: {avg_priority:.2f}, "
+                        f"범위: {min(priorities):.2f}-{max(priorities):.2f}"
+                    )
+                else:
+                    self._logger.info(f"배치 {i}: 0개 종목")
+
+            self._logger.info(f"배치 분산 완료: {num_batches}개 배치 생성")
+            return batches
+
+        except Exception as e:
+            self._logger.error(f"배치 분산 실패: {e}", exc_info=True)
+            # 실패 시 빈 배치 반환
+            return [[] for _ in range(num_batches)]
+
+    async def process_batch(
+        self,
+        batch_index: int,
+        batch_stocks: List[Dict],
+        market_condition: str
+    ) -> List[Dict]:
+        """단일 배치 처리 (비동기)
+
+        Args:
+            batch_index: 배치 번호 (0-17)
+            batch_stocks: 배치 종목 리스트
+            market_condition: 시장 상황
+
+        Returns:
+            List[Dict]: 선정된 종목 리스트
+
+        처리 흐름:
+        1. 배치 시작 로깅
+        2. AsyncKISAPI 사용하여 병렬 가격 조회
+        3. 가격 매력도 분석
+        4. 필터링 기준 적용
+        5. 선정 결과 반환
+        6. 에러 시 빈 리스트 반환 (부분 실패 허용)
+        """
+        try:
+            self._logger.info(f"배치 {batch_index} 처리 시작: {len(batch_stocks)}개 종목")
+
+            if not batch_stocks:
+                self._logger.warning(f"배치 {batch_index}: 종목 없음")
+                return []
+
+            # AsyncKISClient 사용하여 병렬 가격 조회
+            try:
+                from core.api.async_client import AsyncKISClient
+                async_api = AsyncKISClient()
+            except Exception as e:
+                self._logger.error(f"AsyncKISClient import 실패: {e}", exc_info=True)
+                return []
+
+            # 병렬 가격 조회
+            selected_stocks = []
+            tasks = []
+            stock_codes = [s.get("stock_code") or s.get("stock_code") for s in batch_stocks]
+
+            for stock in batch_stocks:
+                stock_code = stock.get("stock_code")
+                if not stock_code:
+                    continue
+                # 비동기 가격 조회 태스크 생성
+                task = async_api.get_current_price(stock_code)
+                tasks.append((stock, task))
+
+            # 병렬 실행
+            results = await asyncio.gather(*[t[1] for t in tasks], return_exceptions=True)
+
+            # 결과 처리
+            for (stock, _), result in zip(tasks, results):
+                try:
+                    if isinstance(result, Exception):
+                        self._logger.debug(f"가격 조회 실패 ({stock.get('stock_code')}): {result}")
+                        continue
+
+                    current_price = result.get("current_price", 0.0) if result else 0.0
+                    if current_price <= 0:
+                        continue
+
+                    # 가격 매력도 분석
+                    stock_data = {
+                        **stock,
+                        "current_price": current_price
+                    }
+
+                    # PriceAnalyzer로 분석
+                    analysis_result = self._price_analyzer.analyze_price_attractiveness(stock_data)
+
+                    # 필터링 기준 적용
+                    if self._passes_basic_filters(analysis_result):
+                        selected_stocks.append({
+                            "stock_code": stock.get("stock_code"),
+                            "stock_name": stock.get("stock_name"),
+                            "current_price": current_price,
+                            "total_score": analysis_result.total_score,
+                            "technical_score": analysis_result.technical_score,
+                            "volume_score": analysis_result.volume_score,
+                            "risk_score": analysis_result.risk_score,
+                            "confidence": analysis_result.confidence,
+                            "entry_price": analysis_result.entry_price,
+                            "target_price": analysis_result.target_price,
+                            "stop_loss": analysis_result.stop_loss,
+                            "expected_return": analysis_result.expected_return,
+                            "selection_reason": analysis_result.selection_reason,
+                            "sector": stock.get("sector", "기타"),
+                            "market_cap": stock.get("market_cap", 0.0),
+                        })
+
+                except Exception as e:
+                    self._logger.debug(f"종목 처리 실패 ({stock.get('stock_code')}): {e}")
+                    continue
+
+            # 진행률 로깅
+            self._logger.info(
+                f"배치 {batch_index} 완료: {len(selected_stocks)}/{len(batch_stocks)} 종목 선정"
+            )
+
+            return selected_stocks
+
+        except Exception as e:
+            self._logger.error(f"배치 {batch_index} 처리 실패: {e}", exc_info=True)
+            return []  # 부분 실패 허용
+
+    def wait_for_phase1(self, timeout: int = 1800) -> bool:
+        """Phase 1 (종목 스크리닝) 완료 대기
+
+        Args:
+            timeout: 최대 대기 시간 (초, 기본 30분)
+
+        Returns:
+            bool: Phase 1 완료 여부
+
+        완료 조건:
+        - data/watchlist/watchlist.json 파일 존재
+        - 파일 수정 시간이 금일 06:00 이후
+        - 파일 크기 > 0
+        """
+        try:
+            self._logger.info("Phase 1 완료 대기 시작...")
+            watchlist_file = Path(self._watchlist_file)
+            today = datetime.now().date()
+            target_time = datetime.combine(today, datetime.min.time()).replace(hour=6, minute=0)
+
+            start_time = time.time()
+            poll_interval = 60  # 1분 간격
+
+            while time.time() - start_time < timeout:
+                # 1. 파일 존재 확인
+                if not watchlist_file.exists():
+                    self._logger.debug(f"watchlist.json 파일 없음, {poll_interval}초 후 재시도...")
+                    time.sleep(poll_interval)
+                    continue
+
+                # 2. 파일 크기 확인
+                if watchlist_file.stat().st_size == 0:
+                    self._logger.debug(f"watchlist.json 파일 비어있음, {poll_interval}초 후 재시도...")
+                    time.sleep(poll_interval)
+                    continue
+
+                # 3. 파일 수정 시간 확인
+                mtime = datetime.fromtimestamp(watchlist_file.stat().st_mtime)
+                if mtime >= target_time:
+                    self._logger.info(f"Phase 1 완료 확인: {watchlist_file} (수정 시간: {mtime})")
+                    return True
+
+                self._logger.debug(
+                    f"Phase 1 미완료 (수정 시간: {mtime} < {target_time}), "
+                    f"{poll_interval}초 후 재시도..."
+                )
+                time.sleep(poll_interval)
+
+            # timeout 초과
+            self._logger.warning(f"Phase 1 대기 timeout ({timeout}초 초과)")
+            return False
+
+        except Exception as e:
+            self._logger.error(f"Phase 1 대기 중 오류: {e}", exc_info=True)
+            return False
+
+    def run_distributed_update(
+        self,
+        batch_index: int,
+        total_batches: int = 18
+    ) -> bool:
+        """분산 배치 실행 진입점 (스케줄러에서 호출)
+
+        Args:
+            batch_index: 현재 배치 번호 (0-17)
+            total_batches: 전체 배치 수
+
+        Returns:
+            bool: 성공 여부
+
+        처리 흐름:
+        1. batch_index == 0일 때만 Phase 1 완료 대기
+        2. 배치 분산 수행 (첫 호출 시만)
+        3. 해당 배치 처리
+        4. 부분 결과 저장 (data/daily_selection/batch_{batch_index}.json)
+        5. batch_index == 17일 때 최종 병합
+        """
+        try:
+            self._logger.info("=" * 60)
+            self._logger.info(f"분산 배치 실행: 배치 {batch_index}/{total_batches - 1}")
+
+            # 1. 첫 배치일 때만 Phase 1 완료 대기
+            if batch_index == 0:
+                self._logger.info("첫 배치: Phase 1 완료 대기...")
+                if not self.wait_for_phase1():
+                    self._logger.error("Phase 1 완료 대기 실패")
+                    return False
+                self._logger.info("Phase 1 완료 확인됨")
+
+            # 2. 시장 상황 분석
+            market_condition = self.analyze_market_condition()
+
+            # 3. 감시 리스트 로드
+            watchlist_stocks = self._watchlist_manager.list_stocks(p_status="active")
+            self._logger.info(f"감시 리스트 종목 수: {len(watchlist_stocks)}개")
+
+            if not watchlist_stocks:
+                self._logger.warning("감시 리스트 비어있음")
+                return False
+
+            # 4. 배치 분산 (Redis 캐시 사용하여 중복 방지)
+            try:
+                from core.api.redis_client import cache
+                cache_key = f"daily_batches:{datetime.now().strftime('%Y%m%d')}"
+
+                # 캐시에서 배치 로드 시도
+                cached_batches = cache.get(cache_key)
+                if cached_batches:
+                    self._logger.info("Redis에서 배치 정보 로드")
+                    batches = cached_batches
+                else:
+                    # 배치 분산 수행
+                    self._logger.info("배치 분산 수행...")
+                    # 감시 리스트를 딕셔너리로 변환
+                    stocks_dict = []
+                    for s in watchlist_stocks:
+                        if hasattr(s, '__dict__'):
+                            stocks_dict.append(vars(s))
+                        else:
+                            stocks_dict.append(s)
+
+                    batches = self.distribute_stocks_to_batches(stocks_dict, num_batches=total_batches)
+
+                    # Redis에 캐시 (TTL: 2시간)
+                    cache.set(cache_key, batches, ttl=7200)
+                    self._logger.info("배치 정보 Redis 캐시 저장")
+
+            except Exception as e:
+                self._logger.warning(f"Redis 사용 실패, 직접 배치 분산: {e}")
+                # Redis 실패 시 직접 분산
+                stocks_dict = []
+                for s in watchlist_stocks:
+                    if hasattr(s, '__dict__'):
+                        stocks_dict.append(vars(s))
+                    else:
+                        stocks_dict.append(s)
+                batches = self.distribute_stocks_to_batches(stocks_dict, num_batches=total_batches)
+
+            # 5. 해당 배치 처리
+            if batch_index >= len(batches):
+                self._logger.error(f"배치 인덱스 초과: {batch_index} >= {len(batches)}")
+                return False
+
+            batch_stocks = batches[batch_index]
+            self._logger.info(f"배치 {batch_index} 종목 수: {len(batch_stocks)}개")
+
+            # 비동기 배치 처리
+            selected_stocks = asyncio.run(
+                self.process_batch(batch_index, batch_stocks, market_condition)
+            )
+
+            # 6. 부분 결과 저장
+            batch_file = Path(self._output_dir) / f"batch_{batch_index}.json"
+            batch_file.parent.mkdir(parents=True, exist_ok=True)
+
+            batch_data = {
+                "batch_index": batch_index,
+                "timestamp": datetime.now().isoformat(),
+                "market_condition": market_condition,
+                "total_stocks": len(batch_stocks),
+                "selected_stocks": selected_stocks,
+                "selected_count": len(selected_stocks)
+            }
+
+            with open(batch_file, "w", encoding="utf-8") as f:
+                json.dump(batch_data, f, ensure_ascii=False, indent=2)
+
+            self._logger.info(f"배치 {batch_index} 부분 결과 저장: {batch_file}")
+
+            # 7. 마지막 배치일 때 최종 병합
+            if batch_index == total_batches - 1:
+                self._logger.info("마지막 배치: 최종 병합 시작...")
+                return self._merge_batch_results(total_batches, market_condition)
+
+            return True
+
+        except Exception as e:
+            self._logger.error(f"분산 배치 실행 실패 (배치 {batch_index}): {e}", exc_info=True)
+            return False
+
+    def _merge_batch_results(self, total_batches: int, market_condition: str) -> bool:
+        """배치 결과 최종 병합
+
+        Args:
+            total_batches: 전체 배치 수
+            market_condition: 시장 상황
+
+        Returns:
+            bool: 병합 성공 여부
+        """
+        try:
+            self._logger.info(f"배치 결과 병합 시작: {total_batches}개 배치")
+
+            all_selected_stocks = []
+            batch_dir = Path(self._output_dir)
+
+            # 모든 배치 파일 읽기
+            for i in range(total_batches):
+                batch_file = batch_dir / f"batch_{i}.json"
+                if not batch_file.exists():
+                    self._logger.warning(f"배치 {i} 파일 없음: {batch_file}")
+                    continue
+
+                try:
+                    with open(batch_file, "r", encoding="utf-8") as f:
+                        batch_data = json.load(f)
+                        selected = batch_data.get("selected_stocks", [])
+                        all_selected_stocks.extend(selected)
+                        self._logger.info(f"배치 {i}: {len(selected)}개 종목 병합")
+                except Exception as e:
+                    self._logger.error(f"배치 {i} 파일 읽기 실패: {e}", exc_info=True)
+                    continue
+
+            # 중복 제거 (stock_code 기준)
+            unique_stocks = {}
+            for stock in all_selected_stocks:
+                code = stock.get("stock_code")
+                if code and code not in unique_stocks:
+                    unique_stocks[code] = stock
+
+            final_stocks = list(unique_stocks.values())
+
+            # total_score 기준 정렬
+            final_stocks.sort(key=lambda x: x.get("total_score", 0), reverse=True)
+
+            self._logger.info(f"최종 병합 결과: {len(final_stocks)}개 종목")
+
+            # 최종 결과 저장
+            date_str = datetime.now().strftime("%Y%m%d")
+            final_file = batch_dir / f"daily_selection_{date_str}.json"
+
+            final_data = {
+                "timestamp": datetime.now().isoformat(),
+                "version": "1.0.0",
+                "market_date": datetime.now().strftime("%Y-%m-%d"),
+                "market_condition": market_condition,
+                "data": {
+                    "selected_stocks": final_stocks
+                },
+                "stocks": final_stocks,
+                "metadata": {
+                    "total_selected": len(final_stocks),
+                    "batch_count": total_batches,
+                    "source": "distributed_batches"
+                }
+            }
+
+            with open(final_file, "w", encoding="utf-8") as f:
+                json.dump(final_data, f, ensure_ascii=False, indent=2)
+
+            self._logger.info(f"최종 결과 저장: {final_file}")
+
+            # 배치 파일 정리 (선택적)
+            # for i in range(total_batches):
+            #     batch_file = batch_dir / f"batch_{i}.json"
+            #     if batch_file.exists():
+            #         batch_file.unlink()
+
+            # 텔레그램 알림
+            notifier = get_telegram_notifier()
+            if notifier.is_enabled():
+                elapsed_minutes = total_batches * 5  # 5분 간격
+                message = (
+                    f"✅ Phase 2 완료\n"
+                    f"- {total_batches}개 배치 처리 완료\n"
+                    f"- 총 선정 종목: {len(final_stocks)}개\n"
+                    f"- 소요 시간: {elapsed_minutes}분"
+                )
+                notifier.send_message(message)
+
+            return True
+
+        except Exception as e:
+            self._logger.error(f"배치 결과 병합 실패: {e}", exc_info=True)
+            return False
 
 
 if __name__ == "__main__":
