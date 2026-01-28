@@ -61,7 +61,7 @@ SOCKET_PROD_URL = "wss://openapi.koreainvestment.com:21000/websocket"        # �
 
 # API 요청 설정
 REQUEST_TIMEOUT = 10
-RATE_LIMIT_PER_SEC = 3  # 초당 최대 요청 횟수 (안전하게 3건으로 제한)
+RATE_LIMIT_PER_SEC = 2  # 초당 최대 요청 횟수 (Rate Limit 에러 방지를 위해 2건으로 제한)
 
 # 거래 시간 설정
 MARKET_START_TIME = '09:00'
