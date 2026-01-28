@@ -16,7 +16,7 @@ from enum import Enum
 from pathlib import Path
 import psutil
 
-from ..utils.logging import get_logger
+from ..utils.log_utils import get_logger
 
 logger = get_logger(__name__)
 
