@@ -51,6 +51,17 @@ try:
 except Exception as e:
     logger.warning(f"DB 에러 로깅 설정 실패: {e}")
 
+# 자동 에러 복구 시스템 설정
+try:
+    from core.resilience.error_recovery import get_error_recovery_system
+
+    error_recovery_system = get_error_recovery_system()
+    # 자동 모니터링 시작 (60초 간격)
+    error_recovery_system.start_monitoring(interval_seconds=60)
+    logger.info("자동 에러 복구 시스템 활성화됨 (모니터링 간격: 60초)")
+except Exception as e:
+    logger.warning(f"자동 에러 복구 시스템 설정 실패: {e}")
+
 # 스케줄러 시작 시 로그 기록
 logger.info("=" * 50)
 logger.info("🚀 통합 스케줄러 모듈 로딩 시작")
