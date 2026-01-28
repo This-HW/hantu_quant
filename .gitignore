@@ -78,7 +78,7 @@ package-lock.json
 
 logs/
 /tests/logs/
-data/
+/data/
 *.egg-info/
 web-interface/dist/
 web-interface/node_modules/
