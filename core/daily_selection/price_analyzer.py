@@ -107,7 +107,8 @@ class PatternAnalysis:
 
             return patterns
 
-        except Exception:
+        except Exception as e:
+            logger.debug(f"패턴 식별 실패: {e}", exc_info=True)
             return []
 
     def detect_support_resistance(self, p_prices):
@@ -135,7 +136,8 @@ class PatternAnalysis:
 
             return {"support": _v_support_levels, "resistance": _v_resistance_levels}
 
-        except Exception:
+        except Exception as e:
+            logger.debug(f"지지선/저항선 감지 실패: {e}", exc_info=True)
             return {"support": [], "resistance": []}
 
 
@@ -167,7 +169,8 @@ class VolumeAnalysis:
             else:
                 return 40.0
 
-        except Exception:
+        except Exception as e:
+            logger.debug(f"거래량 트렌드 분석 실패: {e}", exc_info=True)
             return 50.0
 
     def analyze_volume_pattern(self, p_volumes, p_prices):
@@ -205,7 +208,8 @@ class VolumeAnalysis:
                 "consistency": 70.0,  # 임시 고정값
             }
 
-        except Exception:
+        except Exception as e:
+            logger.debug(f"거래량 패턴 분석 실패: {e}", exc_info=True)
             return {"trend": "neutral", "strength": 50.0, "consistency": 50.0}
 
     def calculate_volume_score(self, p_volume_data):
@@ -225,7 +229,8 @@ class VolumeAnalysis:
 
             return max(0.0, min(100.0, _v_base_score))
 
-        except Exception:
+        except Exception as e:
+            logger.debug(f"거래량 점수 계산 실패: {e}", exc_info=True)
             return 50.0
 
 

@@ -411,7 +411,7 @@ class DailyUpdater(IDailyUpdater):
             # 분산 모드 분기
             if distributed_mode:
                 if batch_index is None:
-                    self._logger.error("분산 모드에서 batch_index 필수")
+                    self._logger.error("분산 모드에서 batch_index 필수", exc_info=True)
                     return False
                 return self.run_distributed_update(batch_index)
 
@@ -461,7 +461,7 @@ class DailyUpdater(IDailyUpdater):
 
                 return True
             else:
-                self._logger.error("일일 리스트 저장 실패")
+                self._logger.error("일일 리스트 저장 실패", exc_info=True)
                 return False
 
         except Exception as e:
@@ -695,7 +695,7 @@ class DailyUpdater(IDailyUpdater):
     def start_scheduler(self) -> None:
         """스케줄러 시작 (새 인터페이스 구현)"""
         if self._scheduler_running:
-            self._logger.warning("스케줄러가 이미 실행 중입니다")
+            self._logger.warning("스케줄러가 이미 실행 중입니다", exc_info=True)
             return
 
         try:
@@ -1036,7 +1036,7 @@ class DailyUpdater(IDailyUpdater):
             )  # KOSPI 지수
 
             if market_index_data is None or len(market_index_data) < 20:
-                self._logger.warning("시장 지수 데이터 부족 - 멀티 전략 건너뜀")
+                self._logger.warning("시장 지수 데이터 부족 - 멀티 전략 건너뜀", exc_info=True)
                 return p_results
 
             # 종목 데이터를 Dict 형식으로 변환
@@ -1383,7 +1383,7 @@ class DailyUpdater(IDailyUpdater):
                 return True
 
             # === 2. DB 실패 시에만 JSON 폴백 저장 ===
-            self._logger.warning("선정 결과 DB 저장 실패 - JSON 폴백 저장")
+            self._logger.warning("선정 결과 DB 저장 실패 - JSON 폴백 저장", exc_info=True)
 
             _v_file_path = os.path.join(
                 self._output_dir, f"daily_selection_{_v_date}.json"
@@ -1589,7 +1589,7 @@ class DailyUpdater(IDailyUpdater):
                         }
 
         except Exception as e:
-            self._logger.warning(f"DB 로드 실패, JSON 폴백: {e}")
+            self._logger.warning(f"DB 로드 실패, JSON 폴백: {e}", exc_info=True)
 
         # === 2. JSON 파일에서 폴백 로드 ===
         try:
@@ -1667,7 +1667,7 @@ class DailyUpdater(IDailyUpdater):
                     return _v_history
 
         except Exception as e:
-            self._logger.warning(f"DB 이력 로드 실패, JSON 폴백: {e}")
+            self._logger.warning(f"DB 이력 로드 실패, JSON 폴백: {e}", exc_info=True)
 
         # === 2. JSON 파일에서 폴백 로드 ===
         _v_history = []
@@ -1713,7 +1713,7 @@ class DailyUpdater(IDailyUpdater):
                 self._logger.info("일일 업데이트 완료 텔레그램 알림 전송 성공")
                 print("📱 일일 업데이트 완료 텔레그램 알림 전송됨")
             else:
-                self._logger.warning("일일 업데이트 완료 텔레그램 알림 전송 실패")
+                self._logger.warning("일일 업데이트 완료 텔레그램 알림 전송 실패", exc_info=True)
 
         except Exception as e:
             self._logger.error(f"일일 업데이트 완료 알림 전송 오류: {e}", exc_info=True)
@@ -1783,7 +1783,7 @@ class DailyUpdater(IDailyUpdater):
             self._logger.info(f"배치 분산 시작: 총 {total_count}개 종목 → {num_batches}개 배치")
 
             if total_count == 0:
-                self._logger.warning("감시 리스트가 비어있음")
+                self._logger.warning("감시 리스트가 비어있음", exc_info=True)
                 return [[] for _ in range(num_batches)]
 
             # 1. 우선순위 계산 및 정렬
@@ -1853,7 +1853,7 @@ class DailyUpdater(IDailyUpdater):
             self._logger.info(f"배치 {batch_index} 처리 시작: {len(batch_stocks)}개 종목")
 
             if not batch_stocks:
-                self._logger.warning(f"배치 {batch_index}: 종목 없음")
+                self._logger.warning(f"배치 {batch_index}: 종목 없음", exc_info=True)
                 return []
 
             # P0: AsyncKISClient 올바른 세션 초기화
@@ -2067,7 +2067,7 @@ class DailyUpdater(IDailyUpdater):
             if batch_index == 0:
                 self._logger.info("첫 배치: Phase 1 완료 대기...")
                 if not self.wait_for_phase1():
-                    self._logger.error("Phase 1 완료 대기 실패")
+                    self._logger.error("Phase 1 완료 대기 실패", exc_info=True)
                     return False
                 self._logger.info("Phase 1 완료 확인됨")
 
@@ -2079,7 +2079,7 @@ class DailyUpdater(IDailyUpdater):
             self._logger.info(f"감시 리스트 종목 수: {len(watchlist_stocks)}개")
 
             if not watchlist_stocks:
-                self._logger.warning("감시 리스트 비어있음")
+                self._logger.warning("감시 리스트 비어있음", exc_info=True)
                 return False
 
             # 4. 배치 분산 (Redis 캐시 사용하여 중복 방지)
@@ -2110,7 +2110,7 @@ class DailyUpdater(IDailyUpdater):
                     self._logger.info("배치 정보 Redis 캐시 저장")
 
             except Exception as e:
-                self._logger.warning(f"Redis 사용 실패, 직접 배치 분산: {e}")
+                self._logger.warning(f"Redis 사용 실패, 직접 배치 분산: {e}", exc_info=True)
                 # Redis 실패 시 직접 분산
                 stocks_dict = []
                 for s in watchlist_stocks:
@@ -2182,7 +2182,7 @@ class DailyUpdater(IDailyUpdater):
             for i in range(total_batches):
                 batch_file = batch_dir / f"batch_{i}.json"
                 if not batch_file.exists():
-                    self._logger.warning(f"배치 {i} 파일 없음: {batch_file}")
+                    self._logger.warning(f"배치 {i} 파일 없음: {batch_file}", exc_info=True)
                     continue
 
                 try:
@@ -2243,7 +2243,7 @@ class DailyUpdater(IDailyUpdater):
             if db_saved:
                 self._logger.info(f"최종 결과 DB 저장 완료: {len(final_stocks)}건")
             else:
-                self._logger.warning("최종 결과 DB 저장 실패 - JSON 폴백 저장")
+                self._logger.warning("최종 결과 DB 저장 실패 - JSON 폴백 저장", exc_info=True)
 
             # === JSON 폴백 저장 (DB 실패 시) ===
             if not db_saved:

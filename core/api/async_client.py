@@ -201,7 +201,7 @@ class AsyncKISClient:
             if len(self._timestamps_1m) >= 100:
                 wait_time = 60.0 - (now - self._timestamps_1m[0]) + 0.1  # 100ms 여유
                 if wait_time > 0:
-                    logger.warning(f"1분 Rate Limit 근접, {wait_time:.1f}초 대기")
+                    logger.warning(f"1분 Rate Limit 근접, {wait_time:.1f}초 대기", exc_info=True)
                     await asyncio.sleep(wait_time)
                     now = time.time()
 
