@@ -313,7 +313,7 @@ class IntegratedScheduler:
                                 f"✅ *Phase 2 완료*\n\n"
                                 f"• 총 선정 종목: {total_selected}개\n"
                                 f"• 소요 시간: 90분\n"
-                                f"• 저장: DB (selection_results 테이블)"
+                                f"• 저장: DB (`selection_results` 테이블)"
                             )
                             notifier.send_message(message, "normal")
                     except Exception as e:
