@@ -37,7 +37,7 @@ class SectorMomentumCalculator:
             config_path = Path(__file__).parent.parent.parent / "config" / "phase2.yaml"
             if not config_path.exists():
                 self._logger.warning(f"Config 파일 없음: {config_path}. 하드코딩 기본값 사용")
-                return {"sector_etf_map": self._get_default_sector_etf_map()}
+                return self._get_default_config()
 
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = yaml.safe_load(f)
@@ -47,7 +47,16 @@ class SectorMomentumCalculator:
 
         except Exception as e:
             self._logger.error(f"Config 로드 실패: {e}. 하드코딩 기본값 사용", exc_info=True)
-            return {"sector_etf_map": self._get_default_sector_etf_map()}
+            return self._get_default_config()
+
+    def _get_default_config(self) -> dict:
+        """하드코딩 기본 Config (파일 로드 실패 시)"""
+        return {
+            "sector_etf_map": self._get_default_sector_etf_map(),
+            "api_fallback": {
+                "sector_momentum_neutral": 50.0,
+            }
+        }
 
     def _get_default_sector_etf_map(self) -> dict:
         """하드코딩 기본 섹터 ETF 매핑 (Config 로드 실패 시)"""
@@ -78,8 +87,9 @@ class SectorMomentumCalculator:
         etf_ticker = self.sector_etf_map.get(sector)
 
         if not etf_ticker:
-            self._logger.warning(f"섹터 ETF 매핑 없음: {sector}. 중립값(50.0) 반환")
-            return 50.0
+            neutral_value = self._config.get("api_fallback", {}).get("sector_momentum_neutral", 50.0)
+            self._logger.warning(f"섹터 ETF 매핑 없음: {sector}. 중립값({neutral_value}) 반환")
+            return neutral_value
 
         # PyKRX로 ETF 가격 조회
         df = self._client.get_sector_etf_prices(etf_ticker, period_days=60)
@@ -108,7 +118,8 @@ class SectorMomentumCalculator:
 
         except Exception as e:
             self._logger.error(f"섹터 모멘텀 계산 실패: {sector}: {e}", exc_info=True)
-            return 50.0  # 중립값
+            neutral_value = self._config.get("api_fallback", {}).get("sector_momentum_neutral", 50.0)
+            return neutral_value
 
     def _calculate_from_watchlist(self, sector: str) -> float:
         """감시 리스트 기반 섹터 모멘텀 계산 (폴백)
@@ -126,14 +137,17 @@ class SectorMomentumCalculator:
             stocks = wl_manager.list_stocks(p_sector=sector)
 
             if len(stocks) < 3:
-                self._logger.warning(f"감시 리스트 섹터 종목 부족: {sector} ({len(stocks)}개). 중립값(50.0) 반환")
-                return 50.0
+                neutral_value = self._config.get("api_fallback", {}).get("sector_momentum_neutral", 50.0)
+                self._logger.warning(f"감시 리스트 섹터 종목 부족: {sector} ({len(stocks)}개). 중립값({neutral_value}) 반환")
+                return neutral_value
 
             # 각 종목의 최근 수익률 평균 계산
             # TODO(P2): 실제 수익률 계산 구현 필요 (현재는 중립값)
-            self._logger.warning(f"감시 리스트 기반 모멘텀 계산 미구현: {sector}. 중립값(50.0) 반환")
-            return 50.0
+            neutral_value = self._config.get("api_fallback", {}).get("sector_momentum_neutral", 50.0)
+            self._logger.warning(f"감시 리스트 기반 모멘텀 계산 미구현: {sector}. 중립값({neutral_value}) 반환")
+            return neutral_value
 
         except Exception as e:
             self._logger.error(f"감시 리스트 기반 계산 실패: {sector}: {e}", exc_info=True)
-            return 50.0
+            neutral_value = self._config.get("api_fallback", {}).get("sector_momentum_neutral", 50.0)
+            return neutral_value

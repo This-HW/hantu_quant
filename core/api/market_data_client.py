@@ -75,7 +75,7 @@ class PyKRXClient(MarketDataClient):
             return value
         except Exception as e:
             self._logger.error(f"KOSPI 조회 실패: {e}", exc_info=True)
-            return 2500.0  # 기본값 폴백
+            raise ValueError(f"KOSPI 조회 실패: {e}") from e
 
     @cache_with_ttl(ttl=300, key_prefix="kosdaq_index")
     def get_kosdaq(self) -> float:
@@ -96,7 +96,7 @@ class PyKRXClient(MarketDataClient):
             return value
         except Exception as e:
             self._logger.error(f"KOSDAQ 조회 실패: {e}", exc_info=True)
-            return 850.0  # 기본값 폴백
+            raise ValueError(f"KOSDAQ 조회 실패: {e}") from e
 
     @cache_with_ttl(ttl=600, key_prefix="sector_etf")
     def get_sector_etf_prices(self, etf_ticker: str, period_days: int = 60) -> Optional[pd.DataFrame]:
@@ -148,7 +148,7 @@ class YahooFinanceClient(MarketDataClient):
             return float(data.iloc[-1]['Close'])
         except Exception as e:
             self._logger.error(f"Yahoo KOSPI 조회 실패: {e}", exc_info=True)
-            return 2500.0
+            raise ValueError(f"Yahoo KOSPI 조회 실패: {e}") from e
 
     def get_kosdaq(self) -> float:
         """KOSDAQ 지수 조회 (폴백용)"""
@@ -160,7 +160,7 @@ class YahooFinanceClient(MarketDataClient):
             return float(data.iloc[-1]['Close'])
         except Exception as e:
             self._logger.error(f"Yahoo KOSDAQ 조회 실패: {e}", exc_info=True)
-            return 850.0
+            raise ValueError(f"Yahoo KOSDAQ 조회 실패: {e}") from e
 
     @cache_with_ttl(ttl=300, key_prefix="vix_index")
     def get_vix(self) -> float:
@@ -178,7 +178,7 @@ class YahooFinanceClient(MarketDataClient):
             return value
         except Exception as e:
             self._logger.error(f"VIX 조회 실패: {e}", exc_info=True)
-            return 20.0  # 기본값
+            raise ValueError(f"VIX 조회 실패: {e}") from e
 
     @cache_with_ttl(ttl=300, key_prefix="usd_krw")
     def get_usd_krw(self) -> float:
@@ -198,7 +198,7 @@ class YahooFinanceClient(MarketDataClient):
             return value
         except Exception as e:
             self._logger.error(f"USD/KRW 조회 실패: {e}", exc_info=True)
-            return 1300.0  # 기본값
+            raise ValueError(f"USD/KRW 조회 실패: {e}") from e
 
 
 class MarketDataClientWithFallback:
