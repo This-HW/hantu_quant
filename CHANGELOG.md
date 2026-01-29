@@ -37,6 +37,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **서버 크래시 루프 (CRITICAL)** - AsyncKISClient 메서드명 불일치 해결
+  - 문제: hantu-scheduler.service 1632+ 재시작 (Jan 29 04:56 이후)
+  - 원인: `AttributeError: 'AsyncKISClient' object has no attribute 'get_current_price'`
+  - 해결: `get_current_price` → `get_price` 메서드명 수정
+  - 응답 파싱: dict → PriceData dataclass로 변경
+  - 서버 의존성: PyYAML>=6.0.0 설치 (ModuleNotFoundError 수정)
+  - 결과: 서비스 정상 동작 (크래시 없음)
 - **psycopg2 모듈 누락 (로컬 환경)** - Python 3.9 가상환경에 재설치
   - 가상환경 내 여러 Python 버전 혼재 문제 해결
   - psycopg2-binary 설치 위치 불일치 수정
