@@ -199,3 +199,182 @@ class YahooFinanceClient(MarketDataClient):
         except Exception as e:
             self._logger.error(f"USD/KRW 조회 실패: {e}", exc_info=True)
             return 1300.0  # 기본값
+
+
+class MarketDataClientWithFallback:
+    """통합 시장 데이터 클라이언트 (폴백 전략 포함)
+
+    폴백 전략: PyKRX → Yahoo → Config 기본값
+    """
+
+    # 클래스 변수로 Config 캐싱
+    _config_cache = None
+    _config_loaded_at = None
+
+    def __init__(self):
+        self._logger = get_logger(__name__)
+        self._krx_client = None  # Lazy 초기화
+        self._yahoo_client = None  # Lazy 초기화
+        self._config = self._load_config()
+
+    def _load_config(self) -> dict:
+        """Config 로드 (1시간 캐싱)"""
+        try:
+            from datetime import datetime, timedelta
+            import yaml
+            from pathlib import Path
+
+            # 캐시 확인 (1시간 이내면 재사용)
+            if (MarketDataClientWithFallback._config_cache is not None and
+                MarketDataClientWithFallback._config_loaded_at is not None):
+                elapsed = datetime.now() - MarketDataClientWithFallback._config_loaded_at
+                if elapsed < timedelta(hours=1):
+                    return MarketDataClientWithFallback._config_cache
+
+            # Config 파일 로드
+            config_path = Path(__file__).parent.parent.parent / "config" / "phase2.yaml"
+            if not config_path.exists():
+                self._logger.warning(f"Config 파일 없음: {config_path}. 하드코딩 기본값 사용")
+                return self._get_default_config()
+
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+
+            # 캐시 저장
+            MarketDataClientWithFallback._config_cache = config
+            MarketDataClientWithFallback._config_loaded_at = datetime.now()
+
+            self._logger.info("Phase2 config 로드 완료 (1시간 캐싱)")
+            return config
+
+        except Exception as e:
+            self._logger.error(f"Config 로드 실패: {e}. 하드코딩 기본값 사용", exc_info=True)
+            return self._get_default_config()
+
+    def _get_default_config(self) -> dict:
+        """하드코딩 기본 Config (파일 로드 실패 시)"""
+        return {
+            "api_fallback": {
+                "kospi_default": 2500.0,
+                "kosdaq_default": 850.0,
+                "vix_default": 20.0,
+                "usd_krw_default": 1300.0,
+                "sector_momentum_neutral": 50.0,
+            }
+        }
+
+    def _get_krx_client(self) -> Optional[PyKRXClient]:
+        """PyKRX 클라이언트 Lazy 초기화"""
+        if self._krx_client is None:
+            try:
+                self._krx_client = PyKRXClient()
+                self._logger.debug("PyKRX 클라이언트 초기화 완료")
+            except Exception as e:
+                self._logger.warning(f"PyKRX 클라이언트 초기화 실패: {e}", exc_info=True)
+                return None
+        return self._krx_client
+
+    def _get_yahoo_client(self) -> Optional[YahooFinanceClient]:
+        """Yahoo Finance 클라이언트 Lazy 초기화"""
+        if self._yahoo_client is None:
+            try:
+                self._yahoo_client = YahooFinanceClient()
+                self._logger.debug("Yahoo Finance 클라이언트 초기화 완료")
+            except Exception as e:
+                self._logger.warning(f"Yahoo Finance 클라이언트 초기화 실패: {e}", exc_info=True)
+                return None
+        return self._yahoo_client
+
+    def get_kospi(self) -> float:
+        """KOSPI 지수 조회 (폴백: PyKRX → Yahoo → Config 기본값)"""
+        # 1차: PyKRX
+        krx = self._get_krx_client()
+        if krx:
+            try:
+                value = krx.get_kospi()
+                if value > 0:
+                    self._logger.debug(f"KOSPI 조회 성공 (PyKRX): {value:.2f}")
+                    return value
+            except Exception as e:
+                self._logger.warning(f"PyKRX KOSPI 조회 실패: {e}", exc_info=True)
+
+        # 2차: Yahoo Finance
+        yahoo = self._get_yahoo_client()
+        if yahoo:
+            try:
+                value = yahoo.get_kospi()
+                if value > 0:
+                    self._logger.info("PyKRX 실패, Yahoo로 KOSPI 조회 성공")
+                    return value
+            except Exception as e:
+                self._logger.warning(f"Yahoo KOSPI 조회 실패: {e}", exc_info=True)
+
+        # 3차: Config 기본값
+        fallback_value = self._config.get("api_fallback", {}).get("kospi_default", 2500.0)
+        self._logger.info(f"모든 API 실패, KOSPI 폴백값 사용: {fallback_value:.2f}")
+        return fallback_value
+
+    def get_kosdaq(self) -> float:
+        """KOSDAQ 지수 조회 (폴백: PyKRX → Yahoo → Config 기본값)"""
+        # 1차: PyKRX
+        krx = self._get_krx_client()
+        if krx:
+            try:
+                value = krx.get_kosdaq()
+                if value > 0:
+                    self._logger.debug(f"KOSDAQ 조회 성공 (PyKRX): {value:.2f}")
+                    return value
+            except Exception as e:
+                self._logger.warning(f"PyKRX KOSDAQ 조회 실패: {e}", exc_info=True)
+
+        # 2차: Yahoo Finance
+        yahoo = self._get_yahoo_client()
+        if yahoo:
+            try:
+                value = yahoo.get_kosdaq()
+                if value > 0:
+                    self._logger.info("PyKRX 실패, Yahoo로 KOSDAQ 조회 성공")
+                    return value
+            except Exception as e:
+                self._logger.warning(f"Yahoo KOSDAQ 조회 실패: {e}", exc_info=True)
+
+        # 3차: Config 기본값
+        fallback_value = self._config.get("api_fallback", {}).get("kosdaq_default", 850.0)
+        self._logger.info(f"모든 API 실패, KOSDAQ 폴백값 사용: {fallback_value:.2f}")
+        return fallback_value
+
+    def get_vix(self) -> float:
+        """VIX 지수 조회 (폴백: Yahoo → Config 기본값)"""
+        # 1차: Yahoo Finance
+        yahoo = self._get_yahoo_client()
+        if yahoo:
+            try:
+                value = yahoo.get_vix()
+                if value > 0:
+                    self._logger.debug(f"VIX 조회 성공 (Yahoo): {value:.2f}")
+                    return value
+            except Exception as e:
+                self._logger.warning(f"Yahoo VIX 조회 실패: {e}", exc_info=True)
+
+        # 2차: Config 기본값
+        fallback_value = self._config.get("api_fallback", {}).get("vix_default", 20.0)
+        self._logger.info(f"VIX 폴백값 사용: {fallback_value:.2f}")
+        return fallback_value
+
+    def get_usd_krw(self) -> float:
+        """USD/KRW 환율 조회 (폴백: Yahoo → Config 기본값)"""
+        # 1차: Yahoo Finance
+        yahoo = self._get_yahoo_client()
+        if yahoo:
+            try:
+                value = yahoo.get_usd_krw()
+                if value > 0:
+                    self._logger.debug(f"USD/KRW 조회 성공 (Yahoo): {value:.2f}")
+                    return value
+            except Exception as e:
+                self._logger.warning(f"Yahoo USD/KRW 조회 실패: {e}", exc_info=True)
+
+        # 2차: Config 기본값
+        fallback_value = self._config.get("api_fallback", {}).get("usd_krw_default", 1300.0)
+        self._logger.info(f"USD/KRW 폴백값 사용: {fallback_value:.2f}")
+        return fallback_value

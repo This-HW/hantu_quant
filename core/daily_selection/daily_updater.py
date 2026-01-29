@@ -176,6 +176,15 @@ class MarketConditionAnalyzer:
 
     def __init__(self):
         self._market_indicators = MarketIndicators()
+        self._market_client = None  # Lazy 초기화
+
+    def _get_market_client(self):
+        """통합 마켓 클라이언트 Lazy 초기화 (캐싱)"""
+        if self._market_client is None:
+            from core.api.market_data_client import MarketDataClientWithFallback
+            self._market_client = MarketDataClientWithFallback()
+            logger.debug("MarketDataClientWithFallback 초기화 완료")
+        return self._market_client
 
     def analyze_market_condition(self) -> str:
         """시장 상황 분석"""
@@ -190,37 +199,24 @@ class MarketConditionAnalyzer:
             return "neutral"
 
     def _update_market_indicators(self):
-        """시장 지표 업데이트 (실제 데이터)"""
-        from core.api.market_data_client import PyKRXClient, YahooFinanceClient
-
+        """시장 지표 업데이트 (통합 클라이언트 사용, 폴백 자동 처리)"""
         try:
-            # PyKRX로 KOSPI/KOSDAQ 조회
-            krx_client = PyKRXClient()
-            self._market_indicators.kospi = krx_client.get_kospi()
-            self._market_indicators.kosdaq = krx_client.get_kosdaq()
+            # 통합 클라이언트로 모든 지표 조회 (폴백 자동 처리)
+            client = self._get_market_client()
 
-            # Yahoo Finance로 VIX/환율 조회
-            yahoo_client = YahooFinanceClient()
-            self._market_indicators.vix = yahoo_client.get_vix()
-            self._market_indicators.usd_krw = yahoo_client.get_usd_krw()
+            self._market_indicators.kospi = client.get_kospi()
+            self._market_indicators.kosdaq = client.get_kosdaq()
+            self._market_indicators.vix = client.get_vix()
+            self._market_indicators.usd_krw = client.get_usd_krw()
 
-            self._logger.info(
+            logger.info(
                 f"시장 지표 업데이트 완료: KOSPI={self._market_indicators.kospi:.2f}, "
                 f"KOSDAQ={self._market_indicators.kosdaq:.2f}, "
                 f"VIX={self._market_indicators.vix:.2f}, "
                 f"USD/KRW={self._market_indicators.usd_krw:.2f}"
             )
         except Exception as e:
-            self._logger.error(f"시장 지표 업데이트 실패: {e}", exc_info=True)
-            # 폴백: 기존 값 유지 또는 기본값 사용
-            if self._market_indicators.kospi == 0:
-                self._market_indicators.kospi = 2500.0
-            if self._market_indicators.kosdaq == 0:
-                self._market_indicators.kosdaq = 850.0
-            if self._market_indicators.vix == 0:
-                self._market_indicators.vix = 20.0
-            if self._market_indicators.usd_krw == 0:
-                self._market_indicators.usd_krw = 1300.0
+            logger.error(f"시장 지표 업데이트 실패: {e}. 통합 클라이언트가 폴백 처리함", exc_info=True)
 
     def get_market_indicators(self) -> MarketIndicators:
         """시장 지표 조회"""

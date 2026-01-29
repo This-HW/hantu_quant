@@ -885,7 +885,7 @@ class PriceAnalyzer(IPriceAnalyzer):
             confidence=0.0,
             selection_reason="분석 실패",
             market_condition="unknown",
-            sector_momentum=0.0,
+            sector_momentum=50.0,
             sector=p_stock_data.get("sector", ""),
         )
 
@@ -911,7 +911,7 @@ class PriceAnalyzer(IPriceAnalyzer):
             confidence=0.0,
             selection_reason="분석 실패",
             market_condition="unknown",
-            sector_momentum=0.0,
+            sector_momentum=50.0,
             sector=p_stock_data.get("sector", ""),
         )
 

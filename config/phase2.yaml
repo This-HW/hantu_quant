@@ -72,3 +72,30 @@ priority_calculation:
     optimal_max: 0.3 # 최적 변동성 상한 (30%)
     low_scale_factor: 500 # 낮은 변동성 스케일링 (0-10% → 0-50점)
     high_penalty_factor: 200 # 높은 변동성 패널티 (30%+ → 감점)
+
+# API 폴백 기본값
+api_fallback:
+  kospi_default: 2500.0 # KOSPI 기본값
+  kosdaq_default: 850.0 # KOSDAQ 기본값
+  vix_default: 20.0 # VIX 기본값
+  usd_krw_default: 1300.0 # USD/KRW 기본값
+  sector_momentum_neutral: 50.0 # 섹터 모멘텀 중립값 (0-100)
+
+# 섹터 ETF 매핑 (KOSPI 11개 섹터)
+sector_etf_map:
+  IT: "139270" # TIGER 200IT
+  금융: "139260" # TIGER 200금융
+  건설: "102780" # KODEX 건설
+  에너지화학: "117680" # TIGER 에너지화학
+  철강소재: "117700" # TIGER 철강소재
+  자동차: "091180" # KODEX 자동차
+  반도체: "091160" # KODEX 반도체
+  바이오: "091230" # TIGER 헬스케어
+  운송: "140700" # KODEX 운송
+  유통: "117460" # TIGER 유통
+  미디어통신: "091220" # KODEX 미디어통신
+
+# 클라이언트 캐싱 설정
+client_caching:
+  enabled: true # 캐싱 활성화
+  ttl_seconds: 3600 # 캐시 TTL (1시간)

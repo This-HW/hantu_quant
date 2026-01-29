@@ -19,24 +19,51 @@ from core.api.redis_client import cache_with_ttl
 class SectorMomentumCalculator:
     """섹터 모멘텀 계산기"""
 
-    # KOSPI 11개 섹터 ETF 매핑
-    SECTOR_ETF_MAP = {
-        "IT": "139270",          # TIGER 200IT
-        "금융": "139260",        # TIGER 200금융
-        "건설": "102780",        # KODEX 건설
-        "에너지화학": "117680",  # TIGER 에너지화학
-        "철강소재": "117700",    # TIGER 철강소재
-        "자동차": "091180",      # KODEX 자동차
-        "반도체": "091160",      # KODEX 반도체
-        "바이오": "091230",      # TIGER 헬스케어
-        "운송": "140700",        # KODEX 운송
-        "유통": "117460",        # TIGER 유통
-        "미디어통신": "091220",  # KODEX 미디어통신
-    }
-
     def __init__(self):
         self._logger = get_logger(__name__)
         self._client = PyKRXClient()
+        self._config = self._load_config()
+
+        # Config에서 섹터 ETF 매핑 로드
+        self.sector_etf_map = self._config.get("sector_etf_map", self._get_default_sector_etf_map())
+        self._logger.info(f"섹터 ETF 매핑 로드 완료: {len(self.sector_etf_map)}개 섹터")
+
+    def _load_config(self) -> dict:
+        """Phase2 Config 로드"""
+        try:
+            import yaml
+            from pathlib import Path
+
+            config_path = Path(__file__).parent.parent.parent / "config" / "phase2.yaml"
+            if not config_path.exists():
+                self._logger.warning(f"Config 파일 없음: {config_path}. 하드코딩 기본값 사용")
+                return {"sector_etf_map": self._get_default_sector_etf_map()}
+
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+
+            self._logger.debug("Phase2 config 로드 완료")
+            return config
+
+        except Exception as e:
+            self._logger.error(f"Config 로드 실패: {e}. 하드코딩 기본값 사용", exc_info=True)
+            return {"sector_etf_map": self._get_default_sector_etf_map()}
+
+    def _get_default_sector_etf_map(self) -> dict:
+        """하드코딩 기본 섹터 ETF 매핑 (Config 로드 실패 시)"""
+        return {
+            "IT": "139270",          # TIGER 200IT
+            "금융": "139260",        # TIGER 200금융
+            "건설": "102780",        # KODEX 건설
+            "에너지화학": "117680",  # TIGER 에너지화학
+            "철강소재": "117700",    # TIGER 철강소재
+            "자동차": "091180",      # KODEX 자동차
+            "반도체": "091160",      # KODEX 반도체
+            "바이오": "091230",      # TIGER 헬스케어
+            "운송": "140700",        # KODEX 운송
+            "유통": "117460",        # TIGER 유통
+            "미디어통신": "091220",  # KODEX 미디어통신
+        }
 
     @cache_with_ttl(ttl=600, key_prefix="sector_momentum")
     def calculate_momentum(self, sector: str) -> float:
@@ -48,7 +75,7 @@ class SectorMomentumCalculator:
         Returns:
             모멘텀 점수 (0~100)
         """
-        etf_ticker = self.SECTOR_ETF_MAP.get(sector)
+        etf_ticker = self.sector_etf_map.get(sector)
 
         if not etf_ticker:
             self._logger.warning(f"섹터 ETF 매핑 없음: {sector}. 중립값(50.0) 반환")
