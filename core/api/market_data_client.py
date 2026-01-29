@@ -188,8 +188,8 @@ class YahooFinanceClient(MarketDataClient):
             data = ticker.history(period="1d")
             if data.empty:
                 raise ValueError("환율 데이터 없음")
-            # yfinance는 KRW/USD를 반환하므로 역수 계산
-            krw_per_usd = 1.0 / float(data.iloc[-1]['Close'])
+            # yfinance는 USD/KRW (1달러당 원화)를 반환
+            krw_per_usd = float(data.iloc[-1]['Close'])
             return krw_per_usd
 
         try:

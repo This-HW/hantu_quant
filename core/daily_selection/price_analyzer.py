@@ -675,6 +675,11 @@ class PriceAnalyzer(IPriceAnalyzer):
 
         self._logger.info("PriceAnalyzer 초기화 완료 (새 아키텍처)")
 
+    def _get_kis_api(self):
+        """KIS API 클라이언트 인스턴스 반환"""
+        from core.api.kis_api import KISAPI
+        return KISAPI()
+
     def initialize(self):
         """플러그인 초기화 메서드 (플러그인 데코레이터 요구사항)"""
         self._logger.info("PriceAnalyzer 플러그인 초기화 완료")
@@ -1202,45 +1207,35 @@ class PriceAnalyzer(IPriceAnalyzer):
                 p_stock_data.get("current_price", 50000)
             )
 
-            # 실데이터가 있으면 사용, 없으면 API에서 조회
-            _v_prices = self._safe_get_list(
-                p_stock_data.get("recent_close_prices", []), p_default_size=10
-            )
-            if not _v_prices or len(_v_prices) < 2:
-                # 실제 API에서 OHLCV 데이터 조회
-                _v_stock_code = p_stock_data.get("stock_code")
-                if _v_stock_code:
-                    try:
-                        kis_api = self._get_kis_api()
-                        daily_prices = kis_api.get_daily_prices(_v_stock_code, period=10)
-                        if daily_prices and len(daily_prices) >= 2:
-                            # 실제 OHLCV 데이터 사용
-                            _v_ohlc_data = []
-                            for day in daily_prices:
-                                _v_ohlc_data.append({
-                                    "open": float(day.get("open", 0)),
-                                    "high": float(day.get("high", 0)),
-                                    "low": float(day.get("low", 0)),
-                                    "close": float(day.get("close", 0)),
-                                    "volume": int(day.get("volume", 0)),
-                                })
-                            self._logger.debug(f"{_v_stock_code}: API에서 {len(_v_ohlc_data)}일 OHLCV 데이터 조회 성공")
-                        else:
-                            self._logger.warning(f"{_v_stock_code}: OHLCV 데이터 부족. 패턴 분석 불가")
-                            return 50.0
-                    except Exception as e:
-                        self._logger.error(f"{_v_stock_code}: OHLCV 데이터 조회 실패: {e}", exc_info=True)
+            # OHLCV 데이터 확인 및 조회
+            _v_stock_code = p_stock_data.get("stock_code")
+            _v_ohlc_data = []
+
+            # 패턴 분석을 위해 항상 API에서 OHLCV 데이터 조회
+            if _v_stock_code:
+                try:
+                    kis_api = self._get_kis_api()
+                    daily_prices = kis_api.get_daily_prices(_v_stock_code, period=10)
+                    if daily_prices and len(daily_prices) >= 2:
+                        # 실제 OHLCV 데이터 사용
+                        for day in daily_prices:
+                            _v_ohlc_data.append({
+                                "open": float(day.get("open", 0)),
+                                "high": float(day.get("high", 0)),
+                                "low": float(day.get("low", 0)),
+                                "close": float(day.get("close", 0)),
+                                "volume": int(day.get("volume", 0)),
+                            })
+                        self._logger.debug(f"{_v_stock_code}: API에서 {len(_v_ohlc_data)}일 OHLCV 데이터 조회 성공")
+                    else:
+                        self._logger.warning(f"{_v_stock_code}: OHLCV 데이터 부족. 패턴 분석 불가")
                         return 50.0
-                else:
-                    self._logger.warning("종목 코드 없음. 패턴 분석 불가")
+                except Exception as e:
+                    self._logger.error(f"{_v_stock_code}: OHLCV 데이터 조회 실패: {e}", exc_info=True)
                     return 50.0
             else:
-                # recent_close_prices만 있는 경우, 패턴 분석 불가
-                _v_stock_code = p_stock_data.get("stock_code", "")
-                self._logger.warning(
-                    f"{_v_stock_code}: OHLCV 데이터 부족 (close만 존재). 패턴 분석 불가"
-                )
-                return 50.0  # 분석 불가 → 중립값 반환
+                self._logger.warning("종목 코드 없음. 패턴 분석 불가")
+                return 50.0
 
             # 패턴 분석
             _v_patterns = self._v_patterns.detect_candlestick_patterns(_v_ohlc_data)
