@@ -9,6 +9,7 @@ numpy==2.0.2
 sqlalchemy==2.0.45
 python-dotenv==1.2.1
 schedule==1.2.2
+PyYAML>=6.0.0  # Config 파일 (phase2.yaml)
 ta==0.11.0  # Technical Analysis library
 pytest>=8.4.0
 pytest-asyncio>=1.2.0
