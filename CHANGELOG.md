@@ -44,6 +44,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 응답 파싱: dict → PriceData dataclass로 변경
   - 서버 의존성: PyYAML>=6.0.0 설치 (ModuleNotFoundError 수정)
   - 결과: 서비스 정상 동작 (크래시 없음)
+- **SQLite 사용 중단 (P0)** - PostgreSQL 전환
+  - 문제: `sqlite3.OperationalError: no such table: error_events` (10건)
+  - 원인: error_recovery.py에서 더 이상 사용하지 않는 SQLite 접근
+  - 해결: SQLite 코드 비활성화, PostgreSQL error_logs 테이블 사용
+  - 변경 사항:
+    - `_init_database()`: SQLite 테이블 생성 제거
+    - `_save_error_event()`: logger를 통한 PostgreSQL 저장
+    - `_save_recovery_rule()`: 메모리 기반 관리
+    - `get_error_statistics()`: TODO로 표시 (향후 PostgreSQL 구현)
+  - 결과: OperationalError 0건
+- **Telegram 파싱 에러 (P1)** - Markdown 엔티티 파싱 문제 해결
+  - 문제: `HTTPError 400: can't parse entities` (5건)
+  - 원인: Telegram Markdown 파싱 오류 (불완전한 entity)
+  - 해결: `parse_mode` 제거 (plain text 사용)
+  - 결과: Telegram 알림 정상 전송
 - **psycopg2 모듈 누락 (로컬 환경)** - Python 3.9 가상환경에 재설치
   - 가상환경 내 여러 Python 버전 혼재 문제 해결
   - psycopg2-binary 설치 위치 불일치 수정
