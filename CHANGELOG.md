@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 서비스 파일 변경 후 reload 누락 해결
   - hantu-scheduler, hantu-api 서비스 재시작
   - 모든 서비스 정상 동작 확인
+- **Phase 2 선정 로직 개선 (Phase A)** - 필터링 기준 완화 및 적응형 선정
+  - 문제: 148개 감시 종목 중 0개 선정 (필터링 기준 과도)
+  - 해결: 안전 필터 + 상위 N개 선정 방식으로 전환
+  - 필터링 완화: risk_score < 60 (기존 43), volume_score > 5 (기존 10)
+  - 시장 적응형 선정: bullish 12개, neutral 8개, bearish 5개
+  - 섹터 제한: 한 섹터당 최대 3개 (포트폴리오 분산)
+  - 종합 점수 체계: technical(35%) + volume(25%) + risk(25%) + confidence(15%)
 
 ### Changed
 
@@ -26,6 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - psycopg2 모듈 누락 트러블슈팅 추가
   - systemd 설정 변경 경고 해결 방법 추가
   - 진단 및 해결 절차 문서화
+- **core/daily_selection/daily_updater.py** - Phase 2 선정 로직 전면 개선
+  - `_passes_basic_filters()`: 5개 AND 조건 → 2개 안전 필터로 간소화
+  - `_calculate_composite_score()`: 신규 추가 (가중 점수 계산)
+  - `_select_top_n_adaptive()`: 신규 추가 (시장 적응형 상위 N개 선정)
+  - `_merge_batch_results()`: 적응형 선정 로직 통합
 
 ---
 

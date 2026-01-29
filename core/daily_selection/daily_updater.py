@@ -959,7 +959,7 @@ class DailyUpdater(IDailyUpdater):
             return p_results  # 실패 시 원본 리스트 반환
 
     def _passes_basic_filters(self, p_result: PriceAttractivenessLegacy) -> bool:
-        """기본 필터링 조건 확인 (A단계: 강화된 기준 적용)
+        """기본 필터링 조건 확인 (안전 필터만 적용 - Phase A 개선)
 
         Args:
             p_result: 분석 결과
@@ -967,52 +967,111 @@ class DailyUpdater(IDailyUpdater):
         Returns:
             필터링 통과 여부
         """
-        # 디버깅 로그 추가
+        # Phase A 개선: 안전 필터만 적용 (과도한 리스크만 제외)
+
+        # 리스크 점수 (완화: 60점 이하)
+        if p_result.risk_score > 60:
+            self._logger.debug(
+                f"❌ {p_result.stock_code} 리스크 필터링 실패: {p_result.risk_score} > 60"
+            )
+            return False
+
+        # 최소 유동성 (완화: 5점 이상)
+        if p_result.volume_score < 5:
+            self._logger.debug(
+                f"❌ {p_result.stock_code} 거래량 필터링 실패: {p_result.volume_score} < 5"
+            )
+            return False
+
+        self._logger.debug(f"✅ {p_result.stock_code} 안전 필터 통과")
+        return True
+
+    def _calculate_composite_score(self, stock_data: Dict) -> float:
+        """종합 점수 계산 (Phase A 개선)
+
+        Args:
+            stock_data: 종목 데이터
+
+        Returns:
+            종합 점수 (0-100)
+        """
+        technical = stock_data.get("technical_score", 0)
+        volume = stock_data.get("volume_score", 0)
+        risk = stock_data.get("risk_score", 50)
+        confidence = stock_data.get("confidence", 0.5)
+
+        composite = (
+            technical * 0.35 +
+            volume * 0.25 +
+            (100 - risk) * 0.25 +
+            confidence * 100 * 0.15
+        )
+        return composite
+
+    def _select_top_n_adaptive(
+        self,
+        candidates: List[Dict],
+        market_condition: str
+    ) -> List[Dict]:
+        """시장 적응형 상위 N개 선정 (Phase A 개선)
+
+        Args:
+            candidates: 후보 종목 리스트 (안전 필터 통과한 종목들)
+            market_condition: 시장 상황 (bullish/neutral/bearish)
+
+        Returns:
+            선정된 종목 리스트
+        """
+        if not candidates:
+            return []
+
+        # 1. 종합 점수 계산
+        for stock in candidates:
+            stock["composite_score"] = self._calculate_composite_score(stock)
+
+        # 2. 종합 점수로 정렬 (내림차순)
+        candidates.sort(key=lambda x: x["composite_score"], reverse=True)
+
+        # 3. 시장 상황별 목표 선정 수
+        target_counts = {
+            "bullish": 12,
+            "neutral": 8,
+            "bearish": 5
+        }
+        target_count = target_counts.get(market_condition, 8)
+
         self._logger.info(
-            f"필터링 검사: {p_result.stock_code} - "
-            f"total_score={p_result.total_score}, "
-            f"risk_score={p_result.risk_score}, "
-            f"confidence={p_result.confidence}, "
-            f"technical_score={p_result.technical_score}"
+            f"시장 상황: {market_condition}, 목표 선정 수: {target_count}개, "
+            f"후보 종목: {len(candidates)}개"
         )
 
-        # 가격 매력도 점수 (A단계: 75점 이상)
-        if p_result.total_score < self._filtering_criteria.price_attractiveness:
-            self._logger.info(
-                f"❌ {p_result.stock_code} 가격매력도 필터링 실패: {p_result.total_score} < {self._filtering_criteria.price_attractiveness}"
-            )
-            return False
+        # 4. 섹터별 제한 적용하며 선정
+        selected = []
+        sector_count = {}
 
-        # 리스크 점수 (A단계: 35점 이하)
-        if p_result.risk_score > self._filtering_criteria.risk_score_max:
-            self._logger.info(
-                f"❌ {p_result.stock_code} 리스크 필터링 실패: {p_result.risk_score} > {self._filtering_criteria.risk_score_max}"
-            )
-            return False
+        for stock in candidates:
+            sector = stock.get("sector", "기타")
 
-        # 신뢰도 (A단계: 0.65 이상)
-        if p_result.confidence < self._filtering_criteria.confidence_min:
-            self._logger.info(
-                f"❌ {p_result.stock_code} 신뢰도 필터링 실패: {p_result.confidence} < {self._filtering_criteria.confidence_min}"
-            )
-            return False
+            # 섹터당 최대 3개 제한
+            if sector_count.get(sector, 0) >= 3:
+                self._logger.debug(
+                    f"섹터 제한: {stock['stock_code']} ({sector}) - "
+                    f"이미 {sector_count[sector]}개 선정됨"
+                )
+                continue
 
-        # 기술적 점수 (A단계: 60점 이상)
-        if p_result.technical_score < self._filtering_criteria.min_technical_score:
-            self._logger.info(
-                f"❌ {p_result.stock_code} 기술적 점수 필터링 실패: {p_result.technical_score} < {self._filtering_criteria.min_technical_score}"
-            )
-            return False
+            selected.append(stock)
+            sector_count[sector] = sector_count.get(sector, 0) + 1
 
-        # 거래량 점수
-        if p_result.volume_score < self._filtering_criteria.liquidity_score:
-            self._logger.info(
-                f"❌ {p_result.stock_code} 거래량 필터링 실패: {p_result.volume_score} < {self._filtering_criteria.liquidity_score}"
-            )
-            return False
+            # 목표 수량 도달 시 종료
+            if len(selected) >= target_count:
+                break
 
-        self._logger.info(f"✅ {p_result.stock_code} 모든 필터링 통과!")
-        return True
+        self._logger.info(
+            f"선정 완료: {len(selected)}개 종목 (섹터 분포: {sector_count})"
+        )
+
+        return selected
 
     def _create_daily_trading_list(
         self,
@@ -1944,12 +2003,20 @@ class DailyUpdater(IDailyUpdater):
                 if code and code not in unique_stocks:
                     unique_stocks[code] = stock
 
-            final_stocks = list(unique_stocks.values())
+            candidate_stocks = list(unique_stocks.values())
 
-            # total_score 기준 정렬
-            final_stocks.sort(key=lambda x: x.get("total_score", 0), reverse=True)
+            self._logger.info(f"중복 제거 후 후보 종목: {len(candidate_stocks)}개")
 
-            self._logger.info(f"최종 병합 결과: {len(final_stocks)}개 종목")
+            # Phase A 개선: 시장 적응형 상위 N개 선정
+            final_stocks = self._select_top_n_adaptive(
+                candidate_stocks,
+                market_condition
+            )
+
+            self._logger.info(
+                f"최종 선정 완료: {len(final_stocks)}개 종목 "
+                f"(후보 {len(candidate_stocks)}개 중)"
+            )
 
             # 최종 결과 저장
             date_str = datetime.now().strftime("%Y%m%d")
