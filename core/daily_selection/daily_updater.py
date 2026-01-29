@@ -58,21 +58,47 @@ logger = get_logger(__name__)
 
 @dataclass
 class FilteringCriteria:
-    """필터링 기준 데이터 클래스 (A단계: 강화된 기준 적용 - 현실적 조정)"""
+    """필터링 기준 데이터 클래스 (config에서 로드)"""
 
-    price_attractiveness: float = 46.0  # 가격 매력도 점수 기준 (상위 30%) [A단계]
-    volume_threshold: float = 1.5  # 평균 거래량 대비 배수
-    volatility_range: tuple = (0.1, 0.4)  # 변동성 범위 (10-40%)
-    market_cap_min: float = 10000000000  # 최소 시가총액 (100억원)
-    liquidity_score: float = 10.0  # 유동성 점수 기준
-    risk_score_max: float = 43.0  # 최대 리스크 점수 (중위수 기준) [A단계]
-    sector_limit: int = 3  # 섹터별 최대 종목 수 [A단계]
-    total_limit: int = 20  # 전체 최대 종목 수 (95 → 20) [A단계]
-    confidence_min: float = 0.62  # 최소 신뢰도 (상위 40%) [A단계]
+    price_attractiveness: float
+    volume_threshold: float
+    volatility_range: tuple
+    market_cap_min: float
+    liquidity_score: float
+    risk_score_max: float
+    sector_limit: int
+    total_limit: int
+    confidence_min: float
+    min_relative_strength: float
+    min_technical_score: float
 
-    # A단계 추가: 상대 강도 필터
-    min_relative_strength: float = 0.6  # 시장 대비 상위 40%
-    min_technical_score: float = 40.0  # 기술적 점수 최소값
+    @classmethod
+    def from_config(cls, config: Dict):
+        """config에서 FilteringCriteria 생성
+
+        Args:
+            config: Phase 2 설정 딕셔너리
+
+        Returns:
+            FilteringCriteria 인스턴스
+        """
+        legacy = config.get("legacy_filter", {})
+        return cls(
+            price_attractiveness=legacy.get("price_attractiveness", 46.0),
+            volume_threshold=legacy.get("volume_threshold", 1.5),
+            volatility_range=(
+                legacy.get("volatility_min", 0.1),
+                legacy.get("volatility_max", 0.4)
+            ),
+            market_cap_min=legacy.get("market_cap_min", 10000000000),
+            liquidity_score=legacy.get("liquidity_score", 10.0),
+            risk_score_max=legacy.get("risk_score_max", 43.0),
+            sector_limit=legacy.get("sector_limit", 3),
+            total_limit=legacy.get("total_limit", 20),
+            confidence_min=legacy.get("confidence_min", 0.62),
+            min_relative_strength=legacy.get("min_relative_strength", 0.6),
+            min_technical_score=legacy.get("min_technical_score", 40.0),
+        )
 
 
 @dataclass
@@ -234,7 +260,7 @@ class DailyUpdater(IDailyUpdater):
         self._momentum_selector = None  # lazy initialization
 
         # 필터링 기준 및 상태
-        self._filtering_criteria = FilteringCriteria()
+        self._filtering_criteria = FilteringCriteria.from_config(self._config)
         self._scheduler_running = False
         self._scheduler_thread = None
 
@@ -1117,7 +1143,7 @@ class DailyUpdater(IDailyUpdater):
             )
             return False
 
-        self._logger.debug(f"✅ {p_result.stock_code} 안전 필터 통과")
+        self._logger.debug(f"{p_result.stock_code} 안전 필터 통과")
         return True
 
     def _calculate_composite_score(self, stock_data: Dict) -> float:
@@ -1721,7 +1747,7 @@ class DailyUpdater(IDailyUpdater):
     # ==================== 분산 배치 처리 메서드 ====================
 
     def calculate_composite_priority(self, stock_dict: Dict) -> float:
-        """복합 우선순위 계산 (기술적 점수 50% + 거래량 30% + 변동성 20%)
+        """복합 우선순위 계산 (config 기반)
 
         Args:
             stock_dict: 종목 딕셔너리
@@ -1730,6 +1756,13 @@ class DailyUpdater(IDailyUpdater):
             float: 0-100점 정규화된 우선순위
         """
         try:
+            # config에서 가중치 로드
+            priority_config = self._config.get("priority_calculation", {})
+            weights = priority_config.get("weights", {})
+            w_tech = weights.get("technical", 0.5)
+            w_vol = weights.get("volume", 0.3)
+            w_vola = weights.get("volatility", 0.2)
+
             # 기술적 점수 (0-100)
             technical = stock_dict.get("technical_score", 50.0)
 
@@ -1738,19 +1771,27 @@ class DailyUpdater(IDailyUpdater):
 
             # 변동성 점수 (0-100, 변동성이 적절한 범위일수록 높음)
             volatility_raw = stock_dict.get("volatility", 0.15)
-            # 변동성 10-30%를 최적 범위로 정규화
-            if volatility_raw < 0.1:
-                volatility_score = volatility_raw * 500  # 0-50점
-            elif volatility_raw <= 0.3:
+
+            # config에서 변동성 점수 계산 기준 로드
+            vol_scoring = priority_config.get("volatility_scoring", {})
+            optimal_min = vol_scoring.get("optimal_min", 0.1)
+            optimal_max = vol_scoring.get("optimal_max", 0.3)
+            low_scale = vol_scoring.get("low_scale_factor", 500)
+            high_penalty = vol_scoring.get("high_penalty_factor", 200)
+
+            # 변동성 점수 계산
+            if volatility_raw < optimal_min:
+                volatility_score = volatility_raw * low_scale
+            elif volatility_raw <= optimal_max:
                 volatility_score = 100.0  # 최적 범위
             else:
-                volatility_score = max(0, 100 - (volatility_raw - 0.3) * 200)  # 감점
+                volatility_score = max(0, 100 - (volatility_raw - optimal_max) * high_penalty)
 
             # 복합 우선순위 계산
             composite = (
-                technical * 0.5 +
-                volume * 0.3 +
-                volatility_score * 0.2
+                technical * w_tech +
+                volume * w_vol +
+                volatility_score * w_vola
             )
 
             return max(0.0, min(100.0, composite))

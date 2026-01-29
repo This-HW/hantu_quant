@@ -440,66 +440,17 @@ class IntegratedScheduler:
         # Note: 백테스트 결과는 17:00 가중치 조정(scheduler.py)에 반영됨
         schedule.every().friday.at("16:00").do(self._run_weekly_backtest)
 
-        # 헬스체크: 장 시간 중 10분마다 실행 (평일만)
-        schedule.every().monday.at("09:10").do(self._run_health_check)
-        schedule.every().monday.at("09:40").do(self._run_health_check)
-        schedule.every().monday.at("10:10").do(self._run_health_check)
-        schedule.every().monday.at("10:40").do(self._run_health_check)
-        schedule.every().monday.at("11:10").do(self._run_health_check)
-        schedule.every().monday.at("11:40").do(self._run_health_check)
-        schedule.every().monday.at("13:10").do(self._run_health_check)
-        schedule.every().monday.at("13:40").do(self._run_health_check)
-        schedule.every().monday.at("14:10").do(self._run_health_check)
-        schedule.every().monday.at("14:40").do(self._run_health_check)
-        schedule.every().monday.at("15:10").do(self._run_health_check)
-
-        schedule.every().tuesday.at("09:10").do(self._run_health_check)
-        schedule.every().tuesday.at("09:40").do(self._run_health_check)
-        schedule.every().tuesday.at("10:10").do(self._run_health_check)
-        schedule.every().tuesday.at("10:40").do(self._run_health_check)
-        schedule.every().tuesday.at("11:10").do(self._run_health_check)
-        schedule.every().tuesday.at("11:40").do(self._run_health_check)
-        schedule.every().tuesday.at("13:10").do(self._run_health_check)
-        schedule.every().tuesday.at("13:40").do(self._run_health_check)
-        schedule.every().tuesday.at("14:10").do(self._run_health_check)
-        schedule.every().tuesday.at("14:40").do(self._run_health_check)
-        schedule.every().tuesday.at("15:10").do(self._run_health_check)
-
-        schedule.every().wednesday.at("09:10").do(self._run_health_check)
-        schedule.every().wednesday.at("09:40").do(self._run_health_check)
-        schedule.every().wednesday.at("10:10").do(self._run_health_check)
-        schedule.every().wednesday.at("10:40").do(self._run_health_check)
-        schedule.every().wednesday.at("11:10").do(self._run_health_check)
-        schedule.every().wednesday.at("11:40").do(self._run_health_check)
-        schedule.every().wednesday.at("13:10").do(self._run_health_check)
-        schedule.every().wednesday.at("13:40").do(self._run_health_check)
-        schedule.every().wednesday.at("14:10").do(self._run_health_check)
-        schedule.every().wednesday.at("14:40").do(self._run_health_check)
-        schedule.every().wednesday.at("15:10").do(self._run_health_check)
-
-        schedule.every().thursday.at("09:10").do(self._run_health_check)
-        schedule.every().thursday.at("09:40").do(self._run_health_check)
-        schedule.every().thursday.at("10:10").do(self._run_health_check)
-        schedule.every().thursday.at("10:40").do(self._run_health_check)
-        schedule.every().thursday.at("11:10").do(self._run_health_check)
-        schedule.every().thursday.at("11:40").do(self._run_health_check)
-        schedule.every().thursday.at("13:10").do(self._run_health_check)
-        schedule.every().thursday.at("13:40").do(self._run_health_check)
-        schedule.every().thursday.at("14:10").do(self._run_health_check)
-        schedule.every().thursday.at("14:40").do(self._run_health_check)
-        schedule.every().thursday.at("15:10").do(self._run_health_check)
-
-        schedule.every().friday.at("09:10").do(self._run_health_check)
-        schedule.every().friday.at("09:40").do(self._run_health_check)
-        schedule.every().friday.at("10:10").do(self._run_health_check)
-        schedule.every().friday.at("10:40").do(self._run_health_check)
-        schedule.every().friday.at("11:10").do(self._run_health_check)
-        schedule.every().friday.at("11:40").do(self._run_health_check)
-        schedule.every().friday.at("13:10").do(self._run_health_check)
-        schedule.every().friday.at("13:40").do(self._run_health_check)
-        schedule.every().friday.at("14:10").do(self._run_health_check)
-        schedule.every().friday.at("14:40").do(self._run_health_check)
-        schedule.every().friday.at("15:10").do(self._run_health_check)
+        # 헬스체크: 장 시간 중 30분마다 실행 (평일만)
+        # 09:10, 09:40, 10:10, 10:40, 11:10, 11:40, 13:10, 13:40, 14:10, 14:40, 15:10
+        weekdays = ["monday", "tuesday", "wednesday", "thursday", "friday"]
+        health_check_times = [
+            "09:10", "09:40", "10:10", "10:40", "11:10", "11:40",
+            "13:10", "13:40", "14:10", "14:40", "15:10"
+        ]
+        for day in weekdays:
+            day_scheduler = getattr(schedule.every(), day)
+            for time in health_check_times:
+                day_scheduler.at(time).do(self._run_health_check)
 
         # 개발/테스트용 스케줄 (옵션)
         # schedule.every(10).minutes.do(self._run_daily_update)  # 10분마다 테스트

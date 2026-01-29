@@ -7,14 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased] - 2026-01-29
+## [Unreleased] - 2026-01-30
 
 ### Added
 
-- **Phase 2 설정 파일 (P1)** - `config/phase2.yaml` 추가
+- **Phase 2 설정 파일 확장 (P1)** - `config/phase2.yaml` 추가 섹션
   - 안전 필터, 종합 점수 가중치, 시장 적응형 선정 개수 등 중앙 집중 관리
   - API 재시도 전략 설정 (지수 백오프, 최대 재시도 횟수)
   - 병렬 처리 동시성 제어 설정
+  - **레거시 필터링 기준 (legacy_filter)** - FilteringCriteria 설정 중앙화
+  - **배치 우선순위 계산 (priority_calculation)** - 변동성 점수 계산 기준
   - 기본값 폴백 지원
 - **API 재시도 로직 (P0)** - 지수 백오프 자동 재시도
   - Rate Limit 에러 시 자동 재시도 (최대 3회)
@@ -63,6 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 진단 및 해결 절차 문서화
 - **core/daily_selection/daily_updater.py** - Phase 2 선정 로직 전면 개선 (P0+P1)
   - **Config 관리**: 하드코딩 제거, `config/phase2.yaml`에서 로드
+  - **FilteringCriteria.from_config()**: 클래스메서드 추가, config 기반 인스턴스 생성
+  - **calculate_composite_priority()**: 변동성 점수 계산을 config 기반으로 변경
   - **\_passes_basic_filters()**: config에서 필터링 기준 로드
   - **\_calculate_composite_score()**: config에서 가중치 로드 + 가중치 합 검증 추가
   - **\_select_top_n_adaptive()**: config에서 목표 선정 수 및 섹터 제한 로드
@@ -71,6 +75,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **\_retry_with_backoff()**: 지수 백오프 재시도 헬퍼 메서드 추가
   - **\_load_config()**: 설정 파일 로드 메서드 추가
   - **\_get_default_config()**: 기본값 폴백 메서드 추가
+  - 에러 로깅 개선: 16개소에 exc_info=True 추가
+- **workflows/integrated_scheduler.py** - 스케줄링 코드 간소화
+  - 헬스체크 스케줄링 중복 제거 (60줄 → 10줄)
+  - 평일 5일 × 11개 시간대를 동적 루프로 생성
+- **core/api/async_client.py** - 에러 로깅 개선
+  - Rate Limit 경고에 exc_info=True 추가
+- **core/daily_selection/price_analyzer.py** - Silent Exception 제거
+  - 5개소의 try-except에서 logger.debug로 에러 로깅 추가
+  - 예외를 무시하던 패턴을 명시적 로깅으로 변경
 
 ### Performance
 
@@ -81,7 +94,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Code Quality
 
-- **설정 중앙화**: 하드코딩 제거 (60, 5, 12/8/5 등)
+- **설정 중앙화 완료 (P1)**: 모든 매직 넘버를 config로 이동
+  - FilteringCriteria 기본값 (price_attractiveness, volume_threshold 등 12개)
+  - 변동성 계산 상수 (optimal_min, optimal_max, scale_factor 등)
+  - 배치 우선순위 가중치 (technical 50%, volume 30%, volatility 20%)
+- **예외 처리 개선 (P0)**: exc_info=True 누락 수정 (22개소)
+  - core/daily_selection/daily_updater.py: 16개소
+  - core/api/async_client.py: 1개소
+  - core/daily_selection/price_analyzer.py: 5개소 (Silent Exception 제거)
+  - 모든 에러/경고 로그에 스택 트레이스 포함
+- **코드 중복 제거 (P2)**: integrated_scheduler.py 헬스체크 스케줄링
+  - 60줄 중복 코드 → 10줄 루프로 간소화
+  - 평일 5일 × 11개 시간대를 동적으로 생성
 - **가중치 검증**: 종합 점수 계산 시 가중치 합 검증
 - **테스트 커버리지**: 핵심 로직 단위 테스트 추가 (15개)
 - **에러 처리**: API 재시도 로직으로 안정성 향상

@@ -6,6 +6,21 @@ safety_filter:
   max_risk_score: 60 # 리스크 점수 상한 (0-100)
   min_volume_score: 5 # 최소 거래량 점수 (0-100)
 
+# 레거시 필터링 기준 (FilteringCriteria)
+legacy_filter:
+  price_attractiveness: 46.0 # 가격 매력도 점수 기준 (상위 30%)
+  volume_threshold: 1.5 # 평균 거래량 대비 배수
+  volatility_min: 0.1 # 최소 변동성 (10%)
+  volatility_max: 0.4 # 최대 변동성 (40%)
+  market_cap_min: 10000000000 # 최소 시가총액 (100억원)
+  liquidity_score: 10.0 # 유동성 점수 기준
+  risk_score_max: 43.0 # 최대 리스크 점수 (중위수 기준)
+  sector_limit: 3 # 섹터별 최대 종목 수
+  total_limit: 20 # 전체 최대 종목 수
+  confidence_min: 0.62 # 최소 신뢰도 (상위 40%)
+  min_relative_strength: 0.6 # 시장 대비 상위 40%
+  min_technical_score: 40.0 # 기술적 점수 최소값
+
 # 종합 점수 가중치 (Phase A)
 composite_weights:
   technical: 0.35 # 기술적 지표 (35%)
@@ -42,3 +57,18 @@ api_retry:
 concurrency:
   max_concurrent_requests: 5 # 최대 동시 요청 수
   request_timeout: 30 # 요청 타임아웃 (초)
+
+# 배치 우선순위 계산 설정
+priority_calculation:
+  # 복합 우선순위 가중치
+  weights:
+    technical: 0.5 # 기술적 점수 (50%)
+    volume: 0.3 # 거래량 점수 (30%)
+    volatility: 0.2 # 변동성 점수 (20%)
+
+  # 변동성 점수 계산 기준
+  volatility_scoring:
+    optimal_min: 0.1 # 최적 변동성 하한 (10%)
+    optimal_max: 0.3 # 최적 변동성 상한 (30%)
+    low_scale_factor: 500 # 낮은 변동성 스케일링 (0-10% → 0-50점)
+    high_penalty_factor: 200 # 높은 변동성 패널티 (30%+ → 감점)
