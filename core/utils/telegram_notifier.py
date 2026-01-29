@@ -111,7 +111,8 @@ class TelegramNotifier:
             payload = {
                 "chat_id": chat_id,
                 "text": formatted_message,
-                "parse_mode": "Markdown",
+                # parse_mode 제거: Markdown 파싱 에러 방지
+                # "parse_mode": "Markdown",
                 "disable_web_page_preview": False,
                 "disable_notification": disable_notification,
             }

@@ -226,50 +226,13 @@ class RecoveryManager:
         self._logger.info("RecoveryManager 초기화 완료")
     
     def _init_database(self):
-        """데이터베이스 초기화"""
-        try:
-            Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
-            
-            with sqlite3.connect(self._db_path) as conn:
-                conn.execute('''
-                    CREATE TABLE IF NOT EXISTS error_events (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        timestamp TEXT NOT NULL,
-                        error_type TEXT NOT NULL,
-                        severity TEXT NOT NULL,
-                        component TEXT NOT NULL,
-                        message TEXT NOT NULL,
-                        stack_trace TEXT,
-                        system_metrics TEXT,
-                        affected_users INTEGER,
-                        recovery_attempted INTEGER,
-                        recovery_action TEXT,
-                        recovery_success INTEGER,
-                        recovery_time REAL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-                
-                conn.execute('''
-                    CREATE TABLE IF NOT EXISTS recovery_rules (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        name TEXT NOT NULL UNIQUE,
-                        error_pattern TEXT NOT NULL,
-                        severity_threshold TEXT NOT NULL,
-                        recovery_actions TEXT NOT NULL,
-                        max_attempts INTEGER DEFAULT 3,
-                        cooldown_seconds INTEGER DEFAULT 300,
-                        conditions TEXT,
-                        enabled INTEGER DEFAULT 1,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-                
-                conn.commit()
-                self._logger.info("에러 복구 데이터베이스 초기화 완료")
-                
-        except Exception as e:
-            self._logger.error(f"데이터베이스 초기화 중 오류: {e}", exc_info=True)
+        """데이터베이스 초기화 (비활성화)
+
+        Note: SQLite는 더 이상 사용하지 않음.
+        에러 이벤트는 PostgreSQL error_logs 테이블에 자동 저장됨.
+        """
+        # SQLite 초기화 비활성화 (PostgreSQL 사용)
+        self._logger.debug("SQLite 초기화 스킵 (PostgreSQL error_logs 사용)")
     
     def _setup_default_rules(self):
         """기본 복구 규칙 설정"""
@@ -318,25 +281,13 @@ class RecoveryManager:
         self._logger.info(f"복구 규칙 추가: {rule.name}")
     
     def _save_recovery_rule(self, rule: RecoveryRule):
-        """복구 규칙 데이터베이스 저장"""
-        try:
-            with sqlite3.connect(self._db_path) as conn:
-                conn.execute('''
-                    INSERT OR REPLACE INTO recovery_rules
-                    (name, error_pattern, severity_threshold, recovery_actions,
-                     max_attempts, cooldown_seconds, conditions, enabled)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    rule.name, rule.error_pattern, rule.severity_threshold.value,
-                    json.dumps([action.value for action in rule.recovery_actions]),
-                    rule.max_attempts, rule.cooldown_seconds,
-                    json.dumps(rule.conditions) if rule.conditions else None,
-                    1 if rule.enabled else 0
-                ))
-                conn.commit()
-                
-        except Exception as e:
-            self._logger.error(f"복구 규칙 저장 중 오류: {e}", exc_info=True)
+        """복구 규칙 저장 (비활성화)
+
+        Note: SQLite는 더 이상 사용하지 않음.
+        복구 규칙은 메모리에서만 관리됨.
+        """
+        # SQLite 저장 비활성화 (메모리 기반 관리)
+        self._logger.debug(f"복구 규칙 '{rule.name}' 메모리에 저장됨")
     
     def attempt_recovery(self, error_event: ErrorEvent) -> bool:
         """에러 복구 시도"""
@@ -620,27 +571,25 @@ class ErrorRecoverySystem:
             return {}
     
     def _save_error_event(self, error_event: ErrorEvent):
-        """에러 이벤트 저장"""
-        try:
-            with sqlite3.connect(self._db_path) as conn:
-                conn.execute('''
-                    INSERT OR REPLACE INTO error_events
-                    (timestamp, error_type, severity, component, message,
-                     stack_trace, system_metrics, affected_users,
-                     recovery_attempted, recovery_action, recovery_success, recovery_time)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    error_event.timestamp.isoformat(), error_event.error_type,
-                    error_event.severity.value, error_event.component, error_event.message,
-                    error_event.stack_trace, json.dumps(error_event.system_metrics),
-                    error_event.affected_users, 1 if error_event.recovery_attempted else 0,
-                    error_event.recovery_action.value if error_event.recovery_action else None,
-                    1 if error_event.recovery_success else 0, error_event.recovery_time
-                ))
-                conn.commit()
-                
-        except Exception as e:
-            self._logger.error(f"에러 이벤트 저장 중 오류: {e}", exc_info=True)
+        """에러 이벤트 저장 (PostgreSQL error_logs 테이블 사용)
+
+        Note: SQLite는 더 이상 사용하지 않음.
+        에러 로깅은 logger를 통해 PostgreSQL error_logs 테이블에 자동 저장됨.
+        """
+        # 에러 이벤트를 logger를 통해 기록 (DB 에러 핸들러가 자동으로 PostgreSQL에 저장)
+        self._logger.error(
+            f"에러 보고: {error_event.component} - {error_event.message} "
+            f"(심각도: {error_event.severity.value})",
+            extra={
+                'error_type': error_event.error_type,
+                'component': error_event.component,
+                'severity': error_event.severity.value,
+                'affected_users': error_event.affected_users,
+                'recovery_attempted': error_event.recovery_attempted,
+                'recovery_action': error_event.recovery_action.value if error_event.recovery_action else None,
+                'recovery_success': error_event.recovery_success,
+            }
+        )
     
     def start_monitoring(self, interval_seconds: int = 60):
         """자동 모니터링 시작"""
@@ -686,59 +635,22 @@ class ErrorRecoverySystem:
         self._logger.info("에러 모니터링 중지")
     
     def get_error_statistics(self, hours: int = 24) -> Dict[str, Any]:
-        """에러 통계 조회"""
-        try:
-            cutoff_time = (datetime.now() - timedelta(hours=hours)).isoformat()
-            
-            with sqlite3.connect(self._db_path) as conn:
-                # 전체 에러 수
-                cursor = conn.execute(
-                    'SELECT COUNT(*) FROM error_events WHERE timestamp >= ?',
-                    (cutoff_time,)
-                )
-                total_errors = cursor.fetchone()[0]
-                
-                # 심각도별 에러 수
-                cursor = conn.execute('''
-                    SELECT severity, COUNT(*) FROM error_events 
-                    WHERE timestamp >= ? GROUP BY severity
-                ''', (cutoff_time,))
-                severity_stats = dict(cursor.fetchall())
-                
-                # 컴포넌트별 에러 수
-                cursor = conn.execute('''
-                    SELECT component, COUNT(*) FROM error_events 
-                    WHERE timestamp >= ? GROUP BY component
-                ''', (cutoff_time,))
-                component_stats = dict(cursor.fetchall())
-                
-                # 복구 성공률
-                cursor = conn.execute('''
-                    SELECT 
-                        COUNT(*) as total_recovery_attempts,
-                        SUM(recovery_success) as successful_recoveries
-                    FROM error_events 
-                    WHERE timestamp >= ? AND recovery_attempted = 1
-                ''', (cutoff_time,))
-                
-                recovery_data = cursor.fetchone()
-                recovery_rate = 0
-                if recovery_data and recovery_data[0] > 0:
-                    recovery_rate = (recovery_data[1] / recovery_data[0]) * 100
-                
-                return {
-                    'period_hours': hours,
-                    'total_errors': total_errors,
-                    'severity_distribution': severity_stats,
-                    'component_distribution': component_stats,
-                    'recovery_attempts': recovery_data[0] if recovery_data else 0,
-                    'successful_recoveries': recovery_data[1] if recovery_data else 0,
-                    'recovery_success_rate': recovery_rate
-                }
-                
-        except Exception as e:
-            self._logger.error(f"에러 통계 조회 중 오류: {e}", exc_info=True)
-            return {}
+        """에러 통계 조회 (PostgreSQL error_logs 테이블 사용)
+
+        Note: SQLite는 더 이상 사용하지 않음.
+        에러 통계는 PostgreSQL error_logs 테이블에서 조회 가능.
+        """
+        # TODO: PostgreSQL error_logs 테이블에서 통계 조회 구현
+        # 현재는 빈 통계 반환 (에러 발생 방지)
+        return {
+            'period_hours': hours,
+            'total_errors': 0,
+            'severity_distribution': {},
+            'component_distribution': {},
+            'recovery_attempts': 0,
+            'successful_recoveries': 0,
+            'recovery_success_rate': 0
+        }
 
 # 글로벌 인스턴스
 _error_recovery_system: Optional[ErrorRecoverySystem] = None
