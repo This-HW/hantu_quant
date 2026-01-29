@@ -1679,7 +1679,7 @@ class DailyUpdater(IDailyUpdater):
         batch_stocks: List[Dict],
         market_condition: str
     ) -> List[Dict]:
-        """단일 배치 처리 (비동기)
+        """단일 배치 처리 (Phase A 개선: 동기 API 사용)
 
         Args:
             batch_index: 배치 번호 (0-17)
@@ -1687,14 +1687,14 @@ class DailyUpdater(IDailyUpdater):
             market_condition: 시장 상황
 
         Returns:
-            List[Dict]: 선정된 종목 리스트
+            List[Dict]: 안전 필터 통과 종목 리스트
 
         처리 흐름:
         1. 배치 시작 로깅
-        2. AsyncKISAPI 사용하여 병렬 가격 조회
+        2. 동기 API로 가격 조회 (AsyncKISClient 세션 문제 해결)
         3. 가격 매력도 분석
-        4. 필터링 기준 적용
-        5. 선정 결과 반환
+        4. 안전 필터 적용 (Phase A)
+        5. 통과 종목 반환
         6. 에러 시 빈 리스트 반환 (부분 실패 허용)
         """
         try:
@@ -1704,38 +1704,29 @@ class DailyUpdater(IDailyUpdater):
                 self._logger.warning(f"배치 {batch_index}: 종목 없음")
                 return []
 
-            # AsyncKISClient 사용하여 병렬 가격 조회
+            # Phase A 개선: 동기 API 사용 (안정성 우선)
             try:
-                from core.api.async_client import AsyncKISClient
-                async_api = AsyncKISClient()
+                from core.api.kis_api import KISAPI
+                api = KISAPI()
             except Exception as e:
-                self._logger.error(f"AsyncKISClient import 실패: {e}", exc_info=True)
+                self._logger.error(f"KISAPI import 실패: {e}", exc_info=True)
                 return []
 
-            # 병렬 가격 조회
+            # 순차 가격 조회 및 분석
             selected_stocks = []
-            tasks = []
-            stock_codes = [s.get("stock_code") or s.get("stock_code") for s in batch_stocks]
 
             for stock in batch_stocks:
-                stock_code = stock.get("stock_code")
-                if not stock_code:
-                    continue
-                # 비동기 가격 조회 태스크 생성
-                task = async_api.get_price(stock_code)
-                tasks.append((stock, task))
-
-            # 병렬 실행
-            results = await asyncio.gather(*[t[1] for t in tasks], return_exceptions=True)
-
-            # 결과 처리
-            for (stock, _), result in zip(tasks, results):
                 try:
-                    if isinstance(result, Exception):
-                        self._logger.debug(f"가격 조회 실패 ({stock.get('stock_code')}): {result}")
+                    stock_code = stock.get("stock_code")
+                    if not stock_code:
                         continue
 
-                    current_price = result.current_price if result else 0.0
+                    # 가격 조회
+                    price_data = api.get_current_price(stock_code)
+                    if not price_data:
+                        continue
+
+                    current_price = price_data.get("current_price", 0)
                     if current_price <= 0:
                         continue
 
@@ -1748,7 +1739,7 @@ class DailyUpdater(IDailyUpdater):
                     # PriceAnalyzer로 분석
                     analysis_result = self._price_analyzer.analyze_price_attractiveness(stock_data)
 
-                    # 필터링 기준 적용
+                    # Phase A: 안전 필터만 적용
                     if self._passes_basic_filters(analysis_result):
                         selected_stocks.append({
                             "stock_code": stock.get("stock_code"),
@@ -1774,7 +1765,8 @@ class DailyUpdater(IDailyUpdater):
 
             # 진행률 로깅
             self._logger.info(
-                f"배치 {batch_index} 완료: {len(selected_stocks)}/{len(batch_stocks)} 종목 선정"
+                f"배치 {batch_index} 완료: {len(selected_stocks)}/{len(batch_stocks)} 종목 통과 "
+                f"(안전 필터)"
             )
 
             return selected_stocks
