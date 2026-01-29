@@ -1,0 +1,9 @@
+{
+  "weights": {
+    "fundamental": 0.4,
+    "technical": 0.3,
+    "momentum": 0.2,
+    "sector": 0.1
+  },
+  "last_updated": "2025-10-01T01:28:18.948964"
+}

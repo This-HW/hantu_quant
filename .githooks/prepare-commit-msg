@@ -1,0 +1,28 @@
+#!/bin/bash
+# prepare-commit-msg hook
+# 프로덕션 레포에서만 자동으로 [skip ci] 추가
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+
+# 프로덕션 레포 경로
+PROD_PATH="/opt/hantu_quant"
+
+# 현재 레포의 절대 경로
+REPO_PATH=$(git rev-parse --show-toplevel)
+
+# 프로덕션 레포에서만 [skip ci] 자동 추가
+if [ "$REPO_PATH" = "$PROD_PATH" ]; then
+    # 이미 [skip ci]가 포함되어 있으면 추가하지 않음
+    if ! grep -q '\[skip ci\]' "$COMMIT_MSG_FILE"; then
+        # merge나 rebase가 아닌 일반 커밋일 때만
+        if [ -z "$COMMIT_SOURCE" ] || [ "$COMMIT_SOURCE" = "message" ]; then
+            echo "[skip ci] $(cat $COMMIT_MSG_FILE)" > "$COMMIT_MSG_FILE"
+            echo "⚠️  프로덕션 레포: 자동으로 [skip ci] 추가됨"
+        fi
+    fi
+else
+    echo "✅ 개발 레포: 정상 CI/CD 실행"
+fi
+
+exit 0

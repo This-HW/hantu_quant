@@ -217,9 +217,8 @@ class RecoveryManager:
             RecoveryAction.FAILOVER: self._failover,
         }
 
-        # SQLite 데이터베이스 초기화 (폴백용)
-        if not self._unified_db_available:
-            self._init_database()
+        # SQLite 데이터베이스 초기화 (폴백용, 항상 초기화)
+        self._init_database()
 
         # 기본 복구 규칙 설정
         self._setup_default_rules()

@@ -1663,7 +1663,7 @@ class DailyUpdater(IDailyUpdater):
                 if not stock_code:
                     continue
                 # 비동기 가격 조회 태스크 생성
-                task = async_api.get_current_price(stock_code)
+                task = async_api.get_price(stock_code)
                 tasks.append((stock, task))
 
             # 병렬 실행
@@ -1676,7 +1676,7 @@ class DailyUpdater(IDailyUpdater):
                         self._logger.debug(f"가격 조회 실패 ({stock.get('stock_code')}): {result}")
                         continue
 
-                    current_price = result.get("current_price", 0.0) if result else 0.0
+                    current_price = result.current_price if result else 0.0
                     if current_price <= 0:
                         continue
 

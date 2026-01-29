@@ -1,0 +1,1111 @@
+{
+  "date": "2025-10-01",
+  "timestamp": "2025-10-01T01:28:24.007232",
+  "passed_count": 184,
+  "stocks": [
+    {
+      "stock_code": "000590",
+      "stock_name": "CS홀딩스",
+      "sector": "홀딩스",
+      "overall_score": 66.9
+    },
+    {
+      "stock_code": "37550L",
+      "stock_name": "DL이앤씨2우(전환)",
+      "sector": "바이오",
+      "overall_score": 60.29
+    },
+    {
+      "stock_code": "37550K",
+      "stock_name": "DL이앤씨우",
+      "sector": "바이오",
+      "overall_score": 66.2
+    },
+    {
+      "stock_code": "037370",
+      "stock_name": "EG",
+      "sector": "화학",
+      "overall_score": 60.96
+    },
+    {
+      "stock_code": "007700",
+      "stock_name": "F&F홀딩스",
+      "sector": "홀딩스",
+      "overall_score": 62.4
+    },
+    {
+      "stock_code": "012630",
+      "stock_name": "HDC",
+      "sector": "에너지",
+      "overall_score": 61.33
+    },
+    {
+      "stock_code": "001060",
+      "stock_name": "JW중외제약",
+      "sector": "바이오",
+      "overall_score": 60.21
+    },
+    {
+      "stock_code": "079550",
+      "stock_name": "LIG넥스원",
+      "sector": "건설",
+      "overall_score": 60.06
+    },
+    {
+      "stock_code": "006260",
+      "stock_name": "LS",
+      "sector": "인터넷",
+      "overall_score": 60.38
+    },
+    {
+      "stock_code": "322180",
+      "stock_name": "LS티라유텍",
+      "sector": "전자",
+      "overall_score": 60.86
+    },
+    {
+      "stock_code": "010060",
+      "stock_name": "OCI홀딩스",
+      "sector": "홀딩스",
+      "overall_score": 60.45
+    },
+    {
+      "stock_code": "035600",
+      "stock_name": "KG이니시스",
+      "sector": "에너지",
+      "overall_score": 61.62
+    },
+    {
+      "stock_code": "001390",
+      "stock_name": "KG케미칼",
+      "sector": "화학",
+      "overall_score": 66.9
+    },
+    {
+      "stock_code": "474610",
+      "stock_name": "RF시스템즈",
+      "sector": "인터넷",
+      "overall_score": 61.69
+    },
+    {
+      "stock_code": "099220",
+      "stock_name": "SDN",
+      "sector": "인터넷",
+      "overall_score": 63.56
+    },
+    {
+      "stock_code": "002360",
+      "stock_name": "SH에너지화학",
+      "sector": "화학",
+      "overall_score": 61.18
+    },
+    {
+      "stock_code": "067160",
+      "stock_name": "SOOP",
+      "sector": "전자",
+      "overall_score": 61.75
+    },
+    {
+      "stock_code": "048770",
+      "stock_name": "TPC",
+      "sector": "자동차",
+      "overall_score": 60.6
+    },
+    {
+      "stock_code": "024070",
+      "stock_name": "WISCOM",
+      "sector": "바이오",
+      "overall_score": 60.58
+    },
+    {
+      "stock_code": "037270",
+      "stock_name": "YG PLUS",
+      "sector": "인터넷",
+      "overall_score": 61.59
+    },
+    {
+      "stock_code": "214390",
+      "stock_name": "경보제약",
+      "sector": "바이오",
+      "overall_score": 60.81
+    },
+    {
+      "stock_code": "012200",
+      "stock_name": "계양전기",
+      "sector": "인터넷",
+      "overall_score": 61.02
+    },
+    {
+      "stock_code": "035290",
+      "stock_name": "골드앤에스",
+      "sector": "인터넷",
+      "overall_score": 61.02
+    },
+    {
+      "stock_code": "215000",
+      "stock_name": "골프존",
+      "sector": "바이오",
+      "overall_score": 63.08
+    },
+    {
+      "stock_code": "017040",
+      "stock_name": "광명전기",
+      "sector": "바이오",
+      "overall_score": 60.01
+    },
+    {
+      "stock_code": "037710",
+      "stock_name": "광주신세계",
+      "sector": "자동차",
+      "overall_score": 60.6
+    },
+    {
+      "stock_code": "307750",
+      "stock_name": "국전약품",
+      "sector": "자동차",
+      "overall_score": 60.42
+    },
+    {
+      "stock_code": "001570",
+      "stock_name": "금양",
+      "sector": "화학",
+      "overall_score": 60.81
+    },
+    {
+      "stock_code": "002995",
+      "stock_name": "금호건설우",
+      "sector": "건설",
+      "overall_score": 60.48
+    },
+    {
+      "stock_code": "214330",
+      "stock_name": "금호에이치티",
+      "sector": "화학",
+      "overall_score": 60.85
+    },
+    {
+      "stock_code": "013700",
+      "stock_name": "까뮤이앤씨",
+      "sector": "자동차",
+      "overall_score": 62.77
+    },
+    {
+      "stock_code": "190510",
+      "stock_name": "나무가",
+      "sector": "건설",
+      "overall_score": 61.69
+    },
+    {
+      "stock_code": "459510",
+      "stock_name": "나우로보틱스",
+      "sector": "건설",
+      "overall_score": 60.18
+    },
+    {
+      "stock_code": "111710",
+      "stock_name": "남화산업",
+      "sector": "자동차",
+      "overall_score": 62.67
+    },
+    {
+      "stock_code": "311390",
+      "stock_name": "네오크레마",
+      "sector": "화학",
+      "overall_score": 61.5
+    },
+    {
+      "stock_code": "002350",
+      "stock_name": "넥센타이어",
+      "sector": "자동차",
+      "overall_score": 60.73
+    },
+    {
+      "stock_code": "142280",
+      "stock_name": "녹십자엠에스",
+      "sector": "인터넷",
+      "overall_score": 61.75
+    },
+    {
+      "stock_code": "019685",
+      "stock_name": "대교우B",
+      "sector": "에너지",
+      "overall_score": 62.65
+    },
+    {
+      "stock_code": "001685",
+      "stock_name": "대상우",
+      "sector": "에너지",
+      "overall_score": 61.4
+    },
+    {
+      "stock_code": "088130",
+      "stock_name": "동아엘텍",
+      "sector": "전자",
+      "overall_score": 60.05
+    },
+    {
+      "stock_code": "001525",
+      "stock_name": "동양우",
+      "sector": "건설",
+      "overall_score": 61.4
+    },
+    {
+      "stock_code": "228340",
+      "stock_name": "동양파일",
+      "sector": "화학",
+      "overall_score": 60.21
+    },
+    {
+      "stock_code": "094170",
+      "stock_name": "동운아나텍",
+      "sector": "전자",
+      "overall_score": 63.34
+    },
+    {
+      "stock_code": "006040",
+      "stock_name": "동원산업",
+      "sector": "바이오",
+      "overall_score": 65.23
+    },
+    {
+      "stock_code": "241560",
+      "stock_name": "두산밥캣",
+      "sector": "건설",
+      "overall_score": 63.56
+    },
+    {
+      "stock_code": "000155",
+      "stock_name": "두산우",
+      "sector": "전자",
+      "overall_score": 60.66
+    },
+    {
+      "stock_code": "33626L",
+      "stock_name": "두산퓨얼셀2우B",
+      "sector": "바이오",
+      "overall_score": 61.25
+    },
+    {
+      "stock_code": "176750",
+      "stock_name": "듀켐바이오",
+      "sector": "바이오",
+      "overall_score": 62.06
+    },
+    {
+      "stock_code": "192650",
+      "stock_name": "드림텍",
+      "sector": "에너지",
+      "overall_score": 62.03
+    },
+    {
+      "stock_code": "024090",
+      "stock_name": "디씨엠",
+      "sector": "바이오",
+      "overall_score": 61.12
+    },
+    {
+      "stock_code": "214680",
+      "stock_name": "디알텍",
+      "sector": "에너지",
+      "overall_score": 60.98
+    },
+    {
+      "stock_code": "013570",
+      "stock_name": "디와이",
+      "sector": "건설",
+      "overall_score": 62.66
+    },
+    {
+      "stock_code": "038390",
+      "stock_name": "레드캡투어",
+      "sector": "화학",
+      "overall_score": 61.1
+    },
+    {
+      "stock_code": "005305",
+      "stock_name": "롯데칠성우",
+      "sector": "화학",
+      "overall_score": 63.85
+    },
+    {
+      "stock_code": "141080",
+      "stock_name": "리가켐바이오",
+      "sector": "바이오",
+      "overall_score": 60.05
+    },
+    {
+      "stock_code": "001080",
+      "stock_name": "만호제강",
+      "sector": "바이오",
+      "overall_score": 60.57
+    },
+    {
+      "stock_code": "093520",
+      "stock_name": "매커스",
+      "sector": "건설",
+      "overall_score": 63.26
+    },
+    {
+      "stock_code": "090370",
+      "stock_name": "메타랩스",
+      "sector": "화학",
+      "overall_score": 60.5
+    },
+    {
+      "stock_code": "118000",
+      "stock_name": "메타케어",
+      "sector": "바이오",
+      "overall_score": 60.57
+    },
+    {
+      "stock_code": "001810",
+      "stock_name": "무림SP",
+      "sector": "엔터",
+      "overall_score": 60.05
+    },
+    {
+      "stock_code": "025560",
+      "stock_name": "미래산업",
+      "sector": "건설",
+      "overall_score": 60.84
+    },
+    {
+      "stock_code": "268280",
+      "stock_name": "미원에스씨",
+      "sector": "인터넷",
+      "overall_score": 61.62
+    },
+    {
+      "stock_code": "059090",
+      "stock_name": "미코",
+      "sector": "바이오",
+      "overall_score": 64.38
+    },
+    {
+      "stock_code": "301300",
+      "stock_name": "바이브컴퍼니",
+      "sector": "화학",
+      "overall_score": 64.59
+    },
+    {
+      "stock_code": "308080",
+      "stock_name": "바이젠셀",
+      "sector": "바이오",
+      "overall_score": 66.9
+    },
+    {
+      "stock_code": "225530",
+      "stock_name": "보광산업",
+      "sector": "건설",
+      "overall_score": 60.24
+    },
+    {
+      "stock_code": "230980",
+      "stock_name": "비유테크놀러지",
+      "sector": "인터넷",
+      "overall_score": 60.98
+    },
+    {
+      "stock_code": "014970",
+      "stock_name": "삼륭물산",
+      "sector": "기타",
+      "overall_score": 62.69
+    },
+    {
+      "stock_code": "000070",
+      "stock_name": "삼양홀딩스",
+      "sector": "홀딩스",
+      "overall_score": 60.56
+    },
+    {
+      "stock_code": "361670",
+      "stock_name": "삼영에스앤씨",
+      "sector": "에너지",
+      "overall_score": 60.98
+    },
+    {
+      "stock_code": "002290",
+      "stock_name": "삼일기업공사",
+      "sector": "인터넷",
+      "overall_score": 60.05
+    },
+    {
+      "stock_code": "010960",
+      "stock_name": "삼호개발",
+      "sector": "기타",
+      "overall_score": 60.13
+    },
+    {
+      "stock_code": "000390",
+      "stock_name": "삼화페인트",
+      "sector": "화학",
+      "overall_score": 61.18
+    },
+    {
+      "stock_code": "091580",
+      "stock_name": "상신이디피",
+      "sector": "건설",
+      "overall_score": 60.24
+    },
+    {
+      "stock_code": "046890",
+      "stock_name": "서울반도체",
+      "sector": "전자",
+      "overall_score": 62.65
+    },
+    {
+      "stock_code": "063170",
+      "stock_name": "서울옥션",
+      "sector": "전자",
+      "overall_score": 60.6
+    },
+    {
+      "stock_code": "036120",
+      "stock_name": "서울평가정보",
+      "sector": "전자",
+      "overall_score": 61.28
+    },
+    {
+      "stock_code": "004985",
+      "stock_name": "성신양회우",
+      "sector": "기타",
+      "overall_score": 61.48
+    },
+    {
+      "stock_code": "347000",
+      "stock_name": "센코",
+      "sector": "바이오",
+      "overall_score": 64.38
+    },
+    {
+      "stock_code": "002870",
+      "stock_name": "신풍",
+      "sector": "엔터",
+      "overall_score": 60.86
+    },
+    {
+      "stock_code": "487360",
+      "stock_name": "신한제14호스팩",
+      "sector": "홀딩스",
+      "overall_score": 60.45
+    },
+    {
+      "stock_code": "025320",
+      "stock_name": "시노펙스",
+      "sector": "화학",
+      "overall_score": 61.76
+    },
+    {
+      "stock_code": "134790",
+      "stock_name": "시디즈",
+      "sector": "자동차",
+      "overall_score": 62.77
+    },
+    {
+      "stock_code": "418250",
+      "stock_name": "시큐레터",
+      "sector": "인터넷",
+      "overall_score": 63.34
+    },
+    {
+      "stock_code": "290560",
+      "stock_name": "신시웨이",
+      "sector": "건설",
+      "overall_score": 62.39
+    },
+    {
+      "stock_code": "236030",
+      "stock_name": "씨알푸드",
+      "sector": "식품",
+      "overall_score": 60.08
+    },
+    {
+      "stock_code": "458870",
+      "stock_name": "씨어스테크놀로지",
+      "sector": "인터넷",
+      "overall_score": 60.48
+    },
+    {
+      "stock_code": "074430",
+      "stock_name": "아미노로직스",
+      "sector": "금융",
+      "overall_score": 60.65
+    },
+    {
+      "stock_code": "083930",
+      "stock_name": "아바코",
+      "sector": "기타",
+      "overall_score": 62.66
+    },
+    {
+      "stock_code": "461300",
+      "stock_name": "아이스크림미디어",
+      "sector": "엔터",
+      "overall_score": 64.4
+    },
+    {
+      "stock_code": "052770",
+      "stock_name": "아이톡시",
+      "sector": "자동차",
+      "overall_score": 63.64
+    },
+    {
+      "stock_code": "065660",
+      "stock_name": "안트로젠",
+      "sector": "에너지",
+      "overall_score": 61.0
+    },
+    {
+      "stock_code": "310200",
+      "stock_name": "애니플러스",
+      "sector": "인터넷",
+      "overall_score": 63.89
+    },
+    {
+      "stock_code": "304360",
+      "stock_name": "에스바이오메딕스",
+      "sector": "바이오",
+      "overall_score": 61.37
+    },
+    {
+      "stock_code": "031330",
+      "stock_name": "에스에이엠티",
+      "sector": "화학",
+      "overall_score": 62.61
+    },
+    {
+      "stock_code": "234300",
+      "stock_name": "에스트래픽",
+      "sector": "화학",
+      "overall_score": 66.9
+    },
+    {
+      "stock_code": "172670",
+      "stock_name": "에이엘티",
+      "sector": "에너지",
+      "overall_score": 60.6
+    },
+    {
+      "stock_code": "373200",
+      "stock_name": "엑스플러스",
+      "sector": "인터넷",
+      "overall_score": 64.54
+    },
+    {
+      "stock_code": "317870",
+      "stock_name": "엔바이오니아",
+      "sector": "바이오",
+      "overall_score": 62.06
+    },
+    {
+      "stock_code": "234070",
+      "stock_name": "에이원알폼",
+      "sector": "바이오",
+      "overall_score": 63.04
+    },
+    {
+      "stock_code": "086520",
+      "stock_name": "에코프로",
+      "sector": "건설",
+      "overall_score": 60.21
+    },
+    {
+      "stock_code": "383310",
+      "stock_name": "에코프로에이치엔",
+      "sector": "화학",
+      "overall_score": 62.65
+    },
+    {
+      "stock_code": "096870",
+      "stock_name": "엘디티",
+      "sector": "엔터",
+      "overall_score": 66.9
+    },
+    {
+      "stock_code": "066970",
+      "stock_name": "엘앤에프",
+      "sector": "기타",
+      "overall_score": 61.62
+    },
+    {
+      "stock_code": "123040",
+      "stock_name": "엠에스오토텍",
+      "sector": "바이오",
+      "overall_score": 60.05
+    },
+    {
+      "stock_code": "265560",
+      "stock_name": "영화테크",
+      "sector": "인터넷",
+      "overall_score": 62.4
+    },
+    {
+      "stock_code": "475830",
+      "stock_name": "오름테라퓨틱",
+      "sector": "엔터",
+      "overall_score": 60.13
+    },
+    {
+      "stock_code": "338840",
+      "stock_name": "와이바이오로직스",
+      "sector": "바이오",
+      "overall_score": 64.18
+    },
+    {
+      "stock_code": "079000",
+      "stock_name": "와토스코리아",
+      "sector": "바이오",
+      "overall_score": 60.86
+    },
+    {
+      "stock_code": "095720",
+      "stock_name": "웅진씽크빅",
+      "sector": "자동차",
+      "overall_score": 60.86
+    },
+    {
+      "stock_code": "012620",
+      "stock_name": "원일특강",
+      "sector": "에너지",
+      "overall_score": 61.45
+    },
+    {
+      "stock_code": "376980",
+      "stock_name": "원티드랩",
+      "sector": "기타",
+      "overall_score": 60.66
+    },
+    {
+      "stock_code": "000700",
+      "stock_name": "유수홀딩스",
+      "sector": "홀딩스",
+      "overall_score": 61.69
+    },
+    {
+      "stock_code": "337840",
+      "stock_name": "유엑스엔",
+      "sector": "엔터",
+      "overall_score": 63.56
+    },
+    {
+      "stock_code": "000225",
+      "stock_name": "유유제약1우",
+      "sector": "바이오",
+      "overall_score": 60.37
+    },
+    {
+      "stock_code": "044340",
+      "stock_name": "위닉스",
+      "sector": "화학",
+      "overall_score": 63.85
+    },
+    {
+      "stock_code": "036090",
+      "stock_name": "위지트",
+      "sector": "바이오",
+      "overall_score": 61.12
+    },
+    {
+      "stock_code": "263050",
+      "stock_name": "유틸렉스",
+      "sector": "바이오",
+      "overall_score": 64.75
+    },
+    {
+      "stock_code": "008730",
+      "stock_name": "율촌화학",
+      "sector": "화학",
+      "overall_score": 61.31
+    },
+    {
+      "stock_code": "039020",
+      "stock_name": "이건홀딩스",
+      "sector": "홀딩스",
+      "overall_score": 63.56
+    },
+    {
+      "stock_code": "351330",
+      "stock_name": "이삭엔지니어링",
+      "sector": "화학",
+      "overall_score": 61.55
+    },
+    {
+      "stock_code": "005950",
+      "stock_name": "이수화학",
+      "sector": "화학",
+      "overall_score": 60.98
+    },
+    {
+      "stock_code": "063760",
+      "stock_name": "이엘피",
+      "sector": "자동차",
+      "overall_score": 61.02
+    },
+    {
+      "stock_code": "035810",
+      "stock_name": "이지홀딩스",
+      "sector": "홀딩스",
+      "overall_score": 60.13
+    },
+    {
+      "stock_code": "033230",
+      "stock_name": "인성정보",
+      "sector": "인터넷",
+      "overall_score": 64.64
+    },
+    {
+      "stock_code": "189300",
+      "stock_name": "인텔리안테크",
+      "sector": "반도체",
+      "overall_score": 62.13
+    },
+    {
+      "stock_code": "039290",
+      "stock_name": "인포뱅크",
+      "sector": "인터넷",
+      "overall_score": 64.64
+    },
+    {
+      "stock_code": "249420",
+      "stock_name": "일동제약",
+      "sector": "바이오",
+      "overall_score": 61.02
+    },
+    {
+      "stock_code": "174880",
+      "stock_name": "장원테크",
+      "sector": "인터넷",
+      "overall_score": 64.64
+    },
+    {
+      "stock_code": "066830",
+      "stock_name": "제노텍",
+      "sector": "엔터",
+      "overall_score": 62.66
+    },
+    {
+      "stock_code": "026040",
+      "stock_name": "제이에스티나",
+      "sector": "바이오",
+      "overall_score": 62.87
+    },
+    {
+      "stock_code": "418550",
+      "stock_name": "제이오",
+      "sector": "건설",
+      "overall_score": 64.59
+    },
+    {
+      "stock_code": "271980",
+      "stock_name": "제일약품",
+      "sector": "기타",
+      "overall_score": 63.32
+    },
+    {
+      "stock_code": "044380",
+      "stock_name": "주연테크",
+      "sector": "인터넷",
+      "overall_score": 60.84
+    },
+    {
+      "stock_code": "382800",
+      "stock_name": "지앤비에스 에코",
+      "sector": "엔터",
+      "overall_score": 62.69
+    },
+    {
+      "stock_code": "299480",
+      "stock_name": "지앤이헬스케어",
+      "sector": "바이오",
+      "overall_score": 65.3
+    },
+    {
+      "stock_code": "053050",
+      "stock_name": "지에스이",
+      "sector": "바이오",
+      "overall_score": 61.37
+    },
+    {
+      "stock_code": "071320",
+      "stock_name": "지역난방공사",
+      "sector": "화학",
+      "overall_score": 60.33
+    },
+    {
+      "stock_code": "233990",
+      "stock_name": "질경이",
+      "sector": "기타",
+      "overall_score": 60.24
+    },
+    {
+      "stock_code": "284620",
+      "stock_name": "카이노스메드",
+      "sector": "에너지",
+      "overall_score": 60.86
+    },
+    {
+      "stock_code": "317530",
+      "stock_name": "캐리소프트",
+      "sector": "인터넷",
+      "overall_score": 61.0
+    },
+    {
+      "stock_code": "214370",
+      "stock_name": "케어젠",
+      "sector": "화학",
+      "overall_score": 61.49
+    },
+    {
+      "stock_code": "038530",
+      "stock_name": "케이바이오",
+      "sector": "바이오",
+      "overall_score": 60.44
+    },
+    {
+      "stock_code": "192250",
+      "stock_name": "케이사인",
+      "sector": "인터넷",
+      "overall_score": 60.08
+    },
+    {
+      "stock_code": "093320",
+      "stock_name": "케이아이엔엑스",
+      "sector": "화학",
+      "overall_score": 60.86
+    },
+    {
+      "stock_code": "073010",
+      "stock_name": "케이에스피",
+      "sector": "바이오",
+      "overall_score": 60.18
+    },
+    {
+      "stock_code": "032500",
+      "stock_name": "케이엠더블유",
+      "sector": "건설",
+      "overall_score": 61.02
+    },
+    {
+      "stock_code": "225430",
+      "stock_name": "케이엠제약",
+      "sector": "바이오",
+      "overall_score": 63.36
+    },
+    {
+      "stock_code": "222040",
+      "stock_name": "코스맥스엔비티",
+      "sector": "바이오",
+      "overall_score": 63.08
+    },
+    {
+      "stock_code": "002020",
+      "stock_name": "코오롱",
+      "sector": "바이오",
+      "overall_score": 60.7
+    },
+    {
+      "stock_code": "102940",
+      "stock_name": "코오롱생명과학",
+      "sector": "바이오",
+      "overall_score": 66.2
+    },
+    {
+      "stock_code": "002025",
+      "stock_name": "코오롱우",
+      "sector": "바이오",
+      "overall_score": 64.38
+    },
+    {
+      "stock_code": "121850",
+      "stock_name": "코이즈",
+      "sector": "엔터",
+      "overall_score": 63.34
+    },
+    {
+      "stock_code": "246710",
+      "stock_name": "티앤알바이오팹",
+      "sector": "바이오",
+      "overall_score": 62.91
+    },
+    {
+      "stock_code": "047310",
+      "stock_name": "파워로직스",
+      "sector": "화학",
+      "overall_score": 62.22
+    },
+    {
+      "stock_code": "124560",
+      "stock_name": "태웅로직스",
+      "sector": "건설",
+      "overall_score": 64.64
+    },
+    {
+      "stock_code": "200230",
+      "stock_name": "텔콘RF제약",
+      "sector": "바이오",
+      "overall_score": 60.5
+    },
+    {
+      "stock_code": "393210",
+      "stock_name": "토마토시스템",
+      "sector": "인터넷",
+      "overall_score": 60.08
+    },
+    {
+      "stock_code": "051360",
+      "stock_name": "토비스",
+      "sector": "화학",
+      "overall_score": 63.4
+    },
+    {
+      "stock_code": "049120",
+      "stock_name": "파인디앤씨",
+      "sector": "전자",
+      "overall_score": 61.35
+    },
+    {
+      "stock_code": "091700",
+      "stock_name": "파트론",
+      "sector": "자동차",
+      "overall_score": 63.64
+    },
+    {
+      "stock_code": "010770",
+      "stock_name": "평화홀딩스",
+      "sector": "홀딩스",
+      "overall_score": 61.4
+    },
+    {
+      "stock_code": "041910",
+      "stock_name": "폴라리스AI파마",
+      "sector": "인터넷",
+      "overall_score": 62.8
+    },
+    {
+      "stock_code": "469900",
+      "stock_name": "하나31호스팩",
+      "sector": "홀딩스",
+      "overall_score": 61.76
+    },
+    {
+      "stock_code": "475250",
+      "stock_name": "하나33호스팩",
+      "sector": "홀딩스",
+      "overall_score": 61.69
+    },
+    {
+      "stock_code": "450330",
+      "stock_name": "하스",
+      "sector": "화학",
+      "overall_score": 63.85
+    },
+    {
+      "stock_code": "237750",
+      "stock_name": "피앤씨테크",
+      "sector": "인터넷",
+      "overall_score": 61.59
+    },
+    {
+      "stock_code": "460940",
+      "stock_name": "피앤에스로보틱스",
+      "sector": "기타",
+      "overall_score": 61.59
+    },
+    {
+      "stock_code": "163730",
+      "stock_name": "핑거",
+      "sector": "자동차",
+      "overall_score": 62.6
+    },
+    {
+      "stock_code": "053300",
+      "stock_name": "한국정보인증",
+      "sector": "화학",
+      "overall_score": 60.33
+    },
+    {
+      "stock_code": "011500",
+      "stock_name": "한농화성",
+      "sector": "건설",
+      "overall_score": 64.59
+    },
+    {
+      "stock_code": "009180",
+      "stock_name": "한솔로지스틱스",
+      "sector": "전자",
+      "overall_score": 61.61
+    },
+    {
+      "stock_code": "084990",
+      "stock_name": "헬릭스미스",
+      "sector": "기타",
+      "overall_score": 60.6
+    },
+    {
+      "stock_code": "453340",
+      "stock_name": "현대그린푸드",
+      "sector": "식품",
+      "overall_score": 62.69
+    },
+    {
+      "stock_code": "016580",
+      "stock_name": "환인제약",
+      "sector": "바이오",
+      "overall_score": 63.32
+    },
+    {
+      "stock_code": "290270",
+      "stock_name": "휴네시온",
+      "sector": "인터넷",
+      "overall_score": 62.65
+    },
+    {
+      "stock_code": "353190",
+      "stock_name": "휴럼",
+      "sector": "전자",
+      "overall_score": 60.13
+    },
+    {
+      "stock_code": "200670",
+      "stock_name": "휴메딕스",
+      "sector": "에너지",
+      "overall_score": 60.84
+    },
+    {
+      "stock_code": "010240",
+      "stock_name": "흥국",
+      "sector": "인터넷",
+      "overall_score": 60.45
+    },
+    {
+      "stock_code": "011210",
+      "stock_name": "현대위아",
+      "sector": "인터넷",
+      "overall_score": 60.61
+    },
+    {
+      "stock_code": "090850",
+      "stock_name": "현대이지웰",
+      "sector": "엔터",
+      "overall_score": 60.86
+    },
+    {
+      "stock_code": "004020",
+      "stock_name": "현대제철",
+      "sector": "화학",
+      "overall_score": 63.21
+    },
+    {
+      "stock_code": "003010",
+      "stock_name": "혜인",
+      "sector": "바이오",
+      "overall_score": 65.23
+    },
+    {
+      "stock_code": "241590",
+      "stock_name": "화승엔터프라이즈",
+      "sector": "엔터",
+      "overall_score": 62.03
+    }
+  ]
+}
