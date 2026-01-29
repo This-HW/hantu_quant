@@ -613,7 +613,8 @@ class DailyUpdater(IDailyUpdater):
                 _v_analysis_results.append(_v_result)
             except Exception as e:
                 self._logger.debug(
-                    f"종목 {_v_stock_data.get('stock_code')} 분석 오류: {e}"
+                    f"종목 {_v_stock_data.get('stock_code')} 분석 오류: {e}",
+                    exc_info=True
                 )
                 continue
 
@@ -774,7 +775,7 @@ class DailyUpdater(IDailyUpdater):
 
         else:  # sideways
             # 횡보장: 기본 기준 유지 (총량 제한 없음)
-            self._filtering_criteria = FilteringCriteria()
+            self._filtering_criteria = FilteringCriteria.from_config(self._config)
 
         self._logger.info(f"필터링 기준 조정 완료 - 시장상황: {p_market_condition}")
 
@@ -809,8 +810,8 @@ class DailyUpdater(IDailyUpdater):
                     p_watchlist_stocks = [
                         s for s in p_watchlist_stocks if s.stock_code in today_codes
                     ]
-        except Exception:
-            pass
+        except Exception as e:
+            self._logger.warning(f"금일 선정 종목 필터링 실패: {e}", exc_info=True)
 
         # API 호출 최적화: 한 번의 호출로 현재가+시가총액 조회
         total_stocks = len(p_watchlist_stocks)
@@ -909,7 +910,7 @@ class DailyUpdater(IDailyUpdater):
             info = kis.get_current_price(p_stock_code) or {}
             return float(info.get("current_price", 0.0))
         except Exception as e:
-            self._logger.warning(f"현재가 조회 실패 ({p_stock_code}): {e}")
+            self._logger.warning(f"현재가 조회 실패 ({p_stock_code}): {e}", exc_info=True)
             return 0.0
 
     def _get_market_cap(self, p_stock_code: str) -> float:

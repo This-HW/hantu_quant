@@ -917,8 +917,7 @@ class PriceAnalyzer(IPriceAnalyzer):
 
         # WARNING: 더미 데이터 사용 - 실제 섹터 데이터로 교체 필요
         self._logger.warning(
-            f"섹터 모멘텀 더미 데이터 사용 (sector={p_sector}). 실제 데이터로 교체 필요!",
-            exc_info=True
+            f"섹터 모멘텀 더미 데이터 사용 (sector={p_sector}). 실제 데이터로 교체 필요!"
         )
         _v_momentum = np.random.uniform(-5.0, 15.0)  # -5% ~ 15% 범위
         self._sector_momentum_cache[p_sector] = _v_momentum
@@ -1377,8 +1376,7 @@ class PriceAnalyzer(IPriceAnalyzer):
 
             # WARNING: 더미 OHLCV 데이터 생성 - 실제 API 데이터로 교체 필요
             self._logger.warning(
-                f"OHLCV 더미 데이터 생성 중 (price={_v_current_price}). 실제 API 데이터로 교체 필요!",
-                exc_info=True
+                f"OHLCV 더미 데이터 생성 중 (price={_v_current_price}). 실제 API 데이터로 교체 필요!"
             )
             # 60일간의 임시 데이터 생성
             _v_dates = pd.date_range(end=datetime.now().date(), periods=60, freq="D")
@@ -1645,8 +1643,7 @@ class PriceAnalyzer(IPriceAnalyzer):
         """
         self._logger.warning(
             f"더미 데이터 사용 중 (current_price={p_current_price}, days={p_days}). "
-            "실제 API 데이터로 교체 필요!",
-            exc_info=True
+            "실제 API 데이터로 교체 필요!"
         )
 
         _v_prices = []
