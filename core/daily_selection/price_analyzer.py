@@ -644,12 +644,15 @@ class PriceAnalyzer(IPriceAnalyzer):
             if isinstance(p_value, list) and p_value:
                 return [float(x) for x in p_value if isinstance(x, (int, float))]
             elif isinstance(p_value, (int, float)):
-                # 단일 값인 경우 더미 데이터 생성
-                return self._generate_dummy_price_data(float(p_value), p_default_size)
+                # 단일 값인 경우: 리스트로 변환하여 반환 (더미 데이터 생성 안 함)
+                self._logger.warning(f"가격 데이터가 단일 값입니다. 리스트로 변환: {p_value}")
+                return [float(p_value)]
             else:
-                return self._generate_dummy_price_data(50000.0, p_default_size)
-        except (ValueError, TypeError):
-            return self._generate_dummy_price_data(50000.0, p_default_size)
+                self._logger.error(f"잘못된 가격 데이터 형식: {type(p_value)}")
+                return None
+        except (ValueError, TypeError) as e:
+            self._logger.error(f"가격 데이터 정규화 실패: {e}", exc_info=True)
+            return None
 
     @inject
     def __init__(
@@ -908,21 +911,30 @@ class PriceAnalyzer(IPriceAnalyzer):
         )
 
     def _get_sector_momentum(self, p_sector: str) -> float:
-        """섹터 모멘텀 조회 (캐시 사용)
+        """섹터 모멘텀 조회 (실제 데이터, 캐시 사용)"""
+        from core.api.sector_momentum_calculator import SectorMomentumCalculator
 
-        DEPRECATED: 더미 데이터 사용 중
-        """
+        # 내부 캐시 확인
         if p_sector in self._sector_momentum_cache:
             return self._sector_momentum_cache[p_sector]
 
-        # WARNING: 더미 데이터 사용 - 실제 섹터 데이터로 교체 필요
-        self._logger.warning(
-            f"섹터 모멘텀 더미 데이터 사용 (sector={p_sector}). 실제 데이터로 교체 필요!"
-        )
-        _v_momentum = np.random.uniform(-5.0, 15.0)  # -5% ~ 15% 범위
-        self._sector_momentum_cache[p_sector] = _v_momentum
+        try:
+            calculator = SectorMomentumCalculator()
+            momentum = calculator.calculate_momentum(p_sector)
 
-        return _v_momentum
+            # 캐시에 저장
+            self._sector_momentum_cache[p_sector] = momentum
+
+            self._logger.debug(f"섹터 모멘텀 조회 완료: {p_sector}={momentum:.2f}")
+            return momentum
+        except Exception as e:
+            self._logger.warning(
+                f"섹터 모멘텀 조회 실패: {p_sector}. 중립값(50.0) 반환",
+                exc_info=True
+            )
+            # 폴백: 중립값
+            self._sector_momentum_cache[p_sector] = 50.0
+            return 50.0
 
     def _analyze_technical_indicators(
         self, p_stock_data: Dict
@@ -1152,7 +1164,24 @@ class PriceAnalyzer(IPriceAnalyzer):
                 p_stock_data.get("recent_close_prices", []), p_default_size=20
             )
             if not _v_prices or len(_v_prices) < 2:
-                _v_prices = self._generate_dummy_price_data(_v_current_price, 20)
+                # 실제 API에서 가격 데이터 조회
+                _v_stock_code = p_stock_data.get("stock_code")
+                if _v_stock_code:
+                    try:
+                        kis_api = self._get_kis_api()
+                        daily_prices = kis_api.get_daily_prices(_v_stock_code, period=20)
+                        if daily_prices and len(daily_prices) >= 2:
+                            _v_prices = [float(day.get("close", 0)) for day in daily_prices]
+                            self._logger.debug(f"{_v_stock_code}: API에서 {len(_v_prices)}일 가격 데이터 조회 성공")
+                        else:
+                            self._logger.warning(f"{_v_stock_code}: 가격 데이터 부족. 거래량 분석 불가")
+                            return 50.0
+                    except Exception as e:
+                        self._logger.error(f"{_v_stock_code}: 가격 데이터 조회 실패: {e}", exc_info=True)
+                        return 50.0
+                else:
+                    self._logger.warning("종목 코드 없음. 거래량 분석 불가")
+                    return 50.0
 
             # 거래량 분석
             _v_volume_score = self._v_volume_analysis.calculate_enhanced_volume_score(
@@ -1173,24 +1202,45 @@ class PriceAnalyzer(IPriceAnalyzer):
                 p_stock_data.get("current_price", 50000)
             )
 
-            # 실데이터가 있으면 사용, 없으면 기본 생성
+            # 실데이터가 있으면 사용, 없으면 API에서 조회
             _v_prices = self._safe_get_list(
                 p_stock_data.get("recent_close_prices", []), p_default_size=10
             )
             if not _v_prices or len(_v_prices) < 2:
-                _v_prices = self._generate_dummy_price_data(_v_current_price, 10)
-            _v_ohlc_data = []
-
-            for i, price in enumerate(_v_prices):
-                _v_ohlc_data.append(
-                    {
-                        "open": price * 0.995,
-                        "high": price * 1.015,
-                        "low": price * 0.985,
-                        "close": price,
-                        "volume": 1000000 + i * 50000,
-                    }
+                # 실제 API에서 OHLCV 데이터 조회
+                _v_stock_code = p_stock_data.get("stock_code")
+                if _v_stock_code:
+                    try:
+                        kis_api = self._get_kis_api()
+                        daily_prices = kis_api.get_daily_prices(_v_stock_code, period=10)
+                        if daily_prices and len(daily_prices) >= 2:
+                            # 실제 OHLCV 데이터 사용
+                            _v_ohlc_data = []
+                            for day in daily_prices:
+                                _v_ohlc_data.append({
+                                    "open": float(day.get("open", 0)),
+                                    "high": float(day.get("high", 0)),
+                                    "low": float(day.get("low", 0)),
+                                    "close": float(day.get("close", 0)),
+                                    "volume": int(day.get("volume", 0)),
+                                })
+                            self._logger.debug(f"{_v_stock_code}: API에서 {len(_v_ohlc_data)}일 OHLCV 데이터 조회 성공")
+                        else:
+                            self._logger.warning(f"{_v_stock_code}: OHLCV 데이터 부족. 패턴 분석 불가")
+                            return 50.0
+                    except Exception as e:
+                        self._logger.error(f"{_v_stock_code}: OHLCV 데이터 조회 실패: {e}", exc_info=True)
+                        return 50.0
+                else:
+                    self._logger.warning("종목 코드 없음. 패턴 분석 불가")
+                    return 50.0
+            else:
+                # recent_close_prices만 있는 경우, 패턴 분석 불가
+                _v_stock_code = p_stock_data.get("stock_code", "")
+                self._logger.warning(
+                    f"{_v_stock_code}: OHLCV 데이터 부족 (close만 존재). 패턴 분석 불가"
                 )
+                return 50.0  # 분석 불가 → 중립값 반환
 
             # 패턴 분석
             _v_patterns = self._v_patterns.detect_candlestick_patterns(_v_ohlc_data)
@@ -1365,60 +1415,37 @@ class PriceAnalyzer(IPriceAnalyzer):
     def _generate_ohlcv_data(self, p_stock_data: Dict) -> Optional[pd.DataFrame]:
         """주식 데이터로부터 OHLCV DataFrame 생성 (기울기 분석용)
 
-        DEPRECATED: 더미 OHLCV 데이터 생성 중
+        실제 API에서 OHLCV 데이터를 가져옵니다.
         """
         try:
-            _v_current_price = p_stock_data.get("current_price", 0.0)
-            _v_volume_ratio = p_stock_data.get("volume_ratio", 1.0)
-
-            if _v_current_price <= 0:
+            _v_stock_code = p_stock_data.get("stock_code")
+            if not _v_stock_code:
+                self._logger.warning("종목 코드가 없습니다")
                 return None
 
-            # WARNING: 더미 OHLCV 데이터 생성 - 실제 API 데이터로 교체 필요
-            self._logger.warning(
-                f"OHLCV 더미 데이터 생성 중 (price={_v_current_price}). 실제 API 데이터로 교체 필요!"
-            )
-            # 60일간의 임시 데이터 생성
-            _v_dates = pd.date_range(end=datetime.now().date(), periods=60, freq="D")
-            _v_prices = []
-            _v_volumes = []
+            # 실제 API에서 일봉 데이터 조회 (60일)
+            try:
+                kis_api = self._get_kis_api()
+                daily_prices = kis_api.get_daily_prices(_v_stock_code, period=60)
 
-            # 현재가 기준으로 과거 60일간 가격 시뮬레이션
-            _v_base_price = _v_current_price * 0.92  # 시작가는 현재가의 92%
-            _v_price = _v_base_price
-            _v_base_volume = 1500000  # 기본 거래량
+                if not daily_prices or len(daily_prices) < 10:
+                    self._logger.warning(f"{_v_stock_code}: OHLCV 데이터 부족 (조회: {len(daily_prices) if daily_prices else 0}일)")
+                    return None
 
-            for i in range(60):
-                # 가격 변화 시뮬레이션 (상승 추세)
-                _v_change = np.random.normal(
-                    0.003, 0.018
-                )  # 평균 0.3% 상승, 표준편차 1.8%
-                _v_price *= 1 + _v_change
-                _v_prices.append(_v_price)
+                # DataFrame으로 변환
+                _v_ohlcv_data = pd.DataFrame(daily_prices)
 
-                # 거래량 시뮬레이션 (거래량 비율 반영)
-                _v_volume_multiplier = (
-                    1.0 + (_v_volume_ratio - 1.0) * 0.1
-                )  # 점진적 증가
-                _v_volume = (
-                    _v_base_volume * _v_volume_multiplier * np.random.uniform(0.6, 1.8)
-                )
-                _v_volumes.append(_v_volume)
+                # 필수 컬럼 확인
+                required_columns = ['date', 'open', 'high', 'low', 'close', 'volume']
+                if not all(col in _v_ohlcv_data.columns for col in required_columns):
+                    self._logger.warning(f"{_v_stock_code}: OHLCV 데이터 컬럼 부족")
+                    return None
 
-            # 마지막 가격을 현재가로 조정
-            _v_prices[-1] = _v_current_price
+                return _v_ohlcv_data
 
-            # DataFrame 생성
-            _v_ohlcv_data = pd.DataFrame(
-                {
-                    "date": _v_dates,
-                    "open": [p * 0.997 for p in _v_prices],
-                    "high": [p * 1.008 for p in _v_prices],
-                    "low": [p * 0.992 for p in _v_prices],
-                    "close": _v_prices,
-                    "volume": _v_volumes,
-                }
-            )
+            except Exception as e:
+                self._logger.error(f"{_v_stock_code}: OHLCV 데이터 조회 실패: {e}", exc_info=True)
+                return None
 
             return _v_ohlcv_data
 

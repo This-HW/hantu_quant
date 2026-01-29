@@ -19,6 +19,7 @@ seaborn==0.13.2
 plotly==6.5.2
 scipy==1.13.1
 pyarrow==21.0.0  # pandas 3.0 대비
+yfinance>=0.2.0  # Yahoo Finance API (VIX, 환율)
 psutil>=5.9.0  # 시스템 메트릭 (P2-3)
 aiohttp>=3.9.0  # 비동기 HTTP 클라이언트 (P2-4)
 

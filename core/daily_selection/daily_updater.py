@@ -190,14 +190,37 @@ class MarketConditionAnalyzer:
             return "neutral"
 
     def _update_market_indicators(self):
-        """시장 지표 업데이트 (시뮬레이션)"""
-        # 실제로는 API에서 데이터를 가져와야 함
-        import random
+        """시장 지표 업데이트 (실제 데이터)"""
+        from core.api.market_data_client import PyKRXClient, YahooFinanceClient
 
-        self._market_indicators.kospi = random.uniform(2400, 2600)
-        self._market_indicators.kosdaq = random.uniform(800, 900)
-        self._market_indicators.vix = random.uniform(15, 25)
-        self._market_indicators.usd_krw = random.uniform(1300, 1350)
+        try:
+            # PyKRX로 KOSPI/KOSDAQ 조회
+            krx_client = PyKRXClient()
+            self._market_indicators.kospi = krx_client.get_kospi()
+            self._market_indicators.kosdaq = krx_client.get_kosdaq()
+
+            # Yahoo Finance로 VIX/환율 조회
+            yahoo_client = YahooFinanceClient()
+            self._market_indicators.vix = yahoo_client.get_vix()
+            self._market_indicators.usd_krw = yahoo_client.get_usd_krw()
+
+            self._logger.info(
+                f"시장 지표 업데이트 완료: KOSPI={self._market_indicators.kospi:.2f}, "
+                f"KOSDAQ={self._market_indicators.kosdaq:.2f}, "
+                f"VIX={self._market_indicators.vix:.2f}, "
+                f"USD/KRW={self._market_indicators.usd_krw:.2f}"
+            )
+        except Exception as e:
+            self._logger.error(f"시장 지표 업데이트 실패: {e}", exc_info=True)
+            # 폴백: 기존 값 유지 또는 기본값 사용
+            if self._market_indicators.kospi == 0:
+                self._market_indicators.kospi = 2500.0
+            if self._market_indicators.kosdaq == 0:
+                self._market_indicators.kosdaq = 850.0
+            if self._market_indicators.vix == 0:
+                self._market_indicators.vix = 20.0
+            if self._market_indicators.usd_krw == 0:
+                self._market_indicators.usd_krw = 1300.0
 
     def get_market_indicators(self) -> MarketIndicators:
         """시장 지표 조회"""

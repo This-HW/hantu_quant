@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Phase 2 실제 데이터 연동 (P0)** - 더미/랜덤 데이터를 실제 API 데이터로 교체
+  - `core/api/market_data_client.py`: PyKRXClient (KOSPI/KOSDAQ/섹터 ETF), YahooFinanceClient (VIX/환율)
+  - `core/api/sector_momentum_calculator.py`: 섹터 모멘텀 계산 (11개 섹터 ETF 기반)
+  - 캐싱 + 재시도 로직 통합 (3회, 지수 백오프)
+  - 데이터 소스 우선순위: PyKRX → KIS API → 기본값/폴백
 - **Phase 2 설정 파일 확장 (P1)** - `config/phase2.yaml` 추가 섹션
   - 안전 필터, 종합 점수 가중치, 시장 적응형 선정 개수 등 중앙 집중 관리
   - API 재시도 전략 설정 (지수 백오프, 최대 재시도 횟수)
@@ -59,6 +64,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **core/daily_selection/daily_updater.py** - 시장 지표 실제 API 호출로 변경 (라인 192-223)
+  - 기존: `random.uniform()` 사용
+  - 신규: PyKRXClient (KOSPI/KOSDAQ) + YahooFinanceClient (VIX/환율)
+  - 폴백 기본값: KOSPI=2500, KOSDAQ=850, VIX=20, USD/KRW=1300
+- **core/daily_selection/price_analyzer.py** - 섹터 모멘텀 실제 계산 (라인 913-937)
+  - 기존: 고정값 0.0 반환
+  - 신규: SectorMomentumCalculator 사용 (선형 회귀 기반)
+  - 폴백: 중립값 50.0 (기존 0.0에서 변경)
+- **core/daily_selection/price_analyzer.py** - OHLC 추정 로직 제거 (라인 1229-1234)
+  - 기존: close 기반 OHLC 추정 (open: close*0.995, high: close*1.015 등)
+  - 신규: 분석 불가 처리 (중립값 50.0 반환)
 - **deploy/DEPLOY_MICRO.md** - 문제 해결 섹션 업데이트
   - psycopg2 모듈 누락 트러블슈팅 추가
   - systemd 설정 변경 경고 해결 방법 추가
@@ -192,7 +208,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Dependencies
 
-- **Added**: `redis>=5.0.0` (requirements.txt에 기존재)
+- **Added**: `yfinance>=0.2.0` (VIX, USD/KRW 환율 조회)
+- **Added**: `scipy>=1.10.0` (선형 회귀 계산)
+- **Note**: `pykrx>=1.0.0` (이미 설치됨, KOSPI/KOSDAQ/섹터 ETF)
 
 ---
 

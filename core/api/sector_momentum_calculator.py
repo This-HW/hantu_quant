@@ -1,0 +1,112 @@
+"""섹터 모멘텀 계산기
+
+섹터 ETF 수익률 기반으로 모멘텀을 계산합니다.
+
+Feature: B3 - 시장 분석 강화
+"""
+
+from typing import Optional
+from datetime import datetime, timedelta
+import pandas as pd
+import numpy as np
+from scipy.stats import linregress
+
+from core.utils.log_utils import get_logger
+from core.api.market_data_client import PyKRXClient
+from core.api.redis_client import cache_with_ttl
+
+
+class SectorMomentumCalculator:
+    """섹터 모멘텀 계산기"""
+
+    # KOSPI 11개 섹터 ETF 매핑
+    SECTOR_ETF_MAP = {
+        "IT": "139270",          # TIGER 200IT
+        "금융": "139260",        # TIGER 200금융
+        "건설": "102780",        # KODEX 건설
+        "에너지화학": "117680",  # TIGER 에너지화학
+        "철강소재": "117700",    # TIGER 철강소재
+        "자동차": "091180",      # KODEX 자동차
+        "반도체": "091160",      # KODEX 반도체
+        "바이오": "091230",      # TIGER 헬스케어
+        "운송": "140700",        # KODEX 운송
+        "유통": "117460",        # TIGER 유통
+        "미디어통신": "091220",  # KODEX 미디어통신
+    }
+
+    def __init__(self):
+        self._logger = get_logger(__name__)
+        self._client = PyKRXClient()
+
+    @cache_with_ttl(ttl=600, key_prefix="sector_momentum")
+    def calculate_momentum(self, sector: str) -> float:
+        """섹터 모멘텀 계산 (0~100 점수)
+
+        Args:
+            sector: 섹터명 (예: "IT", "금융")
+
+        Returns:
+            모멘텀 점수 (0~100)
+        """
+        etf_ticker = self.SECTOR_ETF_MAP.get(sector)
+
+        if not etf_ticker:
+            self._logger.warning(f"섹터 ETF 매핑 없음: {sector}. 중립값(50.0) 반환")
+            return 50.0
+
+        # PyKRX로 ETF 가격 조회
+        df = self._client.get_sector_etf_prices(etf_ticker, period_days=60)
+
+        if df is None or len(df) < 10:
+            self._logger.warning(f"섹터 ETF 데이터 부족: {sector} ({etf_ticker}). 감시 리스트 기반 폴백")
+            # 폴백: 감시 리스트 기반 계산
+            return self._calculate_from_watchlist(sector)
+
+        # 선형 회귀로 추세 계산
+        try:
+            closes = df['종가'].values
+            x = np.arange(len(closes))
+            slope, _, r_value, _, _ = linregress(x, closes)
+
+            # 모멘텀 점수 계산 (slope를 0~100으로 정규화)
+            # slope > 0: 상승 추세, slope < 0: 하락 추세
+            momentum_raw = slope * 100 / np.mean(closes)  # 일간 변화율 기준
+
+            # 0~100 범위로 스케일링
+            momentum_score = 50.0 + (momentum_raw * 10)  # -5% ~ +5% → 0 ~ 100
+            momentum_score = np.clip(momentum_score, 0.0, 100.0)
+
+            self._logger.info(f"섹터 모멘텀 계산 완료: {sector}={momentum_score:.2f} (slope={slope:.4f}, r²={r_value**2:.3f})")
+            return float(momentum_score)
+
+        except Exception as e:
+            self._logger.error(f"섹터 모멘텀 계산 실패: {sector}: {e}", exc_info=True)
+            return 50.0  # 중립값
+
+    def _calculate_from_watchlist(self, sector: str) -> float:
+        """감시 리스트 기반 섹터 모멘텀 계산 (폴백)
+
+        Args:
+            sector: 섹터명
+
+        Returns:
+            모멘텀 점수 (0~100)
+        """
+        try:
+            from core.watchlist.watchlist_manager import WatchlistManager
+
+            wl_manager = WatchlistManager()
+            stocks = wl_manager.list_stocks(p_sector=sector)
+
+            if len(stocks) < 3:
+                self._logger.warning(f"감시 리스트 섹터 종목 부족: {sector} ({len(stocks)}개). 중립값(50.0) 반환")
+                return 50.0
+
+            # 각 종목의 최근 수익률 평균 계산
+            # TODO(P2): 실제 수익률 계산 구현 필요 (현재는 중립값)
+            self._logger.warning(f"감시 리스트 기반 모멘텀 계산 미구현: {sector}. 중립값(50.0) 반환")
+            return 50.0
+
+        except Exception as e:
+            self._logger.error(f"감시 리스트 기반 계산 실패: {sector}: {e}", exc_info=True)
+            return 50.0
