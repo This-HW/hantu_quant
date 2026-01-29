@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - 2026-01-29
 
+### Added
+
+- **Phase 2 설정 파일 (P1)** - `config/phase2.yaml` 추가
+  - 안전 필터, 종합 점수 가중치, 시장 적응형 선정 개수 등 중앙 집중 관리
+  - API 재시도 전략 설정 (지수 백오프, 최대 재시도 횟수)
+  - 병렬 처리 동시성 제어 설정
+  - 기본값 폴백 지원
+- **API 재시도 로직 (P0)** - 지수 백오프 자동 재시도
+  - Rate Limit 에러 시 자동 재시도 (최대 3회)
+  - 지수 백오프 + 랜덤 지터로 충돌 방지
+  - 설정 가능한 대기 시간 (base_delay, max_delay)
+  - 재시도 실패 시 명확한 에러 로깅
+- **단위 테스트 (P1)** - `tests/unit/daily_selection/test_daily_updater.py`
+  - 종합 점수 계산 테스트 (가중치 검증 포함)
+  - 시장 적응형 선정 테스트 (섹터 제한 검증)
+  - 안전 필터 테스트 (경계값 검증)
+  - 테스트 환경: SQLite 인메모리 DB 사용 (로컬 DB 에러 해결)
+  - 15개 테스트 케이스 모두 통과
+
 ### Fixed
 
 - **psycopg2 모듈 누락 (로컬 환경)** - Python 3.9 가상환경에 재설치
@@ -26,6 +45,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 시장 적응형 선정: bullish 12개, neutral 8개, bearish 5개
   - 섹터 제한: 한 섹터당 최대 3개 (포트폴리오 분산)
   - 종합 점수 체계: technical(35%) + volume(25%) + risk(25%) + confidence(15%)
+- **AsyncKISClient 세션 초기화 (P0)** - 올바른 세션 관리
+  - 문제: RuntimeError "세션이 초기화되지 않았습니다"
+  - 해결: `async with AsyncKISClient() as api:` 패턴 사용
+  - 병렬 처리 복원 (세마포어로 동시성 제어)
+  - 예상 성능 개선: 2x 속도 향상 (90분 → 45분)
+- **로컬 테스트 DB 연결 에러** - SQLite 인메모리 사용
+  - 단위 테스트에서 PostgreSQL 연결 실패 문제 해결
+  - 테스트 환경 변수 설정: `DATABASE_URL=sqlite:///:memory:`
+  - Redis 의존성 제거로 테스트 독립성 확보
 
 ### Changed
 
@@ -33,11 +61,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - psycopg2 모듈 누락 트러블슈팅 추가
   - systemd 설정 변경 경고 해결 방법 추가
   - 진단 및 해결 절차 문서화
-- **core/daily_selection/daily_updater.py** - Phase 2 선정 로직 전면 개선
-  - `_passes_basic_filters()`: 5개 AND 조건 → 2개 안전 필터로 간소화
-  - `_calculate_composite_score()`: 신규 추가 (가중 점수 계산)
-  - `_select_top_n_adaptive()`: 신규 추가 (시장 적응형 상위 N개 선정)
-  - `_merge_batch_results()`: 적응형 선정 로직 통합
+- **core/daily_selection/daily_updater.py** - Phase 2 선정 로직 전면 개선 (P0+P1)
+  - **Config 관리**: 하드코딩 제거, `config/phase2.yaml`에서 로드
+  - **\_passes_basic_filters()**: config에서 필터링 기준 로드
+  - **\_calculate_composite_score()**: config에서 가중치 로드 + 가중치 합 검증 추가
+  - **\_select_top_n_adaptive()**: config에서 목표 선정 수 및 섹터 제한 로드
+  - **process_batch()**: AsyncKISClient 복원 + 재시도 로직 추가
+  - **\_process_single_stock()**: 병렬 처리용 헬퍼 메서드 추가
+  - **\_retry_with_backoff()**: 지수 백오프 재시도 헬퍼 메서드 추가
+  - **\_load_config()**: 설정 파일 로드 메서드 추가
+  - **\_get_default_config()**: 기본값 폴백 메서드 추가
+
+### Performance
+
+- **병렬 처리 복원**: AsyncKISClient + asyncio.gather 사용
+  - 동기 API → 비동기 API 전환 (2x 성능 향상 예상)
+  - 세마포어로 동시 요청 수 제어 (config에서 설정 가능)
+  - Rate Limit 에러 자동 재시도로 안정성 향상
+
+### Code Quality
+
+- **설정 중앙화**: 하드코딩 제거 (60, 5, 12/8/5 등)
+- **가중치 검증**: 종합 점수 계산 시 가중치 합 검증
+- **테스트 커버리지**: 핵심 로직 단위 테스트 추가 (15개)
+- **에러 처리**: API 재시도 로직으로 안정성 향상
 
 ---
 

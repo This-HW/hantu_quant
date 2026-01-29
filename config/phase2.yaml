@@ -1,0 +1,44 @@
+# Phase 2 일일 종목 선정 설정
+# ==============================================
+
+# 안전 필터 기준 (Phase A)
+safety_filter:
+  max_risk_score: 60 # 리스크 점수 상한 (0-100)
+  min_volume_score: 5 # 최소 거래량 점수 (0-100)
+
+# 종합 점수 가중치 (Phase A)
+composite_weights:
+  technical: 0.35 # 기술적 지표 (35%)
+  volume: 0.25 # 거래량 (25%)
+  risk: 0.25 # 리스크 (25%, 역수 적용)
+  confidence: 0.15 # 신뢰도 (15%)
+
+# 시장 적응형 선정 개수 (Phase A)
+adaptive_selection:
+  bullish: 12 # 상승장: 12개
+  neutral: 8 # 중립장: 8개
+  bearish: 5 # 하락장: 5개
+
+# 섹터 다각화 제한
+diversification:
+  max_stocks_per_sector: 3 # 섹터당 최대 종목 수
+
+# 배치 처리 설정
+batch_processing:
+  batch_count: 18 # 총 배치 개수
+  batch_interval_minutes: 5 # 배치 간 실행 간격 (분)
+  start_hour: 7 # 시작 시간 (시)
+  start_minute: 0 # 시작 시간 (분)
+
+# API 재시도 설정 (P0)
+api_retry:
+  max_retries: 3 # 최대 재시도 횟수
+  base_delay: 1.0 # 기본 대기 시간 (초)
+  max_delay: 10.0 # 최대 대기 시간 (초)
+  exponential_base: 2 # 지수 백오프 배수
+  jitter: 0.1 # 랜덤 지터 (0-1)
+
+# 병렬 처리 설정
+concurrency:
+  max_concurrent_requests: 5 # 최대 동시 요청 수
+  request_timeout: 30 # 요청 타임아웃 (초)

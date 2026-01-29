@@ -10,6 +10,8 @@ import json
 import schedule
 import time
 import asyncio
+import random
+import yaml
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
@@ -213,6 +215,9 @@ class DailyUpdater(IDailyUpdater):
         self._output_dir = p_output_dir
         self._logger = logger or get_logger(__name__)
 
+        # Phase 2 설정 로드
+        self._config = self._load_config()
+
         # 컴포넌트 초기화 (DI 또는 직접 생성)
         self._watchlist_manager = watchlist_manager or WatchlistManager(
             p_watchlist_file
@@ -243,6 +248,70 @@ class DailyUpdater(IDailyUpdater):
         self._logger.info("DailyUpdater 플러그인 초기화 완료")
         return True
 
+    def _load_config(self) -> Dict:
+        """Phase 2 설정 파일 로드
+
+        Returns:
+            Dict: 설정 딕셔너리
+        """
+        try:
+            config_path = Path("config/phase2.yaml")
+            if not config_path.exists():
+                self._logger.warning(
+                    f"설정 파일 없음: {config_path}, 기본값 사용"
+                )
+                return self._get_default_config()
+
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+                self._logger.info(f"Phase 2 설정 로드 완료: {config_path}")
+                return config
+
+        except Exception as e:
+            self._logger.error(
+                f"설정 파일 로드 실패: {e}, 기본값 사용",
+                exc_info=True
+            )
+            return self._get_default_config()
+
+    def _get_default_config(self) -> Dict:
+        """기본 설정값 반환 (fallback)
+
+        Returns:
+            Dict: 기본 설정 딕셔너리
+        """
+        return {
+            "safety_filter": {
+                "max_risk_score": 60,
+                "min_volume_score": 5
+            },
+            "composite_weights": {
+                "technical": 0.35,
+                "volume": 0.25,
+                "risk": 0.25,
+                "confidence": 0.15
+            },
+            "adaptive_selection": {
+                "bullish": 12,
+                "neutral": 8,
+                "bearish": 5
+            },
+            "diversification": {
+                "max_stocks_per_sector": 3
+            },
+            "api_retry": {
+                "max_retries": 3,
+                "base_delay": 1.0,
+                "max_delay": 10.0,
+                "exponential_base": 2,
+                "jitter": 0.1
+            },
+            "concurrency": {
+                "max_concurrent_requests": 5,
+                "request_timeout": 30
+            }
+        }
+
     def _get_kis_api(self):
         """KIS API 싱글톤 인스턴스 반환 (rate limiting 공유)"""
         if self._kis_api is None:
@@ -261,6 +330,66 @@ class DailyUpdater(IDailyUpdater):
             self._momentum_selector = MomentumSelector(api_client=self._get_kis_api())
             self._logger.info("MomentumSelector 인스턴스 초기화 완료 (API 공유)")
         return self._momentum_selector
+
+    async def _retry_with_backoff(self, coro_func, *args, **kwargs):
+        """지수 백오프로 비동기 함수 재시도 (P0)
+
+        Args:
+            coro_func: 재시도할 코루틴 함수
+            *args, **kwargs: 함수 인자
+
+        Returns:
+            함수 실행 결과
+
+        Raises:
+            Exception: 최대 재시도 후에도 실패 시
+        """
+        retry_config = self._config["api_retry"]
+        max_retries = retry_config["max_retries"]
+        base_delay = retry_config["base_delay"]
+        max_delay = retry_config["max_delay"]
+        exp_base = retry_config["exponential_base"]
+        jitter = retry_config["jitter"]
+
+        last_exception = None
+
+        for attempt in range(max_retries + 1):
+            try:
+                return await coro_func(*args, **kwargs)
+
+            except Exception as e:
+                last_exception = e
+                error_name = type(e).__name__
+
+                # Rate Limit 에러인지 확인
+                is_rate_limit = (
+                    "rate" in str(e).lower() or
+                    "limit" in str(e).lower() or
+                    "429" in str(e)
+                )
+
+                if attempt < max_retries:
+                    # 지수 백오프 계산
+                    delay = min(
+                        base_delay * (exp_base ** attempt),
+                        max_delay
+                    )
+                    # 랜덤 지터 추가 (충돌 방지)
+                    jitter_amount = delay * jitter * random.random()
+                    delay += jitter_amount
+
+                    self._logger.warning(
+                        f"API 호출 실패 ({error_name}), "
+                        f"{delay:.2f}초 후 재시도 ({attempt + 1}/{max_retries})"
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    self._logger.error(
+                        f"API 호출 최대 재시도 초과: {error_name}",
+                        exc_info=True
+                    )
+
+        raise last_exception
 
     def run_daily_update(
         self,
@@ -968,18 +1097,23 @@ class DailyUpdater(IDailyUpdater):
             필터링 통과 여부
         """
         # Phase A 개선: 안전 필터만 적용 (과도한 리스크만 제외)
+        # config에서 기준값 로드
+        max_risk = self._config["safety_filter"]["max_risk_score"]
+        min_volume = self._config["safety_filter"]["min_volume_score"]
 
-        # 리스크 점수 (완화: 60점 이하)
-        if p_result.risk_score > 60:
+        # 리스크 점수
+        if p_result.risk_score > max_risk:
             self._logger.debug(
-                f"❌ {p_result.stock_code} 리스크 필터링 실패: {p_result.risk_score} > 60"
+                f"❌ {p_result.stock_code} 리스크 필터링 실패: "
+                f"{p_result.risk_score} > {max_risk}"
             )
             return False
 
-        # 최소 유동성 (완화: 5점 이상)
-        if p_result.volume_score < 5:
+        # 최소 유동성
+        if p_result.volume_score < min_volume:
             self._logger.debug(
-                f"❌ {p_result.stock_code} 거래량 필터링 실패: {p_result.volume_score} < 5"
+                f"❌ {p_result.stock_code} 거래량 필터링 실패: "
+                f"{p_result.volume_score} < {min_volume}"
             )
             return False
 
@@ -994,17 +1128,36 @@ class DailyUpdater(IDailyUpdater):
 
         Returns:
             종합 점수 (0-100)
+
+        Raises:
+            ValueError: 가중치 합이 1.0이 아닌 경우
         """
+        # config에서 가중치 로드
+        weights = self._config["composite_weights"]
+        w_technical = weights["technical"]
+        w_volume = weights["volume"]
+        w_risk = weights["risk"]
+        w_confidence = weights["confidence"]
+
+        # 가중치 검증 (P1)
+        weight_sum = w_technical + w_volume + w_risk + w_confidence
+        if not (0.99 <= weight_sum <= 1.01):  # 부동소수점 오차 허용
+            raise ValueError(
+                f"가중치 합이 1.0이 아닙니다: {weight_sum:.4f}"
+            )
+
+        # 점수 추출
         technical = stock_data.get("technical_score", 0)
         volume = stock_data.get("volume_score", 0)
         risk = stock_data.get("risk_score", 50)
         confidence = stock_data.get("confidence", 0.5)
 
+        # 종합 점수 계산
         composite = (
-            technical * 0.35 +
-            volume * 0.25 +
-            (100 - risk) * 0.25 +
-            confidence * 100 * 0.15
+            technical * w_technical +
+            volume * w_volume +
+            (100 - risk) * w_risk +
+            confidence * 100 * w_confidence
         )
         return composite
 
@@ -1032,28 +1185,27 @@ class DailyUpdater(IDailyUpdater):
         # 2. 종합 점수로 정렬 (내림차순)
         candidates.sort(key=lambda x: x["composite_score"], reverse=True)
 
-        # 3. 시장 상황별 목표 선정 수
-        target_counts = {
-            "bullish": 12,
-            "neutral": 8,
-            "bearish": 5
-        }
-        target_count = target_counts.get(market_condition, 8)
+        # 3. config에서 시장 상황별 목표 선정 수 로드
+        adaptive_config = self._config["adaptive_selection"]
+        target_count = adaptive_config.get(market_condition, adaptive_config["neutral"])
 
         self._logger.info(
             f"시장 상황: {market_condition}, 목표 선정 수: {target_count}개, "
             f"후보 종목: {len(candidates)}개"
         )
 
-        # 4. 섹터별 제한 적용하며 선정
+        # 4. config에서 섹터별 제한 로드
+        max_per_sector = self._config["diversification"]["max_stocks_per_sector"]
+
+        # 5. 섹터별 제한 적용하며 선정
         selected = []
         sector_count = {}
 
         for stock in candidates:
             sector = stock.get("sector", "기타")
 
-            # 섹터당 최대 3개 제한
-            if sector_count.get(sector, 0) >= 3:
+            # 섹터당 최대 N개 제한
+            if sector_count.get(sector, 0) >= max_per_sector:
                 self._logger.debug(
                     f"섹터 제한: {stock['stock_code']} ({sector}) - "
                     f"이미 {sector_count[sector]}개 선정됨"
@@ -1679,7 +1831,7 @@ class DailyUpdater(IDailyUpdater):
         batch_stocks: List[Dict],
         market_condition: str
     ) -> List[Dict]:
-        """단일 배치 처리 (Phase A 개선: 동기 API 사용)
+        """단일 배치 처리 (P0 개선: AsyncKISClient + 재시도 로직)
 
         Args:
             batch_index: 배치 번호 (0-17)
@@ -1690,12 +1842,12 @@ class DailyUpdater(IDailyUpdater):
             List[Dict]: 안전 필터 통과 종목 리스트
 
         처리 흐름:
-        1. 배치 시작 로깅
-        2. 동기 API로 가격 조회 (AsyncKISClient 세션 문제 해결)
+        1. AsyncKISClient 세션 초기화 (async with)
+        2. 병렬 가격 조회 (세마포어로 동시성 제어)
         3. 가격 매력도 분석
         4. 안전 필터 적용 (Phase A)
         5. 통과 종목 반환
-        6. 에러 시 빈 리스트 반환 (부분 실패 허용)
+        6. Rate Limit 에러 시 지수 백오프 재시도 (P0)
         """
         try:
             self._logger.info(f"배치 {batch_index} 처리 시작: {len(batch_stocks)}개 종목")
@@ -1704,76 +1856,131 @@ class DailyUpdater(IDailyUpdater):
                 self._logger.warning(f"배치 {batch_index}: 종목 없음")
                 return []
 
-            # Phase A 개선: 동기 API 사용 (안정성 우선)
+            # P0: AsyncKISClient 올바른 세션 초기화
             try:
-                from core.api.kis_api import KISAPI
-                api = KISAPI()
+                from core.api.async_client import AsyncKISClient
             except Exception as e:
-                self._logger.error(f"KISAPI import 실패: {e}", exc_info=True)
+                self._logger.error(f"AsyncKISClient import 실패: {e}", exc_info=True)
                 return []
 
-            # 순차 가격 조회 및 분석
-            selected_stocks = []
+            # async with 컨텍스트 매니저로 세션 관리 (P0)
+            async with AsyncKISClient() as async_api:
+                # 동시성 제어 (config에서 로드)
+                max_concurrent = self._config["concurrency"]["max_concurrent_requests"]
+                semaphore = asyncio.Semaphore(max_concurrent)
 
-            for stock in batch_stocks:
-                try:
-                    stock_code = stock.get("stock_code")
-                    if not stock_code:
-                        continue
+                # 병렬 처리 태스크 생성
+                tasks = [
+                    self._process_single_stock(
+                        stock, async_api, semaphore, batch_index
+                    )
+                    for stock in batch_stocks
+                ]
 
-                    # 가격 조회
-                    price_data = api.get_current_price(stock_code)
-                    if not price_data:
-                        continue
+                # 병렬 실행
+                results = await asyncio.gather(*tasks, return_exceptions=True)
 
-                    current_price = price_data.get("current_price", 0)
-                    if current_price <= 0:
-                        continue
+                # 성공한 종목만 필터링
+                selected_stocks = [
+                    result for result in results
+                    if result is not None and not isinstance(result, Exception)
+                ]
 
-                    # 가격 매력도 분석
-                    stock_data = {
-                        **stock,
-                        "current_price": current_price
-                    }
+                # 진행률 로깅
+                self._logger.info(
+                    f"배치 {batch_index} 완료: "
+                    f"{len(selected_stocks)}/{len(batch_stocks)} 종목 통과 (안전 필터)"
+                )
 
-                    # PriceAnalyzer로 분석
-                    analysis_result = self._price_analyzer.analyze_price_attractiveness(stock_data)
-
-                    # Phase A: 안전 필터만 적용
-                    if self._passes_basic_filters(analysis_result):
-                        selected_stocks.append({
-                            "stock_code": stock.get("stock_code"),
-                            "stock_name": stock.get("stock_name"),
-                            "current_price": current_price,
-                            "total_score": analysis_result.total_score,
-                            "technical_score": analysis_result.technical_score,
-                            "volume_score": analysis_result.volume_score,
-                            "risk_score": analysis_result.risk_score,
-                            "confidence": analysis_result.confidence,
-                            "entry_price": analysis_result.entry_price,
-                            "target_price": analysis_result.target_price,
-                            "stop_loss": analysis_result.stop_loss,
-                            "expected_return": analysis_result.expected_return,
-                            "selection_reason": analysis_result.selection_reason,
-                            "sector": stock.get("sector", "기타"),
-                            "market_cap": stock.get("market_cap", 0.0),
-                        })
-
-                except Exception as e:
-                    self._logger.debug(f"종목 처리 실패 ({stock.get('stock_code')}): {e}")
-                    continue
-
-            # 진행률 로깅
-            self._logger.info(
-                f"배치 {batch_index} 완료: {len(selected_stocks)}/{len(batch_stocks)} 종목 통과 "
-                f"(안전 필터)"
-            )
-
-            return selected_stocks
+                return selected_stocks
 
         except Exception as e:
-            self._logger.error(f"배치 {batch_index} 처리 실패: {e}", exc_info=True)
+            self._logger.error(
+                f"배치 {batch_index} 처리 실패: {e}",
+                exc_info=True
+            )
             return []  # 부분 실패 허용
+
+    async def _process_single_stock(
+        self,
+        stock: Dict,
+        async_api,
+        semaphore: asyncio.Semaphore,
+        batch_index: int
+    ) -> Optional[Dict]:
+        """단일 종목 처리 (병렬 처리용 헬퍼)
+
+        Args:
+            stock: 종목 데이터
+            async_api: AsyncKISClient 인스턴스
+            semaphore: 동시성 제어 세마포어
+            batch_index: 배치 번호
+
+        Returns:
+            Optional[Dict]: 선정된 종목 데이터 또는 None
+        """
+        async with semaphore:
+            try:
+                stock_code = stock.get("stock_code")
+                if not stock_code:
+                    return None
+
+                # P0: 재시도 로직으로 가격 조회
+                price_result = await self._retry_with_backoff(
+                    async_api.get_current_price,
+                    stock_code
+                )
+
+                if not price_result:
+                    return None
+
+                current_price = price_result.get("output", {}).get("stck_prpr", 0)
+                if not current_price:
+                    return None
+
+                current_price = float(current_price)
+                if current_price <= 0:
+                    return None
+
+                # 가격 매력도 분석
+                stock_data = {
+                    **stock,
+                    "current_price": current_price
+                }
+
+                # PriceAnalyzer로 분석 (동기 호출)
+                analysis_result = self._price_analyzer.analyze_price_attractiveness(
+                    stock_data
+                )
+
+                # Phase A: 안전 필터만 적용
+                if not self._passes_basic_filters(analysis_result):
+                    return None
+
+                # 선정 종목 데이터 생성
+                return {
+                    "stock_code": stock.get("stock_code"),
+                    "stock_name": stock.get("stock_name"),
+                    "current_price": current_price,
+                    "total_score": analysis_result.total_score,
+                    "technical_score": analysis_result.technical_score,
+                    "volume_score": analysis_result.volume_score,
+                    "risk_score": analysis_result.risk_score,
+                    "confidence": analysis_result.confidence,
+                    "entry_price": analysis_result.entry_price,
+                    "target_price": analysis_result.target_price,
+                    "stop_loss": analysis_result.stop_loss,
+                    "expected_return": analysis_result.expected_return,
+                    "selection_reason": analysis_result.selection_reason,
+                    "sector": stock.get("sector", "기타"),
+                    "market_cap": stock.get("market_cap", 0.0),
+                }
+
+            except Exception as e:
+                self._logger.debug(
+                    f"종목 처리 실패 ({stock.get('stock_code')}): {e}"
+                )
+                return None
 
     def wait_for_phase1(self, timeout: int = 1800) -> bool:
         """Phase 1 (종목 스크리닝) 완료 대기
