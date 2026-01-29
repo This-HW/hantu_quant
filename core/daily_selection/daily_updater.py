@@ -2013,14 +2013,14 @@ class DailyUpdater(IDailyUpdater):
 
                 # P0: 재시도 로직으로 가격 조회
                 price_result = await self._retry_with_backoff(
-                    async_api.get_current_price,
+                    async_api.get_price,
                     stock_code
                 )
 
                 if not price_result:
                     return None
 
-                current_price = price_result.get("output", {}).get("stck_prpr", 0)
+                current_price = price_result.current_price
                 if not current_price:
                     return None
 
