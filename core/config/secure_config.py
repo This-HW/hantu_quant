@@ -80,7 +80,7 @@ class SecureConfig:
             raise ValueError(f"잘못된 SERVER 값: {server}. 'virtual' 또는 'prod'만 허용됩니다.")
 
         if server == 'prod':
-            logger.warning("⚠️  실제 투자 환경으로 설정되어 있습니다. 주의하세요!")
+            logger.warning("실제 투자 환경으로 설정되어 있습니다. 주의하세요!")
 
     def get(self, key: str, default: Any = None, mask_log: bool = False) -> Any:
         """

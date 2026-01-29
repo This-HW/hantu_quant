@@ -908,11 +908,18 @@ class PriceAnalyzer(IPriceAnalyzer):
         )
 
     def _get_sector_momentum(self, p_sector: str) -> float:
-        """섹터 모멘텀 조회 (캐시 사용)"""
+        """섹터 모멘텀 조회 (캐시 사용)
+
+        DEPRECATED: 더미 데이터 사용 중
+        """
         if p_sector in self._sector_momentum_cache:
             return self._sector_momentum_cache[p_sector]
 
-        # 실제로는 섹터 데이터를 조회해야 하지만, 여기서는 시뮬레이션
+        # WARNING: 더미 데이터 사용 - 실제 섹터 데이터로 교체 필요
+        self._logger.warning(
+            f"섹터 모멘텀 더미 데이터 사용 (sector={p_sector}). 실제 데이터로 교체 필요!",
+            exc_info=True
+        )
         _v_momentum = np.random.uniform(-5.0, 15.0)  # -5% ~ 15% 범위
         self._sector_momentum_cache[p_sector] = _v_momentum
 
@@ -1357,7 +1364,10 @@ class PriceAnalyzer(IPriceAnalyzer):
             return 50.0, []
 
     def _generate_ohlcv_data(self, p_stock_data: Dict) -> Optional[pd.DataFrame]:
-        """주식 데이터로부터 OHLCV DataFrame 생성 (기울기 분석용)"""
+        """주식 데이터로부터 OHLCV DataFrame 생성 (기울기 분석용)
+
+        DEPRECATED: 더미 OHLCV 데이터 생성 중
+        """
         try:
             _v_current_price = p_stock_data.get("current_price", 0.0)
             _v_volume_ratio = p_stock_data.get("volume_ratio", 1.0)
@@ -1365,7 +1375,11 @@ class PriceAnalyzer(IPriceAnalyzer):
             if _v_current_price <= 0:
                 return None
 
-            # 더미 OHLCV 데이터 생성 (실제로는 API에서 가져와야 함)
+            # WARNING: 더미 OHLCV 데이터 생성 - 실제 API 데이터로 교체 필요
+            self._logger.warning(
+                f"OHLCV 더미 데이터 생성 중 (price={_v_current_price}). 실제 API 데이터로 교체 필요!",
+                exc_info=True
+            )
             # 60일간의 임시 데이터 생성
             _v_dates = pd.date_range(end=datetime.now().date(), periods=60, freq="D")
             _v_prices = []
@@ -1617,7 +1631,24 @@ class PriceAnalyzer(IPriceAnalyzer):
     def _generate_dummy_price_data(
         self, p_current_price: float, p_days: int = 30
     ) -> List[float]:
-        """더미 가격 데이터 생성 (실제로는 API에서 가져옴)"""
+        """더미 가격 데이터 생성 (실제로는 API에서 가져옴)
+
+        DEPRECATED: 이 함수는 개발/테스트 목적으로만 사용됩니다.
+        프로덕션 환경에서는 실제 API 데이터를 사용해야 합니다.
+
+        Args:
+            p_current_price: 현재 가격
+            p_days: 생성할 일수
+
+        Returns:
+            List[float]: 더미 가격 데이터
+        """
+        self._logger.warning(
+            f"더미 데이터 사용 중 (current_price={p_current_price}, days={p_days}). "
+            "실제 API 데이터로 교체 필요!",
+            exc_info=True
+        )
+
         _v_prices = []
         _v_price = p_current_price * 0.95  # 시작가는 현재가보다 5% 낮게
 

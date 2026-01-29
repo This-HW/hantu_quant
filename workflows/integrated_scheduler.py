@@ -64,9 +64,9 @@ except Exception as e:
 
 # 스케줄러 시작 시 로그 기록
 logger.info("=" * 50)
-logger.info("🚀 통합 스케줄러 모듈 로딩 시작")
+logger.info("통합 스케줄러 모듈 로딩 시작")
 logger.info(f"📝 로그 파일: {log_filename}")
-logger.info(f"⏰ 시작 시간: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+logger.info(f"시작 시간: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 logger.info("=" * 50)
 
 
@@ -85,17 +85,17 @@ class IntegratedScheduler:
             self._v_phase1_workflow = Phase1Workflow(
                 p_parallel_workers=p_parallel_workers
             )
-            logger.info("✅ Phase1 워크플로우 초기화 완료")
+            logger.info("Phase1 워크플로우 초기화 완료")
 
             self._v_phase2_cli = Phase2CLI(p_parallel_workers=p_parallel_workers)
-            logger.info("✅ Phase2 CLI 초기화 완료")
+            logger.info("Phase2 CLI 초기화 완료")
 
             # DailyUpdater 초기화 (분산 모드 지원)
             self._v_daily_updater = DailyUpdater(
                 p_watchlist_file="data/watchlist/watchlist.json",
                 p_output_dir="data/daily_selection"
             )
-            logger.info("✅ DailyUpdater 초기화 완료")
+            logger.info("DailyUpdater 초기화 완료")
 
             self._v_parallel_workers = p_parallel_workers
 
@@ -115,11 +115,11 @@ class IntegratedScheduler:
             self._load_telegram_config()
 
             logger.info(
-                f"✅ 통합 스케줄러 초기화 완료 (병렬 워커: {p_parallel_workers}개)"
+                f"통합 스케줄러 초기화 완료 (병렬 워커: {p_parallel_workers}개)"
             )
 
         except Exception as e:
-            logger.error(f"❌ 스케줄러 초기화 실패: {e}", exc_info=True)
+            logger.error(f"스케줄러 초기화 실패: {e}", exc_info=True)
             logger.error(f"📋 상세 오류:\n{traceback.format_exc()}", exc_info=True)
             raise
 
@@ -223,7 +223,7 @@ class IntegratedScheduler:
                 if cursor == 0:
                     break
 
-            logger.info(f"✅ 캐시 초기화 완료: {deleted_count}개 키 삭제")
+            logger.info(f"캐시 초기화 완료: {deleted_count}개 키 삭제")
 
             # 텔레그램 알림
             try:
@@ -286,12 +286,12 @@ class IntegratedScheduler:
             )
 
             if success:
-                logger.info(f"✅ 배치 {batch_index}/17 완료")
+                logger.info(f"배치 {batch_index}/17 완료")
 
                 # 마지막 배치: Phase 2 완료 알림
                 if batch_index == 17:
                     logger.info("=" * 50)
-                    logger.info("✅ Phase 2 분산 배치 실행 완료")
+                    logger.info("Phase 2 분산 배치 실행 완료")
 
                     # 선정 결과 파일 확인
                     today_str = datetime.now().strftime("%Y%m%d")
@@ -310,7 +310,7 @@ class IntegratedScheduler:
                         notifier = get_telegram_notifier()
                         if notifier.is_enabled():
                             message = (
-                                f"✅ *Phase 2 완료*\n\n"
+                                f"*Phase 2 완료*\n\n"
                                 f"• 총 선정 종목: {total_selected}개\n"
                                 f"• 소요 시간: 90분\n"
                                 f"• 저장: DB (`selection_results` 테이블)"
@@ -319,14 +319,14 @@ class IntegratedScheduler:
                     except Exception as e:
                         logger.warning(f"Phase 2 완료 알림 전송 실패: {e}")
             else:
-                logger.error(f"❌ 배치 {batch_index}/17 실패")
+                logger.error(f"배치 {batch_index}/17 실패")
 
                 # 배치 실패 알림
                 try:
                     notifier = get_telegram_notifier()
                     if notifier.is_enabled():
                         message = (
-                            f"⚠️ *배치 {batch_index} 실패*\n\n"
+                            f"*배치 {batch_index} 실패*\n\n"
                             f"• 에러: 배치 실행 실패\n"
                             f"• 다음 배치 진행 중..."
                         )
@@ -335,14 +335,14 @@ class IntegratedScheduler:
                     logger.warning(f"배치 실패 알림 전송 실패: {e}")
 
         except Exception as e:
-            logger.error(f"❌ 배치 {batch_index}/17 실행 오류: {e}", exc_info=True)
+            logger.error(f"배치 {batch_index}/17 실행 오류: {e}", exc_info=True)
 
             # 에러 알림
             try:
                 notifier = get_telegram_notifier()
                 if notifier.is_enabled():
                     message = (
-                        f"⚠️ *배치 {batch_index} 실패*\n\n"
+                        f"*배치 {batch_index} 실패*\n\n"
                         f"• 에러: {str(e)[:50]}...\n"
                         f"• 다음 배치 진행 중..."
                     )
@@ -463,7 +463,7 @@ class IntegratedScheduler:
         self._v_scheduler_thread.start()
 
         logger.info("통합 스케줄러 시작됨")
-        print("🚀 통합 스케줄러 시작!")
+        print("통합 스케줄러 시작!")
         print("├─ 캐시 초기화: 매일 00:00")
         print("├─ 일간 스크리닝: 매일 06:00")
         print("├─ 일일 업데이트: 07:00-08:30 (18개 배치, 5분 간격)")
@@ -557,7 +557,7 @@ class IntegratedScheduler:
                 fundamentals_df = krx_client.load_market_fundamentals()
                 if fundamentals_df.empty:
                     logger.warning("재무 데이터 없음 - 토요일 수집 후 사용 가능")
-                    print("⚠️ 재무 데이터 없음 (토요일에 자동 수집됩니다)")
+                    print("재무 데이터 없음 (토요일에 자동 수집됩니다)")
                 else:
                     logger.info(f"재무 데이터 확인 완료: {len(fundamentals_df)}개 종목")
             except Exception as e:
@@ -626,7 +626,7 @@ class IntegratedScheduler:
 
             # 5. 일일 성과 분석 (17:00 이후)
             if now >= performance_time:
-                print("📊 일일 성과 분석 실행...")
+                print("일일 성과 분석 실행...")
                 self._run_daily_performance_analysis()
                 recovered_tasks.append("일일 성과 분석")
 
@@ -648,7 +648,7 @@ class IntegratedScheduler:
                         success = notifier.send_message(
                             f"🔄 *스케줄러 재시작*\n"
                             f"`{now.strftime('%H:%M')}` 재시작\n\n"
-                            f"✅ 모든 작업이 이미 완료되어 추가 복구 불필요",
+                            f"모든 작업이 이미 완료되어 추가 복구 불필요",
                             "normal",
                         )
                         if not success:
@@ -659,9 +659,9 @@ class IntegratedScheduler:
                 logger.error(f"복구 알림 전송 중 오류: {notify_error}", exc_info=True)
 
             if recovered_tasks:
-                print(f"✅ 복구 작업 완료: {', '.join(recovered_tasks)}\n")
+                print(f"복구 작업 완료: {', '.join(recovered_tasks)}\n")
             else:
-                print("✅ 복구 필요 없음 - 모든 작업 이미 완료됨\n")
+                print("복구 필요 없음 - 모든 작업 이미 완료됨\n")
 
             logger.info(
                 f"복구 작업 완료: {recovered_tasks if recovered_tasks else '없음'}"
@@ -670,7 +670,7 @@ class IntegratedScheduler:
         except Exception as e:
             logger.error(f"복구 작업 실패: {e}", exc_info=True)
             logger.error(traceback.format_exc())
-            print(f"❌ 복구 작업 실패: {e}")
+            print(f"복구 작업 실패: {e}")
 
     def _check_today_selection_in_db(self, target_date) -> bool:
         """DB에서 오늘 선정 결과가 있는지 확인
@@ -793,7 +793,7 @@ class IntegratedScheduler:
                         continue
 
         except Exception as e:
-            logger.warning(f"⚠️ 프로세스 상태 확인 실패: {e}, 내부 상태 사용")
+            logger.warning(f"프로세스 상태 확인 실패: {e}, 내부 상태 사용")
             actual_running = self._v_scheduler_running
 
         # 내부 상태와 실제 프로세스 상태 비교 (스케줄러 스레드가 실행 중이면 내부 상태 우선)
@@ -862,7 +862,7 @@ class IntegratedScheduler:
                 time.sleep(60)  # 1분마다 체크
 
             except Exception as e:
-                logger.error(f"❌ 스케줄러 루프 오류: {e}", exc_info=True)
+                logger.error(f"스케줄러 루프 오류: {e}", exc_info=True)
                 logger.error(f"📋 상세 오류:\n{traceback.format_exc()}", exc_info=True)
                 time.sleep(60)
 
@@ -873,7 +873,7 @@ class IntegratedScheduler:
         try:
             logger.info("=== 일간 스크리닝 시작 ===")
             print(
-                f"🔍 일간 스크리닝 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                f"일간 스크리닝 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             )
 
             # 전체 시장 스크리닝 실행 (코스피 + 코스닥 전체 2875개 종목)
@@ -885,22 +885,22 @@ class IntegratedScheduler:
             if _v_success:
                 self._v_last_screening = datetime.now()
                 logger.info("일간 스크리닝 완료")
-                print("✅ 일간 스크리닝 완료!")
+                print("일간 스크리닝 완료!")
 
                 # 알림은 Phase1이 이미 발송함. 스케줄러에서는 중복 전송하지 않음.
                 # Phase 2는 분산 스케줄로 07:00-08:30에 자동 실행됨
 
             else:
                 logger.error("일간 스크리닝 실패")
-                print("❌ 일간 스크리닝 실패")
+                print("일간 스크리닝 실패")
 
                 # 실패 알람 전송
-                _v_error_message = f"🚨 *한투 퀀트 스크리닝 실패*\n\n⏰ 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n❌ 상태: 일간 스크리닝 실패\n\n⚠️ 시스템 점검이 필요합니다."
+                _v_error_message = f"*한투 퀀트 스크리닝 실패*\n\n시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n상태: 일간 스크리닝 실패\n\n시스템 점검이 필요합니다."
                 self._send_telegram_alert(_v_error_message, "emergency")
 
         except Exception as e:
             logger.error(f"일간 스크리닝 오류: {e}", exc_info=True)
-            print(f"❌ 일간 스크리닝 오류: {e}")
+            print(f"일간 스크리닝 오류: {e}")
             self._v_phase1_completed = False
 
     def _run_daily_update(self):
@@ -908,7 +908,7 @@ class IntegratedScheduler:
         try:
             logger.info("=== 일일 업데이트 시작 ===")
             print(
-                f"📊 일일 업데이트 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                f"일일 업데이트 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             )
 
             # Phase 2 DailyUpdater의 WatchlistManager를 새로 초기화하여 최신 데이터 로드
@@ -934,18 +934,18 @@ class IntegratedScheduler:
             if _v_success:
                 self._v_last_daily_update = datetime.now()
                 logger.info("일일 업데이트 완료")
-                print("✅ 일일 업데이트 완료!")
+                print("일일 업데이트 완료!")
 
                 # 선정 결과 요약 출력
                 self._print_daily_summary()
 
             else:
                 logger.error("일일 업데이트 실패")
-                print("❌ 일일 업데이트 실패")
+                print("일일 업데이트 실패")
 
         except Exception as e:
             logger.error(f"일일 업데이트 오류: {e}", exc_info=True)
-            print(f"❌ 일일 업데이트 오류: {e}")
+            print(f"일일 업데이트 오류: {e}")
 
     def _run_market_close_tasks(self):
         """시장 마감 후 정리 작업"""
@@ -991,20 +991,20 @@ class IntegratedScheduler:
                 logger.warning(f"매매일지 요약 생성 실패: {e}")
 
             if _v_report_success:
-                print("✅ 일일 리포트 생성 완료")
+                print("일일 리포트 생성 완료")
 
-            print("✅ 시장 마감 후 정리 완료")
+            print("시장 마감 후 정리 완료")
 
         except Exception as e:
             logger.error(f"시장 마감 후 정리 오류: {e}", exc_info=True)
-            print(f"❌ 시장 마감 후 정리 오류: {e}")
+            print(f"시장 마감 후 정리 오류: {e}")
 
     def _run_fundamental_data_collection(self):
         """재무 데이터 수집 배치 (KIS API 사용, Phase 1 스크리닝 전 실행)"""
         try:
             logger.info("=== 재무 데이터 수집 배치 시작 ===")
             print(
-                f"📈 재무 데이터 수집 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                f"재무 데이터 수집 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             )
 
             from core.api.krx_client import KRXClient
@@ -1016,14 +1016,14 @@ class IntegratedScheduler:
 
             if saved_count > 0:
                 logger.info(f"재무 데이터 수집 완료: {saved_count}개 종목")
-                print(f"✅ 재무 데이터 수집 완료: {saved_count}개 종목")
+                print(f"재무 데이터 수집 완료: {saved_count}개 종목")
 
                 # 텔레그램 알림 (선택)
                 try:
                     notifier = get_telegram_notifier()
                     if notifier.is_enabled():
                         notifier.send_message(
-                            f"📈 재무 데이터 수집 완료\n"
+                            f"재무 데이터 수집 완료\n"
                             f"- 종목 수: {saved_count}개\n"
                             f"- 시간: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
                         )
@@ -1031,18 +1031,18 @@ class IntegratedScheduler:
                     logger.warning(f"텔레그램 알림 실패: {e}")
             else:
                 logger.warning("재무 데이터 수집 실패: 저장된 종목 없음")
-                print("⚠️ 재무 데이터 수집 실패")
+                print("재무 데이터 수집 실패")
 
         except Exception as e:
             logger.error(f"재무 데이터 수집 오류: {e}", exc_info=True)
-            print(f"❌ 재무 데이터 수집 오류: {e}")
+            print(f"재무 데이터 수집 오류: {e}")
 
     def _run_daily_performance_analysis(self):
         """일일 성과 분석 실행 (Phase 4) - 실제 성과 데이터 사용"""
         try:
             logger.info("=== 일일 성과 분석 시작 ===")
             print(
-                f"📊 일일 성과 분석 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                f"일일 성과 분석 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             )
 
             # 실제 성과 지표 계산 및 텔레그램 리포트 전송
@@ -1055,10 +1055,10 @@ class IntegratedScheduler:
                     success = notifier.send_daily_performance_report()
                     if success:
                         logger.info("일일 성과 리포트 전송 완료")
-                        print("✅ 일일 성과 리포트가 텔레그램으로 전송되었습니다!")
+                        print("일일 성과 리포트가 텔레그램으로 전송되었습니다!")
                     else:
                         logger.warning("일일 성과 리포트 전송 실패")
-                        print("⚠️ 일일 성과 리포트 전송 실패")
+                        print("일일 성과 리포트 전송 실패")
                 else:
                     logger.info("텔레그램 알림이 비활성화되어 있음")
                     print("ℹ️ 텔레그램 알림이 비활성화되어 있습니다.")
@@ -1081,14 +1081,14 @@ class IntegratedScheduler:
                 logger.info(
                     f"일일 성과 분석 완료: 실현손익 {daily_perf.get('realized_pnl', 0):,.0f}원, 평가손익 {daily_perf.get('unrealized_pnl', 0):,.0f}원"
                 )
-                print("✅ 일일 성과 분석 완료!")
+                print("일일 성과 분석 완료!")
                 print(f"   - 실현 손익: {daily_perf.get('realized_pnl', 0):,.0f}원")
                 print(f"   - 평가 손익: {daily_perf.get('unrealized_pnl', 0):,.0f}원")
                 print(f"   - 총 손익: {daily_perf.get('total_pnl', 0):,.0f}원")
 
             except ImportError as ie:
                 logger.warning(f"성과 분석 모듈 로드 실패, 기본 분석 사용: {ie}")
-                print("⚠️ 성과 분석 모듈 로드 실패, 기본 분석으로 대체")
+                print("성과 분석 모듈 로드 실패, 기본 분석으로 대체")
 
                 # 기본 분석 (폴백)
                 performance_data = {
@@ -1105,11 +1105,11 @@ class IntegratedScheduler:
 
             except Exception as ai_error:
                 logger.error(f"성과 분석 중 오류 발생: {ai_error}", exc_info=True)
-                print(f"⚠️ 성과 분석 중 오류: {ai_error}")
+                print(f"성과 분석 중 오류: {ai_error}")
 
         except Exception as e:
             logger.error(f"일일 성과 분석 오류: {e}", exc_info=True)
-            print(f"❌ 일일 성과 분석 오류: {e}")
+            print(f"일일 성과 분석 오류: {e}")
 
     def _run_enhanced_adaptive_learning(self):
         """강화된 적응형 학습 실행 (포괄적 분석 기반)"""
@@ -1151,7 +1151,7 @@ class IntegratedScheduler:
                     logger.info(
                         f"강화된 학습 완료: 동기화={screening_synced+selection_synced}건, 적응={'예' if adapted else '아니오'}, 인사이트={actionable_insights}개"
                     )
-                    print("✅ 강화된 적응형 학습 완료!")
+                    print("강화된 적응형 학습 완료!")
                     print(
                         f"   - 데이터 동기화: 스크리닝 {screening_synced}건, 선정 {selection_synced}건, 성과 {performance_updated}건"
                     )
@@ -1184,7 +1184,7 @@ class IntegratedScheduler:
                             f"   - 선정 성과: 승률 {win_rate:.1%}, 평균수익률 {avg_return:+.2%}"
                         )
                     print(f"   - 실행 가능한 인사이트: {actionable_insights}개")
-                    print(f"   - 파라미터 적응: {'✅' if adapted else '유지'}")
+                    print(f"   - 파라미터 적응: {'' if adapted else '유지'}")
 
                     # 텔레그램 상세 알림 전송
                     if adapted or actionable_insights > 0:
@@ -1194,12 +1194,12 @@ class IntegratedScheduler:
 
                 else:
                     error_msg = result.get("error", "알 수 없는 오류")
-                    print(f"❌ 강화된 학습 실패: {error_msg}")
+                    print(f"강화된 학습 실패: {error_msg}")
                     logger.error(f"강화된 적응형 학습 실패: {error_msg}", exc_info=True)
 
             except ImportError as ie:
                 logger.warning(f"강화된 학습 모듈 로드 실패: {ie}")
-                print("⚠️ 강화된 학습 모듈을 찾을 수 없습니다")
+                print("강화된 학습 모듈을 찾을 수 없습니다")
 
                 # 기본 학습 시스템으로 폴백
                 print("📋 기본 적응형 학습으로 대체 실행...")
@@ -1207,7 +1207,7 @@ class IntegratedScheduler:
 
         except Exception as e:
             logger.error(f"강화된 적응형 학습 오류: {e}", exc_info=True)
-            print(f"❌ 강화된 적응형 학습 오류: {e}")
+            print(f"강화된 적응형 학습 오류: {e}")
 
     def _run_adaptive_learning_fallback(self):
         """기본 적응형 학습 실행 (폴백용)"""
@@ -1229,20 +1229,20 @@ class IntegratedScheduler:
                 logger.info(
                     f"기본 적응형 학습 완료: 승률={win_rate:.1%}, 거래수={total_trades}건, 적응={adapted}"
                 )
-                print("✅ 기본 적응형 학습 완료!")
+                print("기본 적응형 학습 완료!")
                 print(f"   - 분석 거래: {total_trades}건")
                 print(f"   - 현재 승률: {win_rate:.1%}")
-                print(f"   - 파라미터 적응: {'✅' if adapted else '유지'}")
+                print(f"   - 파라미터 적응: {'' if adapted else '유지'}")
 
             elif result.get("status") == "skipped":
                 print(f"ℹ️ 적응형 학습 건너뜀: {result.get('message')}")
 
             else:
-                print(f"⚠️ 적응형 학습 실패: {result.get('message')}")
+                print(f"적응형 학습 실패: {result.get('message')}")
 
         except Exception as e:
             logger.error(f"기본 적응형 학습 오류: {e}", exc_info=True)
-            print(f"❌ 기본 적응형 학습 오류: {e}")
+            print(f"기본 적응형 학습 오류: {e}")
 
     def _generate_enhanced_learning_alert(self, result: Dict[str, Any]) -> str:
         """강화된 학습 결과 알림 메시지 생성"""
@@ -1261,7 +1261,7 @@ class IntegratedScheduler:
 
             message = f"""🧠 *강화된 AI 학습 완료*
 
-📊 **데이터 동기화**:
+**데이터 동기화**:
 • 스크리닝: {sync_results.get('screening_synced', 0)}건
 • 선정: {sync_results.get('selection_synced', 0)}건
 • 성과 추적: {sync_results.get('performance_updated', 0)}건
@@ -1283,7 +1283,7 @@ class IntegratedScheduler:
 
             message += f"""
 
-🔍 **AI 인사이트**:
+**AI 인사이트**:
 • 총 인사이트: {len(insights)}개
 • 실행 가능한 제안: {len(actionable_insights)}개"""
 
@@ -1308,9 +1308,9 @@ class IntegratedScheduler:
 
             message += f"""
 
-⏰ 분석 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
+분석 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
 
-🚀 *AI가 포괄적 분석을 통해 시스템을 최적화했습니다!*"""
+*AI가 포괄적 분석을 통해 시스템을 최적화했습니다!*"""
 
             return message
 
@@ -1338,11 +1338,11 @@ class IntegratedScheduler:
             )
             return f"""🧠 *강화된 AI 학습 완료*
 
-✅ 포괄적 분석이 완료되었습니다.
+포괄적 분석이 완료되었습니다.
 
-⏰ 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
+시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
 
-🔍 상세 결과는 시스템 로그를 확인하세요."""
+상세 결과는 시스템 로그를 확인하세요."""
 
     def _run_weekly_adaptive_learning(self):
         """주간 깊이 학습 실행 (30일 데이터 기반)"""
@@ -1373,23 +1373,23 @@ class IntegratedScheduler:
                     logger.info(
                         f"주간 학습 완료: 승률={win_rate:.1%}, 수익률={avg_return:.2%}, 트렌드={return_trend}"
                     )
-                    print("✅ 주간 깊이 학습 완료!")
+                    print("주간 깊이 학습 완료!")
                     print(f"   - 30일 거래: {total_trades}건")
                     print(f"   - 평균 승률: {win_rate:.1%}")
                     print(f"   - 수익률 트렌드: {return_trend}")
-                    print(f"   - 파라미터 적응: {'✅' if adapted else '유지'}")
+                    print(f"   - 파라미터 적응: {'' if adapted else '유지'}")
 
                     # 텔레그램 알림 전송
                     if adapted or total_trades > 0:
                         emoji = (
-                            "📈"
+                            ""
                             if return_trend == "improving"
-                            else "📉" if return_trend == "declining" else "➖"
+                            else "" if return_trend == "declining" else ""
                         )
 
                         alert_message = f"""🔬 *주간 AI 깊이 학습 완료*
 
-📊 **30일 성과 분석**:
+**30일 성과 분석**:
 • 총 거래: {total_trades}건
 • 평균 승률: {win_rate:.1%}
 • 평균 수익률: {avg_return:+.2%}
@@ -1398,7 +1398,7 @@ class IntegratedScheduler:
 🧠 **학습 결과**:
 • 파라미터 적응: {'완료' if adapted else '유지'}
 
-⏰ 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
+시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
 
 🎯 *AI가 한 주간의 성과를 분석하여 전략을 최적화했습니다!*"""
 
@@ -1410,18 +1410,18 @@ class IntegratedScheduler:
 
             except ImportError as ie:
                 logger.warning(f"주간 학습 모듈 로드 실패: {ie}")
-                print("⚠️ 주간 학습 모듈을 찾을 수 없습니다")
+                print("주간 학습 모듈을 찾을 수 없습니다")
 
         except Exception as e:
             logger.error(f"주간 깊이 학습 오류: {e}", exc_info=True)
-            print(f"❌ 주간 깊이 학습 오류: {e}")
+            print(f"주간 깊이 학습 오류: {e}")
 
     def _run_weekly_backtest(self):
         """주간 백테스트 실행 (방안 B)"""
         try:
             logger.info("=== 주간 백테스트 시작 ===")
             print(
-                f"📊 주간 백테스트 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                f"주간 백테스트 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             )
 
             try:
@@ -1543,15 +1543,15 @@ class IntegratedScheduler:
                 logger.info(f"백테스트 결과 저장 완료: {result_file}")
 
                 # 결과 출력
-                print("\n✅ 주간 백테스트 완료!")
-                print("\n📊 보수적 전략:")
+                print("\n주간 백테스트 완료!")
+                print("\n보수적 전략:")
                 print(f"   - 승률: {conservative_result.win_rate:.1%}")
                 print(f"   - 평균 수익률: {conservative_result.avg_return:+.2%}")
                 print(f"   - 샤프 비율: {conservative_result.sharpe_ratio:.2f}")
                 print(f"   - 최대 낙폭: {conservative_result.max_drawdown:.1%}")
                 print(f"   - 총 거래: {conservative_result.total_trades}건")
 
-                print("\n📊 공격적 전략:")
+                print("\n공격적 전략:")
                 print(f"   - 승률: {aggressive_result.win_rate:.1%}")
                 print(f"   - 평균 수익률: {aggressive_result.avg_return:+.2%}")
                 print(f"   - 샤프 비율: {aggressive_result.sharpe_ratio:.2f}")
@@ -1565,7 +1565,7 @@ class IntegratedScheduler:
                     else "공격적"
                 )
 
-                alert_message = f"""📊 *주간 백테스트 완료*
+                alert_message = f"""*주간 백테스트 완료*
 
 📅 **분석 기간**: {start_date.strftime('%Y-%m-%d')} ~ {end_date.strftime('%Y-%m-%d')}
 
@@ -1585,7 +1585,7 @@ class IntegratedScheduler:
 
 🏆 **권장 전략**: {better_strategy}
 
-⏰ 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
+시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
 
 💡 *과거 성과를 기반으로 전략을 검증했습니다!*"""
 
@@ -1593,11 +1593,11 @@ class IntegratedScheduler:
 
             except ImportError as ie:
                 logger.warning(f"백테스트 모듈 로드 실패: {ie}")
-                print("⚠️ 백테스트 모듈을 찾을 수 없습니다")
+                print("백테스트 모듈을 찾을 수 없습니다")
 
         except Exception as e:
             logger.error(f"주간 백테스트 오류: {e}", exc_info=True)
-            print(f"❌ 주간 백테스트 오류: {e}")
+            print(f"주간 백테스트 오류: {e}")
             import traceback
 
             traceback.print_exc()
@@ -1618,7 +1618,7 @@ class IntegratedScheduler:
 
                 if success:
                     logger.info("시스템 모니터링 시작 완료")
-                    print("✅ 시스템 모니터링이 백그라운드에서 시작되었습니다!")
+                    print("시스템 모니터링이 백그라운드에서 시작되었습니다!")
                     print("   - CPU, 메모리, 디스크 사용량 모니터링")
                     print("   - 학습 시스템 건강 상태 추적")
                     print("   - 자동 알림 및 보고서 생성")
@@ -1626,7 +1626,7 @@ class IntegratedScheduler:
                     # 모니터링 시작 알림
                     alert_message = f"""👁️ *시스템 모니터링 시작*
 
-🔍 **모니터링 항목**:
+**모니터링 항목**:
 • 시스템 리소스 (CPU, 메모리, 디스크)
 • 학습 시스템 건강 상태
 • 데이터 신선도 및 무결성
@@ -1637,7 +1637,7 @@ class IntegratedScheduler:
 • 일일 보고서: 오후 6시
 • 자동 알림: 임계값 초과 시
 
-⏰ 시작 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
+시작 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
 
 🤖 *AI 시스템이 스스로를 지속적으로 모니터링합니다!*"""
 
@@ -1645,15 +1645,15 @@ class IntegratedScheduler:
 
                 else:
                     logger.warning("시스템 모니터링 시작 실패 (이미 실행 중일 수 있음)")
-                    print("⚠️ 시스템 모니터링 시작 실패 (이미 실행 중일 수 있음)")
+                    print("시스템 모니터링 시작 실패 (이미 실행 중일 수 있음)")
 
             except ImportError as ie:
                 logger.warning(f"시스템 모니터링 모듈 로드 실패: {ie}")
-                print("⚠️ 시스템 모니터링 모듈을 찾을 수 없습니다")
+                print("시스템 모니터링 모듈을 찾을 수 없습니다")
 
         except Exception as e:
             logger.error(f"시스템 모니터링 시작 오류: {e}", exc_info=True)
-            print(f"❌ 시스템 모니터링 시작 오류: {e}")
+            print(f"시스템 모니터링 시작 오류: {e}")
 
     def _run_health_check(self):
         """자동 매매 헬스체크 실행"""
@@ -1696,7 +1696,7 @@ class IntegratedScheduler:
                 logger.info(
                     f"유지보수 체크 완료: 필요={'예' if needs_maintenance else '아니오'}, 실행={'예' if maintenance_executed else '아니오'}"
                 )
-                print("✅ 자동 유지보수 체크 완료!")
+                print("자동 유지보수 체크 완료!")
                 print(f"   - 유지보수 필요: {'예' if needs_maintenance else '아니오'}")
                 print(
                     f"   - 유지보수 실행: {'예' if maintenance_executed else '아니오'}"
@@ -1714,7 +1714,7 @@ class IntegratedScheduler:
 
                         alert_message = f"""🔧 *자동 유지보수 실행*
 
-✅ **유지보수 완료**:
+**유지보수 완료**:
 • 필요 사유: {len(reasons)}건
 • 실행 작업: {len(tasks_completed)}개
 
@@ -1733,17 +1733,17 @@ class IntegratedScheduler:
 
                         alert_message += f"""
 
-⏰ 실행 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
+실행 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
 
-🚀 *시스템이 자동으로 최적화되었습니다!*"""
+*시스템이 자동으로 최적화되었습니다!*"""
 
                         self._send_telegram_alert(alert_message, "normal")
 
                     else:
                         # 유지보수 필요하지만 실행 안 된 경우
-                        alert_message = """⚠️ *유지보수 필요*
+                        alert_message = """*유지보수 필요*
 
-🔍 **점검 결과**:
+**점검 결과**:
 • 유지보수가 필요하지만 자동 실행되지 않았습니다
 
 📋 **필요 사유**:"""
@@ -1753,7 +1753,7 @@ class IntegratedScheduler:
 
                         alert_message += f"""
 
-⏰ 체크 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
+체크 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
 
 🛠️ *수동으로 유지보수를 실행하는 것을 고려하세요*"""
 
@@ -1764,11 +1764,11 @@ class IntegratedScheduler:
 
             except ImportError as ie:
                 logger.warning(f"자동 유지보수 모듈 로드 실패: {ie}")
-                print("⚠️ 자동 유지보수 모듈을 찾을 수 없습니다")
+                print("자동 유지보수 모듈을 찾을 수 없습니다")
 
         except Exception as e:
             logger.error(f"자동 유지보수 오류: {e}", exc_info=True)
-            print(f"❌ 자동 유지보수 오류: {e}")
+            print(f"자동 유지보수 오류: {e}")
 
     def _check_ml_trigger(self):
         """ML 학습 조건 체크 및 자동 트리거"""
@@ -1788,7 +1788,7 @@ class IntegratedScheduler:
 
                 if triggered:
                     logger.info("ML 학습이 자동으로 트리거되었습니다!")
-                    print("✅ ML 학습 조건 충족 - B단계 자동 시작!")
+                    print("ML 학습 조건 충족 - B단계 자동 시작!")
                 else:
                     # 진행률 조회
                     progress = ml_trigger.get_progress_to_ml()
@@ -1798,7 +1798,7 @@ class IntegratedScheduler:
                         conditions_met = progress.get("conditions_met", False)
 
                         logger.info(f"ML 학습 진행률: {overall:.1f}%")
-                        print(f"📊 ML 학습 준비 진행률: {overall:.1f}%")
+                        print(f"ML 학습 준비 진행률: {overall:.1f}%")
 
                         if not conditions_met:
                             days_remaining = progress.get("estimated_days_remaining", 0)
@@ -1818,11 +1818,11 @@ class IntegratedScheduler:
 
             except ImportError as ie:
                 logger.warning(f"ML 트리거 모듈 로드 실패: {ie}")
-                print("⚠️ ML 트리거 모듈을 찾을 수 없습니다")
+                print("ML 트리거 모듈을 찾을 수 없습니다")
 
         except Exception as e:
             logger.error(f"ML 학습 조건 체크 오류: {e}", exc_info=True)
-            print(f"❌ ML 학습 조건 체크 오류: {e}")
+            print(f"ML 학습 조건 체크 오류: {e}")
 
     def _start_auto_trading(self, from_recovery: bool = False) -> bool:
         """자동 매매 시작 (싱글톤 사용으로 중복 실행 방지)
@@ -1835,7 +1835,7 @@ class IntegratedScheduler:
         """
         try:
             logger.info("=== 자동 매매 시작 ===")
-            print(f"🚀 자동 매매 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"자동 매매 시작 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
             # 매매 엔진 import 및 초기화
             try:
@@ -1886,7 +1886,7 @@ class IntegratedScheduler:
                 trading_thread.start()
 
                 logger.info("자동 매매 시작 완료")
-                print("✅ 자동 매매가 백그라운드에서 시작되었습니다!")
+                print("자동 매매가 백그라운드에서 시작되었습니다!")
 
                 # 복구 시에는 스케줄러에서 알림 전송 (trading_engine.start_trading() 내부 알림과 별개)
                 if from_recovery:
@@ -1895,7 +1895,7 @@ class IntegratedScheduler:
                         if notifier.is_enabled():
                             notifier.send_message(
                                 f"🔄 *자동 매매 복구 시작*\n\n"
-                                f"⏰ 시간: `{datetime.now().strftime('%H:%M:%S')}`\n"
+                                f"시간: `{datetime.now().strftime('%H:%M:%S')}`\n"
                                 f"📋 CI/CD 배포 후 스케줄러 재시작으로 자동 매매를 복구합니다.",
                                 "high",
                             )
@@ -1906,12 +1906,12 @@ class IntegratedScheduler:
 
             except ImportError as ie:
                 logger.error(f"매매 엔진 import 실패: {ie}", exc_info=True)
-                print(f"❌ 매매 엔진 import 실패: {ie}")
+                print(f"매매 엔진 import 실패: {ie}")
                 return False
 
         except Exception as e:
             logger.error(f"자동 매매 시작 오류: {e}", exc_info=True)
-            print(f"❌ 자동 매매 시작 오류: {e}")
+            print(f"자동 매매 시작 오류: {e}")
             import traceback
 
             logger.error(f"상세 오류:\n{traceback.format_exc()}", exc_info=True)
@@ -1951,15 +1951,15 @@ class IntegratedScheduler:
                     stop_thread.join(timeout=10)  # 최대 10초 대기
 
                     logger.info("자동 매매 중지 완료")
-                    print("✅ 자동 매매가 중지되었습니다!")
+                    print("자동 매매가 중지되었습니다!")
 
                     # 텔레그램 중지 알림
                     alert_message = f"""⏹️ *자동 매매 중지*
 
-⏰ 중지 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
-📈 장 마감으로 자동매매를 중지합니다.
+중지 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
+장 마감으로 자동매매를 중지합니다.
 
-📊 *오늘의 매매 결과는 일일 리포트를 확인하세요!*"""
+*오늘의 매매 결과는 일일 리포트를 확인하세요!*"""
 
                     self._send_telegram_alert(alert_message, "normal")
 
@@ -1973,7 +1973,7 @@ class IntegratedScheduler:
 
         except Exception as e:
             logger.error(f"자동 매매 중지 오류: {e}", exc_info=True)
-            print(f"❌ 자동 매매 중지 오류: {e}")
+            print(f"자동 매매 중지 오류: {e}")
             import traceback
 
             logger.error(f"상세 오류:\n{traceback.format_exc()}", exc_info=True)
@@ -2012,11 +2012,11 @@ class IntegratedScheduler:
             self._update_feedback_system(ai_learning_data)
 
             logger.info("AI 학습 시스템 데이터 연동 완료")
-            print("✅ AI 학습 데이터 연동 완료!")
+            print("AI 학습 데이터 연동 완료!")
 
         except Exception as e:
             logger.error(f"AI 학습 데이터 연동 오류: {e}", exc_info=True)
-            print(f"❌ AI 학습 데이터 연동 오류: {e}")
+            print(f"AI 학습 데이터 연동 오류: {e}")
 
     def _collect_phase1_data(self):
         """Phase 1 스크리닝 데이터 수집"""
@@ -2163,12 +2163,12 @@ class IntegratedScheduler:
 
         # Phase 1이 성공했을 때만 Phase 2가 자동 실행됨
         if not self._v_phase1_completed:
-            print("\n❌ Phase 1 실패로 인해 Phase 2를 건너뜁니다")
+            print("\nPhase 1 실패로 인해 Phase 2를 건너뜁니다")
 
         print("\n2. 정리 작업 실행...")
         self._run_market_close_tasks()
 
-        print("\n✅ 모든 작업 완료!")
+        print("\n모든 작업 완료!")
 
     def _generate_screening_alert(self) -> str:
         """스크리닝 완료 알람 메시지 생성"""
@@ -2188,10 +2188,10 @@ class IntegratedScheduler:
 
             message = f"""🌅 *한투 퀀트 아침 스크리닝 완료*
 
-⏰ 완료 시간: `{current_time}`
-📊 분석 종목: `2,875개`
-✅ 선정 종목: `{total_stocks}개`
-📈 평균 점수: `{avg_score:.1f}점`
+완료 시간: `{current_time}`
+분석 종목: `2,875개`
+선정 종목: `{total_stocks}개`
+평균 점수: `{avg_score:.1f}점`
 
 🏆 *상위 섹터*:"""
 
@@ -2206,7 +2206,7 @@ class IntegratedScheduler:
 • 기술적 반등 신호 종목 주목
 • 거래량 급증 종목 추적
 
-🚀 *이제 AI가 선별한 우량 종목으로 투자하세요!*
+*이제 AI가 선별한 우량 종목으로 투자하세요!*
 
 ⚙️ 다음 업데이트: 일일 매매 리스트 (Phase 2 진행 중)"""
 
@@ -2216,10 +2216,10 @@ class IntegratedScheduler:
             logger.error(f"스크리닝 알람 메시지 생성 실패: {e}", exc_info=True)
             return f"""🌅 *한투 퀀트 아침 스크리닝 완료*
 
-⏰ 완료 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
-✅ 스크리닝이 성공적으로 완료되었습니다!
+완료 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
+스크리닝이 성공적으로 완료되었습니다!
 
-🚀 *AI 종목 선별 시스템이 가동 중입니다!*"""
+*AI 종목 선별 시스템이 가동 중입니다!*"""
 
 
 def main():
@@ -2271,7 +2271,7 @@ def main():
         elif args.command == "status":
             status = scheduler.get_status()
 
-            print("\n⏰ 통합 스케줄러 상태")
+            print("\n통합 스케줄러 상태")
             print(f"├─ 실행 상태: {'🟢 실행 중' if status['running'] else '🔴 정지'}")
             print(f"├─ 마지막 스크리닝: {status['last_screening']}")
             print(f"└─ 마지막 일일 업데이트: {status['last_daily_update']}")
@@ -2293,11 +2293,11 @@ def main():
                         status_emoji = "🟢" if status["running"] else "🔴"
                         status_text = "실행 중" if status["running"] else "정지"
 
-                        message = f"""📊 *한투 퀀트 스케줄러 상태*
+                        message = f"""*한투 퀀트 스케줄러 상태*
 
 {status_emoji} *현재 상태*: `{status_text}`
 📅 마지막 스크리닝: `{status['last_screening']}`
-📈 마지막 업데이트: `{status['last_daily_update']}`
+마지막 업데이트: `{status['last_daily_update']}`
 
 📋 *예정된 작업*:"""
 
@@ -2311,12 +2311,12 @@ def main():
                         if success:
                             print("📱 텔레그램으로 상태 전송 완료")
                         else:
-                            print("❌ 텔레그램 상태 전송 실패")
+                            print("텔레그램 상태 전송 실패")
                     else:
-                        print("⚠️ 텔레그램 알림이 비활성화됨")
+                        print("텔레그램 알림이 비활성화됨")
 
                 except Exception as e:
-                    print(f"❌ 텔레그램 상태 전송 오류: {e}")
+                    print(f"텔레그램 상태 전송 오류: {e}")
 
             # 헬스체크 (생존 신호) 전송
             if args.heartbeat and status["running"]:
@@ -2337,14 +2337,14 @@ def main():
                         if success:
                             print("💓 스케줄러 생존 신호 전송 완료")
                         else:
-                            print("❌ 생존 신호 전송 실패")
+                            print("생존 신호 전송 실패")
                     else:
-                        print("⚠️ 텔레그램 알림이 비활성화됨")
+                        print("텔레그램 알림이 비활성화됨")
 
                 except Exception as e:
-                    print(f"❌ 생존 신호 전송 오류: {e}")
+                    print(f"생존 신호 전송 오류: {e}")
             elif args.heartbeat and not status["running"]:
-                print("⚠️ 스케줄러가 실행 중이 아니므로 생존 신호를 전송할 수 없습니다")
+                print("스케줄러가 실행 중이 아니므로 생존 신호를 전송할 수 없습니다")
 
         elif args.command == "run":
             scheduler.run_immediate_tasks()

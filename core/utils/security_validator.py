@@ -293,7 +293,7 @@ def run_security_check() -> bool:
 
     if env_warnings:
         for warning in env_warnings:
-            logger.warning(f"⚠️  {warning}")
+            logger.warning(f"{warning}")
 
     # API 키 검증
     app_key = os.getenv('APP_KEY')
@@ -303,7 +303,7 @@ def run_security_check() -> bool:
 
     if key_warnings:
         for warning in key_warnings:
-            logger.warning(f"⚠️  {warning}")
+            logger.warning(f"{warning}")
 
     # 파일 권한 검사
     sensitive_files = [
@@ -321,14 +321,14 @@ def run_security_check() -> bool:
 
     if file_warnings:
         for warning in file_warnings:
-            logger.warning(f"⚠️  {warning}")
+            logger.warning(f"{warning}")
 
     all_valid = env_valid and key_valid and not file_warnings
 
     if all_valid:
-        logger.info("✅ 모든 보안 검사를 통과했습니다.")
+        logger.info("모든 보안 검사를 통과했습니다.")
     else:
-        logger.error("❌ 보안 검사에서 문제가 발견되었습니다.")
+        logger.error("보안 검사에서 문제가 발견되었습니다.")
 
     return all_valid
 

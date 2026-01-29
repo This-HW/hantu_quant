@@ -986,7 +986,7 @@ def get_integration_manager() -> IntegrationManager:
 
 def deploy_phase4_ai_system(strategy_name: str = "momentum_strategy") -> Dict[str, Any]:
     """Phase 4 AI 시스템 전체 배포"""
-    logger.info("🚀 Phase 4 AI 학습 시스템 전체 배포 시작")
+    logger.info("Phase 4 AI 학습 시스템 전체 배포 시작")
 
     deployment_results = {
         "deployment_id": f"phase4_deploy_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
@@ -1056,12 +1056,12 @@ def deploy_phase4_ai_system(strategy_name: str = "momentum_strategy") -> Dict[st
         if deployment_results["overall_success"]:
             logger.info("🎉 Phase 4 AI 시스템 배포 성공!")
         else:
-            logger.warning("⚠️ Phase 4 AI 시스템 배포 부분 성공")
+            logger.warning("Phase 4 AI 시스템 배포 부분 성공")
 
         return deployment_results
 
     except Exception as e:
-        logger.error(f"❌ Phase 4 AI 시스템 배포 실패: {e}", exc_info=True)
+        logger.error(f"Phase 4 AI 시스템 배포 실패: {e}", exc_info=True)
         deployment_results["error"] = str(e)
         deployment_results["end_time"] = datetime.now()
         return deployment_results

@@ -496,7 +496,7 @@ class SellEngine(ISellEngine):
                 return False
             
             # 실제 매도 주문 로직 (여기서는 로그만 출력)
-            self._logger.info(f"💰 매도 주문 실행: {stock_code}")
+            self._logger.info(f"매도 주문 실행: {stock_code}")
             self._logger.info(f"   종목명: {sell_signal.stock_name}")
             self._logger.info(f"   매도사유: {sell_signal.reason}")
             self._logger.info(f"   수량: {sell_quantity:,}주 ({quantity_ratio*100:.0f}%)")

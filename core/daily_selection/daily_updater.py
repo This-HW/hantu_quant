@@ -1800,6 +1800,44 @@ class DailyUpdater(IDailyUpdater):
             self._logger.warning(f"우선순위 계산 실패: {e}", exc_info=True)
             return 50.0  # 기본값
 
+    def _distribute_round_robin(
+        self,
+        stocks_with_priority: List[Dict],
+        num_batches: int
+    ) -> List[List[Dict]]:
+        """라운드로빈 방식으로 종목을 배치에 분산
+
+        Args:
+            stocks_with_priority: 우선순위가 포함된 종목 리스트
+            num_batches: 배치 수
+
+        Returns:
+            List[List[Dict]]: 배치별 종목 리스트
+        """
+        batches = [[] for _ in range(num_batches)]
+        for idx, stock in enumerate(stocks_with_priority):
+            batch_idx = idx % num_batches
+            batches[batch_idx].append(stock)
+        return batches
+
+    def _log_batch_statistics(self, batches: List[List[Dict]]) -> None:
+        """배치별 통계 정보 로깅
+
+        Args:
+            batches: 배치 리스트
+        """
+        for i, batch in enumerate(batches):
+            if batch:
+                priorities = [s["composite_priority"] for s in batch]
+                avg_priority = sum(priorities) / len(priorities)
+                self._logger.info(
+                    f"배치 {i}: {len(batch)}개 종목, "
+                    f"평균 우선순위: {avg_priority:.2f}, "
+                    f"범위: {min(priorities):.2f}-{max(priorities):.2f}"
+                )
+            else:
+                self._logger.info(f"배치 {i}: 0개 종목")
+
     def distribute_stocks_to_batches(
         self,
         watchlist_stocks: List[Dict],
@@ -1840,23 +1878,10 @@ class DailyUpdater(IDailyUpdater):
             stocks_with_priority.sort(key=lambda x: x["composite_priority"], reverse=True)
 
             # 2. 라운드로빈 배치 분산
-            batches = [[] for _ in range(num_batches)]
-            for idx, stock in enumerate(stocks_with_priority):
-                batch_idx = idx % num_batches
-                batches[batch_idx].append(stock)
+            batches = self._distribute_round_robin(stocks_with_priority, num_batches)
 
             # 3. 배치별 통계 로깅
-            for i, batch in enumerate(batches):
-                if batch:
-                    priorities = [s["composite_priority"] for s in batch]
-                    avg_priority = sum(priorities) / len(priorities)
-                    self._logger.info(
-                        f"배치 {i}: {len(batch)}개 종목, "
-                        f"평균 우선순위: {avg_priority:.2f}, "
-                        f"범위: {min(priorities):.2f}-{max(priorities):.2f}"
-                    )
-                else:
-                    self._logger.info(f"배치 {i}: 0개 종목")
+            self._log_batch_statistics(batches)
 
             self._logger.info(f"배치 분산 완료: {num_batches}개 배치 생성")
             return batches

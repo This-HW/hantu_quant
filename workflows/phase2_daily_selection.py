@@ -228,7 +228,7 @@ class Phase2CLI:
                 
         except Exception as e:
             logger.error(f"명령어 실행 오류: {e}", exc_info=True)
-            print(f"❌ 오류: {e}")
+            print(f"오류: {e}")
     
     def _handle_update(self, p_args):
         """일일 업데이트 처리
@@ -240,20 +240,20 @@ class Phase2CLI:
         
         # 시장 상황 설정
         if p_args.market_condition:
-            print(f"📊 시장 상황: {p_args.market_condition}")
+            print(f"시장 상황: {p_args.market_condition}")
         
         # 업데이트 실행
         success = self._v_daily_updater.run_daily_update(p_force_run=p_args.force)
         
         if success:
-            print("✅ 일일 업데이트 완료!")
+            print("일일 업데이트 완료!")
             
             # 결과 요약 출력
             latest_result = self._v_daily_updater.get_latest_selection()
             if latest_result:
                 self._print_update_summary(latest_result)
         else:
-            print("❌ 일일 업데이트 실패")
+            print("일일 업데이트 실패")
     
     def _handle_analyze(self, p_args):
         """가격 분석 처리
@@ -261,7 +261,7 @@ class Phase2CLI:
         Args:
             p_args: 명령어 인자
         """
-        print("📈 가격 매력도 분석 시작...")
+        print("가격 매력도 분석 시작...")
         
         if p_args.stock_code:
             # 단일 종목 분석 (실데이터 조회)
@@ -280,7 +280,7 @@ class Phase2CLI:
                     print("💾 분석 결과 저장 완료")
         
         else:
-            print("❌ 종목코드 또는 --all 옵션을 지정해주세요")
+            print("종목코드 또는 --all 옵션을 지정해주세요")
     
     def _handle_show(self, p_args):
         """선정 결과 조회 처리
@@ -294,7 +294,7 @@ class Phase2CLI:
             if result:
                 self._print_selection_result(result, p_args.format)
             else:
-                print("❌ 최신 선정 결과가 없습니다")
+                print("최신 선정 결과가 없습니다")
         
         elif p_args.date:
             # 특정 날짜 결과 조회
@@ -302,7 +302,7 @@ class Phase2CLI:
             if result:
                 self._print_selection_result(result, p_args.format)
             else:
-                print(f"❌ {p_args.date} 날짜의 선정 결과가 없습니다")
+                print(f"{p_args.date} 날짜의 선정 결과가 없습니다")
         
         else:
             # 이력 조회
@@ -310,7 +310,7 @@ class Phase2CLI:
             if history:
                 self._print_selection_history(history, p_args.format)
             else:
-                print("❌ 선정 이력이 없습니다")
+                print("선정 이력이 없습니다")
     
     def _handle_criteria(self, p_args):
         """선정 기준 관리 처리
@@ -333,12 +333,12 @@ class Phase2CLI:
                 print(f"🔧 {p_args.market} 기준 최적화 시작...")
                 historical_data = self._get_historical_data()
                 optimized_criteria = self._v_criteria_manager.optimize_criteria(market_condition, historical_data)
-                print(f"✅ 기준 최적화 완료: {optimized_criteria.name}")
+                print(f"기준 최적화 완료: {optimized_criteria.name}")
                 self._print_criteria_details(optimized_criteria)
             
             elif p_args.compare:
                 # 기준 성과 비교
-                print(f"📊 {p_args.market} 기준 성과 비교...")
+                print(f"{p_args.market} 기준 성과 비교...")
                 historical_data = self._get_historical_data()
                 performance = self._v_criteria_manager.evaluate_criteria_performance(market_condition, historical_data)
                 self._print_criteria_performance(performance)
@@ -360,15 +360,15 @@ class Phase2CLI:
         """
         if p_args.start:
             # 스케줄러 시작
-            print("⏰ 스케줄러 시작...")
+            print("스케줄러 시작...")
             self._v_daily_updater.start_scheduler()
-            print("✅ 스케줄러가 시작되었습니다 (매일 08:30 실행)")
+            print("스케줄러가 시작되었습니다 (매일 08:30 실행)")
         
         elif p_args.stop:
             # 스케줄러 중지
             print("⏹️ 스케줄러 중지...")
             self._v_daily_updater.stop_scheduler()
-            print("✅ 스케줄러가 중지되었습니다")
+            print("스케줄러가 중지되었습니다")
         
         elif p_args.status:
             # 스케줄러 상태 조회
@@ -376,7 +376,7 @@ class Phase2CLI:
             self._print_scheduler_status(status)
         
         else:
-            print("❌ --start, --stop, --status 중 하나를 선택해주세요")
+            print("--start, --stop, --status 중 하나를 선택해주세요")
     
     def _handle_performance(self, p_args):
         """성과 분석 처리
@@ -384,7 +384,7 @@ class Phase2CLI:
         Args:
             p_args: 명령어 인자
         """
-        print(f"📊 성과 분석 시작 (최근 {p_args.period}일)...")
+        print(f"성과 분석 시작 (최근 {p_args.period}일)...")
         
         # 성과 데이터 수집
         performance_data = self._collect_performance_data(p_args.period)
@@ -417,7 +417,7 @@ class Phase2CLI:
             watchlist_stocks = self._v_watchlist_manager.list_stocks()
             target_stock = next((s for s in watchlist_stocks if s.stock_code == p_stock_code), None)
             if not target_stock:
-                print(f"❌ 종목 {p_stock_code}이 감시 리스트에 없습니다")
+                print(f"종목 {p_stock_code}이 감시 리스트에 없습니다")
                 return None
 
             # 실데이터 조회 (KIS 현재가 + 최근 일봉) - 싱글톤 사용
@@ -464,7 +464,7 @@ class Phase2CLI:
             # 감시 리스트 조회
             watchlist_stocks = self._v_watchlist_manager.list_stocks(p_status="active")
             if not watchlist_stocks:
-                print("❌ 활성 감시 리스트가 비어있습니다")
+                print("활성 감시 리스트가 비어있습니다")
                 return []
 
             # 부분 실패 허용 결과 추적
@@ -518,18 +518,18 @@ class Phase2CLI:
             # 성공률 체크 및 경고
             if not _v_partial_result.is_acceptable:
                 logger.warning(
-                    f"⚠️ 가격 데이터 조회 성공률({_v_partial_result.success_rate:.1%})이 "
+                    f"가격 데이터 조회 성공률({_v_partial_result.success_rate:.1%})이 "
                     f"최소 기준({_v_partial_result.min_success_rate:.0%}) 미만입니다!"
                 )
-                print(f"⚠️ 가격 데이터 조회 성공률이 낮습니다: {_v_partial_result.success_rate:.1%}")
+                print(f"가격 데이터 조회 성공률이 낮습니다: {_v_partial_result.success_rate:.1%}")
 
             if not stock_data_list:
-                print("❌ 분석할 수 있는 종목 데이터가 없습니다")
+                print("분석할 수 있는 종목 데이터가 없습니다")
                 return []
 
             # 병렬 일괄 분석 실행
-            logger.info(f"🚀 병렬 가격 분석 시작 - 워커: {self._v_parallel_workers}개, 종목: {len(stock_data_list)}개")
-            print(f"🚀 병렬 가격 분석 시작 - 워커: {self._v_parallel_workers}개, 종목: {len(stock_data_list)}개 (데이터 조회 성공률: {_v_partial_result.success_rate:.1%})")
+            logger.info(f"병렬 가격 분석 시작 - 워커: {self._v_parallel_workers}개, 종목: {len(stock_data_list)}개")
+            print(f"병렬 가격 분석 시작 - 워커: {self._v_parallel_workers}개, 종목: {len(stock_data_list)}개 (데이터 조회 성공률: {_v_partial_result.success_rate:.1%})")
 
             # 데이터 크기에 따른 적응형 분석 사용
             results = self._v_parallel_price_analyzer.adaptive_analysis(stock_data_list)
@@ -667,7 +667,7 @@ class Phase2CLI:
         """업데이트 요약 출력"""
         metadata = p_result.get("metadata", {})
         print(f"""
-📊 업데이트 요약
+업데이트 요약
 ├─ 선정 종목: {metadata.get('total_selected', 0)}개
 ├─ 감시 리스트: {metadata.get('watchlist_count', 0)}개
 ├─ 선정률: {metadata.get('selection_rate', 0):.1%}
@@ -678,7 +678,7 @@ class Phase2CLI:
     def _print_analysis_result(self, p_result: PriceAttractiveness):
         """단일 분석 결과 출력"""
         print(f"""
-📈 {p_result.stock_name} ({p_result.stock_code}) 분석 결과
+{p_result.stock_name} ({p_result.stock_code}) 분석 결과
 ├─ 종합 점수: {p_result.total_score:.1f}점
 ├─ 기술적 점수: {p_result.technical_score:.1f}점
 ├─ 거래량 점수: {p_result.volume_score:.1f}점
@@ -694,7 +694,7 @@ class Phase2CLI:
     
     def _print_analysis_results(self, p_results: List[PriceAttractiveness]):
         """분석 결과 리스트 출력"""
-        print(f"\n📊 전체 분석 결과 ({len(p_results)}개 종목)")
+        print(f"\n전체 분석 결과 ({len(p_results)}개 종목)")
         print("=" * 80)
         print(f"{'순위':<4} {'종목명':<12} {'코드':<8} {'점수':<6} {'수익률':<8} {'리스크':<6} {'신뢰도':<6}")
         print("-" * 80)
@@ -725,7 +725,7 @@ class Phase2CLI:
         
         print(f"\n📅 {p_result.get('market_date')} 일일 선정 결과")
         print(f"🌊 시장 상황: {p_result.get('market_condition')}")
-        print(f"📊 선정 종목: {len(selected_stocks)}개")
+        print(f"선정 종목: {len(selected_stocks)}개")
         print("=" * 100)
         print(f"{'순위':<4} {'종목명':<12} {'코드':<8} {'점수':<6} {'진입가':<8} {'목표가':<8} {'비중':<6} {'섹터':<8}")
         print("-" * 100)
@@ -741,7 +741,7 @@ class Phase2CLI:
         if p_format == 'json':
             print(json.dumps(p_history, ensure_ascii=False, indent=2))
         else:
-            print(f"\n📈 선정 이력 ({len(p_history)}일)")
+            print(f"\n선정 이력 ({len(p_history)}일)")
             print("=" * 80)
             print(f"{'날짜':<12} {'선정수':<6} {'평균점수':<8} {'시장상황':<12}")
             print("-" * 80)
@@ -805,7 +805,7 @@ class Phase2CLI:
     def _print_criteria_performance(self, p_performance):
         """기준 성과 출력"""
         print(f"""
-📊 {p_performance.criteria_name} 성과 분석
+{p_performance.criteria_name} 성과 분석
 ├─ 테스트 기간: {p_performance.test_period}
 ├─ 총 거래 수: {p_performance.total_trades}회
 ├─ 승률: {p_performance.win_rate:.1%}
@@ -820,7 +820,7 @@ class Phase2CLI:
         """스케줄러 상태 출력"""
         status_icon = "🟢" if p_status.get("running") else "🔴"
         print(f"""
-⏰ 스케줄러 상태
+스케줄러 상태
 ├─ 상태: {status_icon} {p_status.get('status', 'unknown')}
 ├─ 실행 중: {'예' if p_status.get('running') else '아니오'}
 ├─ 다음 실행: {p_status.get('next_run', 'unknown')}
@@ -830,7 +830,7 @@ class Phase2CLI:
     def _print_overall_performance(self, p_performance: Dict):
         """전체 성과 출력"""
         print(f"""
-📊 전체 성과 분석 (최근 {p_performance.get('period', 0)}일)
+전체 성과 분석 (최근 {p_performance.get('period', 0)}일)
 ├─ 총 거래 수: {p_performance.get('total_trades', 0)}회
 ├─ 승률: {p_performance.get('win_rate', 0):.1%}
 ├─ 평균 수익률: {p_performance.get('avg_return', 0):.1%}
@@ -841,7 +841,7 @@ class Phase2CLI:
     def _print_sector_performance(self, p_performance: Dict):
         """섹터별 성과 출력"""
         print(f"""
-📊 {p_performance.get('sector', '')} 섹터 성과
+{p_performance.get('sector', '')} 섹터 성과
 ├─ 거래 수: {p_performance.get('trades', 0)}회
 ├─ 승률: {p_performance.get('win_rate', 0):.1%}
 └─ 평균 수익률: {p_performance.get('avg_return', 0):.1%}

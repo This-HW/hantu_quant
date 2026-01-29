@@ -94,20 +94,20 @@ class AutoMLTrigger:
             self.state["conditions"] = conditions
 
             if conditions_met or force:
-                self.logger.info("✅ ML 학습 조건 충족! 자동 트리거 시작")
+                self.logger.info("ML 학습 조건 충족! 자동 트리거 시작")
                 success = self._trigger_ml_training()
 
                 if success:
                     self.state["ml_training_triggered"] = True
                     self.state["ml_training_date"] = datetime.now().isoformat()
-                    self.logger.info("🚀 B단계 ML 학습이 자동으로 시작되었습니다")
+                    self.logger.info("B단계 ML 학습이 자동으로 시작되었습니다")
                 else:
                     self.logger.error("ML 학습 트리거 실패")
 
                 self._save_trigger_state()
                 return success
             else:
-                self.logger.info("❌ ML 학습 조건 미충족")
+                self.logger.info("ML 학습 조건 미충족")
                 self._log_conditions_status(conditions)
                 self._save_trigger_state()
                 return False
@@ -294,14 +294,14 @@ class AutoMLTrigger:
             message = f"""
 🤖 ML 학습 자동 시작
 
-✅ 학습 조건 충족
+학습 조건 충족
 • 거래일 수: {conditions.get('trading_days', 0)}일
 • 선정 기록: {conditions.get('selection_records', 0)}개
 • 성과 기록: {conditions.get('performance_records', 0)}개
 • 현재 승률: {conditions.get('current_win_rate', 0):.1%}
 • 데이터 품질: {conditions.get('data_quality_score', 0):.1f}점
 
-🚀 B단계 ML 랭킹 시스템이 자동으로 시작됩니다.
+B단계 ML 랭킹 시스템이 자동으로 시작됩니다.
 학습 완료 시 다시 알림을 보내드립니다.
 """
 
@@ -316,13 +316,13 @@ class AutoMLTrigger:
         self.logger.info(f"""
 ML 학습 조건 체크 결과:
   • 거래일 수: {conditions['trading_days']}/{self.min_trading_days}일
-    {'✅' if conditions['trading_days'] >= self.min_trading_days else '❌'}
+    {'' if conditions['trading_days'] >= self.min_trading_days else ''}
   • 선정 기록: {conditions['selection_records']}/{self.min_selection_records}개
-    {'✅' if conditions['selection_records'] >= self.min_selection_records else '❌'}
+    {'' if conditions['selection_records'] >= self.min_selection_records else ''}
   • 성과 기록: {conditions['performance_records']}/{self.min_performance_records}개
-    {'✅' if conditions['performance_records'] >= self.min_performance_records else '❌'}
+    {'' if conditions['performance_records'] >= self.min_performance_records else ''}
   • 승률: {conditions['current_win_rate']:.1%}/{self.min_win_rate:.1%}
-    {'✅' if conditions['current_win_rate'] >= self.min_win_rate else '❌'}
+    {'' if conditions['current_win_rate'] >= self.min_win_rate else ''}
   • 데이터 품질: {conditions['data_quality_score']:.1f}/70.0점
 """)
 

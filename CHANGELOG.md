@@ -106,6 +106,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **코드 중복 제거 (P2)**: integrated_scheduler.py 헬스체크 스케줄링
   - 60줄 중복 코드 → 10줄 루프로 간소화
   - 평일 5일 × 11개 시간대를 동적으로 생성
+- **함수 분리 (P2)**: 긴 함수의 가독성 개선
+  - distribute_stocks_to_batches: 헬퍼 메서드 추가 (222줄 → 로직 명확화)
+  - \_distribute_round_robin(): 라운드로빈 분산 로직 분리
+  - \_log_batch_statistics(): 통계 로깅 로직 분리
+- **더미 데이터 경고 (P2)**: 개발/테스트용 더미 데이터 명시
+  - \_generate_dummy_price_data(): DEPRECATED 주석 + 경고 로그
+  - \_get_sector_momentum(): 더미 데이터 사용 경고
+  - \_generate_ohlcv_data(): 더미 데이터 사용 경고
+  - 실제 API 데이터로 교체 필요성 명확화
+- **이모지 제거 (P2)**: CLAUDE.md 규칙 준수
+  - workflows/integrated_scheduler.py: 60개소 이모지 제거
+  - core 모듈 6개 파일: 20개소 이모지 제거
+  - 로그 메시지에서 모든 이모지 제거 (80개소 총)
 - **가중치 검증**: 종합 점수 계산 시 가중치 합 검증
 - **테스트 커버리지**: 핵심 로직 단위 테스트 추가 (15개)
 - **에러 처리**: API 재시도 로직으로 안정성 향상
