@@ -88,11 +88,15 @@ ssh -i ~/.ssh/id_rsa ubuntu@134.185.104.141
 | **용도**       | ~~PostgreSQL~~ → **마이그레이션 완료** |               |
 | **Free Tier**  | ✅                                     |               |
 
-**현재 연결 정보 (hantu-server):**
+**현재 연결 정보:**
 
-```
-DATABASE_URL=postgresql://hantu:***REMOVED***@158.180.87.156:5432/hantu_quant
-```
+| 환경                         | DATABASE_URL                                                          |
+| ---------------------------- | --------------------------------------------------------------------- |
+| **서버** (hantu-server 내부) | `postgresql://hantu:***REMOVED***@localhost:5432/hantu_quant`      |
+| **로컬** (SSH 터널 사용)     | `postgresql://hantu:***REMOVED***@localhost:15432/hantu_quant`     |
+| **로컬** (직접 접속)         | `postgresql://hantu:***REMOVED***@158.180.87.156:5432/hantu_quant` |
+
+> **주의**: 서버와 DB가 같은 머신(158.180.87.156)에 있으므로, 서버에서는 `localhost:5432`로 접속합니다.
 
 ---
 

@@ -33,18 +33,19 @@ RESULT_LOG="$DEV_PROJECT_DIR/logs/auto-fix.log"
 LOCKFILE="/tmp/auto-fix-errors.lock"
 CLAUDE_PATH="/home/ubuntu/.local/bin/claude"
 
-# DB 설정 (환경변수에서 로드)
-DB_HOST="${DB_HOST:-}"
-DB_USER="${DB_USER:-}"
+# DB 설정 (서버와 DB가 같은 머신에 있음)
+DB_HOST="${DB_HOST:-localhost}"  # 기본값: localhost (서버 내부)
+DB_USER="${DB_USER:-hantu}"      # 기본값: hantu
 DB_PASS="${DB_PASSWORD:-}"
-DB_NAME="${DB_NAME:-}"
+DB_NAME="${DB_NAME:-hantu_quant}"  # 기본값: hantu_quant
 
-# 환경변수 검증
-if [ -z "$DB_HOST" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASS" ] || [ -z "$DB_NAME" ]; then
-    echo "ERROR: DB 환경변수가 설정되지 않았습니다." >&2
-    echo "필수 환경변수: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME" >&2
+# 필수 환경변수 검증 (DB_PASSWORD만 필수)
+if [ -z "$DB_PASS" ]; then
+    echo "ERROR: DB_PASSWORD 환경변수가 설정되지 않았습니다." >&2
     exit 1
 fi
+
+log "DB 접속 정보: $DB_USER@$DB_HOST:5432/$DB_NAME"
 
 # Claude Code 존재 확인
 if [ ! -x "$CLAUDE_PATH" ]; then
