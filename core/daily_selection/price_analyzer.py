@@ -959,11 +959,21 @@ class PriceAnalyzer(IPriceAnalyzer):
         _v_prices = self._safe_get_list(
             p_stock_data.get("recent_close_prices", []), p_default_size=30
         )
+
+        # None 체크 추가 - _safe_get_list가 None을 반환할 수 있음
+        if _v_prices is None or len(_v_prices) == 0:
+            self._logger.warning(f"{p_stock_code}: 가격 데이터가 없어 기술적 분석을 스킵합니다")
+            return {"price_attractiveness_score": 50.0, "signals": [], "analysis": {}}
+
         _v_highs = [p * 1.02 for p in _v_prices]
         _v_lows = [p * 0.98 for p in _v_prices]
         _v_volumes = self._safe_get_list(
-            p_stock_data.get("recent_volumes", []), p_default_size=len(_v_prices) or 30
+            p_stock_data.get("recent_volumes", []), p_default_size=len(_v_prices)
         )
+
+        # volumes도 None 체크
+        if _v_volumes is None:
+            _v_volumes = [1000000] * len(_v_prices)  # 기본값 사용
 
         # 볼린저 밴드 분석
         _v_bb_upper, _v_bb_middle, _v_bb_lower = (

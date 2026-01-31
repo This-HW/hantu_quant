@@ -112,6 +112,13 @@ class StrategyBacktester:
     def _load_historical_selections(self, start_date: str, end_date: str) -> List[Dict]:
         """과거 일일 선정 데이터 로드"""
         selections = []
+
+        # datetime 객체가 전달된 경우 문자열로 변환
+        if isinstance(start_date, datetime):
+            start_date = start_date.strftime("%Y-%m-%d")
+        if isinstance(end_date, datetime):
+            end_date = end_date.strftime("%Y-%m-%d")
+
         current_date = datetime.strptime(start_date, "%Y-%m-%d")
         end = datetime.strptime(end_date, "%Y-%m-%d")
 

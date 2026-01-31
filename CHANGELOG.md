@@ -7,7 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased] - 2026-01-30
+## [Unreleased] - 2026-01-31
+
+### Fixed
+
+- **TypeError: 'NoneType' object is not iterable (CRITICAL)** - price_analyzer.py None 처리 강화
+  - 문제: `_safe_get_list`가 None을 반환할 때 리스트 컴프리헨션에서 크래시 (대량 발생)
+  - 원인: 가격 데이터가 없을 때 None 체크 누락
+  - 해결: None 체크 추가 및 조기 리턴, volumes도 None 체크 및 기본값 제공
+  - 영향: 기술적 분석 중 데이터 누락 시 스킵하고 계속 진행
+- **TypeError: strptime() argument 1 must be str, not datetime.datetime** - strategy_backtester.py 타입 체크 추가
+  - 문제: 백테스트 실행 시 datetime 객체를 strptime에 전달
+  - 원인: integrated_scheduler.py에서 datetime 객체를 그대로 전달
+  - 해결: datetime 객체 감지 시 자동으로 문자열 변환
+  - 영향: 주간 백테스트 정상 실행
+- **ERROR: INPUT INVALID_CHECK_ACNO** - 계좌번호 검증 실패 (한투 API 측 이슈)
+  - 상태: 에러 로깅 확인, 한투 API 정책 변경 가능성
+  - 조치: 계좌번호/상품코드 설정값 확인 완료 (정상)
+  - 향후: API 응답 개선 시 추가 조치 예정
+
+---
+
+## [2026-01-30]
 
 ### Added
 
