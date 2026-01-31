@@ -67,7 +67,11 @@ class PyKRXClient(MarketDataClient):
                 df = self._stock.get_index_ohlcv(yesterday, yesterday, "KOSPI")
             if df.empty:
                 raise ValueError("KOSPI 데이터 없음")
-            return float(df.iloc[-1]['종가'])
+            # 컬럼명 폴백 로직
+            for col in ['종가', 'Close', 'close', 'CLOSE']:
+                if col in df.columns:
+                    return float(df.iloc[-1][col])
+            raise ValueError(f"종가 컬럼을 찾을 수 없습니다. 사용 가능한 컬럼: {df.columns.tolist()}")
 
         try:
             value = self._retry_with_backoff(_fetch)
@@ -88,7 +92,11 @@ class PyKRXClient(MarketDataClient):
                 df = self._stock.get_index_ohlcv(yesterday, yesterday, "KOSDAQ")
             if df.empty:
                 raise ValueError("KOSDAQ 데이터 없음")
-            return float(df.iloc[-1]['종가'])
+            # 컬럼명 폴백 로직
+            for col in ['종가', 'Close', 'close', 'CLOSE']:
+                if col in df.columns:
+                    return float(df.iloc[-1][col])
+            raise ValueError(f"종가 컬럼을 찾을 수 없습니다. 사용 가능한 컬럼: {df.columns.tolist()}")
 
         try:
             value = self._retry_with_backoff(_fetch)

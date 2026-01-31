@@ -649,10 +649,10 @@ class PriceAnalyzer(IPriceAnalyzer):
                 return [float(p_value)]
             else:
                 self._logger.error(f"잘못된 가격 데이터 형식: {type(p_value)}")
-                return None
+                return []
         except (ValueError, TypeError) as e:
             self._logger.error(f"가격 데이터 정규화 실패: {e}", exc_info=True)
-            return None
+            return []
 
     @inject
     def __init__(
@@ -672,6 +672,14 @@ class PriceAnalyzer(IPriceAnalyzer):
 
         # 패턴 분석을 위한 인디케이터 초기화
         self._v_patterns = PatternAnalysis()
+
+        # 점수 가중치 초기화
+        self._v_weights = {
+            "technical": 0.40,
+            "volume": 0.30,
+            "pattern": 0.20,
+            "slope": 0.10
+        }
 
         self._logger.info("PriceAnalyzer 초기화 완료 (새 아키텍처)")
 
@@ -960,10 +968,11 @@ class PriceAnalyzer(IPriceAnalyzer):
             p_stock_data.get("recent_close_prices", []), p_default_size=30
         )
 
-        # None 체크 추가 - _safe_get_list가 None을 반환할 수 있음
-        if _v_prices is None or len(_v_prices) == 0:
-            self._logger.warning(f"{p_stock_code}: 가격 데이터가 없어 기술적 분석을 스킵합니다")
-            return {"price_attractiveness_score": 50.0, "signals": [], "analysis": {}}
+        # 빈 리스트 체크 - _safe_get_list는 항상 리스트를 반환
+        if len(_v_prices) == 0:
+            stock_code = p_stock_data.get("stock_code", "UNKNOWN")
+            self._logger.warning(f"{stock_code}: 가격 데이터가 없어 기술적 분석을 스킵합니다")
+            return 50.0, []
 
         _v_highs = [p * 1.02 for p in _v_prices]
         _v_lows = [p * 0.98 for p in _v_prices]
@@ -971,8 +980,8 @@ class PriceAnalyzer(IPriceAnalyzer):
             p_stock_data.get("recent_volumes", []), p_default_size=len(_v_prices)
         )
 
-        # volumes도 None 체크
-        if _v_volumes is None:
+        # volumes도 빈 리스트 체크
+        if not _v_volumes:
             _v_volumes = [1000000] * len(_v_prices)  # 기본값 사용
 
         # 볼린저 밴드 분석
@@ -1296,7 +1305,7 @@ class PriceAnalyzer(IPriceAnalyzer):
                 _v_ohlcv_data = self._generate_ohlcv_data(p_stock_data)
 
             if _v_ohlcv_data is None or len(_v_ohlcv_data) < 60:
-                logger.warning("기울기 분석을 위한 데이터 부족")
+                self._logger.warning("기울기 분석을 위한 데이터 부족")
                 return 50.0, []
 
             _v_slope_indicator = SlopeIndicator(_v_ohlcv_data)
@@ -1414,7 +1423,7 @@ class PriceAnalyzer(IPriceAnalyzer):
             return _v_normalized_score, _v_signals
 
         except Exception as e:
-            logger.error(f"기울기 분석 중 오류 발생: {e}", exc_info=True)
+            self._logger.error(f"기울기 분석 중 오류 발생: {e}", exc_info=True)
             return 50.0, []
 
     def _generate_ohlcv_data(self, p_stock_data: Dict) -> Optional[pd.DataFrame]:
@@ -1452,10 +1461,8 @@ class PriceAnalyzer(IPriceAnalyzer):
                 self._logger.error(f"{_v_stock_code}: OHLCV 데이터 조회 실패: {e}", exc_info=True)
                 return None
 
-            return _v_ohlcv_data
-
         except Exception as e:
-            logger.error(f"OHLCV 데이터 생성 오류: {e}", exc_info=True)
+            self._logger.error(f"OHLCV 데이터 생성 오류: {e}", exc_info=True)
             return None
 
     def _calculate_target_stop(
@@ -1504,7 +1511,7 @@ class PriceAnalyzer(IPriceAnalyzer):
             return float(_v_annual_volatility)
 
         except Exception as e:
-            logger.error(f"변동성 계산 오류: {e}", exc_info=True)
+            self._logger.error(f"변동성 계산 오류: {e}", exc_info=True)
             return 0.25
 
     def _calculate_var(
@@ -1549,7 +1556,7 @@ class PriceAnalyzer(IPriceAnalyzer):
             _v_var = p_position_value * _v_z_score * _v_volatility / np.sqrt(252)
             return float(abs(_v_var))
         except Exception as e:
-            logger.error(f"VaR 계산 오류: {e}", exc_info=True)
+            self._logger.error(f"VaR 계산 오류: {e}", exc_info=True)
             return p_position_value * 0.02  # 기본 2%
 
     def _calculate_risk_score(self, p_stock_data: Dict, p_total_score: float) -> float:
@@ -1714,11 +1721,11 @@ class PriceAnalyzer(IPriceAnalyzer):
             with open(p_file_path, "w", encoding="utf-8") as f:
                 json.dump(_v_save_data, f, ensure_ascii=False, indent=2)
 
-            logger.info(f"분석 결과 저장 완료: {p_file_path}")
+            self._logger.info(f"분석 결과 저장 완료: {p_file_path}")
             return True
 
         except Exception as e:
-            logger.error(f"분석 결과 저장 실패: {e}", exc_info=True)
+            self._logger.error(f"분석 결과 저장 실패: {e}", exc_info=True)
             return False
 
 

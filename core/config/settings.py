@@ -28,7 +28,20 @@ LOG_DIR = ROOT_DIR / 'logs'
 DB_FILENAME = 'stock_data.db'
 DB_PATH = DB_DIR / DB_FILENAME
 SQLITE_URL = f"sqlite:///{DB_PATH.absolute()}"
-DATABASE_URL = os.getenv('DATABASE_URL', SQLITE_URL)
+
+# 환경 자동 감지
+def _get_default_database_url():
+    """환경별 기본 DATABASE_URL 반환"""
+    if str(ROOT_DIR).startswith("/Users/grimm"):
+        # 로컬 개발 환경: SSH 터널 포트 사용
+        # 터널 명령: ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156
+        db_password = os.getenv('DB_PASSWORD', '***REMOVED***')
+        return f"postgresql://hantu:{db_password}@localhost:15432/hantu_quant"
+    else:
+        # 서버 환경: SQLite 폴백 (DATABASE_URL 환경변수 설정 권장)
+        return SQLITE_URL
+
+DATABASE_URL = os.getenv('DATABASE_URL', _get_default_database_url())
 
 # 데이터베이스 타입 감지
 DB_TYPE = 'postgresql' if DATABASE_URL.startswith('postgresql') else 'sqlite'

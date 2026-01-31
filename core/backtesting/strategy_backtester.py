@@ -66,6 +66,15 @@ class StrategyBacktester:
         self.initial_capital = initial_capital
         self.api = KISAPI()
 
+    def _to_datetime(self, date_value) -> datetime:
+        """str 또는 datetime 객체를 datetime으로 변환"""
+        if isinstance(date_value, datetime):
+            return date_value
+        elif isinstance(date_value, str):
+            return datetime.strptime(date_value, "%Y-%m-%d")
+        else:
+            raise TypeError(f"Unsupported date type: {type(date_value)}")
+
     def backtest_selection_strategy(
         self,
         start_date: str,
@@ -192,7 +201,10 @@ class StrategyBacktester:
             trade.exit_date = sorted_dates[-1]
             trade.exit_price = trade.entry_price  # 가정
             trade.return_pct = 0.0
-            trade.holding_days = (datetime.strptime(trade.exit_date, "%Y-%m-%d") - datetime.strptime(trade.entry_date, "%Y-%m-%d")).days
+            trade.holding_days = (
+                self._to_datetime(trade.exit_date)
+                - self._to_datetime(trade.entry_date)
+            ).days
             trade.exit_reason = "end_of_backtest"
             trades.append(trade)
 
@@ -213,7 +225,10 @@ class StrategyBacktester:
         for code, trade in portfolio.items():
             # 가격 데이터 가져오기 (실제로는 DB나 API에서)
             # 여기서는 랜덤으로 시뮬레이션
-            holding_days = (datetime.strptime(current_date, "%Y-%m-%d") - datetime.strptime(trade.entry_date, "%Y-%m-%d")).days
+            holding_days = (
+                self._to_datetime(current_date)
+                - self._to_datetime(trade.entry_date)
+            ).days
 
             if holding_days == 0:
                 continue

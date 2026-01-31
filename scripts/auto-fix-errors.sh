@@ -123,6 +123,16 @@ log "에러 발견 - 로컬: ${LOCAL_COUNT}건, 시스템: ${SYSTEM_COUNT}건, D
 # 개발 레포로 이동
 cd "$DEV_PROJECT_DIR"
 
+# 최신 코드 가져오기 (중요!)
+log "최신 코드 가져오기 (git pull)"
+git fetch origin main
+git reset --hard origin/main
+if [ $? -ne 0 ]; then
+    log "ERROR: git pull 실패 - 작업 중단"
+    exit 1
+fi
+log "최신 코드 동기화 완료: $(git rev-parse --short HEAD)"
+
 # 가상환경 활성화
 source "$DEV_PROJECT_DIR/venv/bin/activate"
 
