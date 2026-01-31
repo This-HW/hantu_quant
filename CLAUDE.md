@@ -145,15 +145,48 @@ logger = get_logger(__name__)
 
 ## 기술 스택
 
-| 구분     | 기술                             |
-| -------- | -------------------------------- |
-| 언어     | Python 3.11+                     |
-| API 서버 | FastAPI                          |
-| 스케줄러 | Schedule, APScheduler            |
-| DB       | SQLite (로컬), PostgreSQL (운영) |
-| 캐시     | Redis (자동 MemoryCache 폴백)    |
-| 알림     | Telegram Bot                     |
-| 배포     | Docker, OCI                      |
+| 구분     | 기술                            |
+| -------- | ------------------------------- |
+| 언어     | Python 3.11+                    |
+| API 서버 | FastAPI                         |
+| 스케줄러 | Schedule, APScheduler           |
+| DB       | PostgreSQL 15 (All-in-One 서버) |
+| 캐시     | Redis (자동 MemoryCache 폴백)   |
+| 알림     | Telegram Bot                    |
+| 배포     | Docker, OCI                     |
+
+---
+
+## 인프라 구성
+
+### All-in-One 서버 (158.180.87.156)
+
+**서버와 DB가 같은 머신에 통합되어 있습니다.**
+
+- **서버**: hantu-server (158.180.87.156)
+- **구성**: API Server + Scheduler + PostgreSQL 15 + Redis 7
+- **OS**: Ubuntu 24.04 (ARM64)
+- **스펙**: 1 OCPU / 6GB RAM / 50GB Storage
+
+### 환경별 DB 접속 정보
+
+| 환경                | DATABASE_URL                                                          | 설명                         |
+| ------------------- | --------------------------------------------------------------------- | ---------------------------- |
+| **서버**            | `postgresql://hantu:***REMOVED***@localhost:5432/hantu_quant`      | 서버 내부에서 localhost 접속 |
+| **로컬** (SSH 터널) | `postgresql://hantu:***REMOVED***@localhost:15432/hantu_quant`     | SSH 터널을 통한 접속         |
+| **로컬** (직접)     | `postgresql://hantu:***REMOVED***@158.180.87.156:5432/hantu_quant` | 방화벽 개방 시               |
+
+**SSH 터널 명령**:
+
+```bash
+ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156
+```
+
+**자동 환경 감지**:
+
+- `core/config/settings.py`가 실행 환경을 자동 감지
+- 로컬(`/Users/grimm/`): SSH 터널 포트(`15432`) 사용
+- 서버(`/opt/hantu_quant/`): localhost 포트(`5432`) 사용
 
 ---
 
@@ -275,16 +308,23 @@ python3 scripts/security_check.py --fix
 
 | 변수                 | 설명                                          | 필수 여부 |
 | -------------------- | --------------------------------------------- | --------- |
-| `KIS_APP_KEY`        | 한투 API 앱 키                                | ✅        |
-| `KIS_APP_SECRET`     | 한투 API 시크릿                               | ✅        |
-| `KIS_ACCOUNT_NO`     | 계좌 번호                                     | ✅        |
+| `APP_KEY`            | 한투 API 앱 키                                | ✅        |
+| `APP_SECRET`         | 한투 API 시크릿                               | ✅        |
+| `ACCOUNT_NUMBER`     | 계좌 번호 (8자리)                             | ✅        |
+| `ACCOUNT_PROD_CODE`  | 계좌 상품 코드 (01=종합, 02=위탁)             | ✅        |
+| `SERVER`             | 서버 모드 (virtual=모의투자, prod=실전)       | ✅        |
 | `API_SERVER_KEY`     | API 서버 인증 키                              | ✅        |
 | `TELEGRAM_BOT_TOKEN` | 텔레그램 봇 토큰                              | ✅        |
 | `TELEGRAM_CHAT_ID`   | 텔레그램 채팅 ID                              | ✅        |
+| `DATABASE_URL`       | PostgreSQL 연결 URL                           | ⭕ (자동) |
+| `DB_PASSWORD`        | PostgreSQL 비밀번호                           | ⭕ (자동) |
 | `REDIS_URL`          | Redis 연결 URL (예: redis://localhost:6379/0) | ⭕ (선택) |
 
 **참고**:
 
+- `DATABASE_URL` 미설정 시 `settings.py`가 환경별로 자동 설정
+  - 로컬: SSH 터널 포트 (`localhost:15432`)
+  - 서버: 내부 포트 (`localhost:5432`)
 - `REDIS_URL` 미설정 시 자동으로 MemoryCache 사용
 - Redis 연결 실패 시에도 MemoryCache로 폴백되어 서비스 정상 동작
 
