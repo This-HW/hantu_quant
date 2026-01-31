@@ -641,14 +641,18 @@ class PriceAnalyzer(IPriceAnalyzer):
     def _safe_get_list(self, p_value, p_default_size: int = 30) -> List[float]:
         """안전하게 리스트를 추출하는 헬퍼 메서드"""
         try:
-            if isinstance(p_value, list) and p_value:
-                return [float(x) for x in p_value if isinstance(x, (int, float))]
+            if isinstance(p_value, list):
+                if p_value:
+                    return [float(x) for x in p_value if isinstance(x, (int, float))]
+                else:
+                    # 빈 리스트는 정상 케이스로 처리
+                    return []
             elif isinstance(p_value, (int, float)):
-                # 단일 값인 경우: 리스트로 변환하여 반환 (더미 데이터 생성 안 함)
-                self._logger.warning(f"가격 데이터가 단일 값입니다. 리스트로 변환: {p_value}")
+                # 단일 값인 경우: 리스트로 변환하여 반환
+                self._logger.debug(f"가격 데이터가 단일 값입니다. 리스트로 변환: {p_value}")
                 return [float(p_value)]
             else:
-                self._logger.error(f"잘못된 가격 데이터 형식: {type(p_value)}")
+                # list, int, float가 아닌 경우만 빈 리스트 반환 (에러 로깅 없음)
                 return []
         except (ValueError, TypeError) as e:
             self._logger.error(f"가격 데이터 정규화 실패: {e}", exc_info=True)
