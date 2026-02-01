@@ -91,6 +91,30 @@ pip install fastapi uvicorn python-multipart aiofiles
 
 ## 3. 환경 설정
 
+### 3.1. .pgpass 파일 설정 (PostgreSQL 인증)
+
+**DB 비밀번호는 환경변수 대신 .pgpass 파일로 관리합니다.**
+
+```bash
+# .pgpass 파일 생성
+echo "localhost:5432:hantu_quant:hantu:PASSWORD" > ~/.pgpass
+
+# 권한 설정 (필수!)
+chmod 600 ~/.pgpass
+
+# 권한 확인
+ls -la ~/.pgpass
+# 출력: -rw------- 1 ubuntu ubuntu ... .pgpass
+```
+
+**형식 설명**:
+
+- `hostname:port:database:username:password`
+- 서버 환경: `localhost:5432` (DB가 같은 머신에 있음)
+- 로컬 환경: `localhost:15432` (SSH 터널 사용 시)
+
+### 3.2. 환경변수 설정
+
 ```bash
 cp .env.example .env
 nano .env
@@ -412,7 +436,7 @@ bash scripts/deployment/pre_checks.sh check-memory
 
 **필수 환경변수**:
 
-- `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- `DB_HOST`, `DB_USER`, `DB_NAME` (DB_PASSWORD는 .pgpass로 관리)
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
 
 **선택 환경변수** (경고만 표시):
@@ -432,10 +456,12 @@ bash scripts/deployment/validate_env.sh
 Environment Variable Validation
 ==========================================
 
+Checking PostgreSQL authentication...
+✓ .pgpass: Exists with correct permissions (600)
+
 Checking required variables...
 ✓ DB_HOST: Set
 ✓ DB_USER: Set
-✓ DB_PASSWORD: Set
 ✓ DB_NAME: Set
 ✓ TELEGRAM_BOT_TOKEN: Set
 ✓ TELEGRAM_CHAT_ID: Set
@@ -712,8 +738,10 @@ systemctl status hantu-*
 ⚠️⚠️⚠️ 배포 차단됨 ⚠️⚠️⚠️
 
 📝 누락된 환경변수:
-• DB_PASSWORD
 • TELEGRAM_BOT_TOKEN
+
+📦 데이터베이스 인증:
+• .pgpass 파일 확인 필요
 
 📦 데이터베이스 설정:
 
@@ -889,7 +917,15 @@ stat /opt/hantu_quant/.env
 
 **해결 방법**:
 
-1. **.env 파일 생성**:
+1. **.pgpass 파일 설정**:
+
+   ```bash
+   # .pgpass 파일 생성
+   echo "localhost:5432:hantu_quant:hantu:PASSWORD" > ~/.pgpass
+   chmod 600 ~/.pgpass
+   ```
+
+2. **.env 파일 생성**:
 
    ```bash
    cd /opt/hantu_quant
@@ -897,7 +933,7 @@ stat /opt/hantu_quant/.env
    nano .env  # 실제 값 입력
    ```
 
-2. **누락된 변수 추가**:
+3. **누락된 변수 추가**:
 
    ```bash
    # .env 파일 수정
@@ -905,12 +941,11 @@ stat /opt/hantu_quant/.env
 
    # 필수 변수 확인 (validate_env.sh 참조)
    DB_HOST=localhost
-   DB_PASSWORD=your_password
    TELEGRAM_BOT_TOKEN=your_token
    TELEGRAM_CHAT_ID=your_chat_id
    ```
 
-3. **서비스 재시작**:
+4. **서비스 재시작**:
    ```bash
    sudo systemctl restart hantu-scheduler hantu-api
    sudo systemctl status hantu-scheduler hantu-api

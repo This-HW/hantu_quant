@@ -14,8 +14,12 @@
 # 환경변수 (필수):
 #   - DB_HOST: PostgreSQL 호스트
 #   - DB_USER: PostgreSQL 사용자
-#   - DB_PASSWORD: PostgreSQL 비밀번호
 #   - DB_NAME: PostgreSQL 데이터베이스명
+#
+# 인증 방법:
+#   - ~/.pgpass 파일을 통한 비밀번호 관리
+#   - 형식: hostname:port:database:username:password
+#   - 권한: chmod 600 ~/.pgpass
 # =============================================================================
 
 set -uo pipefail
@@ -35,9 +39,9 @@ LOCKFILE="/tmp/auto-fix-errors.lock"
 CLAUDE_PATH="/home/ubuntu/.local/bin/claude"
 
 # DB 설정 (서버와 DB가 같은 머신에 있음)
+# 비밀번호는 ~/.pgpass 파일에서 자동으로 읽음
 DB_HOST="${DB_HOST:-localhost}"  # 기본값: localhost (서버 내부)
 DB_USER="${DB_USER:-hantu}"      # 기본값: hantu
-DB_PASS="${DB_PASSWORD:-}"
 DB_NAME="${DB_NAME:-hantu_quant}"  # 기본값: hantu_quant
 
 # ===== 유틸리티 함수 정의 (사용 전 선언) =====
@@ -85,7 +89,8 @@ log_error_to_db() {
     local error_type="${2:-ScriptError}"
 
     # SQL Injection 방지: psql -v 변수로 전달
-    PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" \
+    # .pgpass 파일을 통한 인증 (PGPASSWORD 환경변수 불필요)
+    psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" \
         -v msg="$error_msg" \
         -v type="$error_type" \
         -c "INSERT INTO error_logs (timestamp, level, service, module, message, error_type)
@@ -95,10 +100,18 @@ log_error_to_db() {
 
 # ===== 환경 검증 =====
 
-# 필수 환경변수 검증 (DB_PASSWORD만 필수)
-if [ -z "$DB_PASS" ]; then
-    echo "ERROR: DB_PASSWORD 환경변수가 설정되지 않았습니다." >&2
-    # DB 접속 불가로 에러 적재 불가, 즉시 종료
+# .pgpass 파일 존재 및 권한 검증
+PGPASS_FILE="$HOME/.pgpass"
+if [ ! -f "$PGPASS_FILE" ]; then
+    echo "ERROR: .pgpass 파일이 존재하지 않습니다: $PGPASS_FILE" >&2
+    echo "생성 방법: echo 'localhost:5432:hantu_quant:hantu:PASSWORD' > ~/.pgpass && chmod 600 ~/.pgpass" >&2
+    exit 1
+fi
+
+PGPASS_PERMS=$(stat -c '%a' "$PGPASS_FILE" 2>/dev/null || stat -f '%A' "$PGPASS_FILE" 2>/dev/null)
+if [ "$PGPASS_PERMS" != "600" ]; then
+    echo "ERROR: .pgpass 파일 권한이 잘못되었습니다 (현재: $PGPASS_PERMS, 필요: 600)" >&2
+    echo "수정 방법: chmod 600 ~/.pgpass" >&2
     exit 1
 fi
 
@@ -159,7 +172,8 @@ LOCAL_ERRORS=$(cat "$PROD_LOG_DIR/$(date +%Y%m%d).log" 2>/dev/null | grep -i 'er
 SYSTEM_ERRORS=$(journalctl -u hantu-api -u hantu-scheduler --since '30 minutes ago' --no-pager 2>/dev/null | grep -i 'error\|exception\|traceback' | tail -30 || true)
 
 # DB 에러 로그 (미해결, 최근 30분)
-DB_ERRORS=$(PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -t -c "
+# .pgpass 파일을 통한 인증 (PGPASSWORD 환경변수 불필요)
+DB_ERRORS=$(psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -t -c "
 SELECT
     'ID:' || id || ' | ' ||
     'Time:' || timestamp || ' | ' ||
@@ -233,7 +247,7 @@ ${DB_ERRORS:-없음}
    - git checkout -- . 로 모든 변경사항 롤백
    - 실패 원인만 간단히 보고
 5. 수정한 DB 에러는 resolved 컬럼 업데이트:
-   - PGPASSWORD=\"\$DB_PASSWORD\" psql -h \"\$DB_HOST\" -U \"\$DB_USER\" -d \"\$DB_NAME\" -c \"UPDATE error_logs SET resolved = NOW(), resolution_note = '자동 수정' WHERE id IN (수정된_에러_ID들)\"
+   - psql -h \"\$DB_HOST\" -U \"\$DB_USER\" -d \"\$DB_NAME\" -c \"UPDATE error_logs SET resolved = NOW(), resolution_note = '자동 수정' WHERE id IN (수정된_에러_ID들)\"
 6. 최종 결과를 한 줄로 요약해줘
 "
 

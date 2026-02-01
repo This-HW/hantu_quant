@@ -383,7 +383,6 @@ python3 scripts/security_check.py --fix
 | `TELEGRAM_BOT_TOKEN` | 텔레그램 봇 토큰                              | ✅        |
 | `TELEGRAM_CHAT_ID`   | 텔레그램 채팅 ID                              | ✅        |
 | `DATABASE_URL`       | PostgreSQL 연결 URL                           | ⭕ (자동) |
-| `DB_PASSWORD`        | PostgreSQL 비밀번호                           | ⭕ (자동) |
 | `REDIS_URL`          | Redis 연결 URL (예: redis://localhost:6379/0) | ⭕ (선택) |
 
 **참고**:
@@ -391,6 +390,10 @@ python3 scripts/security_check.py --fix
 - `DATABASE_URL` 미설정 시 `settings.py`가 환경별로 자동 설정
   - 로컬: SSH 터널 포트 (`localhost:15432`)
   - 서버: 내부 포트 (`localhost:5432`)
+- **DB 비밀번호 인증**: `~/.pgpass` 파일 사용 (환경변수 불필요)
+  - 형식: `hostname:port:database:username:password`
+  - 권한: `chmod 600 ~/.pgpass`
+  - 예시: `localhost:5432:hantu_quant:hantu:PASSWORD`
 - `REDIS_URL` 미설정 시 자동으로 MemoryCache 사용
 - Redis 연결 실패 시에도 MemoryCache로 폴백되어 서비스 정상 동작
 

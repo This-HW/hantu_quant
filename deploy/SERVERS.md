@@ -39,6 +39,13 @@ ssh -i ~/.ssh/id_rsa ubuntu@158.180.87.156
 - PostgreSQL 15: localhost:5432 (내부)
 - Redis 7: localhost:6379 (Docker)
 
+**DB 인증 방법:**
+
+- 환경변수 대신 `~/.pgpass` 파일 사용
+- 형식: `hostname:port:database:username:password`
+- 권한: `chmod 600 ~/.pgpass`
+- 예시: `localhost:5432:hantu_quant:hantu:***REMOVED***`
+
 **아키텍처:**
 
 ```
@@ -90,13 +97,18 @@ ssh -i ~/.ssh/id_rsa ubuntu@134.185.104.141
 
 **현재 연결 정보:**
 
-| 환경                         | DATABASE_URL                                                          |
-| ---------------------------- | --------------------------------------------------------------------- |
-| **서버** (hantu-server 내부) | `postgresql://hantu:***REMOVED***@localhost:5432/hantu_quant`      |
-| **로컬** (SSH 터널 사용)     | `postgresql://hantu:***REMOVED***@localhost:15432/hantu_quant`     |
-| **로컬** (직접 접속)         | `postgresql://hantu:***REMOVED***@158.180.87.156:5432/hantu_quant` |
+| 환경                         | DATABASE_URL (비밀번호 제외)                         | 비밀번호 인증                       |
+| ---------------------------- | ---------------------------------------------------- | ----------------------------------- |
+| **서버** (hantu-server 내부) | `postgresql://hantu@localhost:5432/hantu_quant`      | ~/.pgpass (localhost:5432:...)      |
+| **로컬** (SSH 터널 사용)     | `postgresql://hantu@localhost:15432/hantu_quant`     | ~/.pgpass (localhost:15432:...)     |
+| **로컬** (직접 접속)         | `postgresql://hantu@158.180.87.156:5432/hantu_quant` | ~/.pgpass (158.180.87.156:5432:...) |
 
-> **주의**: 서버와 DB가 같은 머신(158.180.87.156)에 있으므로, 서버에서는 `localhost:5432`로 접속합니다.
+> **주의**:
+>
+> - 서버와 DB가 같은 머신(158.180.87.156)에 있으므로, 서버에서는 `localhost:5432`로 접속합니다.
+> - 비밀번호는 `~/.pgpass` 파일에서 자동으로 읽어옵니다 (환경변수 불필요).
+> - `.pgpass` 형식: `hostname:port:database:username:password`
+> - 권한: `chmod 600 ~/.pgpass` 필수
 
 ---
 
@@ -186,10 +198,10 @@ scp -r -i ~/.ssh/id_rsa ubuntu@158.180.87.156:/opt/hantu_quant/logs ./backup/
 ### 복구 명령어
 
 ```bash
-# PostgreSQL 복구
+# PostgreSQL 복구 (.pgpass 파일 사용)
 gunzip -c ./backup/***REMOVED***0129.sql.gz | \
   ssh -i ~/.ssh/id_rsa ubuntu@158.180.87.156 \
-  "PGPASSWORD='***REMOVED***' psql -U hantu -h localhost hantu_quant"
+  "psql -U hantu -h localhost hantu_quant"
 ```
 
 ---

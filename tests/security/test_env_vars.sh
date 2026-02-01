@@ -2,8 +2,8 @@
 # =============================================================================
 # 환경변수 검증 테스트
 #
-# 목적: auto-fix-errors.sh의 환경변수 검증 로직 테스트
-# 테스트 방식: 서브셸에서 스크립트 실행 및 exit code 확인
+# 목적: auto-fix-errors.sh의 환경변수 및 .pgpass 파일 검증 로직 테스트
+# 테스트 방식: 직접 검증 로직 실행 및 exit code 확인
 # =============================================================================
 
 set -euo pipefail
@@ -27,16 +27,18 @@ log() {
 
 test_env_validation() {
     local test_name="$1"
-    local db_password_val="$2"  # DB_PASSWORD 값 ("" = 미설정)
-    local claude_path_val="$3"  # CLAUDE_PATH 값
-    local dev_dir_val="$4"      # DEV_PROJECT_DIR 값
-    local expected_exit_code="$5"  # 예상 exit code (0=성공, 1=실패)
+    local pgpass_exists="$2"    # .pgpass 파일 존재 여부 ("yes"/"no")
+    local pgpass_perms="$3"     # .pgpass 파일 권한 ("600"/기타)
+    local claude_path_val="$4"  # CLAUDE_PATH 값
+    local dev_dir_val="$5"      # DEV_PROJECT_DIR 값
+    local expected_exit_code="$6"  # 예상 exit code (0=성공, 1=실패)
 
     TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
     log ""
     log "=== 테스트 $TOTAL_TESTS: $test_name ==="
-    log "DB_PASSWORD: ${db_password_val:-"(미설정)"}"
+    log ".pgpass 존재: $pgpass_exists"
+    log ".pgpass 권한: $pgpass_perms"
     log "CLAUDE_PATH: ${claude_path_val}"
     log "DEV_PROJECT_DIR: ${dev_dir_val}"
     log "예상 exit code: $expected_exit_code"
@@ -45,9 +47,12 @@ test_env_validation() {
     local exit_code=0
     local output=""
 
-    # DB_PASSWORD 검증
-    if [ -z "$db_password_val" ]; then
-        output="ERROR: DB_PASSWORD 환경변수가 설정되지 않았습니다."
+    # .pgpass 검증
+    if [ "$pgpass_exists" = "no" ]; then
+        output="ERROR: .pgpass 파일이 존재하지 않습니다"
+        exit_code=1
+    elif [ "$pgpass_perms" != "600" ]; then
+        output="ERROR: .pgpass 파일 권한이 잘못되었습니다 (현재: $pgpass_perms, 필요: 600)"
         exit_code=1
     else
         # 경로 검증 (간소화)
@@ -93,34 +98,38 @@ mkdir -p "$PROJECT_ROOT/logs"
 
 log "===== 환경변수 검증 테스트 시작 ====="
 
-# 테스트 1: DB_PASSWORD 미설정
+# 테스트 1: .pgpass 파일 없음
 test_env_validation \
-    "DB_PASSWORD 미설정" \
-    "" \
+    ".pgpass 파일 없음" \
+    "no" \
+    "600" \
     "/home/ubuntu/.local/bin/claude" \
     "$HOME/hantu_quant_dev" \
     1  # 실패 예상
 
-# 테스트 2: DB_PASSWORD 빈 문자열
+# 테스트 2: .pgpass 권한 잘못됨 (644)
 test_env_validation \
-    "DB_PASSWORD 빈 문자열" \
-    "" \
+    ".pgpass 권한 잘못됨 (644)" \
+    "yes" \
+    "644" \
     "/home/ubuntu/.local/bin/claude" \
     "$HOME/hantu_quant_dev" \
     1  # 실패 예상
 
-# 테스트 3: DB_PASSWORD 정상 설정
+# 테스트 3: .pgpass 정상 (600)
 test_env_validation \
-    "DB_PASSWORD 정상 설정" \
-    "test_password" \
+    ".pgpass 정상 (600)" \
+    "yes" \
+    "600" \
     "/Users/grimm/Documents/Dev/hantu_quant/scripts/test.sh" \
     "/Users/grimm/Documents/Dev/hantu_quant" \
     0  # 성공 예상
 
-# 테스트 4: 모든 환경변수 정상
+# 테스트 4: 모든 검증 통과
 test_env_validation \
-    "모든 환경변수 정상" \
-    "test" \
+    "모든 검증 통과" \
+    "yes" \
+    "600" \
     "/Users/grimm/Documents/Dev/hantu_quant/scripts/test.sh" \
     "/Users/grimm/Documents/Dev/hantu_quant" \
     0  # 성공 예상
@@ -128,7 +137,8 @@ test_env_validation \
 # 테스트 5: CLAUDE_PATH 잘못된 경로
 test_env_validation \
     "CLAUDE_PATH 잘못된 경로" \
-    "test" \
+    "yes" \
+    "600" \
     "/etc/passwd" \
     "/Users/grimm/Documents/Dev/hantu_quant" \
     1  # 실패 예상
@@ -136,7 +146,8 @@ test_env_validation \
 # 테스트 6: DEV_PROJECT_DIR 잘못된 경로
 test_env_validation \
     "DEV_PROJECT_DIR 잘못된 경로" \
-    "test" \
+    "yes" \
+    "600" \
     "/Users/grimm/Documents/Dev/hantu_quant/scripts/test.sh" \
     "/tmp/malicious" \
     1  # 실패 예상

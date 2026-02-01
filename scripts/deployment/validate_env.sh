@@ -4,10 +4,10 @@
 set -euo pipefail
 
 # Required environment variables for deployment
+# DB_PASSWORD는 .pgpass 파일로 관리 (환경변수 불필요)
 REQUIRED_ENV_VARS=(
     "DB_HOST"
     "DB_USER"
-    "DB_PASSWORD"
     "DB_NAME"
     "TELEGRAM_BOT_TOKEN"
     "TELEGRAM_CHAT_ID"
@@ -37,6 +37,28 @@ check_env_var() {
     fi
 }
 
+# Function to check .pgpass file
+check_pgpass_file() {
+    local pgpass_file="$HOME/.pgpass"
+
+    if [[ ! -f "$pgpass_file" ]]; then
+        echo -e "${RED}✗${NC} .pgpass: Missing (REQUIRED)"
+        echo "  생성 방법: echo 'localhost:5432:hantu_quant:hantu:PASSWORD' > ~/.pgpass && chmod 600 ~/.pgpass"
+        return 1
+    fi
+
+    # Check permissions
+    local perms=$(stat -c '%a' "$pgpass_file" 2>/dev/null || stat -f '%A' "$pgpass_file" 2>/dev/null)
+    if [[ "$perms" != "600" ]]; then
+        echo -e "${RED}✗${NC} .pgpass: Wrong permissions (Current: $perms, Required: 600)"
+        echo "  수정 방법: chmod 600 ~/.pgpass"
+        return 1
+    fi
+
+    echo -e "${GREEN}✓${NC} .pgpass: Exists with correct permissions (600)"
+    return 0
+}
+
 # Main validation function
 validate_env_vars() {
     local missing_vars=()
@@ -46,6 +68,14 @@ validate_env_vars() {
     echo "=========================================="
     echo "Environment Variable Validation"
     echo "=========================================="
+    echo ""
+
+    # Check .pgpass file first
+    echo "Checking PostgreSQL authentication..."
+    if ! check_pgpass_file; then
+        validation_failed=1
+    fi
+
     echo ""
 
     # Check required variables
