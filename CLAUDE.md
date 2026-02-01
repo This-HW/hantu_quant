@@ -242,6 +242,72 @@ def get_price(stock_code: str):
 
 ---
 
+## 배포 규칙
+
+### 기본 원칙
+
+**CI/CD 자동 배포를 우선 사용하고, 수동 배포는 긴급 상황에만 사용합니다.**
+
+### 배포 방식
+
+| 방식          | 언제               | 프로세스                  | 소요 시간 |
+| ------------- | ------------------ | ------------------------- | --------- |
+| **자동 배포** | 일반적인 모든 경우 | git push → CI → Deploy    | 2-4분     |
+| **수동 배포** | 긴급 핫픽스만      | 서버 접속 → 수정 → 재시작 | 즉시      |
+
+### 자동 배포 플로우
+
+```bash
+# 1. 로컬 개발
+git checkout -b feature/new-feature
+# 코드 작성 및 테스트
+git commit -m "feat: 새 기능 추가"
+git push origin feature/new-feature
+
+# 2. PR 생성 및 병합
+# GitHub에서 PR → main 병합
+
+# 3. CI/CD 자동 실행 (2-4분 대기)
+# ✅ CI: 테스트, 린트, 보안 검사
+# ✅ Deploy: git pull, 의존성 설치, 서비스 재시작
+# ✅ 텔레그램 알림 전송
+
+# 4. 완료 (수동 개입 불필요)
+```
+
+### 수동 배포 (긴급만)
+
+```bash
+# 서버 접속
+ssh ubuntu@158.180.87.156
+
+# 코드 수정
+cd /opt/hantu_quant
+git checkout -b hotfix/urgent
+# 수정...
+git commit -m "fix: 긴급 수정 [skip ci]"
+
+# 서비스 재시작
+sudo systemctl restart hantu-scheduler hantu-api
+
+# 확인 후 push
+git push origin hotfix/urgent
+```
+
+### 절대 금지
+
+```
+❌ git push + 수동 배포 (동시)
+   → 배포 충돌 발생 (수동 배포 → CI/CD가 덮어씀)
+
+✅ git push → CI/CD 대기 (권장)
+✅ [skip ci] + 수동 배포 (긴급만)
+```
+
+**상세 규칙**: `.claude/rules/deployment.md` 참조
+
+---
+
 ## 배치 분산 처리 (Phase 2)
 
 ### 스케줄
@@ -560,7 +626,14 @@ db_error_handler = setup_db_error_logging(service_name="서비스명")
 
 ## 참고 문서
 
+### 개발 가이드
+
 - [CLI 레퍼런스](docs/CLI_REFERENCE.md)
 - [API 레퍼런스](docs/API_REFERENCE.md)
-- [배포 가이드](deploy/DEPLOY_MICRO.md)
+
+### 배포 및 인프라
+
+- [배포 규칙](.claude/rules/deployment.md) - **CI/CD 자동 배포 우선**
+- [Git 거버넌스](.claude/rules/git-governance.md) - 브랜치 전략
+- [배포 가이드](deploy/DEPLOY_MICRO.md) - 수동 배포 참고용
 - [서버 정보](deploy/SERVERS.md)
