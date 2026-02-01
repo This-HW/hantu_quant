@@ -97,7 +97,15 @@ class KISWebSocketClient:
             # websockets 라이브러리 내부 ping 사용 가능
             await self.websocket.ping()
             return True
-        except Exception:
+        except Exception as e:
+            logger.warning(
+                f"Heartbeat 실패: {e}",
+                exc_info=True,
+                extra={
+                    "websocket_open": self.websocket is not None,
+                    "running": self.running,
+                },
+            )
             return False
 
     async def ensure_connection(self):
@@ -320,31 +328,51 @@ class KISWebSocketClient:
             return None
             
     async def _reconnect(self):
-        """WebSocket 재연결"""
+        """WebSocket 재연결 (지수 백오프 적용)"""
         logger.info("WebSocket 재연결 시도...")
-        
+
         max_retries = 5
         retry_count = 0
-        
+        # 지수 백오프: 1, 2, 4, 8, 16초
+        retry_delays = [1, 2, 4, 8, 16]
+
         while not self.websocket and retry_count < max_retries:
             try:
                 retry_count += 1
                 logger.info(f"재연결 시도 {retry_count}/{max_retries}")
-                
+
                 if await self.connect():
                     # 기존 구독 정보 복구
                     for stock_code, tr_list in self.subscribed_codes.items():
                         await self.subscribe(stock_code, tr_list)
-                    
+
                     logger.info("WebSocket 재연결 성공")
                     return True
-                
+
             except Exception as e:
-                logger.error(f"재연결 실패 ({retry_count}/{max_retries}): {str(e)}", exc_info=True)
-                await asyncio.sleep(min(5 * retry_count, 30))  # 지수 백오프, 최대 30초
-        
+                delay = retry_delays[min(retry_count - 1, len(retry_delays) - 1)]
+                logger.error(
+                    f"재연결 실패 ({retry_count}/{max_retries}): {e}",
+                    exc_info=True,
+                    extra={
+                        "retry_count": retry_count,
+                        "max_retries": max_retries,
+                        "next_delay": delay if retry_count < max_retries else None,
+                    },
+                )
+                if retry_count < max_retries:
+                    logger.info(f"{delay}초 후 재시도")
+                    await asyncio.sleep(delay)
+
         if retry_count >= max_retries:
-            logger.error(f"최대 재시도 횟수({max_retries})를 초과했습니다. 재연결 중단.", exc_info=True)
+            logger.error(
+                f"최대 재시도 횟수({max_retries})를 초과했습니다. 재연결 중단.",
+                exc_info=True,
+                extra={
+                    "total_retries": retry_count,
+                    "total_wait_time": sum(retry_delays[:max_retries - 1]),
+                },
+            )
             self.running = False
             return False
             

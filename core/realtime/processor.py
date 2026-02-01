@@ -392,4 +392,56 @@ class RealtimeProcessor:
         buffer = list(self.price_buffers[stock_code])
         if limit:
             return buffer[-limit:]
-        return buffer 
+        return buffer
+
+    def get_buffer_stats(self) -> Dict[str, Any]:
+        """버퍼 상태 조회 (모니터링용)
+
+        Returns:
+            버퍼 통계 정보
+        """
+        total_items = sum(len(buf) for buf in self.price_buffers.values())
+        max_capacity = len(self.price_buffers) * self.buffer_maxlen if self.price_buffers else 0
+
+        stats = {
+            "total_stocks": len(self.price_buffers),
+            "total_items": total_items,
+            "buffer_maxlen": self.buffer_maxlen,
+            "usage_percent": (total_items / max_capacity * 100) if max_capacity > 0 else 0.0,
+            "stocks": [],
+        }
+
+        for stock_code, buffer in self.price_buffers.items():
+            stats["stocks"].append({
+                "stock_code": stock_code,
+                "buffer_size": len(buffer),
+                "is_full": len(buffer) >= self.buffer_maxlen,
+            })
+
+        return stats
+
+    def check_buffer_overflow(self) -> Optional[str]:
+        """버퍼 오버플로우 감지 (경고 로깅용)
+
+        Returns:
+            경고 메시지 (오버플로우 발생 시) 또는 None
+        """
+        stats = self.get_buffer_stats()
+
+        # 전체 사용률이 80% 이상이면 경고
+        if stats["usage_percent"] >= 80.0:
+            warning_msg = (
+                f"버퍼 사용률 높음: {stats['usage_percent']:.1f}% "
+                f"({stats['total_items']}/{len(self.price_buffers) * self.buffer_maxlen})"
+            )
+            logger.warning(
+                warning_msg,
+                extra={
+                    "total_stocks": stats["total_stocks"],
+                    "total_items": stats["total_items"],
+                    "usage_percent": stats["usage_percent"],
+                },
+            )
+            return warning_msg
+
+        return None
