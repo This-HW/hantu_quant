@@ -117,12 +117,13 @@ hantu monitor --json       # JSON 출력
 
 ### 버그 수정
 
-| 커밋      | 내용                                         |
-| --------- | -------------------------------------------- |
-| `c0cb56d` | CircuitBreaker 상태 전이 로직 보완           |
-| `3e57379` | NotificationManager 스레드 누수 해결         |
-| `89e790f` | 코드 리뷰 Critical/Warning 수정              |
-| `f1836ea` | Should Fix 항목 수정 (메서드명, 테스트 코드) |
+| 커밋      | 내용                                            |
+| --------- | ----------------------------------------------- |
+| `c0cb56d` | CircuitBreaker 상태 전이 로직 보완              |
+| `3e57379` | NotificationManager 스레드 누수 해결            |
+| `89e790f` | 코드 리뷰 Critical/Warning 수정                 |
+| `f1836ea` | Should Fix 항목 수정 (메서드명, 테스트 코드)    |
+| `719a110` | generate_daily_summary 로깅 AttributeError 수정 |
 
 ---
 
@@ -134,6 +135,7 @@ hantu monitor --json       # JSON 출력
 | ---------- | ----------------- |
 | Must Fix   | 0건               |
 | Should Fix | 0건 (모두 수정됨) |
+| Warning    | 2건 (선택적)      |
 | Consider   | 4건 (선택적 개선) |
 
 ### 프로젝트 규칙 준수
@@ -149,10 +151,10 @@ hantu monitor --json       # JSON 출력
 
 | 항목        | 값     |
 | ----------- | ------ |
-| 총 커밋     | 13개   |
-| 변경 파일   | 24개   |
-| 추가 라인   | +5,405 |
-| 삭제 라인   | -129   |
+| 총 커밋     | 15개   |
+| 변경 파일   | 25개   |
+| 추가 라인   | +5,587 |
+| 삭제 라인   | -131   |
 | 신규 모듈   | 4개    |
 | 신규 테스트 | 7개    |
 
@@ -162,7 +164,7 @@ hantu monitor --json       # JSON 출력
 
 ### 즉시 가능한 작업
 
-1. **git push**: 13개 커밋을 origin/main에 푸시
+1. ~~**git push**: 15개 커밋을 origin/main에 푸시~~ ✅ 완료
 2. **운영 테스트**: 실제 모의투자 환경에서 검증
 
 ### 향후 개선 (TODO)
