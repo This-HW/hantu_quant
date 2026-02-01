@@ -78,6 +78,21 @@ class KISEndpoint:
         "required_params": ["FID_COND_MRKT_DIV_CODE", "FID_INPUT_ISCD", "FID_PERIOD_DIV_CODE", "FID_ORG_ADJ_PRC"],
     }
 
+    INQUIRE_DAILY_ITEMCHARTPRICE = {
+        "name": "국내주식기간별시세(일/주/월/년)",
+        "path": "/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice",
+        "tr_id": "FHKST03010100",
+        "method": "GET",
+        "required_params": [
+            "FID_COND_MRKT_DIV_CODE",
+            "FID_INPUT_ISCD",
+            "FID_INPUT_DATE_1",
+            "FID_INPUT_DATE_2",
+            "FID_PERIOD_DIV_CODE",
+            "FID_ORG_ADJ_PRC"
+        ],
+    }
+
     INQUIRE_TIME_ITEMCHARTPRICE = {
         "name": "주식당일분봉조회",
         "path": "/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice",
@@ -407,7 +422,10 @@ class APIConfig:
             safe_data["appsecret"] = "***MASKED***"
             logger.debug(f"[refresh_token] 토큰 갱신 요청: {safe_data}")
 
-            headers = {"content-type": "application/json; charset=utf-8"}
+            headers = {
+                "content-type": "application/json; charset=utf-8",
+                "Accept": "text/plain"
+            }
             # TLS 1.2+ 세션 사용
             response = self._session.post(url, json=data, headers=headers, timeout=settings.REQUEST_TIMEOUT)
 

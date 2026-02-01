@@ -473,29 +473,35 @@ class KISRestClient:
 
         Note:
             캐시 TTL: 600초 (10분)
+            KIS 표준 API (inquire-daily-itemchartprice) 사용
+            휴장일 고려하여 요청 기간을 1.3배로 확장
         """
         try:
-            if not self.config.ensure_valid_token():
-                raise Exception("API 토큰이 유효하지 않습니다")
-            url = f"{self.config.base_url}/uapi/domestic-stock/v1/quotations/inquire-daily-price"
-            headers = self._headers_with_tr_id(default_tr_id="FHKST01010400", key="inquire_daily_price")
-            
-            # 시작일 계산
+            # 날짜 범위 계산 (YYYYMMDD 형식)
+            # 휴장일(주말, 공휴일)을 고려하여 요청 기간을 1.3배로 확장
             end_date = datetime.now()
-            end_date - timedelta(days=period_days + 30)  # 여유분 추가
-            
+            buffer_days = int(period_days * 1.3)
+            start_date = end_date - timedelta(days=buffer_days)
+
             params = {
-                "FID_COND_MRKT_DIV_CODE": "J",
+                "FID_COND_MRKT_DIV_CODE": "J",  # 시장 구분 코드 (J: 주식, ETF, ETN)
                 "FID_INPUT_ISCD": stock_code,
-                "FID_ORG_ADJ_PRC": "1",  # 수정주가
-                "FID_PERIOD_DIV_CODE": "D"  # 일봉
+                "FID_INPUT_DATE_1": start_date.strftime("%Y%m%d"),  # 시작일자
+                "FID_INPUT_DATE_2": end_date.strftime("%Y%m%d"),     # 종료일자
+                "FID_PERIOD_DIV_CODE": "D",  # D:일봉, W:주봉, M:월봉, Y:년봉
+                "FID_ORG_ADJ_PRC": "0"  # 0:수정주가(권리락 반영), 1:원주가
             }
-            
-            response = self._request("GET", url, headers=headers, params=params)
-            
-            if "output" in response and response["output"]:
+
+            # SSOT 원칙: KISEndpoint 레지스트리 활용
+            response = self.request_endpoint(
+                KISEndpoint.INQUIRE_DAILY_ITEMCHARTPRICE,
+                params=params
+            )
+
+            # 표준 API는 output2에 차트 데이터 반환
+            if "output2" in response and response["output2"]:
                 data = []
-                for item in response["output"]:
+                for item in response["output2"]:
                     data.append({
                         "date": datetime.strptime(item["stck_bsop_date"], "%Y%m%d"),
                         "open": float(item["stck_oprc"]),
@@ -504,21 +510,21 @@ class KISRestClient:
                         "close": float(item["stck_clpr"]),
                         "volume": int(item["acml_vol"])
                     })
-                
+
                 df = pd.DataFrame(data)
                 df = df.sort_values("date").reset_index(drop=True)
                 df.set_index("date", inplace=True)
-                
+
                 # 요청한 기간만큼 데이터 제한
                 if len(df) > period_days:
                     df = df.tail(period_days)
-                
-                logger.info(f"일봉 데이터 조회 완료: {stock_code}, {len(df)}일")
+
+                logger.info(f"일봉 데이터 조회 완료: {stock_code}, {len(df)}일 (표준 API)")
                 return df
             else:
                 logger.error(f"일봉 데이터 조회 실패: {stock_code}", exc_info=True)
                 return None
-                
+
         except Exception as e:
             logger.error(f"일봉 데이터 조회 오류: {e}", exc_info=True)
             return None
