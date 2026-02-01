@@ -2,8 +2,8 @@
 Real-time data processing package.
 """
 
-from .processor import DataProcessor
-from .handlers import EventHandler
+from .processor import DataProcessor, RealtimeProcessor
+from .handlers import EventHandler, PositionMonitor
 from .indicators import (
     RealtimeIndicatorCalculator,
     IndicatorConfig,
@@ -13,7 +13,9 @@ from .indicators import (
 
 __all__ = [
     'DataProcessor',
+    'RealtimeProcessor',
     'EventHandler',
+    'PositionMonitor',
     'RealtimeIndicatorCalculator',
     'IndicatorConfig',
     'IndicatorType',

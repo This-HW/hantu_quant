@@ -6,6 +6,9 @@
 import logging
 import re
 
+# 허용된 이모지 (로그에서 유지할 이모지)
+ALLOWED_EMOJIS = frozenset(['✅', '❌', '⭕'])
+
 
 class EmojiRemovalFilter(logging.Filter):
     """로그 메시지에서 이모지를 제거하는 필터
@@ -13,7 +16,7 @@ class EmojiRemovalFilter(logging.Filter):
     JSON 로깅 시스템에서 이모지로 인한 인코딩 문제를 방지합니다.
     """
 
-    # 이모지 유니코드 범위
+    # 이모지 유니코드 범위 (확장)
     EMOJI_PATTERN = re.compile(
         "["
         "\U0001F600-\U0001F64F"  # Emoticons
@@ -24,6 +27,12 @@ class EmojiRemovalFilter(logging.Filter):
         "\U00002700-\U000027BF"  # Dingbats
         "\U0001F900-\U0001F9FF"  # Supplemental Symbols
         "\U0001FA00-\U0001FA6F"  # Chess Symbols
+        "\U0001F0A0-\U0001F0FF"  # Playing Cards
+        "\U0001F100-\U0001F1FF"  # Enclosed Alphanumeric Supplement
+        "\U0001F650-\U0001F67F"  # Ornamental Dingbats
+        "\U00002300-\U000023FF"  # Miscellaneous Technical
+        "\U0001F780-\U0001F7FF"  # Geometric Shapes Extended
+        "\U00002B00-\U00002BFF"  # Miscellaneous Symbols and Arrows
         "]+",
         flags=re.UNICODE
     )
