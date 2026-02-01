@@ -4,12 +4,13 @@ Real-time data event handlers.
 실시간 데이터 이벤트를 처리하고 신호 생성, 시장 분석을 수행합니다.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
 from dataclasses import dataclass, field
 from collections import deque
 import statistics
 import uuid
+import asyncio
 
 from core.utils import get_logger
 from core.database import StockRepository
@@ -847,3 +848,244 @@ class EventHandler:
     def __del__(self):
         """소멸자"""
         self._cleanup()
+
+
+class PositionMonitor:
+    """포지션 모니터링 및 손절/익절 검증 (Phase 3: WebSocket)
+
+    실시간 가격 데이터를 기반으로 포지션의 손절/익절 조건을 검증하고,
+    조건 충족 시 자동 주문을 실행합니다.
+
+    Business Rules:
+        - VAL-001: 손절 조건 검증 (현재가 <= 손절가)
+        - VAL-002: 익절 조건 검증 (현재가 >= 익절가)
+        - STATE-001: 포지션 상태 전이 (active → triggered)
+        - POL-001: 자동 주문 실행 정책 (조건 충족 시 즉시 매도)
+        - POL-002: 알림 전송 우선순위 (emergency > high > normal > low)
+    """
+
+    def __init__(self, realtime_processor, trading_engine=None):
+        """초기화
+
+        Args:
+            realtime_processor: RealtimeProcessor 인스턴스
+            trading_engine: TradingEngine 인스턴스 (선택)
+        """
+        self.processor = realtime_processor
+        self.trading_engine = trading_engine
+        self.running = False
+
+        # 이벤트 콜백
+        self.stop_loss_callbacks: List[Callable] = []
+        self.take_profit_callbacks: List[Callable] = []
+        self.alert_callbacks: List[Callable] = []
+
+        logger.info("PositionMonitor 초기화 완료")
+
+    def add_stop_loss_callback(self, callback: Callable):
+        """손절 이벤트 콜백 등록"""
+        self.stop_loss_callbacks.append(callback)
+
+    def add_take_profit_callback(self, callback: Callable):
+        """익절 이벤트 콜백 등록"""
+        self.take_profit_callbacks.append(callback)
+
+    def add_alert_callback(self, callback: Callable):
+        """알림 이벤트 콜백 등록"""
+        self.alert_callbacks.append(callback)
+
+    async def check_position(self, stock_code: str, current_price: float) -> Optional[Dict[str, Any]]:
+        """포지션 손절/익절 조건 검증
+
+        Args:
+            stock_code: 종목코드
+            current_price: 현재가
+
+        Returns:
+            이벤트 정보 (조건 충족 시) 또는 None
+        """
+        position = self.processor.get_position(stock_code)
+        if not position or position["status"] != "active":
+            return None
+
+        stop_loss_price = position["stop_loss_price"]
+        take_profit_price = position["take_profit_price"]
+        entry_price = position["entry_price"]
+
+        # VAL-001: 손절 조건 검증
+        if current_price <= stop_loss_price:
+            logger.warning(
+                f"[손절 조건 충족] {stock_code}: "
+                f"현재가={current_price}, 손절가={stop_loss_price:.2f}, "
+                f"진입가={entry_price}"
+            )
+
+            # STATE-001: 상태 전이
+            position["status"] = "stop_loss_triggered"
+
+            event = {
+                "type": "stop_loss",
+                "stock_code": stock_code,
+                "current_price": current_price,
+                "stop_loss_price": stop_loss_price,
+                "entry_price": entry_price,
+                "loss": current_price - entry_price,
+                "loss_ratio": (current_price - entry_price) / entry_price,
+                "quantity": position["quantity"],
+                "timestamp": datetime.now(),
+            }
+
+            # POL-001: 자동 주문 실행
+            if self.trading_engine:
+                try:
+                    await self._execute_sell_order(event)
+                except Exception as e:
+                    logger.error(f"손절 주문 실행 실패: {e}", exc_info=True)
+
+            # 콜백 호출
+            await self._trigger_callbacks(self.stop_loss_callbacks, event)
+
+            # POL-002: Emergency 알림
+            await self._send_alert("emergency", f"손절 실행: {stock_code}", event)
+
+            return event
+
+        # VAL-002: 익절 조건 검증
+        if current_price >= take_profit_price:
+            logger.info(
+                f"[익절 조건 충족] {stock_code}: "
+                f"현재가={current_price}, 익절가={take_profit_price:.2f}, "
+                f"진입가={entry_price}"
+            )
+
+            # STATE-001: 상태 전이
+            position["status"] = "take_profit_triggered"
+
+            event = {
+                "type": "take_profit",
+                "stock_code": stock_code,
+                "current_price": current_price,
+                "take_profit_price": take_profit_price,
+                "entry_price": entry_price,
+                "profit": current_price - entry_price,
+                "profit_ratio": (current_price - entry_price) / entry_price,
+                "quantity": position["quantity"],
+                "timestamp": datetime.now(),
+            }
+
+            # POL-001: 자동 주문 실행
+            if self.trading_engine:
+                try:
+                    await self._execute_sell_order(event)
+                except Exception as e:
+                    logger.error(f"익절 주문 실행 실패: {e}", exc_info=True)
+
+            # 콜백 호출
+            await self._trigger_callbacks(self.take_profit_callbacks, event)
+
+            # POL-002: High 알림
+            await self._send_alert("high", f"익절 실행: {stock_code}", event)
+
+            return event
+
+        return None
+
+    async def _execute_sell_order(self, event: Dict[str, Any]):
+        """매도 주문 실행 (POL-001)
+
+        Args:
+            event: 이벤트 정보
+        """
+        if not self.trading_engine:
+            logger.warning("TradingEngine이 설정되지 않아 주문을 실행할 수 없습니다.")
+            return
+
+        stock_code = event["stock_code"]
+        quantity = event["quantity"]
+        order_type = "시장가"  # 손절/익절은 즉시 체결이 중요
+
+        logger.info(
+            f"자동 매도 주문 실행: {stock_code}, "
+            f"수량={quantity}, 타입={order_type}"
+        )
+
+        try:
+            # TODO: TradingEngine에 async sell() 메서드 구현 필요
+            # 현재는 동기 메서드가 없으므로 placeholder
+            # Batch 2에서 TradingEngine.sell() 구현 예정
+
+            # 임시: 로그만 기록
+            logger.warning(
+                f"[Placeholder] 매도 주문 대기: {stock_code}, "
+                f"수량={quantity}, 사유={event['type']}"
+            )
+
+            # 실제 구현 시 (Batch 2):
+            # if hasattr(self.trading_engine, 'sell'):
+            #     if asyncio.iscoroutinefunction(self.trading_engine.sell):
+            #         result = await self.trading_engine.sell(...)
+            #     else:
+            #         result = await asyncio.to_thread(
+            #             self.trading_engine.sell,
+            #             stock_code=stock_code,
+            #             quantity=quantity,
+            #             order_type=order_type,
+            #             reason=event["type"]
+            #         )
+
+        except Exception as e:
+            logger.error(f"매도 주문 중 예외 발생: {e}", exc_info=True)
+            raise
+
+    async def _trigger_callbacks(self, callbacks: List[Callable], event: Dict[str, Any]):
+        """콜백 함수 실행
+
+        Args:
+            callbacks: 콜백 함수 리스트
+            event: 이벤트 정보
+        """
+        for callback in callbacks:
+            try:
+                if asyncio.iscoroutinefunction(callback):
+                    await callback(event)
+                else:
+                    callback(event)
+            except Exception as e:
+                logger.error(f"콜백 실행 중 오류: {e}", exc_info=True)
+
+    async def _send_alert(self, priority: str, title: str, event: Dict[str, Any]):
+        """알림 전송 (POL-002)
+
+        Args:
+            priority: 우선순위 (emergency, high, normal, low)
+            title: 알림 제목
+            event: 이벤트 정보
+        """
+        alert = {
+            "priority": priority,
+            "title": title,
+            "event": event,
+            "timestamp": datetime.now(),
+        }
+
+        await self._trigger_callbacks(self.alert_callbacks, alert)
+
+        # Telegram 알림 (emergency, high만)
+        if priority in ["emergency", "high"]:
+            logger.info(f"[{priority.upper()}] {title}")
+            # TODO: Telegram 봇 연동
+
+    async def monitor_all_positions(self):
+        """모든 포지션 모니터링 (주기적 호출)
+
+        Returns:
+            이벤트 리스트
+        """
+        events = []
+        for stock_code, position in self.processor.positions.items():
+            if position["status"] == "active":
+                current_price = position["current_price"]
+                event = await self.check_position(stock_code, current_price)
+                if event:
+                    events.append(event)
+        return events

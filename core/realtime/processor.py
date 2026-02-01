@@ -2,7 +2,8 @@
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, Any, List, Callable
+from typing import Dict, Any, List, Callable, Optional
+from collections import deque
 import json
 
 from core.utils import get_logger
@@ -158,4 +159,237 @@ class DataProcessor:
         Returns:
             List[Dict[str, Any]]: 버퍼에 저장된 데이터 목록
         """
-        return self.data_buffer.copy() 
+        return self.data_buffer.copy()
+
+
+class RealtimeProcessor:
+    """실시간 데이터 처리기 (Phase 3: WebSocket)
+
+    WebSocket으로 수신된 실시간 체결가/호가 데이터를 처리하고,
+    포지션별 손절/익절가를 계산하며, 메모리 버퍼를 관리합니다.
+
+    Business Rules:
+        - CALC-001: 손절가 계산 (고정비율 vs ATR 기반, 큰 값 선택)
+        - CALC-002: 익절가 계산 (고정비율 vs ATR 기반, 큰 값 선택)
+    """
+
+    def __init__(self, buffer_maxlen: int = 1000):
+        """초기화
+
+        Args:
+            buffer_maxlen: deque 버퍼 최대 길이 (기본값: 1000)
+        """
+        # 실시간 가격 버퍼 (종목코드별)
+        # FIFO 방식으로 자동 overflow 처리
+        self.price_buffers: Dict[str, deque] = {}
+        self.buffer_maxlen = buffer_maxlen
+
+        # 포지션 정보 (종목코드 -> 포지션 데이터)
+        self.positions: Dict[str, Dict[str, Any]] = {}
+
+        # 손절/익절 비율 (기본값)
+        self.default_stop_loss_ratio = 0.03  # 3% 손절
+        self.default_take_profit_ratio = 0.05  # 5% 익절
+
+        logger.info(f"RealtimeProcessor 초기화 완료 (버퍼 크기: {buffer_maxlen})")
+
+    def add_position(
+        self,
+        stock_code: str,
+        entry_price: float,
+        quantity: int,
+        stop_loss_ratio: Optional[float] = None,
+        take_profit_ratio: Optional[float] = None,
+        atr: Optional[float] = None
+    ):
+        """포지션 추가 및 손절/익절가 계산
+
+        Args:
+            stock_code: 종목코드
+            entry_price: 진입가
+            quantity: 수량
+            stop_loss_ratio: 손절 비율 (기본값: 0.03)
+            take_profit_ratio: 익절 비율 (기본값: 0.05)
+            atr: Average True Range 값 (선택)
+        """
+        if stop_loss_ratio is None:
+            stop_loss_ratio = self.default_stop_loss_ratio
+        if take_profit_ratio is None:
+            take_profit_ratio = self.default_take_profit_ratio
+
+        # CALC-001: 손절가 계산
+        stop_loss_price = self.calculate_stop_loss(entry_price, stop_loss_ratio, atr)
+
+        # CALC-002: 익절가 계산
+        take_profit_price = self.calculate_take_profit(entry_price, take_profit_ratio, atr)
+
+        self.positions[stock_code] = {
+            "entry_price": entry_price,
+            "quantity": quantity,
+            "stop_loss_price": stop_loss_price,
+            "take_profit_price": take_profit_price,
+            "stop_loss_ratio": stop_loss_ratio,
+            "take_profit_ratio": take_profit_ratio,
+            "atr": atr,
+            "status": "active",  # active, stop_loss_triggered, take_profit_triggered
+            "current_price": entry_price,
+            "unrealized_pnl": 0.0,
+        }
+
+        logger.info(
+            f"포지션 추가: {stock_code}, "
+            f"진입={entry_price}, 손절={stop_loss_price:.2f}, 익절={take_profit_price:.2f}"
+        )
+
+    def calculate_stop_loss(
+        self,
+        entry_price: float,
+        stop_loss_ratio: float,
+        atr: Optional[float] = None
+    ) -> float:
+        """손절가 계산 (CALC-001)
+
+        고정 비율 방식과 ATR 기반 방식 중 더 큰 값을 선택합니다.
+        (보수적 손절 = 더 높은 손절가)
+
+        Args:
+            entry_price: 진입가
+            stop_loss_ratio: 손절 비율 (예: 0.03 = 3%)
+            atr: Average True Range (선택)
+
+        Returns:
+            계산된 손절가
+        """
+        # 고정 비율 방식
+        fixed_stop_loss = entry_price * (1 - stop_loss_ratio)
+
+        # ATR 기반 방식 (ATR이 제공된 경우)
+        if atr is not None and atr > 0:
+            atr_stop_loss = entry_price - (atr * 2.0)  # ATR의 2배
+            # 더 높은 값 선택 (보수적 손절)
+            return max(fixed_stop_loss, atr_stop_loss)
+
+        return fixed_stop_loss
+
+    def calculate_take_profit(
+        self,
+        entry_price: float,
+        take_profit_ratio: float,
+        atr: Optional[float] = None
+    ) -> float:
+        """익절가 계산 (CALC-002)
+
+        고정 비율 방식과 ATR 기반 방식 중 더 큰 값을 선택합니다.
+        (보수적 익절 = 더 높은 익절가)
+
+        Args:
+            entry_price: 진입가
+            take_profit_ratio: 익절 비율 (예: 0.05 = 5%)
+            atr: Average True Range (선택)
+
+        Returns:
+            계산된 익절가
+        """
+        # 고정 비율 방식
+        fixed_take_profit = entry_price * (1 + take_profit_ratio)
+
+        # ATR 기반 방식 (ATR이 제공된 경우)
+        if atr is not None and atr > 0:
+            atr_take_profit = entry_price + (atr * 3.0)  # ATR의 3배
+            # 더 높은 값 선택 (보수적 익절)
+            return max(fixed_take_profit, atr_take_profit)
+
+        return fixed_take_profit
+
+    def process_realtime_price(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """실시간 가격 데이터 처리
+
+        WebSocket으로 수신된 체결가 데이터를 버퍼에 저장하고,
+        포지션이 있는 경우 손익을 계산합니다.
+
+        Args:
+            data: 정규화된 체결가 데이터 (from _normalize_kis_message)
+
+        Returns:
+            포지션 업데이트 정보 (있는 경우) 또는 None
+        """
+        stock_code = data.get("stock_code")
+        current_price = data.get("current_price", 0)
+
+        if not stock_code or current_price <= 0:
+            return None
+
+        # 가격 버퍼 초기화 (필요시)
+        if stock_code not in self.price_buffers:
+            self.price_buffers[stock_code] = deque(maxlen=self.buffer_maxlen)
+
+        # 버퍼에 추가 (자동 overflow)
+        self.price_buffers[stock_code].append({
+            "price": current_price,
+            "timestamp": data.get("timestamp"),
+            "volume": data.get("volume", 0),
+        })
+
+        # 포지션이 있는 경우 손익 계산
+        if stock_code in self.positions:
+            position = self.positions[stock_code]
+
+            # 미실현 손익 계산
+            entry_price = position["entry_price"]
+            quantity = position["quantity"]
+            unrealized_pnl = (current_price - entry_price) * quantity
+
+            # 포지션 업데이트
+            position["current_price"] = current_price
+            position["unrealized_pnl"] = unrealized_pnl
+
+            return {
+                "stock_code": stock_code,
+                "current_price": current_price,
+                "entry_price": entry_price,
+                "stop_loss_price": position["stop_loss_price"],
+                "take_profit_price": position["take_profit_price"],
+                "unrealized_pnl": unrealized_pnl,
+                "status": position["status"],
+            }
+
+        return None
+
+    def get_position(self, stock_code: str) -> Optional[Dict[str, Any]]:
+        """포지션 조회
+
+        Args:
+            stock_code: 종목코드
+
+        Returns:
+            포지션 정보 또는 None
+        """
+        return self.positions.get(stock_code)
+
+    def remove_position(self, stock_code: str):
+        """포지션 제거
+
+        Args:
+            stock_code: 종목코드
+        """
+        if stock_code in self.positions:
+            del self.positions[stock_code]
+            logger.info(f"포지션 제거: {stock_code}")
+
+    def get_price_buffer(self, stock_code: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """가격 버퍼 조회
+
+        Args:
+            stock_code: 종목코드
+            limit: 최대 개수 (기본값: 전체)
+
+        Returns:
+            가격 데이터 리스트
+        """
+        if stock_code not in self.price_buffers:
+            return []
+
+        buffer = list(self.price_buffers[stock_code])
+        if limit:
+            return buffer[-limit:]
+        return buffer 

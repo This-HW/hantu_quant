@@ -16,6 +16,7 @@ import uuid
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from contextvars import ContextVar
+from core.utils.emoji_filter import EmojiRemovalFilter
 
 # trace_id를 위한 컨텍스트 변수 (스레드 안전)
 _trace_id: ContextVar[str] = ContextVar('trace_id', default='')
@@ -314,7 +315,11 @@ def setup_json_logging(
         console_handler.setFormatter(console_formatter)
         root_logger.addHandler(console_handler)
 
-    # 민감 정보 필터 적용
+    # 필터 적용 (순서: 이모지 제거 → 민감 정보 마스킹)
+    emoji_filter = EmojiRemovalFilter()
+    for handler in root_logger.handlers:
+        handler.addFilter(emoji_filter)
+
     if add_sensitive_filter:
         sensitive_filter = SensitiveDataFilter()
         for handler in root_logger.handlers:

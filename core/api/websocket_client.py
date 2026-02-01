@@ -209,18 +209,115 @@ class KISWebSocketClient:
             self.running = False
             
     async def _handle_message(self, message: str):
-        """수신된 메시지 처리"""
+        """수신된 메시지 처리
+
+        Args:
+            message: WebSocket으로부터 수신된 원본 메시지
+        """
         try:
+            # JSON 파싱
             data = json.loads(message)
-            tr_id = data.get("header", {}).get("tr_id", "")
-            
-            if tr_id in self.callbacks:
-                await self.callbacks[tr_id](data["body"])
+
+            # 헤더 정보 추출
+            header = data.get("header", {})
+            body = data.get("body", {})
+            tr_id = header.get("tr_id", "")
+
+            # 메시지 타입 확인
+            if not tr_id:
+                logger.warning(f"TR_ID가 없는 메시지: {message[:100]}")
+                return
+
+            # KIS 실시간 데이터는 body가 파이프(|) 구분 문자열
+            if isinstance(body, str) and "|" in body:
+                normalized_data = self._normalize_kis_message(tr_id, body)
+                if not normalized_data:
+                    logger.warning(f"메시지 정규화 실패: {tr_id}")
+                    return
             else:
-                logger.warning(f"등록되지 않은 TR_ID: {tr_id}")
-                
+                # 이미 dict 형태이거나 일반 메시지
+                normalized_data = body
+
+            # 등록된 콜백 호출
+            if tr_id in self.callbacks:
+                callback = self.callbacks[tr_id]
+                if asyncio.iscoroutinefunction(callback):
+                    await callback(normalized_data)
+                else:
+                    callback(normalized_data)
+            else:
+                logger.debug(f"등록되지 않은 TR_ID: {tr_id}")
+
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON 디코딩 실패: {e}, 원본: {message[:100]}", exc_info=True)
         except Exception as e:
             logger.error(f"메시지 처리 중 오류 발생: {e}", exc_info=True)
+
+    def _normalize_kis_message(self, tr_id: str, body: str) -> Optional[Dict]:
+        """KIS WebSocket 메시지 정규화
+
+        KIS WebSocket 실시간 데이터는 파이프(|) 구분자로 전달됩니다.
+        이를 파싱하여 dict 형태로 변환합니다.
+
+        Args:
+            tr_id: 거래 ID (H0STCNT0=체결가, H0STASP0=호가)
+            body: 파이프 구분 메시지 본문
+
+        Returns:
+            정규화된 딕셔너리 또는 None (실패 시)
+        """
+        try:
+            fields = body.split("|")
+
+            # TR_ID별 필드 매핑
+            if tr_id == "H0STCNT0":
+                # 실시간 체결가
+                if len(fields) < 20:
+                    logger.warning(f"체결가 메시지 필드 부족: {len(fields)}개")
+                    return None
+
+                return {
+                    "stock_code": fields[0],        # 종목코드
+                    "timestamp": fields[1],         # 체결시간 (HHMMSS)
+                    "current_price": int(fields[2]) if fields[2] else 0,  # 현재가
+                    "change": fields[3],            # 전일대비부호 (1:상한, 2:상승, 3:보합, 4:하한, 5:하락)
+                    "change_price": int(fields[4]) if fields[4] else 0,   # 전일대비
+                    "change_rate": float(fields[5]) if fields[5] else 0.0,  # 등락율
+                    "volume": int(fields[9]) if fields[9] else 0,           # 체결량
+                    "accumulated_volume": int(fields[12]) if fields[12] else 0,  # 누적 거래량
+                    "open_price": int(fields[16]) if fields[16] else 0,    # 시가
+                    "high_price": int(fields[17]) if fields[17] else 0,    # 고가
+                    "low_price": int(fields[18]) if fields[18] else 0,     # 저가
+                }
+
+            elif tr_id == "H0STASP0":
+                # 실시간 호가
+                if len(fields) < 60:
+                    logger.warning(f"호가 메시지 필드 부족: {len(fields)}개")
+                    return None
+
+                return {
+                    "stock_code": fields[0],
+                    "timestamp": fields[1],
+                    "ask_prices": [int(fields[i]) if fields[i] else 0 for i in range(3, 13)],    # 매도호가 10개
+                    "bid_prices": [int(fields[i]) if fields[i] else 0 for i in range(13, 23)],   # 매수호가 10개
+                    "ask_volumes": [int(fields[i]) if fields[i] else 0 for i in range(23, 33)],  # 매도잔량 10개
+                    "bid_volumes": [int(fields[i]) if fields[i] else 0 for i in range(33, 43)],  # 매수잔량 10개
+                    "total_ask_volume": int(fields[43]) if fields[43] else 0,  # 총 매도잔량
+                    "total_bid_volume": int(fields[44]) if fields[44] else 0,  # 총 매수잔량
+                }
+
+            else:
+                # 알 수 없는 TR_ID
+                logger.warning(f"알 수 없는 TR_ID: {tr_id}")
+                return {"raw": body}
+
+        except (IndexError, ValueError) as e:
+            logger.error(f"메시지 파싱 오류 ({tr_id}): {e}, 본문: {body[:100]}", exc_info=True)
+            return None
+        except Exception as e:
+            logger.error(f"메시지 정규화 중 예상치 못한 오류: {e}", exc_info=True)
+            return None
             
     async def _reconnect(self):
         """WebSocket 재연결"""
