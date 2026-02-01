@@ -102,6 +102,12 @@ class CircuitBreaker:
         """
         서킷브레이커 체크
 
+        상태 전이 규칙:
+        - ACTIVE → TRIGGERED: 발동 조건 충족 시
+        - TRIGGERED → COOLDOWN: 쿨다운 시간 진입 시
+        - COOLDOWN → ACTIVE: 쿨다운 만료 시
+        - TRIGGERED → ACTIVE: 수익 회복 시 (자동 해제)
+
         Args:
             drawdown_status: 드로다운 상태
 
@@ -110,21 +116,36 @@ class CircuitBreaker:
         """
         now = datetime.now()
 
-        # 쿨다운 체크
+        # COOLDOWN 상태에서 만료 체크
         if self._state == BreakerState.COOLDOWN:
             if self._check_cooldown_expired():
                 self._release_breaker("쿨다운 완료")
 
-        # 자동 해제 체크 (수익 발생 시)
+        # TRIGGERED 상태 처리
         if self._state == BreakerState.TRIGGERED:
+            # 자동 해제 체크 (수익 회복 시)
             if drawdown_status.daily_drawdown < -self.config.auto_release_profit:
                 self._release_breaker("수익 회복")
+            # 쿨다운 시간 진입 체크 (TRIGGERED → COOLDOWN 전이)
+            elif self._cooldown_until and now < self._cooldown_until:
+                self._transition_to_cooldown()
 
-        # 발동 조건 체크
+        # ACTIVE 상태에서 발동 조건 체크
         if self._state == BreakerState.ACTIVE:
             self._check_trigger_conditions(drawdown_status, now)
 
         return self._get_status()
+
+    def _transition_to_cooldown(self):
+        """TRIGGERED → COOLDOWN 상태 전이"""
+        if self._state != BreakerState.TRIGGERED:
+            return
+
+        logger.info(
+            f"서킷브레이커 쿨다운 진입: Stage {self._current_stage}, "
+            f"해제 예정: {self._cooldown_until}"
+        )
+        self._state = BreakerState.COOLDOWN
 
     def _check_trigger_conditions(
         self,
@@ -159,7 +180,11 @@ class CircuitBreaker:
             self._trigger_breaker(trigger_reason, stage, now)
 
     def _trigger_breaker(self, reason: str, stage: int, now: datetime):
-        """브레이커 발동"""
+        """브레이커 발동
+
+        상태 전이: ACTIVE → TRIGGERED → COOLDOWN
+        발동 즉시 COOLDOWN 상태로 전이하여 일관된 상태 관리를 보장합니다.
+        """
         self._state = BreakerState.TRIGGERED
         self._trigger_reason = reason
         self._triggered_at = now
@@ -176,6 +201,9 @@ class CircuitBreaker:
         })
 
         logger.warning(f"서킷브레이커 발동: {reason} (Stage {stage})")
+
+        # 발동 직후 COOLDOWN 상태로 전이
+        self._transition_to_cooldown()
 
     def _release_breaker(self, reason: str):
         """브레이커 해제"""
