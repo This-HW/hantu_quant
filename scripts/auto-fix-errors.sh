@@ -45,8 +45,6 @@ if [ -z "$DB_PASS" ]; then
     exit 1
 fi
 
-log "DB 접속 정보: $DB_USER@$DB_HOST:5432/$DB_NAME"
-
 # Claude Code 존재 확인
 if [ ! -x "$CLAUDE_PATH" ]; then
     echo "ERROR: Claude Code가 설치되지 않았습니다: $CLAUDE_PATH" >&2
@@ -60,6 +58,8 @@ mkdir -p "$DEV_PROJECT_DIR/logs"
 log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') $1" >> "$RESULT_LOG"
 }
+
+log "DB 접속 정보: $DB_USER@$DB_HOST:5432/$DB_NAME"
 
 # ===== 0. 중복 실행 방지 (Lockfile) =====
 if [ -f "$LOCKFILE" ]; then
