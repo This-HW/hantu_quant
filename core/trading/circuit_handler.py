@@ -311,9 +311,20 @@ class CircuitHandler:
             return False
 
         try:
+            # 정상 상태(ACTIVE)에서는 알림 발송하지 않음 (불필요한 알림 방지)
+            if status.state == BreakerState.ACTIVE:
+                logger.debug("정상 상태 - 알림 발송 생략")
+                return True
+
+            # triggered_at이 None인 경우(정상 상태 등) 현재 시간 대신 적절한 처리
+            triggered_at = status.triggered_at
+            if triggered_at is None:
+                logger.warning("triggered_at이 None이지만 알림 발송 시도 - 현재 시간 사용")
+                triggered_at = datetime.now()
+
             self.notification_manager.notify_circuit_breaker(
                 reason=status.trigger_reason or "서킷 브레이커 상태 변경",
-                triggered_at=status.triggered_at or datetime.now(),
+                triggered_at=triggered_at,
                 cooldown_until=status.cooldown_until
             )
 

@@ -358,6 +358,8 @@ hantu select             # 일일 선정
 # 트레이딩
 hantu trade balance      # 잔고 조회
 hantu trade positions    # 포지션 조회
+hantu monitor            # 실시간 모니터링 (1회)
+hantu monitor --live     # 실시간 모니터링 (5초 갱신)
 
 # 시스템
 hantu status             # 서비스 상태

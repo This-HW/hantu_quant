@@ -1513,19 +1513,20 @@ class TradingEngine:
                 return opportunities
 
             for stock_code, position in self.positions.items():
+                # 포지션 데이터 구성 (detect_additional_buy 인터페이스에 맞춤)
                 position_data = {
                     'stock_code': position.stock_code,
                     'stock_name': position.stock_name,
                     'quantity': position.quantity,
                     'avg_price': position.avg_price,
-                    'current_price': position.current_price,
-                    'buy_count': getattr(position, 'buy_count', 1),
-                    'first_buy_date': position.entry_time
+                    'entry_time': position.entry_time
                 }
 
-                opportunity = detector.detect_opportunity(
-                    stock_code=stock_code,
-                    current_position=position_data
+                # 올바른 메서드 호출: detect_additional_buy(p_position, p_current_price, p_rsi)
+                opportunity = detector.detect_additional_buy(
+                    p_position=position_data,
+                    p_current_price=position.current_price,
+                    p_rsi=None  # RSI는 별도 조회 필요 시 추가
                 )
 
                 if opportunity:
@@ -1534,7 +1535,7 @@ class TradingEngine:
                         'stock_name': opportunity.stock_name,
                         'reason': opportunity.reason,
                         'current_price': opportunity.current_price,
-                        'suggested_quantity': opportunity.suggested_quantity,
+                        'recommended_quantity': opportunity.recommended_quantity,
                         'confidence': opportunity.confidence
                     })
 

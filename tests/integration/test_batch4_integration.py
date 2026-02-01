@@ -95,13 +95,14 @@ def test_opportunity_detection_integration():
             OpportunityConfig
         )
 
-        # 1. OpportunityDetector 초기화
+        # 1. OpportunityDetector 초기화 (실제 OpportunityConfig 필드명 사용)
         config = OpportunityConfig(
-            price_drop_threshold=0.05,  # 5% 하락 시 기회
-            rsi_threshold=30,
-            max_additional_buys=2,
-            min_days_since_first_buy=2,
-            volatility_check=False  # 테스트용으로 비활성화
+            min_drop_rate=0.05,       # 최소 하락률 5%
+            max_drop_rate=0.20,       # 최대 하락률 20%
+            rsi_threshold=30.0,       # RSI 과매도 임계값
+            max_additional_buys=2,    # 최대 추가 매수 횟수
+            min_hold_days=1,          # 최소 보유 일수
+            cooldown_hours=24         # 재추가 대기 시간
         )
         detector = OpportunityDetector(config)
         print("✅ OpportunityDetector 초기화 성공")
@@ -117,23 +118,24 @@ def test_opportunity_detection_integration():
         }
 
         opportunities = []
-        with patch.object(detector, '_get_current_rsi', side_effect=lambda code: mock_rsi_data.get(code, 50)):
-            with patch.object(detector, '_get_price_data', return_value=Mock(volatility=0.02)):
-                for code, pos in positions.items():
-                    opportunity = detector.detect_opportunity(
-                        stock_code=code,
-                        current_position={
-                            'stock_code': pos.stock_code,
-                            'stock_name': pos.stock_name,
-                            'quantity': pos.quantity,
-                            'avg_price': pos.avg_price,
-                            'current_price': pos.current_price,
-                            'buy_count': pos.buy_count,
-                            'first_buy_date': pos.first_buy_date.isoformat()
-                        }
-                    )
-                    if opportunity:
-                        opportunities.append(opportunity)
+        # 올바른 메서드 호출: detect_additional_buy(p_position, p_current_price, p_rsi)
+        for code, pos in positions.items():
+            position_data = {
+                'stock_code': pos.stock_code,
+                'stock_name': pos.stock_name,
+                'quantity': pos.quantity,
+                'avg_price': pos.avg_price,
+                'entry_time': pos.first_buy_date.isoformat()
+            }
+            rsi_value = mock_rsi_data.get(code, 50)
+
+            opportunity = detector.detect_additional_buy(
+                p_position=position_data,
+                p_current_price=pos.current_price,
+                p_rsi=float(rsi_value)
+            )
+            if opportunity:
+                opportunities.append(opportunity)
 
         print(f"✅ 기회 감지 완료: {len(opportunities)}개 발견")
 

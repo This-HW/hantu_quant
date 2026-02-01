@@ -129,6 +129,40 @@ Examples:
   hantu trade find -n 20   # Show top 20 candidates
 ```
 
+#### `hantu monitor`
+
+Real-time trading monitoring.
+
+```bash
+hantu monitor [TARGET] [OPTIONS]
+
+Targets:
+  all         All information (default)
+  positions   Current positions only
+  circuit     Circuit breaker status only
+  trades      Today's trades only
+
+Options:
+  --live              Real-time monitoring (refresh every 5 seconds)
+  --interval INT      Refresh interval in seconds (default: 5)
+  --json              Output as JSON
+
+Display:
+  - Current positions with unrealized P&L
+  - Circuit breaker status and risk metrics
+  - Today's trade statistics
+  - Win rate and realized P&L
+
+Examples:
+  hantu monitor                  # Show current status (1 time)
+  hantu monitor --live           # Real-time monitoring (5s refresh)
+  hantu monitor --live --interval 10  # Refresh every 10 seconds
+  hantu monitor positions        # Show positions only
+  hantu monitor circuit          # Show circuit breaker only
+  hantu monitor trades           # Show today's trades only
+  hantu monitor --json           # Output as JSON
+```
+
 ### Stock Analysis
 
 #### `hantu screen`
