@@ -1563,7 +1563,7 @@ class TradingEngine:
             report = generator.generate_summary()
 
             # 텔레그램 형식으로 변환
-            message = generator.format_for_telegram(report)
+            message = report.to_telegram_message()
 
             self.logger.info(
                 f"일일 요약 생성: 거래 {report.total_trades}건, "

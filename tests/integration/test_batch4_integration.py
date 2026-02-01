@@ -294,52 +294,44 @@ def test_daily_summary_integration():
         generator = DailySummaryGenerator()
         print("✅ DailySummaryGenerator 초기화 성공")
 
-        # 2. 모의 거래 데이터
+        # 2. 모의 거래 데이터 (Dict 형태)
         mock_trades = [
-            TradeSummary(
-                stock_code="005930",
-                stock_name="삼성전자",
-                side="buy",
-                quantity=100,
-                price=70000,
-                amount=7000000,
-                timestamp=datetime.now() - timedelta(hours=3),
-                order_id="ORD001"
-            ),
-            TradeSummary(
-                stock_code="005930",
-                stock_name="삼성전자",
-                side="sell",
-                quantity=100,
-                price=72000,
-                amount=7200000,
-                timestamp=datetime.now() - timedelta(hours=1),
-                order_id="ORD002",
-                realized_pnl=200000  # 20만원 수익
-            ),
-            TradeSummary(
-                stock_code="035720",
-                stock_name="카카오",
-                side="buy",
-                quantity=50,
-                price=48000,
-                amount=2400000,
-                timestamp=datetime.now() - timedelta(hours=2),
-                order_id="ORD003"
-            ),
+            {
+                "stock_code": "005930",
+                "stock_name": "삼성전자",
+                "buy_price": 70000,
+                "sell_price": 72000,
+                "quantity": 100,
+                "pnl": 200000,  # 20만원 수익
+                "pnl_pct": 2.86,
+                "buy_date": datetime.now() - timedelta(hours=3),
+                "sell_date": datetime.now() - timedelta(hours=1),
+            },
+            {
+                "stock_code": "035720",
+                "stock_name": "카카오",
+                "buy_price": 48000,
+                "sell_price": None,  # 미매도
+                "quantity": 50,
+                "pnl": 0,
+                "pnl_pct": 0,
+                "buy_date": datetime.now() - timedelta(hours=2),
+                "sell_date": None,
+            },
         ]
 
-        # 3. 모의 포지션 데이터
+        # 3. 모의 포지션 데이터 (Dict 형태)
         mock_positions = [
-            PositionSummary(
-                stock_code="035720",
-                stock_name="카카오",
-                quantity=50,
-                avg_price=48000,
-                current_price=49000,
-                unrealized_pnl=50000,  # 5만원 평가익
-                pnl_pct=2.08
-            )
+            {
+                "stock_code": "035720",
+                "stock_name": "카카오",
+                "quantity": 50,
+                "avg_price": 48000,
+                "current_price": 49000,
+                "unrealized_pnl": 50000,  # 5만원 평가익
+                "unrealized_pnl_pct": 2.08,
+                "holding_days": 5,
+            }
         ]
 
         # 4. 요약 보고서 생성
@@ -354,18 +346,18 @@ def test_daily_summary_integration():
         print("✅ 일일 요약 보고서 생성 성공")
 
         # 5. 결과 검증
-        print(f"   - 총 거래: {report.total_trades}건")
-        print(f"   - 실현 손익: {report.realized_pnl:+,.0f}원")
-        print(f"   - 평가 손익: {report.unrealized_pnl:+,.0f}원")
-        print(f"   - 보유 종목: {report.position_count}개")
+        print(f"   - 총 거래: {report.trade_summary.total_trades}건")
+        print(f"   - 실현 손익: {report.trade_summary.total_pnl:+,.0f}원")
+        print(f"   - 평가 손익: {report.position_summary.unrealized_pnl:+,.0f}원")
+        print(f"   - 보유 종목: {report.position_summary.total_positions}개")
 
-        assert report.total_trades == 3, "총 거래 수 검증"
-        assert report.realized_pnl == 200000, "실현 손익 검증"
-        assert report.unrealized_pnl == 50000, "평가 손익 검증"
-        assert report.position_count == 1, "보유 종목 수 검증"
+        assert report.trade_summary.total_trades == 2, "총 거래 수 검증"
+        assert report.trade_summary.total_pnl == 200000, "실현 손익 검증"
+        assert report.position_summary.unrealized_pnl == 50000, "평가 손익 검증"
+        assert report.position_summary.total_positions == 1, "보유 종목 수 검증"
 
         # 6. 텔레그램 포맷 테스트
-        telegram_message = generator.format_for_telegram(report)
+        telegram_message = report.to_telegram_message()
         assert "📊" in telegram_message, "이모지 포함 검증"
         assert "삼성전자" in telegram_message or "005930" in telegram_message, "종목명 포함 검증"
 
