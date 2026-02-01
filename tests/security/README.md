@@ -144,7 +144,7 @@
 **이전 (취약)**:
 
 ```bash
-psql -c "INSERT INTO error_logs (message) VALUES ('REDACTED');"
+psql -c "INSERT INTO error_logs (message) VALUES ('$error_msg');"
 ```
 
 **이후 (안전)**:
