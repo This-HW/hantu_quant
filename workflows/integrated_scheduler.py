@@ -1346,8 +1346,12 @@ class IntegratedScheduler:
 
 [목표] *AI가 한 주간의 성과를 분석하여 전략을 최적화했습니다!*"""
 
-                        priority = "high" if adapted else "normal"
-                        self._send_telegram_alert(alert_message, priority)
+                        try:
+                            notifier = get_telegram_notifier()
+                            priority = "high" if adapted else "normal"
+                            notifier.send_message(alert_message, priority)
+                        except Exception as e:
+                            logger.error(f"텔레그램 알림 전송 실패: {e}", exc_info=True)
 
                 else:
                     print(f"ℹ️ 주간 학습 건너뜀: {result.get('message')}")
@@ -1589,7 +1593,11 @@ class IntegratedScheduler:
 
 [자동] *AI 시스템이 스스로를 지속적으로 모니터링합니다!*"""
 
-                    self._send_telegram_alert(alert_message, "normal")
+                    try:
+                        notifier = get_telegram_notifier()
+                        notifier.send_message(alert_message, "normal")
+                    except Exception as e:
+                        logger.error(f"텔레그램 알림 전송 실패: {e}", exc_info=True)
 
                 else:
                     logger.warning("시스템 모니터링 시작 실패 (이미 실행 중일 수 있음)")
@@ -1685,7 +1693,11 @@ class IntegratedScheduler:
 
 *시스템이 자동으로 최적화되었습니다!*"""
 
-                        self._send_telegram_alert(alert_message, "normal")
+                        try:
+                            notifier = get_telegram_notifier()
+                            notifier.send_message(alert_message, "normal")
+                        except Exception as e:
+                            logger.error(f"텔레그램 알림 전송 실패: {e}", exc_info=True)
 
                     else:
                         # 유지보수 필요하지만 실행 안 된 경우
@@ -1705,7 +1717,11 @@ class IntegratedScheduler:
 
 [작업] *수동으로 유지보수를 실행하는 것을 고려하세요*"""
 
-                        self._send_telegram_alert(alert_message, "warning")
+                        try:
+                            notifier = get_telegram_notifier()
+                            notifier.send_message(alert_message, "warning")
+                        except Exception as e:
+                            logger.error(f"텔레그램 알림 전송 실패: {e}", exc_info=True)
 
                 else:
                     print("   - 시스템 상태 양호, 유지보수 불필요")
@@ -1902,14 +1918,17 @@ class IntegratedScheduler:
                     print("자동 매매가 중지되었습니다!")
 
                     # 텔레그램 중지 알림
-                    alert_message = f"""[중지] *자동 매매 중지*
+                    try:
+                        notifier = get_telegram_notifier()
+                        alert_message = f"""[중지] *자동 매매 중지*
 
 중지 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
 장 마감으로 자동매매를 중지합니다.
 
 *오늘의 매매 결과는 일일 리포트를 확인하세요!*"""
-
-                    self._send_telegram_alert(alert_message, "normal")
+                        notifier.send_message(alert_message, "normal")
+                    except Exception as e:
+                        logger.error(f"텔레그램 알림 전송 실패: {e}", exc_info=True)
 
                 else:
                     logger.info("자동 매매가 실행 중이 아닙니다")
