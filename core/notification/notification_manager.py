@@ -75,6 +75,9 @@ class NotificationManager:
         self._history: List[AlertHistory] = []
         self._sent_hashes: Set[str] = set()
 
+        # 해시 만료 시간 관리 (해시 → 만료시간)
+        self._hash_expiry: Dict[str, datetime] = {}
+
         # 통계
         self._sent_count: int = 0
         self._filtered_count: int = 0
@@ -251,6 +254,9 @@ class NotificationManager:
         cutoff = now - timedelta(hours=1)
         self._history = [h for h in self._history if h.timestamp >= cutoff]
 
+        # 만료된 중복 해시 정리 (스레드 누수 방지)
+        self._cleanup_expired_hashes()
+
         # 시간당 최대 체크
         hour_count = sum(1 for h in self._history if h.sent)
         if hour_count >= self.rate_config.max_per_hour:
@@ -306,14 +312,20 @@ class NotificationManager:
         return hashlib.md5(key.encode()).hexdigest()
 
     def _record_history(self, alert: Alert, sent: bool) -> None:
-        """이력 기록"""
+        """이력 기록
+
+        스레드 누수 방지:
+        - 기존: 매 알림마다 새 스레드 생성 (누수)
+        - 개선: 만료 시간 기록 후 _cleanup_expired_hashes()에서 일괄 정리
+        """
+        now = datetime.now()
         alert_hash = self._compute_hash(alert)
 
         history = AlertHistory(
             alert_hash=alert_hash,
             alert_type=alert.alert_type,
             stock_code=alert.stock_code,
-            timestamp=datetime.now(),
+            timestamp=now,
             sent=sent,
         )
 
@@ -321,15 +333,27 @@ class NotificationManager:
 
         if sent:
             self._sent_hashes.add(alert_hash)
+            # 만료 시간 설정 (스레드 생성 대신)
+            expiry = now + timedelta(seconds=self.rate_config.dedup_window_seconds)
+            self._hash_expiry[alert_hash] = expiry
 
-            # 중복 해시는 dedup_window 후 삭제
-            def remove_hash():
-                import time
-                time.sleep(self.rate_config.dedup_window_seconds)
-                self._sent_hashes.discard(alert_hash)
+    def _cleanup_expired_hashes(self) -> int:
+        """만료된 해시 정리
 
-            thread = threading.Thread(target=remove_hash, daemon=True)
-            thread.start()
+        Returns:
+            정리된 해시 개수
+        """
+        now = datetime.now()
+        expired_hashes = [
+            h for h, expiry in self._hash_expiry.items()
+            if expiry <= now
+        ]
+
+        for h in expired_hashes:
+            self._sent_hashes.discard(h)
+            del self._hash_expiry[h]
+
+        return len(expired_hashes)
 
     # 편의 메서드
 
