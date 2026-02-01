@@ -15,6 +15,14 @@ DB 비밀번호 관리를 환경변수에서 `.pgpass` 파일로 전환합니다
 - hantu-server (158.180.87.156)
 - 로컬 환경 (/Users/grimm/)
 
+**예외 사항:**
+
+- MCP 서버 (`.claude/settings.json`의 postgres 서버): 환경변수 `PGPASSWORD` 필요
+  - MCP 프로토콜은 `.pgpass` 파일을 직접 읽지 못함
+  - `HANTU_QUANT_DB_PASSWORD` 환경변수를 통해 비밀번호 전달 유지
+- Docker Compose 환경: `docker-compose.yml`의 `DB_PASSWORD` 유지
+  - 컨테이너 내부 환경과 호스트 `.pgpass`는 별도로 관리됨
+
 ---
 
 ## 사전 확인
