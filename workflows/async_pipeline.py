@@ -81,7 +81,7 @@ class AsyncPipeline:
             )
             
             # 모든 스레드 시작
-            print("🚀 비동기 파이프라인 시작")
+            print("[시작] 비동기 파이프라인 시작")
             print("├─ Phase1: 스크리닝 + 스트리밍")
             print("├─ Phase2: 실시간 분석")
             print("└─ Watchlist: 실시간 업데이트")
@@ -133,7 +133,7 @@ class AsyncPipeline:
                         self.processed_stocks += 1
                     
                     passed_count = len([r for r in batch_results if r["overall_passed"]])
-                    print(f"📡 Phase1 배치 {batch_num}: {len(batch_results)}개 처리, {passed_count}개 통과 → 스트리밍")
+                    print(f"[전송] Phase1 배치 {batch_num}: {len(batch_results)}개 처리, {passed_count}개 통과 → 스트리밍")
             
             # Phase1 완료 신호
             self.screening_queue.put({"END_OF_PHASE1": True})
@@ -168,7 +168,7 @@ class AsyncPipeline:
                         
                         if attractiveness and attractiveness.get("price_attractiveness", 0) > 70:
                             selected_stocks.append(attractiveness)
-                            print(f"💎 Phase2 선정: {result['stock_name']} (매력도: {attractiveness['price_attractiveness']:.1f})")
+                            print(f"[선정] Phase2 선정: {result['stock_name']} (매력도: {attractiveness['price_attractiveness']:.1f})")
                     
                     processed_count += 1
                     
@@ -213,7 +213,7 @@ class AsyncPipeline:
                         if success:
                             added_count += 1
                             if added_count % 10 == 0:
-                                print(f"📝 감시 리스트: {added_count}개 종목 추가됨")
+                                print(f"[기록] 감시 리스트: {added_count}개 종목 추가됨")
                     
                 except Empty:
                     if self.phase2_completed:
@@ -287,18 +287,18 @@ class AsyncPipeline:
     def _monitor_progress(self):
         """진행률 모니터링"""
         try:
-            print("\n📊 실시간 진행률 모니터링")
+            print("\n[통계] 실시간 진행률 모니터링")
             
             while not (self.phase1_completed and self.phase2_completed):
                 if self.total_stocks > 0:
                     phase1_progress = (self.processed_stocks / self.total_stocks) * 100
-                    print(f"\r🔄 Phase1: {phase1_progress:.1f}% | "
+                    print(f"\r[진행중] Phase1: {phase1_progress:.1f}% | "
                           f"Queue: {self.screening_queue.qsize()} | "
                           f"Results: {self.results_queue.qsize()}", end="")
                 
                 time.sleep(1)
             
-            print("\n✅ 모든 단계 완료")
+            print("\n[완료] 모든 단계 완료")
             
         except Exception as e:
             logger.error(f"진행률 모니터링 오류: {e}", exc_info=True)
@@ -306,17 +306,17 @@ class AsyncPipeline:
     def _print_pipeline_summary(self, p_total_time: float):
         """파이프라인 결과 요약"""
         try:
-            print("\n📋 비동기 파이프라인 결과 요약")
+            print("\n[요약] 비동기 파이프라인 결과 요약")
             print(f"├─ 총 처리 시간: {p_total_time:.1f}초")
             print(f"├─ 총 처리 종목: {self.total_stocks}개")
             print(f"├─ 처리 속도: {self.total_stocks / p_total_time:.1f}종목/초")
-            print(f"├─ Phase1 완료: {'✅' if self.phase1_completed else '❌'}")
-            print(f"└─ Phase2 완료: {'✅' if self.phase2_completed else '❌'}")
+            print(f"├─ Phase1 완료: {'[완료]' if self.phase1_completed else '[실패]'}")
+            print(f"└─ Phase2 완료: {'[완료]' if self.phase2_completed else '[실패]'}")
             
             # 순차 처리 대비 성능 향상
             sequential_time = 15 * 60  # 기존 15분
             speedup = sequential_time / p_total_time
-            print("\n⚡ 성능 개선:")
+            print("\n[성능] 성능 개선:")
             print(f"├─ 순차 처리 시간: {sequential_time / 60:.1f}분")
             print(f"├─ 비동기 처리 시간: {p_total_time / 60:.1f}분")
             print(f"└─ 속도 향상: {speedup:.1f}배")
@@ -341,9 +341,9 @@ def main():
         success = pipeline.run_async_pipeline(args.stocks)
         
         if success:
-            print("\n🎉 비동기 파이프라인 성공!")
+            print("\n[성공] 비동기 파이프라인 성공!")
         else:
-            print("\n❌ 비동기 파이프라인 실패!")
+            print("\n[실패] 비동기 파이프라인 실패!")
             
         sys.exit(0 if success else 1)
         

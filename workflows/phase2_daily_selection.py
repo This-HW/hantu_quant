@@ -236,7 +236,7 @@ class Phase2CLI:
         Args:
             p_args: 명령어 인자
         """
-        print("🔄 일일 업데이트 시작...")
+        print("[시작] 일일 업데이트 시작...")
         
         # 시장 상황 설정
         if p_args.market_condition:
@@ -277,7 +277,7 @@ class Phase2CLI:
                 
                 if p_args.save:
                     self._v_price_analyzer.save_analysis_results(results)
-                    print("💾 분석 결과 저장 완료")
+                    print("[저장] 분석 결과 저장 완료")
         
         else:
             print("종목코드 또는 --all 옵션을 지정해주세요")
@@ -330,7 +330,7 @@ class Phase2CLI:
             
             if p_args.optimize:
                 # 기준 최적화
-                print(f"🔧 {p_args.market} 기준 최적화 시작...")
+                print(f"[최적화] {p_args.market} 기준 최적화 시작...")
                 historical_data = self._get_historical_data()
                 optimized_criteria = self._v_criteria_manager.optimize_criteria(market_condition, historical_data)
                 print(f"기준 최적화 완료: {optimized_criteria.name}")
@@ -366,7 +366,7 @@ class Phase2CLI:
         
         elif p_args.stop:
             # 스케줄러 중지
-            print("⏹️ 스케줄러 중지...")
+            print("[중지] 스케줄러 중지...")
             self._v_daily_updater.stop_scheduler()
             print("스케줄러가 중지되었습니다")
         
@@ -401,7 +401,7 @@ class Phase2CLI:
         if p_args.export:
             # 결과 내보내기
             self._export_performance_data(performance_data, p_args.export)
-            print(f"💾 성과 데이터 내보내기 완료: {p_args.export}")
+            print(f"[저장] 성과 데이터 내보내기 완료: {p_args.export}")
     
     def _analyze_single_stock(self, p_stock_code: str) -> Optional[PriceAttractiveness]:
         """단일 종목 분석
@@ -667,7 +667,7 @@ class Phase2CLI:
         """업데이트 요약 출력"""
         metadata = p_result.get("metadata", {})
         print(f"""
-업데이트 요약
+[요약] 업데이트 요약
 ├─ 선정 종목: {metadata.get('total_selected', 0)}개
 ├─ 감시 리스트: {metadata.get('watchlist_count', 0)}개
 ├─ 선정률: {metadata.get('selection_rate', 0):.1%}
@@ -723,8 +723,8 @@ class Phase2CLI:
         else:
             selected_stocks = []
         
-        print(f"\n📅 {p_result.get('market_date')} 일일 선정 결과")
-        print(f"🌊 시장 상황: {p_result.get('market_condition')}")
+        print(f"\n[날짜] {p_result.get('market_date')} 일일 선정 결과")
+        print(f"[시장] 시장 상황: {p_result.get('market_condition')}")
         print(f"선정 종목: {len(selected_stocks)}개")
         print("=" * 100)
         print(f"{'순위':<4} {'종목명':<12} {'코드':<8} {'점수':<6} {'진입가':<8} {'목표가':<8} {'비중':<6} {'섹터':<8}")
@@ -756,7 +756,7 @@ class Phase2CLI:
     def _print_criteria_summary(self, p_summary: Dict):
         """기준 요약 출력"""
         print(f"""
-📋 선정 기준 요약
+[기준요약] 선정 기준 요약
 ├─ 총 기준 수: {p_summary.get('total_criteria', 0)}개
 ├─ 시장 상황: {', '.join(p_summary.get('market_conditions', []))}
 ├─ 최종 업데이트: {p_summary.get('last_updated', '')}
@@ -773,7 +773,7 @@ class Phase2CLI:
     def _print_criteria_details(self, p_criteria: SelectionCriteria):
         """기준 세부사항 출력"""
         print(f"""
-📋 {p_criteria.name} 상세 정보
+[기준상세] {p_criteria.name} 상세 정보
 ├─ 설명: {p_criteria.description}
 ├─ 시장 상황: {p_criteria.market_condition.value}
 ├─ 생성 날짜: {p_criteria.created_date}
@@ -793,7 +793,7 @@ class Phase2CLI:
     
     def _print_all_criteria(self, p_all_criteria: Dict):
         """전체 기준 출력"""
-        print(f"\n📋 전체 선정 기준 ({len(p_all_criteria)}개)")
+        print(f"\n[기준전체] 전체 선정 기준 ({len(p_all_criteria)}개)")
         print("=" * 80)
         print(f"{'시장상황':<15} {'기준명':<20} {'최대종목':<8} {'최소매력도':<10}")
         print("-" * 80)
@@ -818,9 +818,9 @@ class Phase2CLI:
     
     def _print_scheduler_status(self, p_status: Dict):
         """스케줄러 상태 출력"""
-        status_icon = "🟢" if p_status.get("running") else "🔴"
+        status_icon = "[실행중]" if p_status.get("running") else "[중지됨]"
         print(f"""
-스케줄러 상태
+[스케줄러] 스케줄러 상태
 ├─ 상태: {status_icon} {p_status.get('status', 'unknown')}
 ├─ 실행 중: {'예' if p_status.get('running') else '아니오'}
 ├─ 다음 실행: {p_status.get('next_run', 'unknown')}

@@ -109,8 +109,8 @@ class Phase1Workflow:
             # 병렬 처리 설정
             _v_batch_size = self._v_parallel_workers * 10  # 워커 수의 10배로 배치 크기 설정
             
-            logger.info(f"🚀 병렬 스크리닝 시작 - 워커: {self._v_parallel_workers}개, 배치크기: {_v_batch_size}")
-            print(f"🚀 병렬 스크리닝 시작 - 워커: {self._v_parallel_workers}개")
+            logger.info(f"[시작] 병렬 스크리닝 시작 - 워커: {self._v_parallel_workers}개, 배치크기: {_v_batch_size}")
+            print(f"[시작] 병렬 스크리닝 시작 - 워커: {self._v_parallel_workers}개")
             
             # 병렬 종합 스크리닝 실행
             _v_all_results = self.parallel_screener.parallel_comprehensive_screening(
@@ -855,7 +855,7 @@ class Phase1Workflow:
         # 성공률 체크 및 경고
         if not p_partial_result.is_acceptable:
             logger.warning(
-                f"⚠️ 감시 리스트 추가 성공률({p_partial_result.success_rate:.1%})이 "
+                f"[경고] 감시 리스트 추가 성공률({p_partial_result.success_rate:.1%})이 "
                 f"최소 기준({p_partial_result.min_success_rate:.0%}) 미만입니다!"
             )
 
@@ -893,7 +893,7 @@ class Phase1Workflow:
             success = notifier.send_screening_complete(stats)
             if success:
                 logger.info("스크리닝 완료 텔레그램 알림 전송 성공")
-                print("📱 스크리닝 완료 텔레그램 알림 전송됨")
+                print("[알림] 스크리닝 완료 텔레그램 알림 전송됨")
             else:
                 logger.warning("스크리닝 완료 텔레그램 알림 전송 실패")
                 

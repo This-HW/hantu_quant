@@ -4,7 +4,7 @@
 기능:
 - 민감한 정보 마스킹
 - JSON 형식 구조화 로깅
-- 일별 로그 로테이션 (30일 보관)
+- 일별 로그 로테이션 (3일 보관)
 - 요청 추적용 trace_id
 """
 
@@ -119,7 +119,7 @@ class TraceIdFilter(logging.Filter):
 
 def setup_logging(log_file: str = None, level: int = logging.INFO, add_sensitive_filter: bool = True):
     """로깅 설정
-    
+
     Args:
         log_file: 로그 파일 경로 (콘솔만 사용 시 None)
         level: 로깅 레벨
@@ -127,18 +127,18 @@ def setup_logging(log_file: str = None, level: int = logging.INFO, add_sensitive
     """
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
-    
+
     # 기존 핸들러 제거
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
-    
+
     # 콘솔 핸들러
     console_handler = logging.StreamHandler()
     console_handler.setLevel(level)
     console_formatter = logging.Formatter('%(message)s')
     console_handler.setFormatter(console_formatter)
     root_logger.addHandler(console_handler)
-    
+
     # 파일 핸들러 (설정된 경우)
     if log_file:
         file_handler = logging.FileHandler(log_file)
@@ -146,13 +146,17 @@ def setup_logging(log_file: str = None, level: int = logging.INFO, add_sensitive
         file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         file_handler.setFormatter(file_formatter)
         root_logger.addHandler(file_handler)
-    
-    # 민감 정보 필터 적용
+
+    # 필터 적용 (순서: 이모지 제거 → 민감 정보 마스킹)
+    emoji_filter = EmojiRemovalFilter()
+    for handler in root_logger.handlers:
+        handler.addFilter(emoji_filter)
+
     if add_sensitive_filter:
         sensitive_filter = SensitiveDataFilter()
         for handler in root_logger.handlers:
             handler.addFilter(sensitive_filter)
-            
+
     return root_logger
 
 def get_logger(name: str) -> logging.Logger:
@@ -269,7 +273,7 @@ class StructuredLogger:
 def setup_json_logging(
     log_file: str,
     level: int = logging.INFO,
-    backup_count: int = 30,
+    backup_count: int = 3,  # 로컬 파일 3일 보관 정책 (2026-02-01)
     add_console: bool = True,
     add_sensitive_filter: bool = True,
 ) -> logging.Logger:

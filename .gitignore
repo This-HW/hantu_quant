@@ -88,3 +88,4 @@ web-interface/node_modules/
 # 백업 파일
 *.backup
 .git.backup.*/
+tests/scratch/

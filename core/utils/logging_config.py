@@ -110,7 +110,7 @@ def get_default_config() -> Dict[str, Any]:
                 "filename": "logs/app/app.log",
                 "when": "midnight",
                 "interval": 1,
-                "backupCount": 30,
+                "backupCount": 3,  # 로컬 파일 3일 보관 정책 (2026-02-01)
                 "encoding": "utf-8",
                 "filters": ["sensitive_data"],
             },
@@ -121,7 +121,7 @@ def get_default_config() -> Dict[str, Any]:
                 "filename": "logs/error/error.log",
                 "when": "midnight",
                 "interval": 1,
-                "backupCount": 60,
+                "backupCount": 3,  # 로컬 파일 3일 보관 정책 (2026-02-01)
                 "encoding": "utf-8",
                 "filters": ["sensitive_data"],
             },
@@ -290,7 +290,7 @@ def add_file_handler(
     filename: str,
     level: str = "DEBUG",
     rotate: bool = True,
-    backup_count: int = 30,
+    backup_count: int = 3,  # 로컬 파일 3일 보관 정책 (2026-02-01)
 ) -> logging.Handler:
     """
     파일 핸들러 추가

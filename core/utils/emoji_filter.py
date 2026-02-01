@@ -33,6 +33,7 @@ class EmojiRemovalFilter(logging.Filter):
         "\U00002300-\U000023FF"  # Miscellaneous Technical
         "\U0001F780-\U0001F7FF"  # Geometric Shapes Extended
         "\U00002B00-\U00002BFF"  # Miscellaneous Symbols and Arrows
+        "\uFE00-\uFE0F"          # Variation Selectors
         "]+",
         flags=re.UNICODE
     )
@@ -72,15 +73,42 @@ class EmojiRemovalFilter(logging.Filter):
 
     @classmethod
     def remove_emoji(cls, text: str) -> str:
-        """텍스트에서 이모지 제거
+        """텍스트에서 이모지 제거 (허용된 이모지 제외)
+
+        허용된 이모지(✅❌⭕)는 유지하고 나머지만 제거합니다.
 
         Args:
             text: 원본 텍스트
 
         Returns:
-            이모지가 제거된 텍스트
+            이모지가 제거된 텍스트 (허용 이모지는 유지)
         """
+        # 타입 체크 (조기 반환)
         if not isinstance(text, str):
             return text
 
-        return cls.EMOJI_PATTERN.sub('', text).strip()
+        # 빈 문자열 체크 (조기 반환)
+        if not text:
+            return text
+
+        # 이모지가 없으면 바로 반환 (성능 최적화)
+        if not cls.EMOJI_PATTERN.search(text):
+            return text
+
+        # 허용 이모지 임시 치환
+        placeholders = {}
+        temp_text = text
+        for i, emoji in enumerate(ALLOWED_EMOJIS):
+            if emoji in temp_text:
+                placeholder = f"__EMOJI_{i}__"
+                placeholders[placeholder] = emoji
+                temp_text = temp_text.replace(emoji, placeholder)
+
+        # 나머지 이모지 제거
+        cleaned_text = cls.EMOJI_PATTERN.sub('', temp_text).strip()
+
+        # 허용 이모지 복원
+        for placeholder, emoji in placeholders.items():
+            cleaned_text = cleaned_text.replace(placeholder, emoji)
+
+        return cleaned_text

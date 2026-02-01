@@ -48,7 +48,7 @@ def run_stage_a():
 
     try:
         # Step 1: 선정 기준 업데이트 (이미 완료됨)
-        print(f"✅ {steps[0]} 완료")
+        print(f"[완료] {steps[0]} 완료")
 
         state_manager.save_checkpoint(
             stage=WorkflowStage.STAGE_A,
@@ -61,7 +61,7 @@ def run_stage_a():
         )
 
         # Step 2: 필터링 로직 강화 (이미 완료됨)
-        print(f"✅ {steps[1]} 완료")
+        print(f"[완료] {steps[1]} 완료")
 
         state_manager.save_checkpoint(
             stage=WorkflowStage.STAGE_A,
@@ -74,7 +74,7 @@ def run_stage_a():
         )
 
         # Step 3: 테스트 실행 (이미 완료됨)
-        print(f"✅ {steps[2]} 완료")
+        print(f"[완료] {steps[2]} 완료")
         print("\n결과: 95개 → 12개 선정 (87.4% 감소)")
 
         # 완료 상태 저장
@@ -94,7 +94,7 @@ def run_stage_a():
             }
         )
 
-        print("\n✅ A단계 완료!")
+        print("\n[완료] A단계 완료!")
         return True
 
     except Exception as e:
@@ -114,9 +114,9 @@ def run_stage_a():
 
 def main():
     """메인 워크플로우 실행"""
-    print("\n" + "🚀 " * 20)
+    print("\n" + "[시작] " * 20)
     print("알고리즘 업그레이드 워크플로우 시작")
-    print("🚀 " * 20)
+    print("[시작] " * 20)
 
     state_manager = get_workflow_state_manager()
 
@@ -125,9 +125,9 @@ def main():
 
     # A단계 실행 (완료 상태로 등록)
     if not state_manager.is_stage_completed(WorkflowStage.STAGE_A):
-        print("\n▶️  A단계 실행 중...")
+        print("\n[진행] A단계 실행 중...")
         if not run_stage_a():
-            print("\n❌ A단계 실패")
+            print("\n[실패] A단계 실패")
             return
 
     # 최종 진행 상황 출력
@@ -136,9 +136,9 @@ def main():
     print("=" * 80)
     state_manager.print_progress()
 
-    print("\n" + "✅ " * 20)
+    print("\n" + "[완료] " * 20)
     print("다음 단계: D단계 (포트폴리오 최적화) 구현 예정")
-    print("✅ " * 20)
+    print("[완료] " * 20)
 
 
 if __name__ == "__main__":

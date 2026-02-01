@@ -55,10 +55,10 @@ class TestEmojiRemovalFilter:
             # Emoticons (1F600-1F64F)
             ("Happy 😀😃😄", "Happy"),
             # Symbols & Pictographs (1F300-1F5FF) + Miscellaneous Symbols (2600-26FF)
-            # ☀️(U+2600), 🌙(U+1F319)는 제거, ⭐(U+2B50)는 범위 밖이라 유지
-            ("Weather ☀️🌙⭐", "Weather ️⭐"),  # Variation Selector + ⭐ 남음
+            # ☀️(U+2600), 🌙(U+1F319), ⭐(U+2B50) 모두 제거됨 (2B00-2BFF 범위 포함)
+            ("Weather ☀️🌙⭐", "Weather"),  # Variation Selector도 제거됨
             # Transport & Map (1F680-1F6FF)
-            ("Travel 🚗✈️🚀", "Travel ️"),  # Variation Selector만 남음
+            ("Travel 🚗✈️🚀", "Travel"),  # Variation Selector도 제거됨
             # Flags (1F1E0-1F1FF)
             ("Country 🇰🇷🇺🇸", "Country"),
             # Supplemental Symbols (1F900-1F9FF)
@@ -181,19 +181,22 @@ class TestEmojiRemovalFilter:
         result = EmojiRemovalFilter.remove_emoji(None)
         assert result is None
 
-    # 13. Parametrized 테스트
+    # 13. Parametrized 테스트 - 허용 이모지 보존
     @pytest.mark.parametrize("input_msg,expected_msg", [
-        # Miscellaneous Symbols (2600-26FF)는 제거됨
-        ("Success ✅", "Success"),  # U+2705 (Dingbats)
-        ("Error ❌", "Error"),  # U+274C (Dingbats)
-        ("Warning ⚠️", "Warning ️"),  # U+26A0 (Miscellaneous Symbols) + Variation Selector
-        # ⭕는 U+2B55 (Miscellaneous Symbols and Arrows, 범위 밖)이므로 제거되지 않음
-        ("Info ⭕", "Info ⭕"),  # U+2B55 - 유지됨
-        ("Happy 😀", "Happy"),  # U+1F600 (Emoticons)
-        ("Mixed ✅😀❌", "Mixed"),  # ✅, ❌, 😀 모두 제거됨
+        # 허용 이모지(✅❌⭕)는 보존됨
+        ("Success ✅", "Success ✅"),  # U+2705 (Dingbats) - 보존
+        ("Error ❌", "Error ❌"),  # U+274C (Dingbats) - 보존
+        ("Info ⭕", "Info ⭕"),  # U+2B55 - 보존
+        ("Result ✅❌⭕", "Result ✅❌⭕"),  # 모두 보존
+        # 허용되지 않은 이모지는 제거
+        ("Happy 😀", "Happy"),  # U+1F600 (Emoticons) - 제거
+        ("Warning ⚠️", "Warning"),  # U+26A0 + Variation Selector - 모두 제거
+        # 혼합: 허용 이모지는 보존, 나머지는 제거
+        ("Mixed ✅😀❌", "Mixed ✅❌"),  # ✅❌는 보존, 😀는 제거
+        ("Test 🎉 ✅ Done", "Test  ✅ Done"),  # 🎉는 제거, ✅는 보존
     ])
     def test_various_emoji_removal(self, emoji_filter, log_record, input_msg, expected_msg):
-        """다양한 이모지 제거 테스트"""
+        """다양한 이모지 제거 테스트 (허용 이모지는 보존)"""
         log_record.msg = input_msg
         emoji_filter.filter(log_record)
         assert log_record.msg == expected_msg
@@ -296,3 +299,38 @@ class TestEmojiRemovalFilter:
         assert "🇰🇷" not in log_record.msg
         # 피부색 변형 이모지도 제거됨
         assert "👋" not in log_record.msg
+
+    # 21. 허용 이모지 보존 통합 테스트 (tests/scratch에서 이동)
+    def test_allowed_emojis_preserved(self, emoji_filter, log_record):
+        """허용 이모지가 보존되는지 검증 (Must Fix)"""
+        test_cases = [
+            ("테스트 성공 ✅", "테스트 성공 ✅"),
+            ("테스트 실패 ❌", "테스트 실패 ❌"),
+            ("주의 필요 ⭕", "주의 필요 ⭕"),
+            ("✅❌⭕ 모두 있음", "✅❌⭕ 모두 있음"),
+            ("결과: ✅ 성공 ❌ 실패", "결과: ✅ 성공 ❌ 실패"),
+        ]
+
+        for input_msg, expected_msg in test_cases:
+            log_record.msg = input_msg
+            emoji_filter.filter(log_record)
+            assert log_record.msg == expected_msg, \
+                f"허용 이모지가 제거됨: '{input_msg}' → '{log_record.msg}'"
+
+    # 22. 허용되지 않은 이모지 제거 통합 테스트 (tests/scratch에서 이동)
+    def test_other_emojis_removed(self, emoji_filter, log_record):
+        """허용되지 않은 이모지는 제거되는지 검증 (Must Fix)"""
+        test_cases = [
+            ("안녕하세요 😀", "안녕하세요"),
+            ("좋아요 👍", "좋아요"),
+            ("하트 ❤️", "하트"),  # Variation Selector도 제거됨
+            ("로켓 🚀", "로켓"),
+            # 혼합: 허용 이모지는 보존, 나머지는 제거
+            ("혼합 😀 테스트 ✅ 완료 🎉", "혼합  테스트 ✅ 완료"),
+        ]
+
+        for input_msg, expected_msg in test_cases:
+            log_record.msg = input_msg
+            emoji_filter.filter(log_record)
+            assert log_record.msg == expected_msg, \
+                f"제거되지 않은 이모지 발견: '{input_msg}' → '{log_record.msg}'"

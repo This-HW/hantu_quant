@@ -20,9 +20,9 @@ directories:
 
 # 로테이션 설정
 rotation:
-  when: "midnight"  # 일별 로테이션
+  when: "midnight" # 일별 로테이션
   interval: 1
-  backup_count: 30  # 30일 보관
+  backup_count: 3 # 로컬 파일 3일 보관 정책 (2026-02-01)
   encoding: "utf-8"
 
 # 포맷터 정의
@@ -65,7 +65,7 @@ handlers:
     filename: "logs/app/app.log"
     when: "midnight"
     interval: 1
-    backupCount: 30
+    backupCount: 3 # 로컬 파일 3일 보관 정책 (2026-02-01)
     encoding: "utf-8"
     filters:
       - sensitive_data
@@ -78,7 +78,7 @@ handlers:
     filename: "logs/trade/trade.log"
     when: "midnight"
     interval: 1
-    backupCount: 30
+    backupCount: 3 # 로컬 파일 3일 보관 정책 (2026-02-01)
     encoding: "utf-8"
     filters:
       - sensitive_data
@@ -90,7 +90,7 @@ handlers:
     filename: "logs/system/system.log"
     when: "midnight"
     interval: 1
-    backupCount: 30
+    backupCount: 3 # 로컬 파일 3일 보관 정책 (2026-02-01)
     encoding: "utf-8"
     filters:
       - sensitive_data
@@ -102,7 +102,7 @@ handlers:
     filename: "logs/error/error.log"
     when: "midnight"
     interval: 1
-    backupCount: 60  # 에러 로그는 60일 보관
+    backupCount: 3 # 로컬 파일 3일 보관 정책 (2026-02-01)
     encoding: "utf-8"
     filters:
       - sensitive_data

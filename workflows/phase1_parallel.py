@@ -40,21 +40,21 @@ def process_batch(batch_info: Dict) -> List[Dict]:
         # 각 프로세스에서 독립적인 스크리너 생성
         screener = StockScreener()
         
-        print(f"🔄 배치 {batch_num}/{total_batches} 처리 시작... (PID: {os.getpid()})")
-        
+        print(f"[처리중] 배치 {batch_num}/{total_batches} 처리 시작... (PID: {os.getpid()})")
+
         # 배치 스크리닝 실행
         results = screener.comprehensive_screening(batch_stocks)
-        
+
         if results:
             passed_count = len([r for r in results if r["overall_passed"]])
-            print(f"✅ 배치 {batch_num} 완료: {len(results)}개 처리, {passed_count}개 통과")
+            print(f"[완료] 배치 {batch_num} 완료: {len(results)}개 처리, {passed_count}개 통과")
             return results
         else:
-            print(f"⚠️  배치 {batch_num} 결과 없음")
+            print(f"[경고] 배치 {batch_num} 결과 없음")
             return []
-            
+
     except Exception as e:
-        print(f"❌ 배치 {batch_num} 처리 오류: {e}")
+        print(f"[오류] 배치 {batch_num} 처리 오류: {e}")
         return []
 
 class Phase1ParallelWorkflow:
@@ -108,7 +108,7 @@ class Phase1ParallelWorkflow:
                 })
             
             logger.info(f"병렬 처리 시작 - 총 {total_batches}개 배치, {self.max_workers}개 워커")
-            print(f"🚀 병렬 처리 시작: {total_batches}개 배치 → {self.max_workers}개 워커")
+            print(f"[시작] 병렬 처리 시작: {total_batches}개 배치 → {self.max_workers}개 워커")
             
             # 병렬 처리 실행
             all_results = []
@@ -131,7 +131,7 @@ class Phase1ParallelWorkflow:
                         
                         # 진행률 출력
                         progress = (completed_batches / total_batches) * 100
-                        print(f"📊 진행률: {completed_batches}/{total_batches} ({progress:.1f}%)")
+                        print(f"[진행률] {completed_batches}/{total_batches} ({progress:.1f}%)")
                         
                     except Exception as e:
                         batch_num = batch_info["batch_num"]
@@ -144,7 +144,7 @@ class Phase1ParallelWorkflow:
                 return False
             
             logger.info(f"전체 스크리닝 완료 - 총 {len(all_results)}개 종목 처리 (소요시간: {processing_time:.1f}초)")
-            print(f"⚡ 병렬 처리 완료: {len(all_results)}개 종목 처리 (소요시간: {processing_time:.1f}초)")
+            print(f"[완료] 병렬 처리 완료: {len(all_results)}개 종목 처리 (소요시간: {processing_time:.1f}초)")
             
             # 결과 저장
             save_success = self.screener.save_screening_results(all_results)
@@ -165,7 +165,7 @@ class Phase1ParallelWorkflow:
                 sequential_time = len(all_results) * 0.05  # 순차 처리 예상 시간 (배치당 0.05초)
                 speedup = sequential_time / processing_time
                 
-                print("\n📈 성능 통계:")
+                print("\n[성능통계] 성능 통계:")
                 print(f"├─ 병렬 처리 시간: {processing_time:.1f}초")
                 print(f"├─ 순차 처리 예상 시간: {sequential_time:.1f}초")
                 print(f"├─ 속도 향상: {speedup:.1f}배")
@@ -270,7 +270,7 @@ def main():
         workflow.max_workers = args.workers
     
     try:
-        print("🚀 Phase 1 병렬 스크리닝 시작")
+        print("[시작] Phase 1 병렬 스크리닝 시작")
         print(f"├─ CPU 코어: {workflow.cpu_count}개")
         print(f"├─ 워커 프로세스: {workflow.max_workers}개")
         print(f"└─ 배치 크기: {args.batch_size}개")
@@ -278,9 +278,9 @@ def main():
         success = workflow.run_full_screening_parallel(args.stocks)
         
         if success:
-            print("\n✅ 병렬 스크리닝 완료!")
+            print("\n[완료] 병렬 스크리닝 완료!")
         else:
-            print("\n❌ 병렬 스크리닝 실패!")
+            print("\n[실패] 병렬 스크리닝 실패!")
             
         sys.exit(0 if success else 1)
         

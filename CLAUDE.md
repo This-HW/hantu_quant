@@ -627,6 +627,60 @@ db_error_handler = setup_db_error_logging(service_name="서비스명")
 
 ---
 
+## 이모티콘 사용 정책
+
+### 로그 파일 및 CLI
+
+**허용되는 이모티콘 (3종만)**:
+
+- ✅ (성공)
+- ❌ (실패)
+- ⭕ (진행/상태)
+
+**금지**: 위 3종을 제외한 모든 이모티콘
+
+### Telegram 알림
+
+**현재 이모티콘 유지** (가독성 우선):
+
+- 🚨 (critical)
+- 🔴 (emergency)
+- ⚠️ (high)
+- 💡, 🟢, 📈, 📉, ➖ 등
+
+**상세 규칙**: `docs/planning/business-logic/logging-rules.md` 참조
+
+---
+
+## 로그 보관 정책
+
+### 로컬 파일 보관 기간
+
+**모든 로그 파일: 3일**
+
+| 파일 유형 | 위치                              | 보관 기간 | 삭제 방식 |
+| --------- | --------------------------------- | --------- | --------- |
+| 에러 로그 | `logs/errors/error_YYYYMMDD.json` | 3일       | 자동 삭제 |
+| 일반 로그 | `logs/info/info_YYYYMMDD.log`     | 3일       | 자동 삭제 |
+
+**변경 이유**:
+
+- 디스크 공간 절약 (OCI 50GB 제한)
+- 최근 3일 로그만으로 충분한 디버깅 가능
+- 장기 분석용 데이터는 DB에 영구 보관
+
+### DB 에러 로그
+
+**영구 보관** (삭제 안함)
+
+- 테이블: `error_logs`
+- 용도: 장기 분석, 패턴 분석, 통계
+- 접근: `hantu logs --db` 또는 SQL 직접 쿼리
+
+**상세 규칙**: `docs/planning/business-logic/logging-rules.md` 참조
+
+---
+
 ## 참고 문서
 
 ### 개발 가이드
