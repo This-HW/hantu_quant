@@ -1566,8 +1566,8 @@ class TradingEngine:
             message = report.to_telegram_message()
 
             self.logger.info(
-                f"일일 요약 생성: 거래 {report.total_trades}건, "
-                f"실현손익 {report.realized_pnl:+,.0f}원"
+                f"일일 요약 생성: 거래 {report.trade_summary.total_trades}건, "
+                f"실현손익 {report.trade_summary.total_pnl:+,.0f}원"
             )
 
             return message
