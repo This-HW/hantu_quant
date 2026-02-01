@@ -944,6 +944,20 @@ class IntegratedScheduler:
             if _v_report_success:
                 print("일일 리포트 생성 완료")
 
+            # Batch 4-3: TradingEngine 일일 요약 생성 및 텔레그램 전송
+            try:
+                from core.trading.trading_engine import get_trading_engine
+
+                engine = get_trading_engine()
+                summary_message = engine.generate_daily_summary()
+
+                if summary_message:
+                    logger.info("TradingEngine 일일 요약 생성 완료")
+                    self._safe_send_telegram(summary_message)
+                    print("일일 거래 요약 텔레그램 전송 완료")
+            except Exception as e:
+                logger.warning(f"TradingEngine 일일 요약 생성 실패: {e}")
+
             print("시장 마감 후 정리 완료")
 
         except Exception as e:
@@ -1839,6 +1853,16 @@ class IntegratedScheduler:
                     logger.info("자동 매매가 이미 실행 중입니다. 중복 시작 방지.")
                     print("ℹ️ 자동 매매가 이미 실행 중입니다.")
                     return False
+
+                # Batch 4-2: 서킷 브레이커 상태 확인
+                can_trade, circuit_msg = trading_engine.check_circuit_breaker()
+                if not can_trade:
+                    logger.warning(f"서킷브레이커로 인해 자동매매 시작 불가: {circuit_msg}")
+                    print(f"⚠️ 서킷브레이커 발동: {circuit_msg}")
+                    self._safe_send_telegram(f"⚠️ 서킷브레이커 발동\n{circuit_msg}")
+                    return False
+                else:
+                    logger.info(f"서킷브레이커 상태: {circuit_msg}")
 
                 # 백그라운드에서 자동 매매 실행
                 def run_trading():

@@ -118,6 +118,11 @@ class TradingEngine:
         # 실시간 피드백 루프 (선택적)
         self._feedback_loop = None
 
+        # Batch 4 기능: CircuitHandler, OpportunityDetector (지연 초기화)
+        self._circuit_handler = None
+        self._opportunity_detector = None
+        self._daily_summary_generator = None
+
         self.logger.info(
             f"자동 매매 엔진 초기화 완료 "
             f"(동적손절: {'활성화' if self.config.use_dynamic_stops else '비활성화'})"
@@ -133,6 +138,42 @@ class TradingEngine:
             except ImportError:
                 self.logger.debug("RealtimeFeedbackLoop 모듈 로드 실패 (무시)")
         return self._feedback_loop
+
+    def _get_circuit_handler(self):
+        """서킷 핸들러 싱글톤 인스턴스 (Batch 4-2)"""
+        if self._circuit_handler is None:
+            try:
+                from core.trading.circuit_handler import CircuitHandler
+
+                self._circuit_handler = CircuitHandler(
+                    trading_engine=self,
+                    notification_manager=None  # 알림은 TradingEngine에서 직접 처리
+                )
+            except ImportError:
+                self.logger.debug("CircuitHandler 모듈 로드 실패 (무시)")
+        return self._circuit_handler
+
+    def _get_opportunity_detector(self):
+        """추가 매수 기회 감지기 싱글톤 인스턴스 (Batch 4-1)"""
+        if self._opportunity_detector is None:
+            try:
+                from core.trading.opportunity_detector import OpportunityDetector
+
+                self._opportunity_detector = OpportunityDetector()
+            except ImportError:
+                self.logger.debug("OpportunityDetector 모듈 로드 실패 (무시)")
+        return self._opportunity_detector
+
+    def _get_daily_summary_generator(self):
+        """일일 요약 생성기 싱글톤 인스턴스 (Batch 4-3)"""
+        if self._daily_summary_generator is None:
+            try:
+                from core.trading.daily_summary import DailySummaryGenerator
+
+                self._daily_summary_generator = DailySummaryGenerator()
+            except ImportError:
+                self.logger.debug("DailySummaryGenerator 모듈 로드 실패 (무시)")
+        return self._daily_summary_generator
 
     def _record_trade_feedback(
         self,
@@ -1413,6 +1454,141 @@ class TradingEngine:
             "positions": {code: asdict(pos) for code, pos in self.positions.items()},
             "config": asdict(self.config),
         }
+
+    # ========================================
+    # Batch 4 기능: 고급 매매 기능
+    # ========================================
+
+    def check_circuit_breaker(self) -> Tuple[bool, str]:
+        """서킷 브레이커 상태 확인 및 대응 (Batch 4-2)
+
+        Returns:
+            Tuple[bool, str]: (거래 가능 여부, 상태 메시지)
+        """
+        try:
+            from core.risk.drawdown.circuit_breaker import CircuitBreaker
+            from core.risk.drawdown.drawdown_monitor import DrawdownMonitor
+
+            monitor = DrawdownMonitor()
+            breaker = CircuitBreaker()
+
+            # 현재 드로다운 상태 계산
+            drawdown_status = monitor.calculate_current_drawdown()
+
+            # 서킷 브레이커 체크
+            breaker_status = breaker.check(drawdown_status)
+
+            # CircuitHandler로 대응
+            handler = self._get_circuit_handler()
+            if handler:
+                response = handler.handle_circuit_event(breaker_status)
+                self.logger.info(
+                    f"서킷브레이커 체크: {response.action}, "
+                    f"포지션제한: {response.position_limit:.0%}"
+                )
+                return breaker_status.can_trade, response.message
+
+            return breaker_status.can_trade, breaker_status.trigger_reason or "정상"
+
+        except ImportError:
+            self.logger.debug("서킷브레이커 모듈 없음 (무시)")
+            return True, "서킷브레이커 비활성화"
+        except Exception as e:
+            self.logger.error(f"서킷브레이커 체크 실패: {e}", exc_info=True)
+            return True, f"체크 실패: {e}"
+
+    def scan_additional_buy_opportunities(self) -> List[Dict[str, Any]]:
+        """추가 매수 기회 스캔 (Batch 4-1)
+
+        보유 중인 포지션 중 추가 매수 조건을 충족하는 종목을 찾습니다.
+
+        Returns:
+            List[Dict]: 추가 매수 기회 목록
+        """
+        opportunities = []
+
+        try:
+            detector = self._get_opportunity_detector()
+            if detector is None:
+                return opportunities
+
+            for stock_code, position in self.positions.items():
+                position_data = {
+                    'stock_code': position.stock_code,
+                    'stock_name': position.stock_name,
+                    'quantity': position.quantity,
+                    'avg_price': position.avg_price,
+                    'current_price': position.current_price,
+                    'buy_count': getattr(position, 'buy_count', 1),
+                    'first_buy_date': position.entry_time
+                }
+
+                opportunity = detector.detect_opportunity(
+                    stock_code=stock_code,
+                    current_position=position_data
+                )
+
+                if opportunity:
+                    opportunities.append({
+                        'stock_code': opportunity.stock_code,
+                        'stock_name': opportunity.stock_name,
+                        'reason': opportunity.reason,
+                        'current_price': opportunity.current_price,
+                        'suggested_quantity': opportunity.suggested_quantity,
+                        'confidence': opportunity.confidence
+                    })
+
+            if opportunities:
+                self.logger.info(f"추가 매수 기회 발견: {len(opportunities)}개")
+
+            return opportunities
+
+        except Exception as e:
+            self.logger.error(f"추가 매수 기회 스캔 실패: {e}", exc_info=True)
+            return []
+
+    def generate_daily_summary(self) -> Optional[str]:
+        """일일 거래 요약 생성 (Batch 4-3)
+
+        Returns:
+            Optional[str]: 텔레그램 형식의 요약 메시지 (실패 시 None)
+        """
+        try:
+            generator = self._get_daily_summary_generator()
+            if generator is None:
+                return None
+
+            # 요약 보고서 생성
+            report = generator.generate_summary()
+
+            # 텔레그램 형식으로 변환
+            message = generator.format_for_telegram(report)
+
+            self.logger.info(
+                f"일일 요약 생성: 거래 {report.total_trades}건, "
+                f"실현손익 {report.realized_pnl:+,.0f}원"
+            )
+
+            return message
+
+        except Exception as e:
+            self.logger.error(f"일일 요약 생성 실패: {e}", exc_info=True)
+            return None
+
+    def get_circuit_handler_restrictions(self) -> Dict[str, Any]:
+        """현재 서킷 브레이커 제한 정보 조회
+
+        Returns:
+            Dict: 현재 적용 중인 거래 제한 정보
+        """
+        try:
+            handler = self._get_circuit_handler()
+            if handler:
+                return handler.get_current_restrictions()
+            return {"active": False, "position_limit": 1.0, "message": "비활성화"}
+        except Exception as e:
+            self.logger.error(f"제한 정보 조회 실패: {e}", exc_info=True)
+            return {"active": False, "error": str(e)}
 
 
 # 전역 인스턴스
