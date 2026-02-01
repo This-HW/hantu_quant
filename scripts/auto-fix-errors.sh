@@ -40,6 +40,61 @@ DB_USER="${DB_USER:-hantu}"      # 기본값: hantu
 DB_PASS="${DB_PASSWORD:-}"
 DB_NAME="${DB_NAME:-hantu_quant}"  # 기본값: hantu_quant
 
+# ===== 유틸리티 함수 정의 (사용 전 선언) =====
+
+# 로그 함수
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') $1" >> "$RESULT_LOG"
+}
+
+# 경로 검증 함수
+validate_path() {
+    local path="$1"
+    local normalized
+
+    # Null byte 체크 (문자열 길이 기반)
+    if [ ${#path} -ne "$(echo -n "$path" | wc -c)" ]; then
+        echo "Error: Path contains null byte" >&2
+        return 1
+    fi
+
+    # macOS는 greadlink, Linux는 readlink
+    if command -v greadlink >/dev/null 2>&1; then
+        normalized=$(greadlink -f "$path" 2>/dev/null) || return 1
+    else
+        normalized=$(readlink -f "$path" 2>/dev/null) || return 1
+    fi
+
+    # 화이트리스트 검증 (루트 포함)
+    case "$normalized" in
+        /opt/hantu_quant|/opt/hantu_quant/*|\
+        /Users/grimm/Documents/Dev/hantu_quant|/Users/grimm/Documents/Dev/hantu_quant/*)
+            echo "$normalized"
+            return 0
+            ;;
+        *)
+            echo "Error: Path not allowed: $path" >&2
+            return 1
+            ;;
+    esac
+}
+
+# DB 에러 적재 함수 (SQL Injection 방지 - Prepared Statement 방식)
+log_error_to_db() {
+    local error_msg="$1"
+    local error_type="${2:-ScriptError}"
+
+    # SQL Injection 방지: psql -v 변수로 전달
+    PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" \
+        -v msg="$error_msg" \
+        -v type="$error_type" \
+        -c "INSERT INTO error_logs (timestamp, level, service, module, message, error_type)
+            VALUES (NOW(), 'ERROR', 'auto-fix-cron', 'auto-fix-errors.sh', :'msg', :'type');" \
+        2>/dev/null || true
+}
+
+# ===== 환경 검증 =====
+
 # 필수 환경변수 검증 (DB_PASSWORD만 필수)
 if [ -z "$DB_PASS" ]; then
     echo "ERROR: DB_PASSWORD 환경변수가 설정되지 않았습니다." >&2
@@ -47,36 +102,28 @@ if [ -z "$DB_PASS" ]; then
     exit 1
 fi
 
-# Claude Code 존재 확인
-if [ ! -x "$CLAUDE_PATH" ]; then
-    ERROR_MSG="Claude Code가 설치되지 않았습니다: $CLAUDE_PATH"
+# 환경변수 경로 검증
+VALIDATED_CLAUDE_PATH=$(validate_path "$CLAUDE_PATH") || {
+    echo "ERROR: Claude Code 경로가 유효하지 않습니다: $CLAUDE_PATH" >&2
+    exit 1
+}
+VALIDATED_DEV_DIR=$(validate_path "$DEV_PROJECT_DIR") || {
+    echo "ERROR: 개발 프로젝트 디렉토리가 유효하지 않습니다: $DEV_PROJECT_DIR" >&2
+    exit 1
+}
+
+# Claude Code 존재 확인 (검증된 경로 사용)
+if [ ! -x "$VALIDATED_CLAUDE_PATH" ]; then
+    ERROR_MSG="Claude Code가 설치되지 않았습니다: $VALIDATED_CLAUDE_PATH"
     echo "ERROR: $ERROR_MSG" >&2
     # 로그 디렉토리 생성 후 DB 적재 시도
-    mkdir -p "$DEV_PROJECT_DIR/logs"
-    PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "
-        INSERT INTO error_logs (timestamp, level, service, module, message, error_type)
-        VALUES (NOW(), 'ERROR', 'auto-fix-cron', 'auto-fix-errors.sh', :'msg', 'MissingDependency');
-    " 2>/dev/null || true
+    mkdir -p "$VALIDATED_DEV_DIR/logs"
+    log_error_to_db "$ERROR_MSG" "MissingDependency"
     exit 1
 fi
 
-# 로그 디렉토리 생성 (개발 레포)
-mkdir -p "$DEV_PROJECT_DIR/logs"
-
-# 로그 함수
-log() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') $1" >> "$RESULT_LOG"
-}
-
-# DB 에러 적재 함수
-log_error_to_db() {
-    local error_msg="$1"
-    local error_type="${2:-ScriptError}"
-    PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "
-        INSERT INTO error_logs (timestamp, level, service, module, message, error_type)
-        VALUES (NOW(), 'ERROR', 'auto-fix-cron', 'auto-fix-errors.sh', :'msg', :'type');
-    " 2>/dev/null || true
-}
+# 로그 디렉토리 생성 (개발 레포, 검증된 경로 사용)
+mkdir -p "$VALIDATED_DEV_DIR/logs"
 
 # 에러 트랩 설정 (스크립트 에러 시 DB 적재)
 trap 'log_error_to_db "Auto-fix script failed at line $LINENO" "ScriptFailure"; rm -f $LOCKFILE' ERR
@@ -143,8 +190,8 @@ fi
 log "에러 발견 - 로컬: ${LOCAL_COUNT}건, 시스템: ${SYSTEM_COUNT}건, DB: ${DB_COUNT}건"
 
 # ===== 3. Claude Code로 분석 및 수정 =====
-# 개발 레포로 이동
-cd "$DEV_PROJECT_DIR"
+# 개발 레포로 이동 (검증된 경로 사용)
+cd "$VALIDATED_DEV_DIR"
 
 # 최신 코드 가져오기 (중요!)
 log "최신 코드 가져오기 (git pull)"
@@ -158,8 +205,8 @@ if [ $? -ne 0 ]; then
 fi
 log "최신 코드 동기화 완료: $(git rev-parse --short HEAD)"
 
-# 가상환경 활성화
-source "$DEV_PROJECT_DIR/venv/bin/activate"
+# 가상환경 활성화 (검증된 경로 사용)
+source "$VALIDATED_DEV_DIR/venv/bin/activate"
 
 PROMPT="에러 로그를 분석하고 수정해줘.
 
@@ -192,8 +239,8 @@ ${DB_ERRORS:-없음}
 
 log "Claude Code 실행 시작"
 
-# Claude Code 실행 (타임아웃 10분)
-timeout 600 "$CLAUDE_PATH" --dangerously-skip-permissions -p "$PROMPT" 2>&1 | tee -a "$RESULT_LOG"
+# Claude Code 실행 (타임아웃 10분, 검증된 경로 사용)
+timeout 600 "$VALIDATED_CLAUDE_PATH" --dangerously-skip-permissions -p "$PROMPT" 2>&1 | tee -a "$RESULT_LOG"
 
 CLAUDE_EXIT_CODE=${PIPESTATUS[0]}
 
