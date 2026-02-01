@@ -300,7 +300,14 @@ class TradingEngine:
                 position = self.positions[stock_code]
 
                 pnl = (price - position.avg_price) * quantity
-                return_rate = (price - position.avg_price) / position.avg_price
+                if position.avg_price > 0:
+                    return_rate = (price - position.avg_price) / position.avg_price
+                else:
+                    return_rate = 0.0
+                    self.logger.warning(
+                        f"avg_price가 0입니다: {stock_code}",
+                        extra={"stock_code": stock_code, "avg_price": position.avg_price},
+                    )
 
                 # 매매일지 기록
                 self.journal.log_order(
@@ -347,17 +354,20 @@ class TradingEngine:
                     position.unrealized_pnl = (
                         price - position.avg_price
                     ) * position.quantity
-                    position.unrealized_return = (
-                        price - position.avg_price
-                    ) / position.avg_price
+                    if position.avg_price > 0:
+                        position.unrealized_return = (
+                            price - position.avg_price
+                        ) / position.avg_price
+                    else:
+                        position.unrealized_return = 0.0
                     self.logger.info(
                         f"포지션 일부 매도: {stock_code} {quantity}주 (잔여: {position.quantity}주) @ {price:,}원"
                     )
 
             # === 5. 로깅 및 반환 ===
+            pnl_str = f" - 손익: {pnl:+,.0f}원" if pnl is not None else ""
             self.logger.info(
-                f"매도 완료: {stock_code} {quantity}주 @ {price:,}원 "
-                f"({order_type}) - 손익: {pnl:+,.0f}원" if pnl is not None else "",
+                f"매도 완료: {stock_code} {quantity}주 @ {price:,}원 ({order_type}){pnl_str}",
                 extra={
                     "stock_code": stock_code,
                     "quantity": quantity,
