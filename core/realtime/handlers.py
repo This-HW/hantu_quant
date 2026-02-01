@@ -995,6 +995,14 @@ class PositionMonitor:
 
         Args:
             event: 이벤트 정보
+                {
+                    "type": "stop_loss" | "take_profit",
+                    "stock_code": str,
+                    "quantity": int,
+                    "current_price": float,
+                    "trigger_price": float,
+                    ...
+                }
         """
         if not self.trading_engine:
             logger.warning("TradingEngine이 설정되지 않아 주문을 실행할 수 없습니다.")
@@ -1002,40 +1010,58 @@ class PositionMonitor:
 
         stock_code = event["stock_code"]
         quantity = event["quantity"]
-        order_type = "시장가"  # 손절/익절은 즉시 체결이 중요
+        reason = event["type"]  # "stop_loss" or "take_profit"
 
         logger.info(
             f"자동 매도 주문 실행: {stock_code}, "
-            f"수량={quantity}, 타입={order_type}"
+            f"수량={quantity}, 사유={reason}"
         )
 
         try:
-            # TODO: TradingEngine에 async sell() 메서드 구현 필요
-            # 현재는 동기 메서드가 없으므로 placeholder
-            # Batch 2에서 TradingEngine.sell() 구현 예정
-
-            # 임시: 로그만 기록
-            logger.warning(
-                f"[Placeholder] 매도 주문 대기: {stock_code}, "
-                f"수량={quantity}, 사유={event['type']}"
+            # TradingEngine.sell() 호출
+            result = await self.trading_engine.sell(
+                stock_code=stock_code,
+                quantity=quantity,
+                order_type="시장가",  # 손절/익절은 즉시 체결이 중요
+                reason=reason
             )
 
-            # 실제 구현 시 (Batch 2):
-            # if hasattr(self.trading_engine, 'sell'):
-            #     if asyncio.iscoroutinefunction(self.trading_engine.sell):
-            #         result = await self.trading_engine.sell(...)
-            #     else:
-            #         result = await asyncio.to_thread(
-            #             self.trading_engine.sell,
-            #             stock_code=stock_code,
-            #             quantity=quantity,
-            #             order_type=order_type,
-            #             reason=event["type"]
-            #         )
+            if result["success"]:
+                # 성공: 포지션 정리
+                self.processor.remove_position(stock_code)
+
+                logger.info(
+                    f"매도 주문 성공: {stock_code}, "
+                    f"주문번호={result['order_number']}, "
+                    f"손익={result.get('pnl', 0):+,.0f}원"
+                )
+
+                # TODO: Notifier 통합 시 텔레그램 알림 추가
+
+            else:
+                # 실패: 재시도 또는 알림
+                logger.error(
+                    f"매도 주문 실패: {stock_code} - {result['message']}",
+                    exc_info=True,
+                    extra={
+                        "stock_code": stock_code,
+                        "quantity": quantity,
+                        "reason": reason,
+                    }
+                )
+
+                # TODO: P1 이슈 - 재시도 로직 추가
 
         except Exception as e:
-            logger.error(f"매도 주문 중 예외 발생: {e}", exc_info=True)
-            raise
+            logger.error(
+                f"매도 주문 실행 중 예상치 못한 오류: {e}",
+                exc_info=True,
+                extra={
+                    "stock_code": stock_code,
+                    "quantity": quantity,
+                    "reason": reason,
+                }
+            )
 
     async def _trigger_callbacks(self, callbacks: List[Callable], event: Dict[str, Any]):
         """콜백 함수 실행

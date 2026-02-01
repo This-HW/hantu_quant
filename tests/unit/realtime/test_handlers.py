@@ -204,7 +204,6 @@ class TestCallbackExecution:
 class TestTradingEngineIntegration:
     """TradingEngine 통합 테스트"""
 
-    @pytest.mark.skip(reason="Batch 2에서 TradingEngine.sell() 메서드 구현 예정")
     @pytest.mark.asyncio
     async def test_손절_시_자동_매도_주문_실행(self):
         """손절 조건 충족 시 TradingEngine을 통해 자동 매도"""
@@ -212,7 +211,13 @@ class TestTradingEngineIntegration:
 
         # Mock TradingEngine
         mock_engine = MagicMock()
-        mock_engine.sell = AsyncMock(return_value={"success": True, "order_number": "12345"})
+        mock_engine.sell = AsyncMock(return_value={
+            "success": True,
+            "order_number": "12345",
+            "message": "매도 주문 성공",
+            "pnl": -3000.0,  # (9700 - 10000) * 10
+            "return_rate": -0.03
+        })
 
         monitor = PositionMonitor(processor, trading_engine=mock_engine)
 
@@ -228,7 +233,6 @@ class TestTradingEngineIntegration:
         assert call_args.kwargs["order_type"] == "시장가"
         assert call_args.kwargs["reason"] == "stop_loss"
 
-    @pytest.mark.skip(reason="Batch 2에서 TradingEngine.sell() 메서드 구현 예정")
     @pytest.mark.asyncio
     async def test_익절_시_자동_매도_주문_실행(self):
         """익절 조건 충족 시 TradingEngine을 통해 자동 매도"""
@@ -236,7 +240,13 @@ class TestTradingEngineIntegration:
 
         # Mock TradingEngine
         mock_engine = MagicMock()
-        mock_engine.sell = AsyncMock(return_value={"success": True, "order_number": "12345"})
+        mock_engine.sell = AsyncMock(return_value={
+            "success": True,
+            "order_number": "67890",
+            "message": "매도 주문 성공",
+            "pnl": 5000.0,  # (10500 - 10000) * 10
+            "return_rate": 0.05
+        })
 
         monitor = PositionMonitor(processor, trading_engine=mock_engine)
 

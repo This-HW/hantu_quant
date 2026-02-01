@@ -7,7 +7,7 @@ import os
 import asyncio
 import json
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, Literal
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
@@ -171,6 +171,235 @@ class TradingEngine:
 
         except Exception as e:
             self.logger.warning(f"피드백 기록 실패 (무시): {e}")
+
+    async def sell(
+        self,
+        stock_code: str,
+        quantity: int,
+        order_type: Literal["시장가", "지정가"] = "시장가",
+        price: Optional[int] = None,
+        reason: str = "manual",
+    ) -> Dict[str, Any]:
+        """매도 주문 실행 (Public Interface)
+
+        Args:
+            stock_code: 종목 코드 (6자리)
+            quantity: 매도 수량
+            order_type: 주문 유형 ("시장가" 또는 "지정가")
+            price: 지정가 주문 시 가격 (지정가일 경우 필수)
+            reason: 매도 사유
+
+        Returns:
+            {
+                "success": bool,
+                "order_number": str,
+                "message": str,
+                "pnl": Optional[float],
+                "return_rate": Optional[float]
+            }
+
+        Raises:
+            ValueError: 파라미터 검증 실패 시
+        """
+        try:
+            # === 1. 파라미터 검증 ===
+            if not stock_code or len(stock_code) != 6:
+                raise ValueError(f"유효하지 않은 종목 코드: {stock_code} (6자리 필요)")
+
+            if quantity <= 0:
+                raise ValueError(f"수량은 양수여야 합니다: {quantity}")
+
+            if order_type not in ["시장가", "지정가"]:
+                raise ValueError(f"유효하지 않은 주문 유형: {order_type}")
+
+            if order_type == "지정가" and (price is None or price <= 0):
+                raise ValueError("지정가 주문 시 가격이 필요합니다")
+
+            # API 초기화 확인
+            if not self.api:
+                if not self._initialize_api():
+                    return {
+                        "success": False,
+                        "order_number": "",
+                        "message": "API 초기화 실패",
+                    }
+
+            # === 2. 현재가 조회 ===
+            if order_type == "시장가" or price is None:
+                price_data = self.api.get_current_price(stock_code)
+                if not price_data:
+                    self.logger.error(
+                        f"현재가 조회 실패: {stock_code}",
+                        exc_info=True,
+                        extra={"stock_code": stock_code},
+                    )
+                    return {
+                        "success": False,
+                        "order_number": "",
+                        "message": f"현재가 조회 실패: {stock_code}",
+                    }
+
+                current_price = price_data.get("current_price", 0)
+                if current_price <= 0:
+                    self.logger.error(
+                        f"유효하지 않은 현재가: {stock_code} - {current_price}원",
+                        exc_info=True,
+                        extra={"stock_code": stock_code, "price": current_price},
+                    )
+                    return {
+                        "success": False,
+                        "order_number": "",
+                        "message": f"유효하지 않은 현재가: {current_price}원",
+                    }
+
+                price = int(current_price)
+
+            # === 3. KIS API 주문 실행 ===
+            order_division = (
+                self.api.ORDER_DIVISION_MARKET
+                if order_type == "시장가"
+                else self.api.ORDER_DIVISION_LIMIT
+            )
+
+            result = self.api.place_order(
+                stock_code=stock_code,
+                order_type=self.api.ORDER_TYPE_SELL,  # "01"
+                quantity=quantity,
+                price=price,
+                order_division=order_division,
+            )
+
+            if not result or not result.get("success"):
+                error_msg = (
+                    result.get("message", "알 수 없는 오류") if result else "응답 없음"
+                )
+                self.logger.error(
+                    f"매도 주문 실패: {stock_code}",
+                    exc_info=True,
+                    extra={
+                        "stock_code": stock_code,
+                        "quantity": quantity,
+                        "price": price,
+                        "order_type": order_type,
+                        "error": error_msg,
+                    },
+                )
+                return {
+                    "success": False,
+                    "order_number": "",
+                    "message": f"매도 주문 실패: {error_msg}",
+                }
+
+            # === 4. 손익 계산 ===
+            pnl = None
+            return_rate = None
+            order_number = result.get("order_id", "")
+
+            # 포지션에서 손익 계산
+            if stock_code in self.positions:
+                position = self.positions[stock_code]
+
+                pnl = (price - position.avg_price) * quantity
+                return_rate = (price - position.avg_price) / position.avg_price
+
+                # 매매일지 기록
+                self.journal.log_order(
+                    stock_code=stock_code,
+                    stock_name=position.stock_name,
+                    side="sell",
+                    price=price,
+                    quantity=quantity,
+                    reason=f"manual:{reason}",
+                    meta={
+                        "pnl": pnl,
+                        "return_rate": return_rate,
+                        "hold_days": (
+                            datetime.now() - datetime.fromisoformat(position.entry_time)
+                        ).days,
+                        "entry_price": position.avg_price,
+                        "order_id": order_number,
+                        "order_type": order_type,
+                    },
+                )
+
+                # 실시간 피드백 루프 기록
+                self._record_trade_feedback(
+                    stock_code=stock_code,
+                    stock_name=position.stock_name,
+                    entry_price=position.avg_price,
+                    exit_price=price,
+                    entry_time=position.entry_time,
+                    pnl=pnl,
+                    pnl_pct=return_rate * 100,
+                    exit_reason=reason,
+                )
+
+                # 포지션 제거 또는 수량 감소
+                if quantity >= position.quantity:
+                    # 전량 매도
+                    del self.positions[stock_code]
+                    self.logger.info(
+                        f"포지션 전량 매도: {stock_code} {quantity}주 @ {price:,}원 (손익: {pnl:+,.0f}원)"
+                    )
+                else:
+                    # 일부 매도
+                    position.quantity -= quantity
+                    position.unrealized_pnl = (
+                        price - position.avg_price
+                    ) * position.quantity
+                    position.unrealized_return = (
+                        price - position.avg_price
+                    ) / position.avg_price
+                    self.logger.info(
+                        f"포지션 일부 매도: {stock_code} {quantity}주 (잔여: {position.quantity}주) @ {price:,}원"
+                    )
+
+            # === 5. 로깅 및 반환 ===
+            self.logger.info(
+                f"매도 완료: {stock_code} {quantity}주 @ {price:,}원 "
+                f"({order_type}) - 손익: {pnl:+,.0f}원" if pnl is not None else "",
+                extra={
+                    "stock_code": stock_code,
+                    "quantity": quantity,
+                    "price": price,
+                    "order_type": order_type,
+                    "pnl": pnl,
+                    "return_rate": return_rate,
+                },
+            )
+
+            return {
+                "success": True,
+                "order_number": order_number,
+                "message": f"매도 완료: {quantity}주 @ {price:,}원",
+                "pnl": pnl,
+                "return_rate": return_rate,
+            }
+
+        except ValueError as e:
+            self.logger.error(
+                f"매도 파라미터 검증 실패: {e}",
+                exc_info=True,
+                extra={"stock_code": stock_code, "quantity": quantity},
+            )
+            return {"success": False, "order_number": "", "message": str(e)}
+
+        except Exception as e:
+            self.logger.error(
+                f"매도 실행 실패: {e}",
+                exc_info=True,
+                extra={
+                    "stock_code": stock_code,
+                    "quantity": quantity,
+                    "price": price,
+                    "order_type": order_type,
+                },
+            )
+            return {
+                "success": False,
+                "order_number": "",
+                "message": f"매도 실행 실패: {e}",
+            }
 
     def _initialize_api(self) -> bool:
         """API 초기화"""
