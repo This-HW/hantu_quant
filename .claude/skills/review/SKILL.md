@@ -1,6 +1,7 @@
 ---
 name: review
 description: 현재 변경사항 또는 지정된 파일에 대한 코드 리뷰를 수행합니다.
+model: opus
 argument-hint: [파일 경로 또는 빈칸(git diff)]
 allowed-tools: Read, Glob, Grep, Bash, Task
 ---

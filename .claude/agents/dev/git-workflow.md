@@ -183,6 +183,67 @@ git stash pop
 git stash apply stash@{2}
 ```
 
+### Git Worktree (병렬 작업)
+
+**사용 케이스:**
+
+- 여러 브랜치 동시 작업 (feature + hotfix)
+- PR 리뷰하면서 다른 작업
+- 빌드 테스트하면서 개발 계속
+- 긴급 hotfix + 진행 중인 feature
+
+```bash
+# Worktree 추가 (새 디렉토리 생성)
+git worktree add ../myproject-hotfix hotfix/urgent-fix
+
+# 기존 브랜치로 Worktree 생성
+git worktree add ../myproject-feature2 feature/feature2
+
+# 새 브랜치로 Worktree 생성
+git worktree add -b feature/new-feature ../myproject-new-feature
+
+# Worktree 목록 확인
+git worktree list
+
+# Worktree 제거 (디렉토리 먼저 삭제)
+rm -rf ../myproject-hotfix
+git worktree prune
+```
+
+**워크플로우 예시:**
+
+```bash
+# 1. Feature 개발 중 hotfix 필요
+cd /project/myproject  # main worktree
+git worktree add ../myproject-hotfix -b hotfix/critical-bug main
+
+# 2. Hotfix 작업
+cd ../myproject-hotfix
+# ... 수정 및 커밋 ...
+git push origin hotfix/critical-bug
+
+# 3. Feature로 돌아가기
+cd ../myproject
+# Feature 작업 계속
+
+# 4. Hotfix 완료 후 정리
+rm -rf ../myproject-hotfix
+git worktree prune
+```
+
+**장점:**
+
+- stash 없이 브랜치 전환
+- 컴파일/빌드 상태 유지
+- IDE 설정 유지
+- 동시 작업 가능
+
+**주의사항:**
+
+- 같은 브랜치를 여러 worktree에서 체크아웃 불가
+- 디스크 공간 사용 (각 worktree는 별도 작업 디렉토리)
+- 제거 시 디렉토리 삭제 + worktree prune 필수
+
 ## 위험한 명령어 (주의)
 
 ```bash

@@ -21,7 +21,7 @@ disallowedTools:
 >
 > - EXPLAIN ANALYZE를 MCP로 직접 실행하여 실행계획 분석
 > - 인덱스 사용 현황, 느린 쿼리 로그 조회
-> - SSH 터널 필요: `ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156`
+> - SSH 터널 필요: `./scripts/db-tunnel.sh start` (프로젝트별 스크립트 참조)
 
 # Query Optimization Expert
 

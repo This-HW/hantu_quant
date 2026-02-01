@@ -1,6 +1,7 @@
 ---
 name: test
 description: 테스트를 실행하고 결과를 분석합니다.
+model: sonnet
 argument-hint: [테스트 경로 또는 빈칸(전체)]
 allowed-tools: Read, Bash, Glob, Grep, Task
 ---

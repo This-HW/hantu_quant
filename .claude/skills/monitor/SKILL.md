@@ -1,6 +1,7 @@
 ---
 name: monitor
 description: 시스템 모니터링. 현재 상태를 확인하고 이상 징후를 탐지합니다.
+model: haiku
 argument-hint: [대상: app, infra, db, 또는 빈칸=전체]
 allowed-tools: Read, Bash, Glob, Grep, Task
 ---

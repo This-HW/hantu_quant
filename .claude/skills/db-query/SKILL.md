@@ -1,6 +1,8 @@
 ---
 name: db-query
 description: Execute database queries using PostgreSQL MCP. Use when users want to run SQL queries, analyze data, check schema, or optimize queries.
+model: sonnet
+disable-model-invocation: true
 ---
 
 # Database Query
@@ -12,11 +14,11 @@ PostgreSQL MCP를 사용하여 데이터베이스 쿼리를 실행합니다.
 SSH 터널이 실행 중이어야 합니다:
 
 ```bash
-# 터널 시작
-ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156
+# 스크립트 사용 (권장)
+./scripts/db-tunnel.sh start
 
-# 또는 스크립트 사용
-./scripts/ssh-tunnel.sh start
+# 또는 수동 실행 (프로젝트별 설정 필요)
+# ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 <REMOTE_HOST>
 ```
 
 ## 사용법
@@ -62,12 +64,12 @@ ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156
 
 ## 연결 정보
 
-| 항목 | 값 |
-|------|-----|
-| Host | localhost |
-| Port | 15432 |
+| 항목     | 값          |
+| -------- | ----------- |
+| Host     | localhost   |
+| Port     | 15432       |
 | Database | hantu_quant |
-| User | hantu |
+| User     | hantu       |
 
 ## 관련 에이전트
 

@@ -18,11 +18,13 @@
 ```
 
 **사용 방법:**
+
 ```
 "use context7 to show me [라이브러리] [버전] [기능]"
 ```
 
 **예시:**
+
 ```
 "use context7 to show me Next.js 15 App Router setup"
 "use context7 for React 19 Server Components"
@@ -43,11 +45,13 @@
 ```
 
 **사용 방법:**
+
 ```
 "create a [컴포넌트] with [특징]"
 ```
 
 **예시:**
+
 ```
 "create a login form with email and password using shadcn/ui"
 "create a responsive navbar with dark mode toggle"
@@ -68,11 +72,13 @@
 ```
 
 **장점:**
+
 - 시맨틱 검색 (의미 기반)
 - 코드/문서 특화 검색
 - 토큰 효율적 (필터링된 결과)
 
 **예시:**
+
 ```
 "use exa to search for Python FastAPI authentication best practices"
 "use exa to find React Server Components implementation examples"
@@ -93,11 +99,13 @@
 ```
 
 **장점:**
+
 - 검색 결과 자동 요약
 - 신뢰도 기반 소스 필터링
 - 중복 제거
 
 **예시:**
+
 ```
 "use tavily to research AI coding assistant market trends 2026"
 "use tavily to compare Next.js vs Remix vs Astro"
@@ -118,11 +126,13 @@
 ```
 
 **장점:**
+
 - JavaScript 렌더링 후 데이터 접근
 - 인증이 필요한 페이지 처리
 - 병렬 브라우저 실행
 
 **예시:**
+
 ```
 "use playwright to take screenshot of example.com"
 "use playwright to test login flow on staging site"
@@ -143,11 +153,13 @@
 ```
 
 **장점:**
+
 - 체계적 문제 분해
 - 각 단계 검증
 - 추론 과정 투명화
 
 **예시:**
+
 ```
 "use sequential thinking to design authentication system"
 "use sequential thinking to analyze performance bottleneck"
@@ -168,16 +180,19 @@
 ```
 
 **현재 설정:**
+
 - 연결: hantu_quant DB (SSH 터널 경유)
 - 로컬 포트: localhost:15432
 
 **⚠️ 사전 요구사항:**
+
 ```bash
 # SSH 터널 실행 필요 (세션 시작 전)
-ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156
+./scripts/db-tunnel.sh start
 ```
 
 **예시:**
+
 ```
 "show me all tables in the database"
 "run EXPLAIN ANALYZE on this query: SELECT ..."
@@ -190,26 +205,26 @@ ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156
 
 ### 작업별 권장 MCP
 
-| 작업 유형 | 1순위 MCP | 2순위 MCP |
-|----------|----------|----------|
-| 라이브러리 문서 | **Context7** | Exa |
-| UI 컴포넌트 생성 | **Magic** | Context7 |
-| 기술 검색 | **Exa** | Tavily |
-| 종합 리서치 | **Tavily** | Exa |
-| 웹 스크래핑 | **Playwright** | - |
-| 복잡한 설계 | **Sequential Thinking** | - |
-| DB 분석 | **PostgreSQL** | - |
+| 작업 유형        | 1순위 MCP               | 2순위 MCP |
+| ---------------- | ----------------------- | --------- |
+| 라이브러리 문서  | **Context7**            | Exa       |
+| UI 컴포넌트 생성 | **Magic**               | Context7  |
+| 기술 검색        | **Exa**                 | Tavily    |
+| 종합 리서치      | **Tavily**              | Exa       |
+| 웹 스크래핑      | **Playwright**          | -         |
+| 복잡한 설계      | **Sequential Thinking** | -         |
+| DB 분석          | **PostgreSQL**          | -         |
 
 ### MCP vs 기본 도구
 
-| 상황 | MCP 사용 | 기본 도구 사용 |
-|------|:--------:|:-------------:|
-| 라이브러리 최신 문서 | Context7 ✅ | WebFetch ❌ |
-| 단순 웹 검색 | - | WebSearch ✅ |
-| 의미 기반 검색 | Exa ✅ | WebSearch ❌ |
-| 정적 페이지 조회 | - | WebFetch ✅ |
-| 동적 페이지 조회 | Playwright ✅ | WebFetch ❌ |
-| DB 쿼리 | PostgreSQL ✅ | Bash(psql) ❌ |
+| 상황                 |   MCP 사용    | 기본 도구 사용 |
+| -------------------- | :-----------: | :------------: |
+| 라이브러리 최신 문서 |  Context7 ✅  |  WebFetch ❌   |
+| 단순 웹 검색         |       -       |  WebSearch ✅  |
+| 의미 기반 검색       |    Exa ✅     |  WebSearch ❌  |
+| 정적 페이지 조회     |       -       |  WebFetch ✅   |
+| 동적 페이지 조회     | Playwright ✅ |  WebFetch ❌   |
+| DB 쿼리              | PostgreSQL ✅ | Bash(psql) ❌  |
 
 ---
 
@@ -344,10 +359,10 @@ MCP 조회 시 버전을 명시하세요:
 
 ```bash
 # 세션 시작 전 실행 필요
-ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156
+./scripts/db-tunnel.sh start
 
 # 터널 상태 확인
-lsof -i:15432
+./scripts/db-tunnel.sh status
 ```
 
 ### Playwright MCP
@@ -361,11 +376,11 @@ npx playwright install
 
 ## 관련 에이전트
 
-| 상황 | 위임 대상 | 활용 MCP |
-|------|----------|----------|
-| 라이브러리 조사 | **research-external** | Exa, Tavily, Context7 |
-| UI 컴포넌트 구현 | **implement-ui** | Magic, Context7 |
-| DB 분석 | **analyze-data** | PostgreSQL |
-| 쿼리 최적화 | **optimize-queries** | PostgreSQL |
-| E2E 테스트 | **write-ui-tests** | Playwright |
-| 복잡한 설계 | **plan-implementation** | Sequential Thinking |
+| 상황             | 위임 대상               | 활용 MCP              |
+| ---------------- | ----------------------- | --------------------- |
+| 라이브러리 조사  | **research-external**   | Exa, Tavily, Context7 |
+| UI 컴포넌트 구현 | **implement-ui**        | Magic, Context7       |
+| DB 분석          | **analyze-data**        | PostgreSQL            |
+| 쿼리 최적화      | **optimize-queries**    | PostgreSQL            |
+| E2E 테스트       | **write-ui-tests**      | Playwright            |
+| 복잡한 설계      | **plan-implementation** | Sequential Thinking   |

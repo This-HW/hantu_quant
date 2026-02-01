@@ -1,6 +1,8 @@
 ---
 name: web-research
 description: Research external information using MCP servers. Use when users need to find documentation, compare technologies, or research best practices.
+model: sonnet
+disable-model-invocation: true
 ---
 
 # Web Research
@@ -78,13 +80,13 @@ MCP 서버를 활용하여 외부 정보를 조사합니다.
 
 ## MCP 선택 가이드
 
-| 작업 | 1순위 | 2순위 |
-|------|-------|-------|
-| 라이브러리 문서 | Context7 | Exa |
-| 코드 예제 | Exa | Context7 |
-| 기술 비교 | Tavily | Exa |
-| 트렌드 조사 | Tavily | - |
-| 에러 해결 | Exa | Tavily |
+| 작업            | 1순위    | 2순위    |
+| --------------- | -------- | -------- |
+| 라이브러리 문서 | Context7 | Exa      |
+| 코드 예제       | Exa      | Context7 |
+| 기술 비교       | Tavily   | Exa      |
+| 트렌드 조사     | Tavily   | -        |
+| 에러 해결       | Exa      | Tavily   |
 
 ## 관련 에이전트
 

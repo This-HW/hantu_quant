@@ -1,6 +1,7 @@
 ---
 name: infra
 description: 인프라 작업 파이프라인. 탐색 → 계획 → 구현 → 검증 → 적용 순서로 진행합니다.
+model: sonnet
 argument-hint: [작업 설명]
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, AskUserQuestion
 ---

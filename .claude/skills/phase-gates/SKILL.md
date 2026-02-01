@@ -1,6 +1,8 @@
 ---
 name: phase-gates
 description: Phase 전환 자동화 및 게이트 검증. Planning, Development, Validation 단계 간 전환 조건 검증.
+model: sonnet
+allowed-tools: Read, Bash
 ---
 
 # Phase Gate 스킬
@@ -43,11 +45,11 @@ Phase 3: Validation
 
 ### 필수 조건
 
-| 조건 | 검증 방법 | 실패 시 |
-|------|----------|---------|
-| P0 모호함 = 0 | clarify output의 p0_count | clarify 재호출 |
-| 요구사항 문서화 | output 존재 확인 | clarify 재호출 |
-| 구현 계획 존재 | plan-implementation 완료 | plan 호출 |
+| 조건            | 검증 방법                 | 실패 시        |
+| --------------- | ------------------------- | -------------- |
+| P0 모호함 = 0   | clarify output의 p0_count | clarify 재호출 |
+| 요구사항 문서화 | output 존재 확인          | clarify 재호출 |
+| 구현 계획 존재  | plan-implementation 완료  | plan 호출      |
 
 ### 검증 로직
 
@@ -77,12 +79,12 @@ gate_1:
 
 ### 필수 조건
 
-| 조건 | 검증 방법 | 실패 시 |
-|------|----------|---------|
-| 빌드 성공 | verify-code output | fix-bugs 호출 |
-| 타입 체크 통과 | mypy/tsc 결과 | fix-bugs 호출 |
-| 린트 통과 | ruff/eslint 결과 | fix-bugs 호출 |
-| 기본 테스트 통과 | pytest/jest 결과 | fix-bugs 호출 |
+| 조건             | 검증 방법          | 실패 시       |
+| ---------------- | ------------------ | ------------- |
+| 빌드 성공        | verify-code output | fix-bugs 호출 |
+| 타입 체크 통과   | mypy/tsc 결과      | fix-bugs 호출 |
+| 린트 통과        | ruff/eslint 결과   | fix-bugs 호출 |
+| 기본 테스트 통과 | pytest/jest 결과   | fix-bugs 호출 |
 
 ### 검증 로직
 
@@ -103,13 +105,13 @@ gate_2:
     action: delegate
     target: fix-bugs
     context: verify_output.errors
-    then: self  # Gate 2 재검증
+    then: self # Gate 2 재검증
 
   on_pass:
     action: proceed
     parallel:
       - review-code
-      - security-scan  # 선택적
+      - security-scan # 선택적
 ```
 
 ---
@@ -118,10 +120,10 @@ gate_2:
 
 ### 필수 조건
 
-| 조건 | 검증 방법 | 실패 시 |
-|------|----------|---------|
-| 리뷰 승인 | review output | fix-bugs 후 재리뷰 |
-| Must Fix = 0 | must_fix_count | fix-bugs 후 재리뷰 |
+| 조건                   | 검증 방법       | 실패 시            |
+| ---------------------- | --------------- | ------------------ |
+| 리뷰 승인              | review output   | fix-bugs 후 재리뷰 |
+| Must Fix = 0           | must_fix_count  | fix-bugs 후 재리뷰 |
 | Critical 보안 이슈 = 0 | security output | fix-bugs 후 재스캔 |
 
 ### 검증 로직
@@ -138,7 +140,7 @@ gate_3:
     - field: security_output.critical_count
       operator: equals
       value: 0
-      optional: true  # 보안 스캔 실행 안 했으면 무시
+      optional: true # 보안 스캔 실행 안 했으면 무시
 
   on_fail:
     action: delegate
@@ -146,7 +148,7 @@ gate_3:
     context:
       - review_output.must_fix_items
       - security_output.critical_items
-    then: gate_2  # Development → Validation 재실행
+    then: gate_2 # Development → Validation 재실행
 
   on_pass:
     action: complete
@@ -194,6 +196,7 @@ bypass:
 ```
 
 **우회 트리거:**
+
 - 사용자가 "gate 우회" 또는 "강제 진행" 요청
 - hotfix 상황에서 빠른 배포 필요
 
@@ -201,21 +204,21 @@ bypass:
 
 ## 메트릭
 
-| Gate | 평균 통과율 | 평균 재시도 | 병목 원인 |
-|------|-----------|-----------|----------|
-| Gate 1 | 85% | 1.2회 | P0 모호함 |
-| Gate 2 | 70% | 1.8회 | 타입 에러, 린트 |
-| Gate 3 | 90% | 1.1회 | Must Fix 이슈 |
+| Gate   | 평균 통과율 | 평균 재시도 | 병목 원인       |
+| ------ | ----------- | ----------- | --------------- |
+| Gate 1 | 85%         | 1.2회       | P0 모호함       |
+| Gate 2 | 70%         | 1.8회       | 타입 에러, 린트 |
+| Gate 3 | 90%         | 1.1회       | Must Fix 이슈   |
 
 ---
 
 ## 관련 에이전트
 
-| Phase | 에이전트 |
-|-------|---------|
-| Planning | clarify-requirements, design-user-journey, define-business-logic |
-| Development | plan-implementation, implement-code, write-tests, fix-bugs |
-| Validation | verify-code, verify-integration, review-code, security-scan |
+| Phase       | 에이전트                                                         |
+| ----------- | ---------------------------------------------------------------- |
+| Planning    | clarify-requirements, design-user-journey, define-business-logic |
+| Development | plan-implementation, implement-code, write-tests, fix-bugs       |
+| Validation  | verify-code, verify-integration, review-code, security-scan      |
 
 ---
 

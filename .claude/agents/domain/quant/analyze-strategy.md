@@ -22,9 +22,10 @@ disallowedTools:
 ---
 
 > **MCP 활용**:
+>
 > - **PostgreSQL MCP**: hantu_quant DB에서 백테스트 결과, 전략 성과 지표 조회
 > - **Sequential Thinking**: 복잡한 전략 분석 시 단계별 사고 활용
-> - SSH 터널: `ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156`
+> - SSH 터널: `./scripts/db-tunnel.sh start`
 
 # Quant Strategy Analyst
 

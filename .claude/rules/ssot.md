@@ -106,23 +106,23 @@ export interface AppError {
 
 interface ErrorLog {
   // 필수 필드
-  code: string;          // 에러 코드 (예: AUTH_001)
-  message: string;       // 사람이 읽을 수 있는 메시지
-  timestamp: string;     // ISO 8601 형식
+  code: string; // 에러 코드 (예: AUTH_001)
+  message: string; // 사람이 읽을 수 있는 메시지
+  timestamp: string; // ISO 8601 형식
 
   // 컨텍스트 (선택)
-  userId?: string;       // 사용자 ID
-  sessionId?: string;    // 세션 ID
-  requestId?: string;    // 요청 ID (추적용)
+  userId?: string; // 사용자 ID
+  sessionId?: string; // 세션 ID
+  requestId?: string; // 요청 ID (추적용)
 
   // 위치 정보
-  file?: string;         // 발생 파일
-  function?: string;     // 발생 함수
-  line?: number;         // 발생 라인
+  file?: string; // 발생 파일
+  function?: string; // 발생 함수
+  line?: number; // 발생 라인
 
   // 추가 정보
-  context?: Record<string, unknown>;  // 관련 데이터
-  stack?: string;        // 스택 트레이스
+  context?: Record<string, unknown>; // 관련 데이터
+  stack?: string; // 스택 트레이스
 
   // 심각도
   severity: "debug" | "info" | "warn" | "error" | "critical";
@@ -150,7 +150,7 @@ import { errorLogger } from "./logger";
 
 export function handleError(
   error: unknown,
-  context?: Record<string, unknown>
+  context?: Record<string, unknown>,
 ): AppError {
   const appError = normalizeError(error);
 
@@ -193,6 +193,50 @@ function normalizeError(error: unknown): AppError {
 
 ---
 
+## 실전 예시: DB SSH Tunnel
+
+### 문제 상황 (SSOT 위반)
+
+```
+❌ 10개 파일에 SSH 주소 하드코딩:
+- agents/common/data/analyze-data.md
+- agents/common/data/optimize-queries.md
+- agents/domain/quant/analyze-strategy.md
+- agents/domain/quant/fetch-market-data.md
+- rules/mcp-usage.md (2곳)
+- skills/common/db-query/skill.md
+- scripts/ssh-tunnel.sh
+
+→ 서버 주소 변경 시 10개 파일 수정 필요!
+```
+
+### 해결 방법 (SSOT 적용)
+
+```bash
+# 1. SSOT 스크립트 생성
+scripts/db-tunnel.sh
+  ↳ REMOTE_HOST="ubuntu@158.180.87.156"  ← 단일 출처!
+  ↳ 모든 연결 정보 여기에만
+
+# 2. Agent/Skill/Rules는 스크립트 참조만
+> - SSH 터널 필요: `./scripts/db-tunnel.sh start`
+
+# 3. 서버 변경 시
+vim scripts/db-tunnel.sh
+  ↳ REMOTE_HOST만 변경 → 전체 반영!
+```
+
+### 효과
+
+- ✅ 서버 주소 변경: 10개 파일 → 1개 파일
+- ✅ 검색/치환 불필요
+- ✅ 실수 방지 (일부 파일 누락 불가능)
+- ✅ Agent 파일 가독성 향상 (IP 하드코딩 제거)
+
+**상세:** `docs/guides/ssot-db-tunnel.md`
+
+---
+
 ## SSOT 적용 체크리스트
 
 ### 코드 작성 시
@@ -216,8 +260,8 @@ function normalizeError(error: unknown): AppError {
 
 ## 관련 에이전트
 
-| 상황 | 위임 대상 |
-|------|----------|
-| SSOT 위반 발견 | **Dev/review-code** |
-| 에러 구조 설계 | **Dev/plan-implementation** |
-| 에러 핸들러 구현 | **Dev/implement-code** |
+| 상황             | 위임 대상                   |
+| ---------------- | --------------------------- |
+| SSOT 위반 발견   | **Dev/review-code**         |
+| 에러 구조 설계   | **Dev/plan-implementation** |
+| 에러 핸들러 구현 | **Dev/implement-code**      |

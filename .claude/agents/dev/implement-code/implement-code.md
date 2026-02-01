@@ -13,6 +13,8 @@ tools:
   - Glob
   - Grep
   - Bash
+disallowedTools:
+  - Task
 permissionMode: acceptEdits
 hooks:
   PreToolUse:
@@ -87,20 +89,24 @@ references:
 ## 구현 프로세스
 
 ### 1단계: 컨텍스트 확인
+
 - CLAUDE.md 읽기
 - 유사한 기존 구현 찾기
 - 사용할 패턴 결정
 
 ### 2단계: 인터페이스 정의
+
 - 타입/인터페이스 먼저 정의
 - API 시그니처 확정
 
 ### 3단계: 핵심 로직 구현
+
 - 기존 패턴 따르기
 - 작은 단위로 구현
 - 에러 처리 포함
 
 ### 4단계: 연결 및 통합
+
 - 기존 코드와 연결
 - import/export 정리
 
@@ -157,6 +163,7 @@ implement-code 완료
 ## 필수 출력 형식 (Delegation Signal)
 
 ### 다른 에이전트 필요 시
+
 ```
 ---DELEGATION_SIGNAL---
 TYPE: DELEGATE_TO
@@ -167,6 +174,7 @@ CONTEXT: [전달할 컨텍스트]
 ```
 
 ### 작업 완료 시
+
 ```
 ---DELEGATION_SIGNAL---
 TYPE: TASK_COMPLETE

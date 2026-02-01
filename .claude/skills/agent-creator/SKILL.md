@@ -1,6 +1,8 @@
 ---
 name: agent-creator
 description: Create Claude Code sub-agents with optimal configuration. Use when users ask to create a new agent, custom agent, specialized assistant, or want to configure task-specific AI workflows.
+model: sonnet
+allowed-tools: Write, Read, Glob
 ---
 
 # Agent Creator
@@ -30,21 +32,21 @@ description: Create Claude Code sub-agents with optimal configuration. Use when 
 
 ## 모델 선택 가이드
 
-| 작업 유형 | 권장 모델 | 이유 |
-|----------|----------|------|
-| 전략/분석/리뷰 | `opus` | 복잡한 추론 |
-| 코드 구현/수정 | `sonnet` | 균형잡힌 성능 |
-| 탐색/검증/단순작업 | `haiku` | 빠른 실행, 비용 효율 |
+| 작업 유형          | 권장 모델 | 이유                 |
+| ------------------ | --------- | -------------------- |
+| 전략/분석/리뷰     | `opus`    | 복잡한 추론          |
+| 코드 구현/수정     | `sonnet`  | 균형잡힌 성능        |
+| 탐색/검증/단순작업 | `haiku`   | 빠른 실행, 비용 효율 |
 
 상세 가이드: [references/model-selection.md](references/model-selection.md)
 
 ## 권한 모드 선택
 
-| 모드 | 용도 |
-|------|------|
-| `default` | 표준 권한 확인 |
+| 모드          | 용도                |
+| ------------- | ------------------- |
+| `default`     | 표준 권한 확인      |
 | `acceptEdits` | 파일 편집 자동 허용 |
-| `plan` | 읽기 전용 |
+| `plan`        | 읽기 전용           |
 
 ## 사용 가능한 도구
 
@@ -70,6 +72,7 @@ permissionMode: [default|acceptEdits|plan]
 ## 자동 위임 최적화
 
 description에 포함하면 자동 위임 빈도 증가:
+
 - "Use PROACTIVELY"
 - "MUST BE USED when"
 - "Use immediately after"
@@ -87,6 +90,7 @@ model: haiku
 You are a test automation expert.
 
 When invoked:
+
 1. Identify changed files
 2. Run relevant tests
 3. Report results with fix suggestions if failed

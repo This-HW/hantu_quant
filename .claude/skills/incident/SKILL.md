@@ -1,6 +1,7 @@
 ---
 name: incident
 description: 인시던트 대응 파이프라인. 복구 최우선으로 대응 → 복구 → 분석 순으로 진행합니다.
+model: sonnet
 argument-hint: [상황 설명]
 allowed-tools: Read, Bash, Glob, Grep, Task, WebSearch
 ---

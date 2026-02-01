@@ -19,7 +19,7 @@ disallowedTools:
 > **MCP 활용**: PostgreSQL MCP를 사용하여 직접 데이터베이스 쿼리를 실행하세요.
 >
 > - 스키마 조회, 데이터 프로파일링, 품질 분석 등을 MCP로 직접 수행
-> - SSH 터널 필요: `ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156`
+> - SSH 터널 필요: `./scripts/db-tunnel.sh start` (프로젝트별 스크립트 참조)
 
 # Data Analysis Expert
 
