@@ -9,6 +9,7 @@ Includes:
 - TradeJournal: Trade logging
 - SellEngine: Sell engine
 - AutoTrader: Auto trader
+- CircuitHandler: Circuit breaker response handler
 """
 
 from .dynamic_stop_loss import (
@@ -42,6 +43,11 @@ from .validators import (
     validate_quantity,
 )
 
+from .circuit_handler import (
+    CircuitHandler,
+    CircuitResponse,
+)
+
 __all__ = [
     # Dynamic Stop Loss (P1-1)
     'DynamicStopLossCalculator',
@@ -68,4 +74,7 @@ __all__ = [
     'validate_stock_code',
     'validate_price',
     'validate_quantity',
+    # Circuit Handler (Batch 4-2)
+    'CircuitHandler',
+    'CircuitResponse',
 ]
