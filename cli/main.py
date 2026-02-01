@@ -10,6 +10,7 @@ Commands:
     stop        Stop services
     status      Show service status
     trade       Trading operations
+    monitor     Real-time trading monitoring
     screen      Stock screening (Phase 1)
     select      Daily selection (Phase 2)
     config      Configuration management
@@ -90,6 +91,7 @@ from cli.commands.start import start  # noqa: E402
 from cli.commands.stop import stop  # noqa: E402
 from cli.commands.status import status  # noqa: E402
 from cli.commands.trade import trade  # noqa: E402
+from cli.commands.monitor import monitor  # noqa: E402
 from cli.commands.screen import screen  # noqa: E402
 from cli.commands.select import select  # noqa: E402
 from cli.commands.config import config  # noqa: E402
@@ -100,6 +102,7 @@ cli.add_command(start)
 cli.add_command(stop)
 cli.add_command(status)
 cli.add_command(trade)
+cli.add_command(monitor)
 cli.add_command(screen)
 cli.add_command(select)
 cli.add_command(config)
