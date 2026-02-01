@@ -18,7 +18,8 @@
 #   - DB_NAME: PostgreSQL 데이터베이스명
 # =============================================================================
 
-set -euo pipefail
+set -uo pipefail
+# Note: -e 제거 (에러 트랩이 제대로 작동하도록)
 
 # ===== 설정 =====
 # 프로덕션 환경 (로그 읽기용)
@@ -42,12 +43,20 @@ DB_NAME="${DB_NAME:-hantu_quant}"  # 기본값: hantu_quant
 # 필수 환경변수 검증 (DB_PASSWORD만 필수)
 if [ -z "$DB_PASS" ]; then
     echo "ERROR: DB_PASSWORD 환경변수가 설정되지 않았습니다." >&2
+    # DB 접속 불가로 에러 적재 불가, 즉시 종료
     exit 1
 fi
 
 # Claude Code 존재 확인
 if [ ! -x "$CLAUDE_PATH" ]; then
-    echo "ERROR: Claude Code가 설치되지 않았습니다: $CLAUDE_PATH" >&2
+    ERROR_MSG="Claude Code가 설치되지 않았습니다: $CLAUDE_PATH"
+    echo "ERROR: $ERROR_MSG" >&2
+    # 로그 디렉토리 생성 후 DB 적재 시도
+    mkdir -p "$DEV_PROJECT_DIR/logs"
+    PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "
+        INSERT INTO error_logs (timestamp, level, service, module, message, error_type)
+        VALUES (NOW(), 'ERROR', 'auto-fix-cron', 'auto-fix-errors.sh', :'msg', 'MissingDependency');
+    " 2>/dev/null || true
     exit 1
 fi
 
@@ -58,6 +67,19 @@ mkdir -p "$DEV_PROJECT_DIR/logs"
 log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') $1" >> "$RESULT_LOG"
 }
+
+# DB 에러 적재 함수
+log_error_to_db() {
+    local error_msg="$1"
+    local error_type="${2:-ScriptError}"
+    PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -c "
+        INSERT INTO error_logs (timestamp, level, service, module, message, error_type)
+        VALUES (NOW(), 'ERROR', 'auto-fix-cron', 'auto-fix-errors.sh', :'msg', :'type');
+    " 2>/dev/null || true
+}
+
+# 에러 트랩 설정 (스크립트 에러 시 DB 적재)
+trap 'log_error_to_db "Auto-fix script failed at line $LINENO" "ScriptFailure"; rm -f $LOCKFILE' ERR
 
 log "DB 접속 정보: $DB_USER@$DB_HOST:5432/$DB_NAME"
 
@@ -129,7 +151,9 @@ log "최신 코드 가져오기 (git pull)"
 git fetch origin main
 git reset --hard origin/main
 if [ $? -ne 0 ]; then
-    log "ERROR: git pull 실패 - 작업 중단"
+    ERROR_MSG="git pull 실패 - 작업 중단"
+    log "ERROR: $ERROR_MSG"
+    log_error_to_db "$ERROR_MSG" "GitSyncFailure"
     exit 1
 fi
 log "최신 코드 동기화 완료: $(git rev-parse --short HEAD)"
@@ -177,8 +201,10 @@ if [ $CLAUDE_EXIT_CODE -eq 0 ]; then
     log "Claude Code 정상 완료"
 elif [ $CLAUDE_EXIT_CODE -eq 124 ]; then
     log "Claude Code 타임아웃 (10분 초과)"
+    log_error_to_db "Auto-fix timeout after 10 minutes" "Timeout"
 else
     log "Claude Code 종료 코드: $CLAUDE_EXIT_CODE"
+    log_error_to_db "Auto-fix failed with exit code $CLAUDE_EXIT_CODE" "ClaudeCodeFailure"
 fi
 
 log "===== 자동 에러 수정 완료 ====="
