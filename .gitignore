@@ -84,3 +84,7 @@ web-interface/dist/
 web-interface/node_modules/
 
 .claude-backup/
+
+# 백업 파일
+*.backup
+.git.backup.*/
