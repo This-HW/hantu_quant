@@ -82,6 +82,9 @@ class IntegratedScheduler:
         try:
             logger.info(f"[초기화] 스케줄러 초기화 시작 (워커: {p_parallel_workers}개)")
 
+            # 텔레그램 notifier 캐시 (싱글톤 패턴 활용)
+            self._v_telegram_notifier = None
+
             self._v_phase1_workflow = Phase1Workflow(
                 p_parallel_workers=p_parallel_workers
             )
@@ -119,6 +122,39 @@ class IntegratedScheduler:
             logger.error(f"스케줄러 초기화 실패: {e}", exc_info=True)
             logger.error(f"[상세] 상세 오류:\n{traceback.format_exc()}", exc_info=True)
             raise
+
+    def _get_notifier(self):
+        """텔레그램 notifier 반환 (지연 초기화, 캐시)
+
+        Returns:
+            TelegramNotifier 인스턴스 또는 None (비활성화/오류 시)
+        """
+        if self._v_telegram_notifier is None:
+            try:
+                self._v_telegram_notifier = get_telegram_notifier()
+            except Exception as e:
+                logger.warning(f"텔레그램 notifier 초기화 실패: {e}")
+                return None
+        return self._v_telegram_notifier
+
+    def _safe_send_telegram(self, message: str, priority: str = "normal") -> bool:
+        """텔레그램 알림을 안전하게 전송 (예외 처리 포함)
+
+        Args:
+            message: 전송할 메시지
+            priority: 우선순위 (normal, high, emergency 등)
+
+        Returns:
+            전송 성공 여부
+        """
+        try:
+            notifier = self._get_notifier()
+            if notifier and notifier.is_enabled():
+                return notifier.send_message(message, priority)
+            return False
+        except Exception as e:
+            logger.warning(f"텔레그램 알림 전송 실패: {e}")
+            return False
 
     def _run_cache_initialization(self):
         """자정 캐시 초기화 (00:00 실행)
@@ -162,17 +198,12 @@ class IntegratedScheduler:
             logger.info(f"캐시 초기화 완료: {deleted_count}개 키 삭제")
 
             # 텔레그램 알림
-            try:
-                notifier = get_telegram_notifier()
-                if notifier.is_enabled():
-                    message = (
-                        f"[캐시] *캐시 초기화 완료*\n\n"
-                        f"• 삭제된 키: {deleted_count}개\n"
-                        f"• 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`"
-                    )
-                    notifier.send_message(message, "normal")
-            except Exception as e:
-                logger.warning(f"텔레그램 알림 전송 실패: {e}")
+            self._safe_send_telegram(
+                f"[캐시] *캐시 초기화 완료*\n\n"
+                f"• 삭제된 키: {deleted_count}개\n"
+                f"• 시간: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`",
+                "normal"
+            )
 
             return True
 
@@ -203,17 +234,12 @@ class IntegratedScheduler:
             if batch_index == 0:
                 logger.info("=" * 50)
                 logger.info("[배치] Phase 2 분산 배치 실행 시작")
-                try:
-                    notifier = get_telegram_notifier()
-                    if notifier.is_enabled():
-                        message = (
-                            f"[배치] *Phase 2 시작*\n\n"
-                            f"• 총 배치: 18개\n"
-                            f"• 예상 완료: 08:30"
-                        )
-                        notifier.send_message(message, "normal")
-                except Exception as e:
-                    logger.warning(f"Phase 2 시작 알림 전송 실패: {e}")
+                self._safe_send_telegram(
+                    f"[배치] *Phase 2 시작*\n\n"
+                    f"• 총 배치: 18개\n"
+                    f"• 예상 완료: 08:30",
+                    "normal"
+                )
 
             # 배치 실행
             success = self._v_daily_updater.run_daily_update(
@@ -242,49 +268,34 @@ class IntegratedScheduler:
                         except Exception as e:
                             logger.warning(f"선정 결과 파일 읽기 실패: {e}")
 
-                    try:
-                        notifier = get_telegram_notifier()
-                        if notifier.is_enabled():
-                            message = (
-                                f"*Phase 2 완료*\n\n"
-                                f"• 총 선정 종목: {total_selected}개\n"
-                                f"• 소요 시간: 90분\n"
-                                f"• 저장: DB (`selection_results` 테이블)"
-                            )
-                            notifier.send_message(message, "normal")
-                    except Exception as e:
-                        logger.warning(f"Phase 2 완료 알림 전송 실패: {e}")
+                    self._safe_send_telegram(
+                        f"*Phase 2 완료*\n\n"
+                        f"• 총 선정 종목: {total_selected}개\n"
+                        f"• 소요 시간: 90분\n"
+                        f"• 저장: DB (`selection_results` 테이블)",
+                        "normal"
+                    )
             else:
                 logger.error(f"배치 {batch_index}/17 실패")
 
                 # 배치 실패 알림
-                try:
-                    notifier = get_telegram_notifier()
-                    if notifier.is_enabled():
-                        message = (
-                            f"*배치 {batch_index} 실패*\n\n"
-                            f"• 에러: 배치 실행 실패\n"
-                            f"• 다음 배치 진행 중..."
-                        )
-                        notifier.send_message(message, "high")
-                except Exception as e:
-                    logger.warning(f"배치 실패 알림 전송 실패: {e}")
+                self._safe_send_telegram(
+                    f"*배치 {batch_index} 실패*\n\n"
+                    f"• 에러: 배치 실행 실패\n"
+                    f"• 다음 배치 진행 중...",
+                    "high"
+                )
 
         except Exception as e:
             logger.error(f"배치 {batch_index}/17 실행 오류: {e}", exc_info=True)
 
             # 에러 알림
-            try:
-                notifier = get_telegram_notifier()
-                if notifier.is_enabled():
-                    message = (
-                        f"*배치 {batch_index} 실패*\n\n"
-                        f"• 에러: {str(e)[:50]}...\n"
-                        f"• 다음 배치 진행 중..."
-                    )
-                    notifier.send_message(message, "high")
-            except Exception as notify_error:
-                logger.warning(f"배치 에러 알림 전송 실패: {notify_error}")
+            self._safe_send_telegram(
+                f"*배치 {batch_index} 실패*\n\n"
+                f"• 에러: {str(e)[:50]}...\n"
+                f"• 다음 배치 진행 중...",
+                "high"
+            )
 
     def start_scheduler(self):
         """통합 스케줄러 시작"""
