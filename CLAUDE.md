@@ -660,6 +660,38 @@ db_error_handler = setup_db_error_logging(service_name="서비스명")
 
 ---
 
+## Telegram Circuit Breaker
+
+네트워크 장애 시 불필요한 재시도를 방지하고 시스템 안정성을 높이기 위해 Circuit Breaker 패턴을 적용합니다.
+
+### 동작 방식
+
+| 상태   | 조건                   | 동작                       |
+| ------ | ---------------------- | -------------------------- |
+| Closed | 정상 상태              | 모든 요청 처리             |
+| Open   | 연속 5회 실패          | 요청 즉시 거부 (5분간)     |
+| Reset  | Open 상태에서 5분 경과 | Closed로 복귀, 재시도 허용 |
+
+### 설정값
+
+- **임계값**: 연속 5회 실패 시 차단 (`_circuit_breaker_threshold = 5`)
+- **리셋 시간**: 5분 (300초) 후 재시도 (`_circuit_breaker_reset_time = 300`)
+
+### 구현 위치
+
+- **모듈**: `core/notification/telegram_bot.py`
+- **테스트**: `tests/unit/notification/test_telegram_circuit_breaker.py`
+
+### 로그 확인
+
+```bash
+# Circuit Breaker 관련 로그 확인
+grep "Circuit breaker" logs/*.log
+grep "consecutive_failures" logs/*.log
+```
+
+---
+
 ## 로그 보관 정책
 
 ### 로컬 파일 보관 기간

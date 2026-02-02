@@ -113,6 +113,12 @@ class TelegramNotifier(BaseNotifier):
         self._error_count: int = 0
         self._last_send_time: Optional[datetime] = None
 
+        # Circuit Breaker 설정
+        self._consecutive_failures: int = 0
+        self._circuit_breaker_threshold: int = 5  # 연속 5회 실패 시 차단
+        self._circuit_breaker_reset_time: int = 300  # 5분 후 재시도
+        self._circuit_open_since: Optional[datetime] = None
+
     def _convert_to_telegram_config(
         self,
         config_data: TelegramConfigData
@@ -167,6 +173,19 @@ class TelegramNotifier(BaseNotifier):
                 error="Alert filtered out",
             )
 
+        # Circuit Breaker 체크
+        if self._is_circuit_open():
+            logger.warning(
+                f"Circuit breaker open, skipping alert: {alert.id}",
+                extra={"trace_id": trace_id, "alert_id": alert.id,
+                       "consecutive_failures": self._consecutive_failures}
+            )
+            return NotificationResult(
+                success=False,
+                alert_id=alert.id,
+                error="Circuit breaker open - network unavailable",
+            )
+
         try:
             # 메시지 포맷
             message = AlertFormatter.format_telegram(alert)
@@ -175,12 +194,14 @@ class TelegramNotifier(BaseNotifier):
             if result.success:
                 self._send_count += 1
                 self._last_send_time = datetime.now()
+                self._reset_circuit_breaker()  # 성공 시 Circuit Breaker 리셋
                 logger.info(
                     f"Alert sent successfully: {alert.id}",
                     extra={"trace_id": trace_id, "alert_id": alert.id}
                 )
             else:
                 self._error_count += 1
+                self._record_failure()  # 실패 시 Circuit Breaker 카운터 증가
                 logger.warning(
                     f"Alert send failed: {alert.id} - {result.error}",
                     extra={"trace_id": trace_id, "alert_id": alert.id}
@@ -190,6 +211,7 @@ class TelegramNotifier(BaseNotifier):
 
         except Exception as e:
             self._error_count += 1
+            self._record_failure()  # Circuit Breaker 카운터 증가
             error = NotificationSendError(
                 f"Failed to send telegram alert: {e}",
                 original_error=e,
@@ -294,13 +316,16 @@ class TelegramNotifier(BaseNotifier):
                 last_error = f"HTTP error: {e.code}"
                 logger.warning(
                     f"Telegram HTTP error: {e.code}",
+                    exc_info=True,
                     extra={"trace_id": trace_id, "alert_id": alert_id, "retry": retry_count}
                 )
 
             except urllib.error.URLError as e:
                 last_error = f"URL error: {e.reason}"
+                # 네트워크 연결 실패는 일시적일 수 있으므로 WARNING (exc_info로 상세 기록)
                 logger.warning(
                     f"Telegram URL error: {e.reason}",
+                    exc_info=True,
                     extra={"trace_id": trace_id, "alert_id": alert_id, "retry": retry_count}
                 )
 
@@ -308,6 +333,7 @@ class TelegramNotifier(BaseNotifier):
                 last_error = str(e)
                 logger.warning(
                     f"Telegram error: {e}",
+                    exc_info=True,
                     extra={"trace_id": trace_id, "alert_id": alert_id, "retry": retry_count}
                 )
 
@@ -366,6 +392,53 @@ class TelegramNotifier(BaseNotifier):
         self._running = False
         if self._worker_thread:
             self._worker_thread.join(timeout=5)
+
+    def _is_circuit_open(self) -> bool:
+        """Circuit Breaker가 열려있는지 확인
+
+        연속 실패 횟수가 임계값을 초과하면 일시적으로 요청을 차단합니다.
+        일정 시간이 지나면 자동으로 리셋되어 다시 시도합니다.
+
+        Returns:
+            bool: Circuit Breaker가 열려있으면 True
+        """
+        if self._consecutive_failures < self._circuit_breaker_threshold:
+            return False
+
+        # 리셋 시간이 지났는지 확인
+        if self._circuit_open_since:
+            elapsed = (datetime.now() - self._circuit_open_since).total_seconds()
+            if elapsed >= self._circuit_breaker_reset_time:
+                logger.info(
+                    f"Circuit breaker reset after {elapsed:.0f}s",
+                    extra={"consecutive_failures": self._consecutive_failures}
+                )
+                self._reset_circuit_breaker()
+                return False
+
+        return True
+
+    def _record_failure(self) -> None:
+        """실패 기록 및 Circuit Breaker 상태 업데이트"""
+        self._consecutive_failures += 1
+
+        if self._consecutive_failures >= self._circuit_breaker_threshold:
+            if self._circuit_open_since is None:
+                self._circuit_open_since = datetime.now()
+                logger.warning(
+                    f"Circuit breaker opened: {self._consecutive_failures} consecutive failures",
+                    extra={"threshold": self._circuit_breaker_threshold,
+                           "reset_time_sec": self._circuit_breaker_reset_time}
+                )
+
+    def _reset_circuit_breaker(self) -> None:
+        """Circuit Breaker 리셋"""
+        if self._consecutive_failures > 0:
+            logger.debug(
+                f"Circuit breaker reset from {self._consecutive_failures} failures"
+            )
+        self._consecutive_failures = 0
+        self._circuit_open_since = None
 
     def _worker_loop(self) -> None:
         """워커 루프"""
