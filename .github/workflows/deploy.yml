@@ -76,6 +76,32 @@ jobs:
             COMMIT_SHA=$(git rev-parse --short HEAD)
             echo "✅ Now on main branch: $COMMIT_SHA"
 
+            # Update Dev Repository (if exists)
+            echo ""
+            echo "=== Updating Dev Repository ==="
+            if [ -d "/home/ubuntu/hantu_quant_dev" ]; then
+              cd /home/ubuntu/hantu_quant_dev
+
+              # Stash uncommitted changes
+              if [ -n "$(git status --porcelain)" ]; then
+                echo "⚠️ Dev repo has uncommitted changes, stashing..."
+                git stash push -m "auto-stash-before-deploy-$(date +%Y%m%d-%H%M%S)"
+              fi
+
+              # Update to latest main
+              git fetch origin main
+              git checkout main
+              git reset --hard origin/main
+
+              DEV_COMMIT_SHA=$(git rev-parse --short HEAD)
+              echo "✅ Dev repository updated: $DEV_COMMIT_SHA"
+
+              # Return to production directory
+              cd /opt/hantu_quant
+            else
+              echo "ℹ️ Dev repository not found at /home/ubuntu/hantu_quant_dev, skipping..."
+            fi
+
             # Run pre-deployment checks (after git pull to ensure scripts exist)
             echo "=== Running Pre-deployment Checks ==="
             chmod +x scripts/deployment/*.sh
