@@ -10,7 +10,7 @@ import json
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass, asdict
 
 # 프로젝트 루트 디렉토리를 Python 경로에 추가
@@ -23,6 +23,7 @@ from core.utils.log_utils import get_logger
 from core.interfaces.trading import IPriceAnalyzer, PriceAttractiveness, TechnicalSignal
 from hantu_common.indicators.trend import SlopeIndicator
 from core.config import trading_config as TCONF
+from core.trading.validators import StockCodeValidator
 
 # 새로운 아키텍처 imports - 사용 가능할 때만 import
 try:
@@ -692,6 +693,25 @@ class PriceAnalyzer(IPriceAnalyzer):
         from core.api.kis_api import KISAPI
         return KISAPI()
 
+    def _fetch_daily_prices(self, stock_code: str, count: int) -> List[Dict[str, Any]]:
+        """KIS API에서 일봉 데이터를 조회하여 List[Dict]로 반환
+
+        Args:
+            stock_code: 종목 코드
+            count: 조회할 일수
+
+        Returns:
+            일봉 데이터 리스트 (빈 리스트 또는 실제 데이터)
+        """
+        try:
+            kis_api = self._get_kis_api()
+            df = kis_api.get_stock_history(stock_code, period="D", count=count)
+            if df is not None and isinstance(df, pd.DataFrame) and not df.empty:
+                return df.to_dict('records')
+        except Exception as e:
+            self._logger.error(f"{stock_code}: 일봉 데이터 조회 실패: {e}", exc_info=True)
+        return []
+
     def initialize(self):
         """플러그인 초기화 메서드 (플러그인 데코레이터 요구사항)"""
         self._logger.info("PriceAnalyzer 플러그인 초기화 완료")
@@ -1109,8 +1129,8 @@ class PriceAnalyzer(IPriceAnalyzer):
                     _v_scores.append(5.0)
                 elif spread > 0.005:
                     _v_scores.append(-5.0)
-        except Exception:
-            pass
+        except Exception as e:
+            self._logger.debug(f"{_v_stock_code}: 주문호가 데이터 조회 실패 (선택적 기능): {e}")
 
         try:
             uptick_ratio = p_stock_data.get("uptick_ratio")
@@ -1119,8 +1139,8 @@ class PriceAnalyzer(IPriceAnalyzer):
                     _v_scores.append(5.0)
                 elif uptick_ratio < 0.4:
                     _v_scores.append(-5.0)
-        except Exception:
-            pass
+        except Exception as e:
+            self._logger.debug(f"{_v_stock_code}: uptick ratio 계산 실패 (선택적 기능): {e}")
 
         # VWAP 괴리 반영 (분봉 기반)
         try:
@@ -1136,7 +1156,8 @@ class PriceAnalyzer(IPriceAnalyzer):
                     df_mb = api.get_minute_bars(
                         p_stock_data.get("stock_code", ""), time_unit=1, count=30
                     )
-                except Exception:
+                except Exception as e:
+                    self._logger.warning(f"{_v_stock_code}: 분봉 데이터 조회 실패, VWAP 계산 생략: {e}")
                     df_mb = None
             else:
                 df_mb = recent_bars
@@ -1164,8 +1185,8 @@ class PriceAnalyzer(IPriceAnalyzer):
                             _v_scores.append(5.0)
                         else:
                             _v_scores.append(-5.0)
-        except Exception:
-            pass
+        except Exception as e:
+            self._logger.warning(f"{_v_stock_code}: VWAP 괴리율 계산 실패 (선택적 기능): {e}")
 
         # 평균 점수 계산 (보강 반영)
         _v_average_score = sum(_v_scores) / len(_v_scores) if _v_scores else 50.0
@@ -1195,17 +1216,19 @@ class PriceAnalyzer(IPriceAnalyzer):
                 # 실제 API에서 가격 데이터 조회
                 _v_stock_code = p_stock_data.get("stock_code")
                 if _v_stock_code:
-                    try:
-                        kis_api = self._get_kis_api()
-                        daily_prices = kis_api.get_daily_prices(_v_stock_code, period=20)
-                        if daily_prices and len(daily_prices) >= 2:
-                            _v_prices = [float(day.get("close", 0)) for day in daily_prices]
-                            self._logger.debug(f"{_v_stock_code}: API에서 {len(_v_prices)}일 가격 데이터 조회 성공")
-                        else:
-                            self._logger.warning(f"{_v_stock_code}: 가격 데이터 부족. 거래량 분석 불가")
-                            return 50.0
-                    except Exception as e:
-                        self._logger.error(f"{_v_stock_code}: 가격 데이터 조회 실패: {e}", exc_info=True)
+                    # 종목 코드 검증
+                    validation = StockCodeValidator.validate(_v_stock_code)
+                    if not validation.is_valid:
+                        self._logger.warning(f"잘못된 종목 코드: {validation.errors}")
+                        return 50.0
+
+                    _v_stock_code = validation.sanitized_value
+                    daily_prices = self._fetch_daily_prices(_v_stock_code, 20)
+                    if daily_prices and len(daily_prices) >= 2:
+                        _v_prices = [float(day.get("close", 0)) for day in daily_prices]
+                        self._logger.debug(f"{_v_stock_code}: API에서 {len(_v_prices)}일 가격 데이터 조회 성공")
+                    else:
+                        self._logger.warning(f"{_v_stock_code}: 가격 데이터 부족. 거래량 분석 불가")
                         return 50.0
                 else:
                     self._logger.warning("종목 코드 없음. 거래량 분석 불가")
@@ -1236,25 +1259,27 @@ class PriceAnalyzer(IPriceAnalyzer):
 
             # 패턴 분석을 위해 항상 API에서 OHLCV 데이터 조회
             if _v_stock_code:
-                try:
-                    kis_api = self._get_kis_api()
-                    daily_prices = kis_api.get_daily_prices(_v_stock_code, period=10)
-                    if daily_prices and len(daily_prices) >= 2:
-                        # 실제 OHLCV 데이터 사용
-                        for day in daily_prices:
-                            _v_ohlc_data.append({
-                                "open": float(day.get("open", 0)),
-                                "high": float(day.get("high", 0)),
-                                "low": float(day.get("low", 0)),
-                                "close": float(day.get("close", 0)),
-                                "volume": int(day.get("volume", 0)),
-                            })
-                        self._logger.debug(f"{_v_stock_code}: API에서 {len(_v_ohlc_data)}일 OHLCV 데이터 조회 성공")
-                    else:
-                        self._logger.warning(f"{_v_stock_code}: OHLCV 데이터 부족. 패턴 분석 불가")
-                        return 50.0
-                except Exception as e:
-                    self._logger.error(f"{_v_stock_code}: OHLCV 데이터 조회 실패: {e}", exc_info=True)
+                # 종목 코드 검증
+                validation = StockCodeValidator.validate(_v_stock_code)
+                if not validation.is_valid:
+                    self._logger.warning(f"잘못된 종목 코드: {validation.errors}")
+                    return 50.0
+
+                _v_stock_code = validation.sanitized_value
+                daily_prices = self._fetch_daily_prices(_v_stock_code, 10)
+                if daily_prices and len(daily_prices) >= 2:
+                    # 실제 OHLCV 데이터 사용
+                    for day in daily_prices:
+                        _v_ohlc_data.append({
+                            "open": float(day.get("open", 0)),
+                            "high": float(day.get("high", 0)),
+                            "low": float(day.get("low", 0)),
+                            "close": float(day.get("close", 0)),
+                            "volume": int(day.get("volume", 0)),
+                        })
+                    self._logger.debug(f"{_v_stock_code}: API에서 {len(_v_ohlc_data)}일 OHLCV 데이터 조회 성공")
+                else:
+                    self._logger.warning(f"{_v_stock_code}: OHLCV 데이터 부족. 패턴 분석 불가")
                     return 50.0
             else:
                 self._logger.warning("종목 코드 없음. 패턴 분석 불가")
@@ -1441,29 +1466,29 @@ class PriceAnalyzer(IPriceAnalyzer):
                 self._logger.warning("종목 코드가 없습니다")
                 return None
 
-            # 실제 API에서 일봉 데이터 조회 (60일)
-            try:
-                kis_api = self._get_kis_api()
-                daily_prices = kis_api.get_daily_prices(_v_stock_code, period=60)
-
-                if not daily_prices or len(daily_prices) < 10:
-                    self._logger.warning(f"{_v_stock_code}: OHLCV 데이터 부족 (조회: {len(daily_prices) if daily_prices else 0}일)")
-                    return None
-
-                # DataFrame으로 변환
-                _v_ohlcv_data = pd.DataFrame(daily_prices)
-
-                # 필수 컬럼 확인
-                required_columns = ['date', 'open', 'high', 'low', 'close', 'volume']
-                if not all(col in _v_ohlcv_data.columns for col in required_columns):
-                    self._logger.warning(f"{_v_stock_code}: OHLCV 데이터 컬럼 부족")
-                    return None
-
-                return _v_ohlcv_data
-
-            except Exception as e:
-                self._logger.error(f"{_v_stock_code}: OHLCV 데이터 조회 실패: {e}", exc_info=True)
+            # 종목 코드 검증
+            validation = StockCodeValidator.validate(_v_stock_code)
+            if not validation.is_valid:
+                self._logger.warning(f"잘못된 종목 코드: {validation.errors}")
                 return None
+
+            _v_stock_code = validation.sanitized_value
+
+            # 실제 API에서 일봉 데이터 조회 (60일) - DataFrame 직접 사용
+            kis_api = self._get_kis_api()
+            df = kis_api.get_stock_history(_v_stock_code, period="D", count=60)
+
+            if df is None or not isinstance(df, pd.DataFrame) or df.empty or len(df) < 10:
+                self._logger.warning(f"{_v_stock_code}: OHLCV 데이터 부족 (조회: {len(df) if df is not None else 0}일)")
+                return None
+
+            # 필수 컬럼 확인
+            required_columns = ['date', 'open', 'high', 'low', 'close', 'volume']
+            if not all(col in df.columns for col in required_columns):
+                self._logger.warning(f"{_v_stock_code}: OHLCV 데이터 컬럼 부족")
+                return None
+
+            return df
 
         except Exception as e:
             self._logger.error(f"OHLCV 데이터 생성 오류: {e}", exc_info=True)

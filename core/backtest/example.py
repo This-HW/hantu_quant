@@ -294,9 +294,10 @@ stock_codes = ['005930', '035720', '000660']
 # 과거 데이터 조회
 data = {}
 for code in stock_codes:
-    df = kis.get_daily_prices(code, period=500)
-    df.attrs['stock_code'] = code
-    data[code] = df
+    df = kis.get_stock_history(code, period="D", count=500)
+    if df is not None and not df.empty:
+        df.attrs['stock_code'] = code
+        data[code] = df
 
 # 백테스트 실행
 config = BacktestConfig(initial_capital=100_000_000)
