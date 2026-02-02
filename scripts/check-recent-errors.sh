@@ -8,8 +8,10 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REMOTE_HOST=$(grep '^REMOTE_HOST=' "${SCRIPT_DIR}/db-tunnel.sh" 2>/dev/null | cut -d'"' -f2)
 
-# 폴백: 환경변수 또는 기본값
-REMOTE_HOST="${REMOTE_HOST:-ubuntu@158.180.87.156}"
+if [ -z "$REMOTE_HOST" ]; then
+    echo "⚠️ SSOT 소스에서 REMOTE_HOST 추출 실패. 기본값 사용." >&2
+    REMOTE_HOST="ubuntu@158.180.87.156"
+fi
 
 # 로컬 로그
 if [ -f "logs/$(date +%Y%m%d).log" ]; then

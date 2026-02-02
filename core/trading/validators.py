@@ -95,7 +95,7 @@ class StockCodeValidator:
 
         # 패턴 체크
         if not cls.KOSPI_PATTERN.match(stock_code):
-            result.add_error(f"올바른 종목 코드 형식이 아닙니다: {stock_code}")
+            result.add_error("올바른 종목 코드 형식이 아닙니다")
             return result
 
         # 숫자 범위 체크

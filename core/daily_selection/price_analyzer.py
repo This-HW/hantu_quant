@@ -695,7 +695,7 @@ class PriceAnalyzer(IPriceAnalyzer):
 
     def _validate_and_sanitize_stock_code(
         self,
-        stock_code: str,
+        stock_code: Optional[str],
         context: str = ""
     ) -> Optional[str]:
         """종목 코드 검증 및 정규화
@@ -708,15 +708,14 @@ class PriceAnalyzer(IPriceAnalyzer):
             검증된 종목 코드 또는 None (검증 실패 시)
         """
         if not stock_code:
-            self._logger.warning(f"{context}: 종목 코드 없음" if context else "종목 코드 없음")
+            prefix = f"{context}: " if context else ""
+            self._logger.warning(f"{prefix}종목 코드 없음")
             return None
 
         validation = StockCodeValidator.validate(stock_code)
         if not validation.is_valid:
-            self._logger.warning(
-                f"{context}: 잘못된 종목 코드: {validation.errors}"
-                if context else f"잘못된 종목 코드: {validation.errors}"
-            )
+            prefix = f"{context}: " if context else ""
+            self._logger.warning(f"{prefix}잘못된 종목 코드: {validation.errors}")
             return None
 
         return validation.sanitized_value

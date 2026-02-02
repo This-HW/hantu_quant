@@ -139,7 +139,7 @@ start_tunnel() {
     mkdir -p "$(dirname "$LOG_FILE")"
 
     # Start SSH tunnel in background
-    log_info "Executing: ssh -i $SSH_KEY -f -N -L ${LOCAL_PORT}:localhost:${REMOTE_PORT} ${REMOTE_HOST}"
+    log_info "Starting SSH tunnel: localhost:${LOCAL_PORT} -> remote:${REMOTE_PORT}"
 
     if ssh -i "$SSH_KEY" -f -N -L ${LOCAL_PORT}:localhost:${REMOTE_PORT} ${REMOTE_HOST} 2>> "$LOG_FILE"; then
         # Get PID of the SSH tunnel
