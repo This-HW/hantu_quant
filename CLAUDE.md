@@ -170,11 +170,11 @@ logger = get_logger(__name__)
 
 ### 환경별 DB 접속 정보
 
-| 환경                | DATABASE_URL                                                          | 설명                         |
-| ------------------- | --------------------------------------------------------------------- | ---------------------------- |
-| **서버**            | `postgresql://hantu:***REMOVED***@localhost:5432/hantu_quant`      | 서버 내부에서 localhost 접속 |
-| **로컬** (SSH 터널) | `postgresql://hantu:***REMOVED***@localhost:15432/hantu_quant`     | SSH 터널을 통한 접속         |
-| **로컬** (직접)     | `postgresql://hantu:***REMOVED***@158.180.87.156:5432/hantu_quant` | 방화벽 개방 시               |
+| 환경                | DATABASE_URL                                                        | 설명                         |
+| ------------------- | ------------------------------------------------------------------- | ---------------------------- |
+| **서버**            | `postgresql://hantu@localhost:5432/hantu_quant` (.pgpass 인증)      | 서버 내부에서 localhost 접속 |
+| **로컬** (SSH 터널) | `postgresql://hantu@localhost:15432/hantu_quant` (.pgpass 인증)     | SSH 터널을 통한 접속         |
+| **로컬** (직접)     | `postgresql://hantu@158.180.87.156:5432/hantu_quant` (.pgpass 인증) | 방화벽 개방 시               |
 
 **SSH 터널 명령**:
 
