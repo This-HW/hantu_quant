@@ -395,7 +395,8 @@ python scripts/diagnose-db.py   # DB 연결 진단
 
 **참고**:
 
-- `DATABASE_URL` 미설정 시 `settings.py`가 환경별로 자동 설정
+- `DATABASE_URL` 자동 설정 (권장)
+  - `.env` 파일에 `DATABASE_URL` 설정이 **없으면** 환경별로 자동 설정됨
   - 로컬: SSH 터널 포트 (`localhost:15432`)
   - 서버: 내부 포트 (`localhost:5432`)
 - **DB 비밀번호 인증**: `~/.pgpass` 파일 사용 (환경변수 불필요)
@@ -404,6 +405,34 @@ python scripts/diagnose-db.py   # DB 연결 진단
   - 예시: `localhost:5432:hantu_quant:hantu:PASSWORD`
 - `REDIS_URL` 미설정 시 자동으로 MemoryCache 사용
 - Redis 연결 실패 시에도 MemoryCache로 폴백되어 서비스 정상 동작
+
+### DATABASE_URL 환경 감지 우선순위
+
+1. **`.env` 파일의 `DATABASE_URL`** (최고 우선) - 설정 시 모든 자동 감지 무시
+2. **`HANTU_ENV` 환경변수** - `local`, `server`, `test` 값으로 수동 지정
+3. **경로 기반 자동 감지** - 프로젝트 경로로 환경 자동 판별
+4. **기본값** - 알 수 없는 경로는 로컬 설정 사용
+
+**로컬 개발 환경 설정 (권장)**:
+
+```bash
+# .env 파일에서 DATABASE_URL 라인 제거 (또는 주석 처리)
+# DATABASE_URL=postgresql://...  ← 이 라인 삭제
+
+# SSH 터널 시작
+./scripts/db-tunnel.sh start
+
+# 자동으로 localhost:15432 포트 사용됨
+python scripts/diagnose-db.py
+```
+
+**수동 환경 지정 (선택사항)**:
+
+```bash
+export HANTU_ENV=local    # SSH 터널 포트 15432
+export HANTU_ENV=server   # 내부 포트 5432
+export HANTU_ENV=test     # SQLite
+```
 
 ---
 
