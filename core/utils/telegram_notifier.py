@@ -6,7 +6,6 @@
 import json
 import os
 import requests
-import logging
 import time
 from datetime import datetime
 from pathlib import Path
@@ -18,7 +17,9 @@ try:
 except ImportError:
     get_performance_metrics = None
 
-logger = logging.getLogger(__name__)
+from core.utils.log_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class TelegramNotifier:
@@ -421,17 +422,13 @@ class TelegramNotifier:
         # Watchlist 데이터 소스 확인
         try:
             from pathlib import Path
-
-            datetime.now().strftime("%Y%m%d")
+            from core.database.models import WatchlistStock
 
             # DB에서 watchlist 로드 시도
             try:
-                from core.database.session import DatabaseSession
-                from core.database.models import Watchlist
-
                 db = DatabaseSession()
                 with db.get_session() as session:
-                    count = session.query(Watchlist).count()
+                    count = session.query(WatchlistStock).count()
                     if count > 0:
                         status_lines.append(f"• Watchlist: ✅ DB ({count}종목)")
                     else:
@@ -441,7 +438,8 @@ class TelegramNotifier:
                             status_lines.append("• Watchlist: ⚠️ JSON 폴백 사용")
                         else:
                             status_lines.append("• Watchlist: ❌ 데이터 없음")
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Watchlist DB 조회 실패: {e}", exc_info=True)
                 json_file = Path("data/watchlist/watchlist.json")
                 if json_file.exists():
                     status_lines.append("• Watchlist: ⚠️ JSON 폴백 사용")
