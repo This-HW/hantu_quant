@@ -6,7 +6,7 @@ echo ""
 
 # 로컬 로그
 if [ -f "logs/$(date +%Y%m%d).log" ]; then
-  echo "🔴 로컬 에러 (최근 1시간):"
+  echo "❌ 로컬 에러 (최근 1시간):"
   tail -5000 "logs/$(date +%Y%m%d).log" | \
     grep -E "ERROR|Exception|FATAL" | \
     cut -d' ' -f1-3,5- | \
@@ -15,7 +15,7 @@ if [ -f "logs/$(date +%Y%m%d).log" ]; then
 fi
 
 # 서버 로그 (SSH)
-echo "🔴 서버 에러 (최근 50줄):"
+echo "❌ 서버 에러 (최근 50줄):"
 ssh ubuntu@158.180.87.156 "tail -5000 /opt/hantu_quant/logs/\$(date +%Y%m%d).log 2>/dev/null | grep -E 'ERROR|Exception|FATAL' | tail -10" 2>/dev/null || echo "  (서버 접근 불가)"
 
 echo ""

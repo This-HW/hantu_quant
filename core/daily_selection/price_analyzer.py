@@ -1130,7 +1130,7 @@ class PriceAnalyzer(IPriceAnalyzer):
                 elif spread > 0.005:
                     _v_scores.append(-5.0)
         except Exception as e:
-            self._logger.debug(f"{_v_stock_code}: 주문호가 데이터 조회 실패 (선택적 기능): {e}")
+            self._logger.debug(f"{stock_code}: 주문호가 데이터 조회 실패 (선택적 기능): {e}")
 
         try:
             uptick_ratio = p_stock_data.get("uptick_ratio")
@@ -1140,7 +1140,7 @@ class PriceAnalyzer(IPriceAnalyzer):
                 elif uptick_ratio < 0.4:
                     _v_scores.append(-5.0)
         except Exception as e:
-            self._logger.debug(f"{_v_stock_code}: uptick ratio 계산 실패 (선택적 기능): {e}")
+            self._logger.debug(f"{stock_code}: uptick ratio 계산 실패 (선택적 기능): {e}")
 
         # VWAP 괴리 반영 (분봉 기반)
         try:
@@ -1157,7 +1157,7 @@ class PriceAnalyzer(IPriceAnalyzer):
                         p_stock_data.get("stock_code", ""), time_unit=1, count=30
                     )
                 except Exception as e:
-                    self._logger.warning(f"{_v_stock_code}: 분봉 데이터 조회 실패, VWAP 계산 생략: {e}")
+                    self._logger.warning(f"{stock_code}: 분봉 데이터 조회 실패, VWAP 계산 생략: {e}")
                     df_mb = None
             else:
                 df_mb = recent_bars
@@ -1186,7 +1186,7 @@ class PriceAnalyzer(IPriceAnalyzer):
                         else:
                             _v_scores.append(-5.0)
         except Exception as e:
-            self._logger.warning(f"{_v_stock_code}: VWAP 괴리율 계산 실패 (선택적 기능): {e}")
+            self._logger.warning(f"{stock_code}: VWAP 괴리율 계산 실패 (선택적 기능): {e}")
 
         # 평균 점수 계산 (보강 반영)
         _v_average_score = sum(_v_scores) / len(_v_scores) if _v_scores else 50.0
