@@ -182,11 +182,50 @@ logger = get_logger(__name__)
 ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156
 ```
 
-**자동 환경 감지**:
+### DATABASE_URL 환경변수 우선순위
 
-- `core/config/settings.py`가 실행 환경을 자동 감지
-- 로컬(`/Users/grimm/`): SSH 터널 포트(`15432`) 사용
-- 서버(`/opt/hantu_quant/`): localhost 포트(`5432`) 사용
+⚠️ **중요**: .env 파일에 DATABASE_URL을 설정하면 자동 감지가 무시됩니다!
+
+`settings.py`의 자동 감지 우선순위:
+
+1. **DATABASE_URL 환경변수** (최우선 - 자동 감지 완전히 무시!)
+2. **HANTU_ENV 환경변수** (local/server/test)
+3. **경로 기반 자동 감지** (`/Users/*`, `/opt/*`, `/home/ubuntu`)
+
+**권장 설정 (로컬 개발)**:
+
+```bash
+# .env 파일에서 DATABASE_URL을 제거하거나 주석 처리 (권장)
+# DATABASE_URL=...  ← 이 줄 삭제 또는 주석
+
+# SSH 터널 시작
+./scripts/db-tunnel.sh start
+
+# 자동으로 localhost:15432 포트 사용됨 (경로 기반 감지)
+```
+
+**대안: 명시적 환경 설정**:
+
+```bash
+# .env 파일에 추가 (DATABASE_URL 대신)
+HANTU_ENV=local   # 자동으로 localhost:15432 사용
+```
+
+**잘못된 예 (흔한 실수)**:
+
+```bash
+# ❌ 로컬 .env에 서버 포트 설정 → SSH 터널 미사용, 연결 실패!
+DATABASE_URL=postgresql://hantu@localhost:5432/hantu_quant
+
+# ❌ 로컬 .env에 잘못된 포트 → 자동 감지 무시됨
+DATABASE_URL=postgresql://hantu@localhost:15432/hantu_quant  # 비밀번호 누락 시 실패
+```
+
+**자동 환경 감지 동작**:
+
+- 로컬(`/Users/*`, `/home/username`): SSH 터널 포트(`15432`) 자동 사용
+- 서버(`/opt/*`, `/home/ubuntu`): localhost 포트(`5432`) 자동 사용
+- 테스트: SQLite 사용
 
 ---
 
@@ -391,47 +430,47 @@ python scripts/diagnose-db.py   # DB 연결 진단
 | `TELEGRAM_BOT_TOKEN` | 텔레그램 봇 토큰                              | ✅        |
 | `TELEGRAM_CHAT_ID`   | 텔레그램 채팅 ID                              | ✅        |
 | `DATABASE_URL`       | PostgreSQL 연결 URL                           | ⭕ (자동) |
+| `HANTU_ENV`          | 환경 명시 (local/server/test)                 | ⭕ (선택) |
 | `REDIS_URL`          | Redis 연결 URL (예: redis://localhost:6379/0) | ⭕ (선택) |
 
 **참고**:
 
-- `DATABASE_URL` 자동 설정 (권장)
-  - `.env` 파일에 `DATABASE_URL` 설정이 **없으면** 환경별로 자동 설정됨
-  - 로컬: SSH 터널 포트 (`localhost:15432`)
-  - 서버: 내부 포트 (`localhost:5432`)
+- **DATABASE_URL 자동 설정 (강력 권장)**:
+  - ⚠️ `.env` 파일에 `DATABASE_URL`을 설정하면 자동 감지가 **완전히 무시됩니다**
+  - 권장: `.env`에서 `DATABASE_URL` 제거 후 자동 감지 사용
+  - 로컬: SSH 터널 포트 (`localhost:15432`) 자동 사용
+  - 서버: 내부 포트 (`localhost:5432`) 자동 사용
+  - 상세: "인프라 구성 > DATABASE_URL 환경변수 우선순위" 섹션 참조
 - **DB 비밀번호 인증**: `~/.pgpass` 파일 사용 (환경변수 불필요)
   - 형식: `hostname:port:database:username:password`
   - 권한: `chmod 600 ~/.pgpass`
-  - 예시: `localhost:5432:hantu_quant:hantu:PASSWORD`
+  - 예시: `localhost:15432:hantu_quant:hantu:PASSWORD` (로컬)
+  - 예시: `localhost:5432:hantu_quant:hantu:PASSWORD` (서버)
 - `REDIS_URL` 미설정 시 자동으로 MemoryCache 사용
 - Redis 연결 실패 시에도 MemoryCache로 폴백되어 서비스 정상 동작
 
-### DATABASE_URL 환경 감지 우선순위
+### DATABASE_URL 트러블슈팅
 
-1. **`.env` 파일의 `DATABASE_URL`** (최고 우선) - 설정 시 모든 자동 감지 무시
-2. **`HANTU_ENV` 환경변수** - `local`, `server`, `test` 값으로 수동 지정
-3. **경로 기반 자동 감지** - 프로젝트 경로로 환경 자동 판별
-4. **기본값** - 알 수 없는 경로는 로컬 설정 사용
-
-**로컬 개발 환경 설정 (권장)**:
+**문제: 로컬에서 PostgreSQL 연결 실패 (포트 5432 접근 시도)**
 
 ```bash
-# .env 파일에서 DATABASE_URL 라인 제거 (또는 주석 처리)
-# DATABASE_URL=postgresql://...  ← 이 라인 삭제
-
-# SSH 터널 시작
-./scripts/db-tunnel.sh start
-
-# 자동으로 localhost:15432 포트 사용됨
-python scripts/diagnose-db.py
+# 원인: .env 파일에 DATABASE_URL 설정 → 자동 감지 무시됨
+# 해결:
+1. .env 파일 열기
+2. DATABASE_URL 라인 제거 또는 주석 처리
+3. SSH 터널 확인: ./scripts/db-tunnel.sh status
+4. 재시도: python scripts/diagnose-db.py
 ```
 
-**수동 환경 지정 (선택사항)**:
+**문제: "비밀번호 인증 실패"**
 
 ```bash
-export HANTU_ENV=local    # SSH 터널 포트 15432
-export HANTU_ENV=server   # 내부 포트 5432
-export HANTU_ENV=test     # SQLite
+# 원인: .pgpass 파일 누락 또는 권한 문제
+# 해결:
+1. ~/.pgpass 파일 생성/수정
+   echo "localhost:15432:hantu_quant:hantu:YOUR_PASSWORD" >> ~/.pgpass
+2. 권한 설정
+   chmod 600 ~/.pgpass
 ```
 
 ---
@@ -756,6 +795,7 @@ grep "consecutive_failures" logs/*.log
 
 - [CLI 레퍼런스](docs/CLI_REFERENCE.md)
 - [API 레퍼런스](docs/API_REFERENCE.md)
+- [환경 변수 설정 가이드](docs/guides/env-setup.md) - **.env 설정 및 DATABASE_URL 트러블슈팅**
 
 ### 배포 및 인프라
 
