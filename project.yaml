@@ -1,0 +1,40 @@
+# Hantu Quant 프로젝트 설정
+project:
+  name: hantu_quant
+  path: /Users/grimm/Documents/Dev/hantu_quant
+  type: backend
+  description: "한국투자증권 퀀트 트레이딩 시스템"
+
+agents:
+  common:
+    enabled: true
+    # 공통 에이전트 전체 포함
+
+  domains:
+    - name: quant
+      version: "1.0.0"
+      agents: all # quant 도메인 전체 에이전트 포함
+
+  custom:
+    enabled: true
+    # project/hantu_quant 전용 에이전트 포함
+
+skills:
+  common:
+    enabled: true
+    # 공통 스킬 포함
+
+  domains: []
+
+  custom:
+    enabled: false
+    # hantu_quant 전용 스킬 (향후)
+
+sync:
+  auto_update: true
+  backup_before_sync: true
+
+metadata:
+  created_at: "2026-02-02"
+  version: "1.0.0"
+  claude_setting_source: "/Users/grimm/Documents/Dev/claude_setting"

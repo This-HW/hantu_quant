@@ -34,22 +34,73 @@ def _get_default_database_url():
     """환경별 기본 DATABASE_URL 반환
 
     주의: .pgpass 파일 기반 인증 사용
-    - 로컬: ~/.pgpass 에 localhost:15432:hantu_quant:hantu:PASSWORD 설정
-    - 서버: ~/.pgpass 에 localhost:5432:hantu_quant:hantu:PASSWORD 설정
+    Password authentication uses ~/.pgpass file:
+    - 로컬: localhost:15432:hantu_quant:hantu:PASSWORD
+    - 서버: localhost:5432:hantu_quant:hantu:PASSWORD
     """
-    if str(ROOT_DIR).startswith("/Users/grimm"):
-        # 로컬 개발 환경: SSH 터널 포트 사용
-        # 터널 명령: ssh -i ~/.ssh/id_rsa -f -N -L 15432:localhost:5432 ubuntu@158.180.87.156
-        # 비밀번호는 ~/.pgpass 파일에서 자동으로 읽음 (DB_PASSWORD 환경변수 불필요)
+    # 로거 설정 (사이클 참조 방지를 위해 지연 import)
+    from core.utils.log_utils import get_logger
+    logger = get_logger(__name__)
+
+    # 1. 환경변수 HANTU_ENV 우선 체크 (local, server, test)
+    env_override = os.getenv('HANTU_ENV', '').lower()
+    if env_override == 'local':
+        logger.info("환경 감지: HANTU_ENV=local (환경변수 우선)")
         return "postgresql://hantu@localhost:15432/hantu_quant"
-    else:
-        # 서버 환경: SQLite 폴백 (DATABASE_URL 환경변수 설정 권장)
+    elif env_override == 'server':
+        logger.info("환경 감지: HANTU_ENV=server (환경변수 우선)")
+        return "postgresql://hantu@localhost:5432/hantu_quant"
+    elif env_override == 'test':
+        logger.info("환경 감지: HANTU_ENV=test (환경변수 우선)")
         return SQLITE_URL
 
+    # 2. 경로 기반 자동 감지
+    root_path = str(ROOT_DIR)
+
+    # 로컬 환경 패턴
+    is_local = (
+        root_path.startswith("/Users/") or
+        root_path.startswith("/home/user")
+    )
+
+    # 서버 환경 패턴
+    is_server = (
+        root_path.startswith("/opt/hantu_quant") or
+        root_path.startswith("/opt/") or
+        root_path.startswith("/home/ubuntu") or
+        root_path.startswith("/srv/")
+    )
+
+    if is_local:
+        logger.info(f"환경 감지: 로컬 (경로: {root_path})")
+        logger.info("SSH 터널 필요: ./scripts/db-tunnel.sh start")
+        return "postgresql://hantu@localhost:15432/hantu_quant"
+    elif is_server:
+        logger.info(f"환경 감지: 서버 (경로: {root_path})")
+        return "postgresql://hantu@localhost:5432/hantu_quant"
+    else:
+        # 알 수 없는 환경: 경고 후 로컬 설정 사용
+        logger.warning(f"알 수 없는 환경 (경로: {root_path}). 로컬 설정 사용 (SSH 터널 포트)")
+        return "postgresql://hantu@localhost:15432/hantu_quant"
+
+# DATABASE_URL 설정
 DATABASE_URL = os.getenv('DATABASE_URL', _get_default_database_url())
 
 # 데이터베이스 타입 감지
 DB_TYPE = 'postgresql' if DATABASE_URL.startswith('postgresql') else 'sqlite'
+
+# DATABASE_URL 로깅 (비밀번호 마스킹)
+try:
+    from core.utils.log_utils import get_logger
+    import re
+    logger = get_logger(__name__)
+
+    # 비밀번호 마스킹 (예: postgresql://user:password@host:port/db → postgresql://user:***@host:port/db)
+    masked_url = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', DATABASE_URL)
+    logger.info(f"데이터베이스 연결: {masked_url} (타입: {DB_TYPE})")
+except Exception as e:
+    # 로깅 실패는 무시 (설정 초기화 중에는 로거가 없을 수 있음)
+    pass
 
 # 데이터베이스 연결 설정
 DB_POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '5'))

@@ -34,6 +34,21 @@ from core.utils.telegram_notifier import get_telegram_notifier
 from core.api.redis_client import cache
 from core.daily_selection.daily_updater import DailyUpdater
 
+# === 새 모듈화된 스케줄러 컴포넌트 ===
+# 향후 IntegratedScheduler는 이 모듈들로 점진적으로 마이그레이션될 예정입니다.
+# 현재는 하위 호환성을 위해 기존 코드를 유지하면서 새 모듈도 함께 사용합니다.
+from workflows.scheduler import (
+    SchedulerConfig,
+    NotificationService,
+    DataCollectionService,
+    RecoveryManager,
+    MaintenanceService,
+    MonitoringService,
+    SchedulerCore,
+    get_scheduler_core,
+    get_notification_service,
+)
+
 # 자동 매매 엔진 추가
 
 # 강화된 로깅 설정

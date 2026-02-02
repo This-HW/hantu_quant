@@ -110,6 +110,75 @@ ssh -i ~/.ssh/id_rsa ubuntu@134.185.104.141
 > - `.pgpass` 형식: `hostname:port:database:username:password`
 > - 권한: `chmod 600 ~/.pgpass` 필수
 
+### SSH 터널 관리 (로컬 개발 시)
+
+로컬에서 서버 DB에 접속하려면 SSH 터널이 필요합니다.
+
+#### 터널 시작
+
+```bash
+./scripts/db-tunnel.sh start
+```
+
+#### 상태 확인
+
+```bash
+./scripts/db-tunnel.sh status
+```
+
+#### 터널 중지
+
+```bash
+./scripts/db-tunnel.sh stop
+```
+
+#### 터널 재시작
+
+```bash
+./scripts/db-tunnel.sh restart
+```
+
+#### DB 연결 진단
+
+```bash
+python scripts/diagnose-db.py
+```
+
+**주의**: 서버(`/opt/hantu_quant/`)에서는 SSH 터널 불필요 (localhost 직접 연결)
+
+### 환경 감지 로직
+
+시스템은 다음 순서로 환경을 감지합니다.
+
+#### 1. 환경변수 우선 (명시적 설정)
+
+```bash
+export HANTU_ENV=local   # 로컬 개발 환경
+export HANTU_ENV=server  # 서버 환경
+export HANTU_ENV=test    # 테스트 환경 (SQLite)
+```
+
+#### 2. 경로 기반 자동 감지
+
+- **로컬**: `/Users/`, `/home/user` 시작 경로
+- **서버**: `/opt/`, `/home/ubuntu`, `/srv/` 시작 경로
+
+#### 3. DATABASE_URL 우선순위
+
+1. `DATABASE_URL` 환경변수 (최우선)
+2. `HANTU_ENV` 환경변수
+3. 경로 기반 자동 감지
+
+#### 환경별 DATABASE_URL
+
+| 환경   | DATABASE_URL                                                |
+| ------ | ----------------------------------------------------------- |
+| 로컬   | `postgresql://hantu@localhost:15432/hantu_quant` (SSH 터널) |
+| 서버   | `postgresql://hantu@localhost:5432/hantu_quant` (직접 연결) |
+| 테스트 | `sqlite:///data/db/stock_data.db`                           |
+
+> **참고**: 비밀번호는 모든 환경에서 `~/.pgpass` 파일로 관리됩니다.
+
 ---
 
 ## 네트워크
