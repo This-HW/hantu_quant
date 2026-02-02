@@ -693,6 +693,34 @@ class PriceAnalyzer(IPriceAnalyzer):
         from core.api.kis_api import KISAPI
         return KISAPI()
 
+    def _validate_and_sanitize_stock_code(
+        self,
+        stock_code: str,
+        context: str = ""
+    ) -> Optional[str]:
+        """종목 코드 검증 및 정규화
+
+        Args:
+            stock_code: 검증할 종목 코드
+            context: 로그 컨텍스트 (예: "거래량 분석")
+
+        Returns:
+            검증된 종목 코드 또는 None (검증 실패 시)
+        """
+        if not stock_code:
+            self._logger.warning(f"{context}: 종목 코드 없음" if context else "종목 코드 없음")
+            return None
+
+        validation = StockCodeValidator.validate(stock_code)
+        if not validation.is_valid:
+            self._logger.warning(
+                f"{context}: 잘못된 종목 코드: {validation.errors}"
+                if context else f"잘못된 종목 코드: {validation.errors}"
+            )
+            return None
+
+        return validation.sanitized_value
+
     def _fetch_daily_prices(self, stock_code: str, count: int) -> List[Dict[str, Any]]:
         """KIS API에서 일봉 데이터를 조회하여 List[Dict]로 반환
 
@@ -1215,23 +1243,16 @@ class PriceAnalyzer(IPriceAnalyzer):
             if not _v_prices or len(_v_prices) < 2:
                 # 실제 API에서 가격 데이터 조회
                 _v_stock_code = p_stock_data.get("stock_code")
-                if _v_stock_code:
-                    # 종목 코드 검증
-                    validation = StockCodeValidator.validate(_v_stock_code)
-                    if not validation.is_valid:
-                        self._logger.warning(f"잘못된 종목 코드: {validation.errors}")
-                        return 50.0
+                _v_stock_code = self._validate_and_sanitize_stock_code(_v_stock_code, "거래량 분석")
+                if not _v_stock_code:
+                    return 50.0
 
-                    _v_stock_code = validation.sanitized_value
-                    daily_prices = self._fetch_daily_prices(_v_stock_code, 20)
-                    if daily_prices and len(daily_prices) >= 2:
-                        _v_prices = [float(day.get("close", 0)) for day in daily_prices]
-                        self._logger.debug(f"{_v_stock_code}: API에서 {len(_v_prices)}일 가격 데이터 조회 성공")
-                    else:
-                        self._logger.warning(f"{_v_stock_code}: 가격 데이터 부족. 거래량 분석 불가")
-                        return 50.0
+                daily_prices = self._fetch_daily_prices(_v_stock_code, 20)
+                if daily_prices and len(daily_prices) >= 2:
+                    _v_prices = [float(day.get("close", 0)) for day in daily_prices]
+                    self._logger.debug(f"{_v_stock_code}: API에서 {len(_v_prices)}일 가격 데이터 조회 성공")
                 else:
-                    self._logger.warning("종목 코드 없음. 거래량 분석 불가")
+                    self._logger.warning(f"{_v_stock_code}: 가격 데이터 부족. 거래량 분석 불가")
                     return 50.0
 
             # 거래량 분석
@@ -1258,31 +1279,24 @@ class PriceAnalyzer(IPriceAnalyzer):
             _v_ohlc_data = []
 
             # 패턴 분석을 위해 항상 API에서 OHLCV 데이터 조회
-            if _v_stock_code:
-                # 종목 코드 검증
-                validation = StockCodeValidator.validate(_v_stock_code)
-                if not validation.is_valid:
-                    self._logger.warning(f"잘못된 종목 코드: {validation.errors}")
-                    return 50.0
+            _v_stock_code = self._validate_and_sanitize_stock_code(_v_stock_code, "패턴 분석")
+            if not _v_stock_code:
+                return 50.0
 
-                _v_stock_code = validation.sanitized_value
-                daily_prices = self._fetch_daily_prices(_v_stock_code, 10)
-                if daily_prices and len(daily_prices) >= 2:
-                    # 실제 OHLCV 데이터 사용
-                    for day in daily_prices:
-                        _v_ohlc_data.append({
-                            "open": float(day.get("open", 0)),
-                            "high": float(day.get("high", 0)),
-                            "low": float(day.get("low", 0)),
-                            "close": float(day.get("close", 0)),
-                            "volume": int(day.get("volume", 0)),
-                        })
-                    self._logger.debug(f"{_v_stock_code}: API에서 {len(_v_ohlc_data)}일 OHLCV 데이터 조회 성공")
-                else:
-                    self._logger.warning(f"{_v_stock_code}: OHLCV 데이터 부족. 패턴 분석 불가")
-                    return 50.0
+            daily_prices = self._fetch_daily_prices(_v_stock_code, 10)
+            if daily_prices and len(daily_prices) >= 2:
+                # 실제 OHLCV 데이터 사용
+                for day in daily_prices:
+                    _v_ohlc_data.append({
+                        "open": float(day.get("open", 0)),
+                        "high": float(day.get("high", 0)),
+                        "low": float(day.get("low", 0)),
+                        "close": float(day.get("close", 0)),
+                        "volume": int(day.get("volume", 0)),
+                    })
+                self._logger.debug(f"{_v_stock_code}: API에서 {len(_v_ohlc_data)}일 OHLCV 데이터 조회 성공")
             else:
-                self._logger.warning("종목 코드 없음. 패턴 분석 불가")
+                self._logger.warning(f"{_v_stock_code}: OHLCV 데이터 부족. 패턴 분석 불가")
                 return 50.0
 
             # 패턴 분석
@@ -1462,17 +1476,9 @@ class PriceAnalyzer(IPriceAnalyzer):
         """
         try:
             _v_stock_code = p_stock_data.get("stock_code")
+            _v_stock_code = self._validate_and_sanitize_stock_code(_v_stock_code, "OHLCV 생성")
             if not _v_stock_code:
-                self._logger.warning("종목 코드가 없습니다")
                 return None
-
-            # 종목 코드 검증
-            validation = StockCodeValidator.validate(_v_stock_code)
-            if not validation.is_valid:
-                self._logger.warning(f"잘못된 종목 코드: {validation.errors}")
-                return None
-
-            _v_stock_code = validation.sanitized_value
 
             # 실제 API에서 일봉 데이터 조회 (60일) - DataFrame 직접 사용
             kis_api = self._get_kis_api()

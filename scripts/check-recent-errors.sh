@@ -4,6 +4,13 @@
 echo "=== 최근 1시간 에러 요약 ==="
 echo ""
 
+# SSOT: db-tunnel.sh에서 호스트 정보 가져오기
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REMOTE_HOST=$(grep '^REMOTE_HOST=' "${SCRIPT_DIR}/db-tunnel.sh" 2>/dev/null | cut -d'"' -f2)
+
+# 폴백: 환경변수 또는 기본값
+REMOTE_HOST="${REMOTE_HOST:-ubuntu@158.180.87.156}"
+
 # 로컬 로그
 if [ -f "logs/$(date +%Y%m%d).log" ]; then
   echo "❌ 로컬 에러 (최근 1시간):"
@@ -14,9 +21,9 @@ if [ -f "logs/$(date +%Y%m%d).log" ]; then
   echo ""
 fi
 
-# 서버 로그 (SSH)
+# 서버 로그 (SSH) - REMOTE_HOST 변수 사용
 echo "❌ 서버 에러 (최근 50줄):"
-ssh ubuntu@158.180.87.156 "tail -5000 /opt/hantu_quant/logs/\$(date +%Y%m%d).log 2>/dev/null | grep -E 'ERROR|Exception|FATAL' | tail -10" 2>/dev/null || echo "  (서버 접근 불가)"
+ssh "$REMOTE_HOST" "tail -5000 /opt/hantu_quant/logs/\$(date +%Y%m%d).log 2>/dev/null | grep -E 'ERROR|Exception|FATAL' | tail -10" 2>/dev/null || echo "  (서버 접근 불가)"
 
 echo ""
 echo "전체 로그: logs/$(date +%Y%m%d).log"
