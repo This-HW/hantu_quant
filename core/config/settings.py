@@ -45,22 +45,25 @@ def _get_default_database_url():
     # 1. 환경변수 HANTU_ENV 우선 체크 (local, server, test)
     env_override = os.getenv('HANTU_ENV', '').lower()
     if env_override == 'local':
-        logger.info("환경 감지: HANTU_ENV=local (환경변수 우선)")
+        logger.debug("환경 감지: HANTU_ENV=local (환경변수 우선)")
         return "postgresql://hantu@localhost:15432/hantu_quant"
     elif env_override == 'server':
-        logger.info("환경 감지: HANTU_ENV=server (환경변수 우선)")
+        logger.debug("환경 감지: HANTU_ENV=server (환경변수 우선)")
         return "postgresql://hantu@localhost:5432/hantu_quant"
     elif env_override == 'test':
-        logger.info("환경 감지: HANTU_ENV=test (환경변수 우선)")
+        logger.debug("환경 감지: HANTU_ENV=test (환경변수 우선)")
         return SQLITE_URL
 
     # 2. 경로 기반 자동 감지
     root_path = str(ROOT_DIR)
 
     # 로컬 환경 패턴
+    # macOS: /Users/{username}
+    # Linux 개발 환경: /home/{username} (단, 서버 경로 /home/ubuntu 제외)
     is_local = (
         root_path.startswith("/Users/") or
-        root_path.startswith("/home/user")
+        (root_path.startswith("/home/") and
+         not root_path.startswith("/home/ubuntu"))
     )
 
     # 서버 환경 패턴
@@ -72,11 +75,11 @@ def _get_default_database_url():
     )
 
     if is_local:
-        logger.info(f"환경 감지: 로컬 (경로: {root_path})")
-        logger.info("SSH 터널 필요: ./scripts/db-tunnel.sh start")
+        logger.debug(f"환경 감지: 로컬 (경로: {root_path})")
+        logger.debug("SSH 터널 필요: ./scripts/db-tunnel.sh start")
         return "postgresql://hantu@localhost:15432/hantu_quant"
     elif is_server:
-        logger.info(f"환경 감지: 서버 (경로: {root_path})")
+        logger.debug(f"환경 감지: 서버 (경로: {root_path})")
         return "postgresql://hantu@localhost:5432/hantu_quant"
     else:
         # 알 수 없는 환경: 경고 후 로컬 설정 사용
