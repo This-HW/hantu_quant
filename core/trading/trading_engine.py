@@ -1472,8 +1472,9 @@ class TradingEngine:
             monitor = DrawdownMonitor()
             breaker = CircuitBreaker()
 
-            # 현재 드로다운 상태 계산
-            drawdown_status = monitor.calculate_current_drawdown()
+            # 현재 드로다운 상태 계산 - 계좌 총 자산 조회 필요
+            portfolio_value = self._get_account_balance()
+            drawdown_status = monitor.update(portfolio_value)
 
             # 서킷 브레이커 체크
             breaker_status = breaker.check(drawdown_status)

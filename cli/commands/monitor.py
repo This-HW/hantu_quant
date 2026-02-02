@@ -10,7 +10,7 @@ import sys
 import time
 import click
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -103,6 +103,10 @@ def _monitor_once(target: str) -> None:
 
 def _collect_monitor_data(target: str) -> Dict[str, Any]:
     """모니터링 데이터 수집"""
+    from core.api.kis_api import KISAPI
+    from core.utils.log_utils import get_logger
+
+    logger = get_logger(__name__)
     data = {
         'timestamp': datetime.now().isoformat(),
         'positions': [],
@@ -110,13 +114,22 @@ def _collect_monitor_data(target: str) -> Dict[str, Any]:
         'daily_trades': {},
     }
 
+    # 계좌 잔고 한 번만 조회 (중복 API 호출 방지)
+    balance = None
+    if target in ['all', 'positions', 'circuit']:
+        try:
+            api = KISAPI()
+            balance = api.get_balance()
+        except Exception as e:
+            logger.warning(f"계좌 잔고 조회 실패: {e}", exc_info=True)
+
     # 포지션 정보
     if target in ['all', 'positions']:
-        data['positions'] = _get_positions()
+        data['positions'] = _get_positions(balance)
 
     # 서킷브레이커 상태
     if target in ['all', 'circuit']:
-        data['circuit_breaker'] = _get_circuit_breaker_status()
+        data['circuit_breaker'] = _get_circuit_breaker_status(balance)
 
     # 오늘 거래 통계
     if target in ['all', 'trades']:
@@ -125,13 +138,14 @@ def _collect_monitor_data(target: str) -> Dict[str, Any]:
     return data
 
 
-def _get_positions() -> List[Dict[str, Any]]:
+def _get_positions(balance: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """현재 포지션 조회"""
     try:
-        from core.api.kis_api import KISAPI
-
-        api = KISAPI()
-        balance = api.get_balance()
+        # balance가 None이면 직접 조회 (하위 호환성)
+        if balance is None:
+            from core.api.kis_api import KISAPI
+            api = KISAPI()
+            balance = api.get_balance()
 
         if not balance or not balance.get('positions'):
             return []
@@ -164,17 +178,61 @@ def _get_positions() -> List[Dict[str, Any]]:
         return []
 
 
-def _get_circuit_breaker_status() -> Dict[str, Any]:
+def _get_circuit_breaker_status(balance: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """서킷브레이커 상태 조회"""
     try:
         from core.risk.drawdown.circuit_breaker import CircuitBreaker
         from core.risk.drawdown.drawdown_monitor import DrawdownMonitor
+        from core.utils.log_utils import get_logger
+
+        logger = get_logger(__name__)
 
         monitor = DrawdownMonitor()
         breaker = CircuitBreaker()
 
-        # 현재 드로다운 상태 계산
-        drawdown_status = monitor.calculate_current_drawdown()
+        # 현재 드로다운 상태 계산 - 포트폴리오 가치 조회
+        if balance is None:
+            from core.api.kis_api import KISAPI
+            api = KISAPI()
+            balance = api.get_balance()
+
+        # portfolio_value 추출 및 검증
+        portfolio_value = 0.0
+        if balance and balance.get('total_eval_amount'):
+            try:
+                portfolio_value = float(balance.get('total_eval_amount', 0))
+                if portfolio_value <= 0:
+                    logger.warning(f"포트폴리오 가치가 0 이하입니다: {portfolio_value}")
+                    # portfolio_value가 0일 때는 계산 스킵
+                    raise ValueError("Invalid portfolio value")
+            except (ValueError, TypeError) as e:
+                logger.warning(f"포트폴리오 가치 파싱 실패: {e}", exc_info=True)
+                return {
+                    'state': 'unknown',
+                    'trigger_reason': 'portfolio_value_error',
+                    'can_trade': True,
+                    'current_stage': 0,
+                    'position_reduction': 0.0,
+                    'daily_drawdown': 0.0,
+                    'weekly_drawdown': 0.0,
+                    'current_drawdown': 0.0,
+                    'alert_level': 'normal',
+                }
+        else:
+            logger.warning("계좌 잔고 정보 없음, 서킷브레이커 체크 스킵")
+            return {
+                'state': 'unknown',
+                'trigger_reason': 'balance_unavailable',
+                'can_trade': True,
+                'current_stage': 0,
+                'position_reduction': 0.0,
+                'daily_drawdown': 0.0,
+                'weekly_drawdown': 0.0,
+                'current_drawdown': 0.0,
+                'alert_level': 'normal',
+            }
+
+        drawdown_status = monitor.update(portfolio_value)
 
         # 서킷브레이커 체크
         breaker_status = breaker.check(drawdown_status)

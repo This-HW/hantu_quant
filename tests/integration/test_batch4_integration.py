@@ -421,11 +421,17 @@ def test_cli_monitor_integration():
         # 3. 서킷브레이커 상태 조회 (모킹)
         with patch('cli.commands.monitor.CircuitBreaker') as MockCB:
             with patch('cli.commands.monitor.DrawdownMonitor') as MockDM:
+                # balance 데이터 직접 전달 (KISAPI 중복 호출 방지)
+                test_balance = {
+                    'total_eval_amount': 10000000
+                }
+
+                # DrawdownMonitor 모킹
                 mock_monitor = MockDM.return_value
-                mock_monitor.calculate_current_drawdown.return_value = Mock(
-                    daily_drawdown=-0.02,
-                    weekly_drawdown=-0.03,
-                    current_drawdown=-0.015,
+                mock_monitor.update.return_value = Mock(
+                    daily_drawdown=0.02,  # 양수로 수정
+                    weekly_drawdown=0.03,
+                    current_drawdown=0.015,
                     alert_level=Mock(value='normal')
                 )
 
@@ -438,7 +444,7 @@ def test_cli_monitor_integration():
                     position_reduction=0.0
                 )
 
-                cb_status = _get_circuit_breaker_status()
+                cb_status = _get_circuit_breaker_status(test_balance)
                 print(f"✅ 서킷브레이커 상태: {cb_status.get('state', 'unknown')}")
 
         # 4. 일일 거래 조회 (모킹)
