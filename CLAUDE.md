@@ -368,6 +368,12 @@ hantu logs -f            # 로그 보기
 
 # 보안 검사
 python3 scripts/security_check.py --fix
+
+# DB 연결 (로컬 개발 시)
+./scripts/db-tunnel.sh start    # SSH 터널 시작
+./scripts/db-tunnel.sh status   # 터널 상태 확인
+./scripts/db-tunnel.sh stop     # 터널 중지
+python scripts/diagnose-db.py   # DB 연결 진단
 ```
 
 ---

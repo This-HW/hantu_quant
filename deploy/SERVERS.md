@@ -304,3 +304,6 @@ ARM 인스턴스(VM.Standard.A1.Flex) 생성 및 배포 완료:
 | 2026-01-29 | ARM 인스턴스(hantu-server) 생성 완료                        |
 | 2026-01-29 | All-in-One 아키텍처 배포 (PostgreSQL 15 + Redis + Services) |
 | 2026-01-29 | hantu-db에서 hantu-server로 데이터 마이그레이션 완료        |
+| 2026-02-02 | SSH 터널 자동화 스크립트 추가 (scripts/db-tunnel.sh)        |
+| 2026-02-02 | DB 연결 진단 도구 추가 (scripts/diagnose-db.py)             |
+| 2026-02-02 | 환경 감지 로직 개선 (HANTU_ENV, 경로 기반 자동 감지)        |
