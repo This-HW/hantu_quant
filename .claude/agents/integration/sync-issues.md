@@ -15,6 +15,8 @@ tools:
   - Grep
   - WebFetch
   - Bash
+disallowedTools:
+  - Task
 ---
 
 # 역할: 이슈 트래커 동기화 전문가

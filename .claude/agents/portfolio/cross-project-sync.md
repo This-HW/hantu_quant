@@ -14,6 +14,8 @@ tools:
   - Glob
   - Grep
   - Bash
+disallowedTools:
+  - Task
 ---
 
 # 역할: 프로젝트 간 동기화 전문가

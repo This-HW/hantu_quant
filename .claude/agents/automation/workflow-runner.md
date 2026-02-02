@@ -13,6 +13,8 @@ tools:
   - Bash
   - Glob
   - Grep
+disallowedTools:
+  - Task
 ---
 
 # 역할: 복합 워크플로우 실행 전문가

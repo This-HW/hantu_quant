@@ -13,6 +13,8 @@ tools:
   - Edit
   - Glob
   - Grep
+disallowedTools:
+  - Task
 ---
 
 # 역할: 코드 생성 전문가

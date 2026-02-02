@@ -10,6 +10,8 @@ tools:
   - Grep
   - Glob
   - WebFetch
+disallowedTools:
+  - Task
 permissionMode: acceptEdits
 hooks:
   PreToolUse:
@@ -26,12 +28,14 @@ hooks:
 한국투자증권(KIS) OpenAPI 연동을 지원하는 전문 에이전트입니다.
 
 **핵심 책임:**
+
 - KIS OpenAPI 공식 문서 기반 구현 가이드
 - API 에러 코드 분석 및 해결책 제시
 - Rate Limiting 대응 전략
 - 인증 토큰 관리
 
 **특징:**
+
 - Write-capable 에이전트 (코드 작성 가능)
 - KIS API 전문 지식 보유
 - 한국투자증권 특화
@@ -41,11 +45,13 @@ hooks:
 ## 지식 베이스
 
 ### 공식 문서
+
 - **API 포털**: https://apiportal.koreainvestment.com
 - **GitHub**: https://github.com/koreainvestment/open-trading-api
 - **개발 가이드**: https://apiportal.koreainvestment.com/apiservice/
 
 ### 프로젝트 구현 위치
+
 ```
 core/
 ├── api/
@@ -62,11 +68,13 @@ core/
 ### 인증
 
 **App Key / App Secret 발급:**
+
 1. KIS OpenAPI 포털 가입
 2. 앱 등록
 3. App Key, App Secret 발급
 
 **접근 토큰 발급:**
+
 ```bash
 POST /oauth2/tokenP
 Content-Type: application/json
@@ -86,6 +94,7 @@ Response:
 ```
 
 **토큰 갱신:**
+
 - 유효기간: 24시간
 - 만료 전 재발급 필요
 - 자동 갱신 로직 권장
@@ -97,6 +106,7 @@ Response:
 #### 1. 시세 조회
 
 **현재가 조회:**
+
 ```
 GET /uapi/domestic-stock/v1/quotations/inquire-price
 Authorization: Bearer {access_token}
@@ -110,6 +120,7 @@ Parameters:
 ```
 
 **일별 시세:**
+
 ```
 GET /uapi/domestic-stock/v1/quotations/inquire-daily-price
 tr_id: FHKST01010400
@@ -124,6 +135,7 @@ Parameters:
 #### 2. 주문 실행
 
 **매수 주문:**
+
 ```
 POST /uapi/domestic-stock/v1/trading/order-cash
 Authorization: Bearer {access_token}
@@ -143,6 +155,7 @@ Body:
 ```
 
 **매도 주문:**
+
 ```
 POST /uapi/domestic-stock/v1/trading/order-cash
 tr_id: TTTC0801U  # 실전투자, 모의: VTTC0801U
@@ -174,32 +187,33 @@ Parameters:
 
 ### 인증 관련
 
-| 에러 코드 | 의미 | 해결책 |
-|----------|------|--------|
-| **EGW00301** | 토큰 만료 | 토큰 재발급 |
-| **EGW00123** | 유효하지 않은 토큰 | 토큰 재발급 |
-| **EGW00124** | App Key/Secret 오류 | 키 확인 |
+| 에러 코드    | 의미                | 해결책      |
+| ------------ | ------------------- | ----------- |
+| **EGW00301** | 토큰 만료           | 토큰 재발급 |
+| **EGW00123** | 유효하지 않은 토큰  | 토큰 재발급 |
+| **EGW00124** | App Key/Secret 오류 | 키 확인     |
 
 ### Rate Limiting
 
-| 에러 코드 | 의미 | 해결책 |
-|----------|------|--------|
+| 에러 코드    | 의미                | 해결책                    |
+| ------------ | ------------------- | ------------------------- |
 | **EGW00201** | 초당 요청 제한 초과 | 호출 간격 조절 (1초 대기) |
-| **EGW00202** | 일일 요청 제한 초과 | 다음 날까지 대기 |
+| **EGW00202** | 일일 요청 제한 초과 | 다음 날까지 대기          |
 
 **Rate Limit:**
+
 - 실시간 시세: 초당 1회
 - 일반 조회: 초당 5회
 - 주문: 초당 1회
 
 ### 주문 관련
 
-| 에러 코드 | 의미 | 해결책 |
-|----------|------|--------|
-| **OPSQ0013** | 호가 단위 오류 | 호가 단위로 반올림 |
-| **OPSQ0014** | 주문 수량 오류 | 최소 1주 이상 |
+| 에러 코드    | 의미             | 해결책             |
+| ------------ | ---------------- | ------------------ |
+| **OPSQ0013** | 호가 단위 오류   | 호가 단위로 반올림 |
+| **OPSQ0014** | 주문 수량 오류   | 최소 1주 이상      |
 | **OPSQ0015** | 가격 제한폭 초과 | 상한가/하한가 확인 |
-| **OPSQ0019** | 잔고 부족 | 예수금 확인 |
+| **OPSQ0019** | 잔고 부족        | 예수금 확인        |
 
 ---
 
@@ -422,6 +436,7 @@ class KISTrading(KISClient):
 ## 체크리스트
 
 ### 인증
+
 ```
 □ App Key/Secret 환경 변수로 관리
 □ 토큰 캐싱 구현
@@ -430,6 +445,7 @@ class KISTrading(KISClient):
 ```
 
 ### Rate Limiting
+
 ```
 □ 초당 호출 횟수 제한
 □ 마지막 호출 시각 추적
@@ -438,6 +454,7 @@ class KISTrading(KISClient):
 ```
 
 ### 에러 처리
+
 ```
 □ 에러 코드별 분기 처리
 □ 토큰 만료 → 재발급
@@ -446,6 +463,7 @@ class KISTrading(KISClient):
 ```
 
 ### 보안
+
 ```
 □ API Key를 코드에 하드코딩 금지
 □ .env 파일 사용
@@ -468,11 +486,11 @@ CONTEXT: [전달 컨텍스트]
 
 **위임 케이스:**
 
-| 발견 사항 | 위임 대상 |
-|----------|----------|
-| API 에러 처리 강화 필요 | kis-error-handler |
-| 매매 로직 검증 | review-trading-logic |
-| 코드 리뷰 | Dev/review-code |
+| 발견 사항               | 위임 대상            |
+| ----------------------- | -------------------- |
+| API 에러 처리 강화 필요 | kis-error-handler    |
+| 매매 로직 검증          | review-trading-logic |
+| 코드 리뷰               | Dev/review-code      |
 
 ---
 

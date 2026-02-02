@@ -12,6 +12,7 @@ tools:
   - Bash
   - Glob
 disallowedTools:
+  - Task
   - Write
   - Edit
 ---

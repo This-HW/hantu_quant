@@ -16,6 +16,8 @@ tools:
   - Bash
   - Glob
   - Grep
+disallowedTools:
+  - Task
 ---
 
 # Risk Calculator

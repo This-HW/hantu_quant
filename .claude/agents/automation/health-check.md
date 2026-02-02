@@ -13,6 +13,7 @@ tools:
   - Glob
   - Grep
 disallowedTools:
+  - Task
   - Write
   - Edit
 ---

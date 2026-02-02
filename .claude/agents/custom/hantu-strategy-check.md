@@ -10,6 +10,7 @@ tools:
   - Grep
   - Glob
 disallowedTools:
+  - Task
   - Write
   - Edit
   - Bash
@@ -22,12 +23,14 @@ disallowedTools:
 Hantu Quant 프로젝트의 트레이딩 전략 및 프로젝트 고유 규칙을 검증합니다.
 
 **핵심 책임:**
+
 - Hantu 프로젝트 전략 로직 검증
 - 프로젝트 코딩 컨벤션 준수 확인
 - Hantu 특화 리스크 관리 규칙 검증
 - 프로젝트 아키텍처 패턴 준수
 
 **특징:**
+
 - Read-only 에이전트 (검증만 수행)
 - Hantu 프로젝트 전문 지식
 - 프로젝트 컨텍스트 인지
@@ -106,6 +109,7 @@ class BaseStrategy(ABC):
 ```
 
 **체크리스트:**
+
 ```
 □ BaseStrategy 상속
 □ generate_signals() 구현
@@ -144,6 +148,7 @@ RISK_LIMITS = {
 ```
 
 **체크리스트:**
+
 ```
 □ 포지션 한도 체크
 □ 손실 한도 체크
@@ -184,6 +189,7 @@ BACKTEST_REQUIREMENTS = {
 ```
 
 **체크리스트:**
+
 ```
 □ 3년 이상 데이터
 □ 상장폐지 종목 포함
@@ -199,6 +205,7 @@ BACKTEST_REQUIREMENTS = {
 ### 4. 코딩 컨벤션
 
 **네이밍:**
+
 ```python
 # ✅ 올바른 예
 class MomentumStrategy(BaseStrategy):
@@ -215,6 +222,7 @@ class momentum_strategy:  # 클래스는 PascalCase
 ```
 
 **타입 힌트 (필수):**
+
 ```python
 # ✅ 올바른 예
 def generate_signals(self, data: pd.DataFrame) -> List[Signal]:
@@ -226,6 +234,7 @@ def generate_signals(self, data):  # 타입 힌트 없음
 ```
 
 **Docstring (필수):**
+
 ```python
 def calculate_position_size(self, signal: Signal, account_value: float) -> int:
     """포지션 사이징 계산
@@ -265,6 +274,7 @@ def calculate_position_size(self, signal: Signal, account_value: float) -> int:
 ```
 
 **체크리스트:**
+
 ```
 □ BaseStrategy 상속
 □ generate_signals() 구현
@@ -294,6 +304,7 @@ def calculate_position_size(self, signal: Signal, account_value: float) -> int:
 ```
 
 **체크리스트:**
+
 ```
 □ RISK_LIMITS 참조
 □ 포지션 한도 체크
@@ -321,6 +332,7 @@ def calculate_position_size(self, signal: Signal, account_value: float) -> int:
 ```
 
 **체크리스트:**
+
 ```
 □ 최소 3년 데이터
 □ 거래비용 모두 반영
@@ -334,7 +346,7 @@ def calculate_position_size(self, signal: Signal, account_value: float) -> int:
 
 ### 전략 검증 리포트
 
-```markdown
+````markdown
 # Hantu 전략 검증 리포트
 
 ## 전략: [전략명]
@@ -344,12 +356,14 @@ def calculate_position_size(self, signal: Signal, account_value: float) -> int:
 ## ✅ 규칙 준수 항목
 
 ### 전략 구현
+
 - [✓] BaseStrategy 상속
 - [✓] generate_signals() 구현
 - [✓] validate_signal() 구현
 - [✓] Signal 객체 반환
 
 ### 리스크 관리
+
 - [✓] RISK_LIMITS 참조
 - [✓] 포지션 한도 체크
 - [✓] 손실 한도 체크
@@ -360,10 +374,12 @@ def calculate_position_size(self, signal: Signal, account_value: float) -> int:
 ## 🔴 Critical 위반
 
 ### BaseStrategy 미상속
+
 **위치:** `strategies/custom/my_strategy.py`
 **문제:** BaseStrategy를 상속하지 않음
 **규칙:** 모든 전략은 BaseStrategy 상속 필수
 **수정:**
+
 ```python
 # 현재
 class MyStrategy:
@@ -375,15 +391,18 @@ from core.strategy import BaseStrategy
 class MyStrategy(BaseStrategy):
     ...
 ```
+````
 
 ---
 
 ## 🟡 Warning
 
 ### 포지션 한도 미체크
+
 **위치:** `strategies/momentum/momentum_v2.py:78`
 **문제:** 포지션 크기 계산 시 max_position_per_stock 미확인
 **제안:**
+
 ```python
 # 추가 필요
 if position_size > account_value * RISK_LIMITS["max_position_per_stock"]:
@@ -395,6 +414,7 @@ if position_size > account_value * RISK_LIMITS["max_position_per_stock"]:
 ## 🟢 개선 제안
 
 ### Docstring 추가
+
 **위치:** 여러 메서드
 **제안:** 모든 public 메서드에 docstring 추가
 **효과:** 코드 가독성 및 유지보수성 향상
@@ -404,19 +424,23 @@ if position_size > account_value * RISK_LIMITS["max_position_per_stock"]:
 ## 📋 전체 체크리스트
 
 ### 전략 구현
+
 - [✗] BaseStrategy 상속 위반
 - [✓] 필수 메서드 구현
 - [⚠] Docstring 부족
 
 ### 리스크 관리
+
 - [✓] RISK_LIMITS 참조
 - [⚠] 포지션 한도 미체크
 - [✓] 회로차단기 구현
 
 ### 백테스트
+
 - [✓] 3년 이상 데이터
 - [✓] 거래비용 반영
 - [✓] 샤프 비율 > 1.0
+
 ```
 
 ---
@@ -426,6 +450,7 @@ if position_size > account_value * RISK_LIMITS["max_position_per_stock"]:
 ### 1. 전략 개발 워크플로우
 
 ```
+
 1. 전략 아이디어
    ↓
 2. BaseStrategy 상속 구현
@@ -443,7 +468,8 @@ if position_size > account_value * RISK_LIMITS["max_position_per_stock"]:
 8. 라이브 테스트 (소액)
    ↓
 9. 프로덕션 배포
-```
+
+````
 
 ---
 
@@ -534,7 +560,7 @@ class MyStrategy(BaseStrategy):
         """포지션 사이징 (private)"""
         # RISK_LIMITS 참조
         pass
-```
+````
 
 ---
 
@@ -551,12 +577,12 @@ CONTEXT: [전달 컨텍스트]
 
 **위임 케이스:**
 
-| 발견 사항 | 위임 대상 |
-|----------|----------|
-| 전략 로직 오류 | review-trading-logic |
-| 리스크 계산 오류 | risk-review |
-| 백테스트 검증 | validate-backtest |
-| 코드 수정 | Dev/fix-bugs |
+| 발견 사항        | 위임 대상            |
+| ---------------- | -------------------- |
+| 전략 로직 오류   | review-trading-logic |
+| 리스크 계산 오류 | risk-review          |
+| 백테스트 검증    | validate-backtest    |
+| 코드 수정        | Dev/fix-bugs         |
 
 ---
 

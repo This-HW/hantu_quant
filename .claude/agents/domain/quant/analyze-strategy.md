@@ -17,6 +17,7 @@ tools:
   - WebSearch
   - WebFetch
 disallowedTools:
+  - Task
   - Write
   - Edit
 ---

@@ -12,6 +12,8 @@ tools:
   - Write
   - Bash
   - WebFetch
+disallowedTools:
+  - Task
 ---
 
 # 역할: Webhook 관리 전문가

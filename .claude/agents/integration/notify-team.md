@@ -12,6 +12,7 @@ tools:
   - WebFetch
   - Bash
 disallowedTools:
+  - Task
   - Write
   - Edit
 ---

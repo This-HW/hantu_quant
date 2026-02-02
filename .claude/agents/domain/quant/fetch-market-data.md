@@ -17,6 +17,8 @@ tools:
   - Glob
   - Grep
   - WebFetch
+disallowedTools:
+  - Task
 ---
 
 > **MCP 활용**: PostgreSQL MCP로 hantu_quant 데이터베이스에서 직접 시장 데이터를 조회하세요.
