@@ -7,14 +7,17 @@
 다음 파일들은 **절대 git에 커밋되어서는 안 됩니다**:
 
 #### 1. API 인증 정보
+
 - `data/token/token_info_real.json` - 실제 계좌 API 토큰
 - `data/token/token_info_virtual.json` - 가상 계좌 API 토큰
 - `.env` - 환경 변수 (APP_KEY, APP_SECRET, ACCOUNT_NUMBER)
 
 #### 2. 텔레그램 설정
+
 - `config/telegram_config.json` - 봇 토큰 및 채팅 ID
 
 #### 3. 데이터베이스 및 로그
+
 - `core/database/stock_data.db` - 거래 데이터
 - `logs/*.log` - 시스템 로그 (API 키 포함 가능)
 - `data/*` - 모든 데이터 파일
@@ -53,14 +56,16 @@ APP_KEY=your_app_key_here
 APP_SECRET=your_app_secret_here
 ACCOUNT_NUMBER=your_account_number_here
 
-# 텔레그램 (선택사항)
+# 텔레그램
 TELEGRAM_BOT_TOKEN=your_bot_token_here
 TELEGRAM_CHAT_ID=your_chat_id_here
 ```
 
-#### 2. 텔레그램 설정
+#### 2. 텔레그램 설정 (선택)
 
-`config/telegram_config.json.example`을 복사하여 `config/telegram_config.json` 생성:
+**권장 방법**: `.env` 파일의 환경변수만으로 충분합니다.
+
+**고급 설정이 필요한 경우**에만 설정 파일 사용:
 
 ```bash
 cp config/telegram_config.json.example config/telegram_config.json
@@ -72,12 +77,15 @@ cp config/telegram_config.json.example config/telegram_config.json
 {
   "telegram": {
     "bot_token": "실제_봇_토큰",
-    "default_chat_ids": [
-      "실제_채팅_ID"
-    ]
+    "default_chat_ids": ["실제_채팅_ID"],
+    "channel_mapping": {
+      "auto_trade": "실제_채팅_ID"
+    }
   }
 }
 ```
+
+환경변수가 설정 파일보다 우선 적용됩니다.
 
 또는 자동 설정 스크립트 사용:
 
@@ -151,6 +159,7 @@ git gc --prune=now --aggressive
    - Docker의 경우 secrets 사용
 
 2. **접근 권한 제한**
+
    ```bash
    chmod 600 .env
    chmod 600 config/telegram_config.json
@@ -177,6 +186,7 @@ Pull Request 리뷰 시 다음을 확인:
 ### 문의
 
 보안 이슈 발견 시:
+
 1. 공개 이슈로 등록하지 말 것
 2. 프로젝트 관리자에게 직접 연락
 3. 발견된 취약점을 악용하지 말 것

@@ -689,15 +689,34 @@ class KISRestClient:
             
             if response and response.get('rt_cd') == '0':
                 logger.info(f"[place_order] 주문 실행 성공 - {response.get('msg1')}")
-                return response.get('output')
+                return {
+                    'success': True,
+                    'data': response.get('output'),
+                    'message': response.get('msg1', '주문 성공')
+                }
             else:
-                msg = response.get('msg1') if isinstance(response, dict) else str(response)
-                logger.error(f"[place_order] 주문 실행 실패: {msg}", exc_info=True)
-                return None
+                error_msg = response.get('msg1') if isinstance(response, dict) else str(response)
+                error_code = response.get('rt_cd') if isinstance(response, dict) else 'UNKNOWN'
+                logger.error(
+                    f"[place_order] 주문 실행 실패: {error_msg}",
+                    exc_info=True,
+                    extra={'error_code': error_code, 'response': response}
+                )
+                return {
+                    'success': False,
+                    'error_code': error_code,
+                    'message': error_msg,
+                    'detail': response
+                }
                 
         except Exception as e:
             logger.error(f"[place_order] 주문 실행 중 오류 발생: {str(e)}", exc_info=True)
-            return None
+            return {
+                'success': False,
+                'error_code': 'EXCEPTION',
+                'message': str(e),
+                'detail': None
+            }
             
     def get_balance(self) -> Dict:
         """잔고 조회

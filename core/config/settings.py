@@ -150,6 +150,10 @@ MAX_RETRIES = 3
 # - TRADING_PROD_ENABLE=true 일 때만 실제투자 주문 허용
 TRADING_PROD_ENABLE = os.getenv('TRADING_PROD_ENABLE', 'false').lower() == 'true'
 
+# Telegram 알림 설정
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+
 def create_directories():
     """필요한 디렉토리 생성"""
     directories = [

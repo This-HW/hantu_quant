@@ -9,30 +9,35 @@ AI 기반 자동화 주식 트레이딩 시스템
 ## ✨ 주요 기능
 
 ### 1. 종목 스크리닝 (Phase 1)
+
 - 전체 상장 종목 대상 일일 스크리닝
 - 재무, 기술적, 모멘텀 지표 종합 분석
 - 감시 리스트 자동 관리
 - 병렬 처리를 통한 고속 스크리닝
 
 ### 2. 일일 매매 종목 선정 (Phase 2)
+
 - 감시 리스트 중 당일 매매 종목 선정
 - 가격 매력도 및 시장 상황 분석
 - 적응형 선정 기준 적용
 - 섹터별 분산 투자 전략
 
 ### 3. 매매 실행 시스템
+
 - 한국투자증권 API 연동
 - 자동 주문 실행
 - 포지션 관리 및 리스크 관리
 - 실시간 체결 모니터링
 
 ### 4. 성과 분석 및 학습
+
 - 일일 성과 추적 및 분석
 - 로그 기반 알고리즘 개선
 - 백테스트 자동화
 - AI 모델 지속 학습
 
 ### 5. 알림 시스템
+
 - 📱 텔레그램 실시간 알림
 - 스크리닝 완료 알림
 - 매매 신호 알림
@@ -93,8 +98,12 @@ pip install -r requirements.txt
 cp config/api_config.example.json config/api_config.json
 # 파일 편집하여 한국투자증권 API 키 입력
 
-# 텔레그램 설정
-cp config/telegram_config.example.json config/telegram_config.json
+# 텔레그램 설정 (환경변수 우선, 파일은 선택)
+# 방법 1: 환경변수 사용 (권장)
+# .env 파일에 TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID 설정
+
+# 방법 2: 설정 파일 사용 (선택)
+# cp config/telegram_config.json.example config/telegram_config.json
 # 파일 편집하여 봇 토큰과 채팅 ID 입력
 ```
 
@@ -148,6 +157,7 @@ python scripts/telegram_diagnostic.py --quick
 ## 📊 CLI 명령어
 
 ### 서비스 관리
+
 ```bash
 hantu start [scheduler|api|all]   # 서비스 시작
 hantu stop [scheduler|api|all]    # 서비스 중지
@@ -156,6 +166,7 @@ hantu health                       # 시스템 헬스체크
 ```
 
 ### 트레이딩
+
 ```bash
 hantu trade balance     # 잔고 조회
 hantu trade positions   # 보유 종목
@@ -163,12 +174,14 @@ hantu trade find        # 후보 종목 검색
 ```
 
 ### 분석
+
 ```bash
 hantu screen            # Phase 1 스크리닝
 hantu select            # Phase 2 일일 선정
 ```
 
 ### 시스템
+
 ```bash
 hantu config check      # 설정 검증
 hantu logs -f           # 로그 실시간 확인
@@ -225,33 +238,53 @@ cd web-interface && npm run dev
   "app_key": "YOUR_APP_KEY",
   "app_secret": "YOUR_APP_SECRET",
   "account_no": "YOUR_ACCOUNT",
-  "mode": "paper"  // "real" 또는 "paper"
+  "mode": "paper" // "real" 또는 "paper"
 }
 ```
 
-### 텔레그램 설정 (config/telegram_config.json)
+### 텔레그램 설정
+
+**방법 1: 환경변수 (권장)**
+
+`.env` 파일에 추가:
+
+```bash
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here
+```
+
+**방법 2: 설정 파일 (선택)**
+
+`config/telegram_config.json` 생성:
 
 ```json
 {
   "telegram": {
-    "enabled": true,
     "bot_token": "YOUR_BOT_TOKEN",
-    "default_chat_ids": ["YOUR_CHAT_ID"]
+    "default_chat_ids": ["YOUR_CHAT_ID"],
+    "channel_mapping": {
+      "auto_trade": "YOUR_CHAT_ID"
+    }
   }
 }
 ```
 
+환경변수가 설정 파일보다 우선 적용됩니다.
+
 ## 📁 데이터 구조
 
 ### 스크리닝 결과
+
 - 위치: `data/watchlist/screening_YYYYMMDD.json`
 - 내용: 일일 스크리닝 통과 종목 정보
 
 ### 일일 선정 결과
+
 - 위치: `data/daily_selection/daily_selection_YYYYMMDD.json`
 - 내용: 당일 매매 대상 종목 및 분석 결과
 
 ### 성과 데이터
+
 - 위치: `data/performance/`
 - 내용: 매매 성과 및 학습 데이터
 
@@ -270,6 +303,7 @@ tail -f logs/scheduler_monitor_$(date +%Y%m%d).log
 ### 텔레그램 알림
 
 시스템은 다음 상황에서 자동으로 텔레그램 알림을 전송합니다:
+
 - ✅ 스크리닝 완료 (통과 종목 수, 섹터별 분포)
 - ✅ 일일 선정 완료 (선정 종목 리스트)
 - ⚠️ 매매 신호 발생
@@ -298,6 +332,7 @@ python scripts/telegram_diagnostic.py
 - **비동기 처리**: 실시간 데이터 처리
 
 ### 성능 지표
+
 - 처리 속도: 2,875개 종목 5-6분 내 처리
 - 선정 정확도: 82%
 - 시스템 가동률: 99.8%
@@ -312,16 +347,19 @@ python scripts/telegram_diagnostic.py
 ## 📚 추가 문서
 
 ### 가이드
+
 - [보안 가이드](docs/guides/SECURITY.md) - 보안 설정 및 best practices
 - [가상계좌 설정](docs/guides/VIRTUAL_ACCOUNT_SETUP.md) - 모의투자 설정 가이드
 - [협업 규칙](docs/guides/PROJECT_COLLABORATION_RULES.md) - 프로젝트 협업 가이드
 
 ### 계획 및 보고서
+
 - [프로젝트 요약](docs/planning/PROJECT_SUMMARY.md) - 전체 시스템 상세 설명
 - [개발 로드맵](docs/planning/ROADMAP.md) - 개발 진행 상황
 - [프로젝트 검증 보고서](docs/reports/PROJECT_VALIDATION_SUMMARY.md) - 코드 검증 결과
 
 ### 기술 스펙
+
 - [알고리즘 업그레이드](docs/specs/ALGORITHM_UPGRADE_SUMMARY.md) - 알고리즘 개선 내역
 - [ML 자동 트리거](docs/specs/ML_AUTO_TRIGGER_SUMMARY.md) - 머신러닝 시스템
 - [정확도 향상](docs/specs/PREDICTION_ACCURACY_IMPROVEMENT.md) - 예측 정확도 개선

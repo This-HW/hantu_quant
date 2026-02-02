@@ -419,19 +419,25 @@ python scripts/diagnose-db.py   # DB 연결 진단
 
 ## 환경 변수
 
-| 변수                 | 설명                                          | 필수 여부 |
-| -------------------- | --------------------------------------------- | --------- |
-| `APP_KEY`            | 한투 API 앱 키                                | ✅        |
-| `APP_SECRET`         | 한투 API 시크릿                               | ✅        |
-| `ACCOUNT_NUMBER`     | 계좌 번호 (8자리)                             | ✅        |
-| `ACCOUNT_PROD_CODE`  | 계좌 상품 코드 (01=종합, 02=위탁)             | ✅        |
-| `SERVER`             | 서버 모드 (virtual=모의투자, prod=실전)       | ✅        |
-| `API_SERVER_KEY`     | API 서버 인증 키                              | ✅        |
-| `TELEGRAM_BOT_TOKEN` | 텔레그램 봇 토큰                              | ✅        |
-| `TELEGRAM_CHAT_ID`   | 텔레그램 채팅 ID                              | ✅        |
-| `DATABASE_URL`       | PostgreSQL 연결 URL                           | ⭕ (자동) |
-| `HANTU_ENV`          | 환경 명시 (local/server/test)                 | ⭕ (선택) |
-| `REDIS_URL`          | Redis 연결 URL (예: redis://localhost:6379/0) | ⭕ (선택) |
+| 변수                  | 설명                                          | 기본값        | 필수 여부 |
+| --------------------- | --------------------------------------------- | ------------- | --------- |
+| `APP_KEY`             | 한투 API 앱 키                                | -             | ✅        |
+| `APP_SECRET`          | 한투 API 시크릿                               | -             | ✅        |
+| `ACCOUNT_NUMBER`      | 계좌 번호 (8자리)                             | -             | ✅        |
+| `ACCOUNT_PROD_CODE`   | 계좌 상품 코드 (01=종합, 02=위탁)             | `01`          | ⭕ (선택) |
+| `SERVER`              | 서버 모드 (virtual=모의투자, prod=실전)       | `virtual`     | ⭕ (선택) |
+| `API_SERVER_KEY`      | API 서버 인증 키                              | -             | ⭕ (prod) |
+| `TELEGRAM_BOT_TOKEN`  | 텔레그램 봇 토큰                              | -             | ✅        |
+| `TELEGRAM_CHAT_ID`    | 텔레그램 채팅 ID                              | -             | ✅        |
+| `DATABASE_URL`        | PostgreSQL 연결 URL                           | (자동 감지)   | ⭕ (자동) |
+| `HANTU_ENV`           | 환경 명시 (local/server/test)                 | (경로 기반)   | ⭕ (선택) |
+| `REDIS_URL`           | Redis 연결 URL (예: redis://localhost:6379/0) | (MemoryCache) | ⭕ (선택) |
+| `LOG_LEVEL`           | 로그 레벨 (DEBUG/INFO/WARNING/ERROR)          | `INFO`        | ⭕ (선택) |
+| `TRADING_PROD_ENABLE` | 실전 거래 허용 (true/false)                   | `false`       | ⭕ (선택) |
+| `DB_POOL_SIZE`        | DB 연결 풀 크기                               | `5`           | ⭕ (선택) |
+| `DB_MAX_OVERFLOW`     | DB 연결 풀 최대 오버플로우                    | `10`          | ⭕ (선택) |
+| `DB_POOL_TIMEOUT`     | DB 연결 풀 타임아웃 (초)                      | `30`          | ⭕ (선택) |
+| `DB_POOL_RECYCLE`     | DB 연결 재사용 시간 (초)                      | `1800` (30분) | ⭕ (선택) |
 
 **참고**:
 

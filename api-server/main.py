@@ -79,13 +79,13 @@ async def verify_api_key(api_key: str = Security(API_KEY_HEADER)) -> bool:
 
     if not API_KEY:
         if is_production:
-            logger.error("❌ 프로덕션 환경에서 API_SERVER_KEY가 설정되지 않았습니다!")
+            logger.error("프로덕션 환경에서 API_SERVER_KEY가 설정되지 않았습니다!")
             raise HTTPException(
                 status_code=500,
                 detail="서버 설정 오류: API_SERVER_KEY가 필요합니다."
             )
         # 개발 환경에서만 경고 후 통과
-        logger.warning("⚠️  API_SERVER_KEY가 설정되지 않았습니다. 개발 환경에서만 허용됩니다.")
+        logger.warning("API_SERVER_KEY가 설정되지 않았습니다. 개발 환경에서만 허용됩니다.")
         return True
 
     if not api_key:
@@ -1228,6 +1228,6 @@ if __name__ == "__main__":
     port = int(os.getenv('API_PORT', '8000'))
 
     if host == '0.0.0.0':
-        logger.warning("⚠️  API 서버가 모든 인터페이스(0.0.0.0)에서 수신 중입니다. 프로덕션에서는 127.0.0.1 사용을 권장합니다.")
+        logger.warning("API 서버가 모든 인터페이스(0.0.0.0)에서 수신 중입니다. 프로덕션에서는 127.0.0.1 사용을 권장합니다.")
 
     uvicorn.run(app, host=host, port=port) 

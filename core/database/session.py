@@ -91,7 +91,8 @@ class DatabaseSession:
         try:
             yield session
             session.commit()
-        except Exception:
+        except Exception as e:
+            logger.error(f"DB 세션 에러: {e}", exc_info=True)
             session.rollback()
             raise
         finally:

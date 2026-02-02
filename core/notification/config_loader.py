@@ -21,11 +21,12 @@ from core.exceptions import (
 logger = logging.getLogger(__name__)
 
 
-# 기본 설정 경로
+# 기본 설정 경로 (현재 환경변수 우선 정책으로 파일 참조 비활성화)
+# 향후 JSON 기반 설정이 필요하면 아래 경로 주석 해제
 DEFAULT_CONFIG_PATHS = [
-    "config/telegram_config.json",
-    "telegram_config.json",
-    ".telegram_config.json",
+    # "config/telegram_config.json",
+    # "telegram_config.json",
+    # ".telegram_config.json",
 ]
 
 

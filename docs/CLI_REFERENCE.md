@@ -261,7 +261,7 @@ Examples:
 
 #### `hantu logs`
 
-View system logs from local files or database.
+View system logs from local files.
 
 ```bash
 hantu logs [OPTIONS]
@@ -270,22 +270,12 @@ Options:
   -f, --follow         Follow log output (like tail -f)
   -n, --lines INT      Number of lines to show (default: 50)
   -s, --service NAME   Filter by service (all|scheduler|api|trading)
-  -l, --level LEVEL    Filter by log level (DEBUG|INFO|WARNING|ERROR|CRITICAL)
+  -l, --level LEVEL    Filter by log level (DEBUG|INFO|WARNING|ERROR)
   -d, --date DATE      Show logs for specific date (YYYYMMDD)
-  --db                 Query from database (error logs only, permanent storage)
-  --errors-only        Show only error logs (shortcut for -l ERROR)
-  --json               Output as JSON format
-  -t, --trace-id ID    Filter by trace ID (request tracking)
 
 Log Locations:
-  - Error logs (JSON):  logs/errors/error_YYYYMMDD.json
-  - Info logs (Text):   logs/info/info_YYYYMMDD.log
-  - DB error logs:      PostgreSQL error_logs table (permanent)
-  - systemd journal:    journalctl -u hantu-scheduler (stderr only)
-
-Retention Policy:
-  - Local files:  3 days (auto-deleted)
-  - DB logs:      Permanent (never deleted)
+  - Log files:  logs/*.log (most recent by modification time)
+  - Fallback:   trading.log (root directory)
 
 Examples:
   hantu logs                     # View recent logs (last 50 lines)
@@ -293,39 +283,22 @@ Examples:
   hantu logs -n 100              # Show last 100 lines
   hantu logs -d 20260201         # Show logs for 2026-02-01
   hantu logs -l ERROR            # Show only error logs
-  hantu logs --errors-only       # Same as above
-  hantu logs --db                # Query from database (permanent storage)
-  hantu logs --db -d 20260115    # DB logs for specific date
-  hantu logs -t 1a2b3c4d         # Filter by trace ID
-  hantu logs -s scheduler -f     # Follow scheduler logs only
-  hantu logs --json              # Output as JSON
+  hantu logs -s scheduler -f     # Follow scheduler logs only (if service filtering is implemented)
 
 Direct File Access:
-  # Error logs (JSON format, last 3 days)
-  cat logs/errors/error_20260201.json
-  jq '.[] | select(.level=="ERROR")' logs/errors/error_20260201.json
+  # View logs directly
+  tail -f logs/*.log
+  grep "ERROR" logs/*.log
 
-  # Info logs (Text format, last 3 days)
-  tail -f logs/info/info_20260201.log
-  grep "ERROR" logs/info/info_20260201.log
-
-  # systemd journal (stderr only, error logs)
+  # systemd journal (server only)
   journalctl -u hantu-scheduler -f
   journalctl -u hantu-api --since "1 hour ago"
-
-Database Access:
-  # Direct SQL query (permanent error logs)
-  psql -U hantu hantu_quant -c "SELECT * FROM error_logs WHERE timestamp >= NOW() - INTERVAL '7 days' ORDER BY timestamp DESC LIMIT 50;"
-
-  # With filters
-  psql -U hantu hantu_quant -c "SELECT timestamp, level, logger, message FROM error_logs WHERE level = 'CRITICAL' ORDER BY timestamp DESC;"
 ```
 
 **Note**:
 
-- Local log files are auto-deleted after 3 days
-- For long-term analysis, use `--db` option or query the database directly
-- DB stores only ERROR and CRITICAL level logs permanently
+- Log files are stored in the `logs/` directory
+- Color-coded output: ERROR/CRITICAL (red), WARNING (yellow), DEBUG (cyan)
 - See `docs/planning/business-logic/logging-rules.md` for detailed logging policies
 
 ## Global Options

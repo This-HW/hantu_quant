@@ -281,8 +281,9 @@ class KISAPI(KISRestClient):
 
             response = self.request_endpoint(KISEndpoint.INQUIRE_DAILY_PRICE, params=params)
 
-            if response.get('error'):
-                logger.error(f"[_get_stock_history_legacy] API 오류: {response.get('error')}", exc_info=True)
+            if not response or response.get('error'):
+                error_detail = response.get('error') if response else 'No response'
+                logger.error(f"[_get_stock_history_legacy] API 오류: {error_detail}", exc_info=True)
                 return None
 
             if response.get('rt_cd') == '0':

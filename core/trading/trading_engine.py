@@ -334,7 +334,9 @@ class TradingEngine:
             # === 4. 손익 계산 ===
             pnl = None
             return_rate = None
-            order_number = result.get("order_id", "")
+            # 변경: result['data']에서 주문번호 추출
+            order_data = result.get("data", {})
+            order_number = order_data.get("ODNO", order_data.get("ORD_NO", ""))
 
             # 포지션에서 손익 계산
             if stock_code in self.positions:
@@ -1020,6 +1022,8 @@ class TradingEngine:
                 self.daily_trades += 1
 
                 # 매매일지 기록 (Phase 2 예측 메타데이터 포함)
+                order_data = result.get("data", {})
+                order_id = order_data.get("ODNO", order_data.get("ORD_NO", ""))
                 self.journal.log_order(
                     stock_code=stock_code,
                     stock_name=stock_name,
@@ -1029,7 +1033,7 @@ class TradingEngine:
                     reason="auto_trading",
                     meta={
                         "strategy": "daily_selection",
-                        "order_id": result.get("order_id"),
+                        "order_id": order_id,
                         "target_price": position.target_price,
                         "stop_loss": position.stop_loss,
                         # Phase 2 예측 정보 (Phase 4 학습용)
@@ -1106,6 +1110,8 @@ class TradingEngine:
                 return_rate = (current_price - position.avg_price) / position.avg_price
 
                 # 매매일지 기록
+                order_data = result.get("data", {})
+                order_id = order_data.get("ODNO", order_data.get("ORD_NO", ""))
                 self.journal.log_order(
                     stock_code=stock_code,
                     stock_name=position.stock_name,
@@ -1120,7 +1126,7 @@ class TradingEngine:
                             datetime.now() - datetime.fromisoformat(position.entry_time)
                         ).days,
                         "entry_price": position.avg_price,
-                        "order_id": result.get("order_id"),
+                        "order_id": order_id,
                     },
                 )
 

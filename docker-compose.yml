@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # ===========================================
@@ -10,7 +10,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-hantu}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-hantu_secret}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Database password is required}
       POSTGRES_DB: ${DB_NAME:-hantu_quant}
       TZ: Asia/Seoul
     volumes:
@@ -21,13 +21,17 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 512M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 256M
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-hantu} -d ${DB_NAME:-hantu_quant}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-hantu} -d ${DB_NAME:-hantu_quant}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -52,10 +56,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.25'
+          cpus: "0.25"
           memory: 256M
         reservations:
-          cpus: '0.05'
+          cpus: "0.05"
           memory: 64M
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -84,15 +88,15 @@ services:
       - ./.env:/app/.env:ro
     environment:
       - TZ=Asia/Seoul
-      - DATABASE_URL=postgresql://${DB_USER:-hantu}:${DB_PASSWORD:-hantu_secret}@postgres:5432/${DB_NAME:-hantu_quant}
+      - DATABASE_URL=postgresql://${DB_USER:-hantu}:${DB_PASSWORD:?Database password is required}@postgres:5432/${DB_NAME:-hantu_quant}
       - REDIS_URL=redis://redis:6379/0
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 512M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 256M
     healthcheck:
       test: ["CMD", "pgrep", "-f", "integrated_scheduler"]
@@ -128,15 +132,15 @@ services:
       - ./.env:/app/.env:ro
     environment:
       - TZ=Asia/Seoul
-      - DATABASE_URL=postgresql://${DB_USER:-hantu}:${DB_PASSWORD:-hantu_secret}@postgres:5432/${DB_NAME:-hantu_quant}
+      - DATABASE_URL=postgresql://${DB_USER:-hantu}:${DB_PASSWORD:?Database password is required}@postgres:5432/${DB_NAME:-hantu_quant}
       - REDIS_URL=redis://redis:6379/0
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 512M
         reservations:
-          cpus: '0.1'
+          cpus: "0.1"
           memory: 256M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
