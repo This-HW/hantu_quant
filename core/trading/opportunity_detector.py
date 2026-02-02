@@ -7,9 +7,12 @@
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from core.utils.log_utils import get_logger
-from core.daily_selection.price_analyzer import TechnicalIndicators
+
+if TYPE_CHECKING:
+    from core.daily_selection.price_analyzer import TechnicalIndicators
 
 logger = get_logger(__name__)
 
@@ -266,6 +269,8 @@ class OpportunityDetector:
                 recent_prices = position.get("recent_close_prices", [])
                 if recent_prices and len(recent_prices) >= 15:
                     try:
+                        # Lazy import to avoid circular dependency
+                        from core.daily_selection.price_analyzer import TechnicalIndicators
                         rsi = TechnicalIndicators.calculate_rsi(recent_prices)
                     except Exception as e:
                         self.logger.debug(
