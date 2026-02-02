@@ -5,6 +5,7 @@
 한투 퀀트 시스템의 주요 API들에 대한 상세 레퍼런스입니다. 각 모듈별로 클래스와 메서드를 정리하고 사용 예제를 제공합니다.
 
 ### 공식 레퍼런스
+
 - 한국투자증권 Open API GitHub: [`koreainvestment/open-trading-api`](https://github.com/koreainvestment/open-trading-api)
   - 예제 경로 참고:
     - `examples_llm/`: 단일 기능용 샘플 및 테스트 호출 코드
@@ -32,6 +33,177 @@ core/
 
 ---
 
+## 💹 Trading API (주문/잔고)
+
+### RESTClient
+
+주문 실행 및 잔고 조회를 담당하는 클래스입니다.
+
+#### 클래스 정의
+
+```python
+class RESTClient:
+    def __init__(self, config: KISConfig = None):
+        """
+        REST API 클라이언트 초기화
+
+        Args:
+            config: KIS API 설정 (선택적, 미입력 시 자동 생성)
+        """
+```
+
+#### 주요 메서드
+
+##### `place_order(stock_code: str, order_type: str, quantity: int, price: int = 0) -> Dict`
+
+주문을 실행합니다.
+
+**매개변수:**
+
+- `stock_code`: 종목 코드 (6자리)
+- `order_type`: 주문 유형 ("01"=매도, "02"=매수)
+- `quantity`: 주문 수량
+- `price`: 주문 가격 (0=시장가)
+
+**반환값:**
+
+성공 시:
+
+```python
+{
+    'success': True,
+    'data': {
+        'KRX_FWDG_ORD_ORGNO': '주문조직번호',
+        'ODNO': '주문번호',
+        'ORD_TMD': '주문시각'
+    },
+    'message': '주문 성공 메시지'
+}
+```
+
+실패 시:
+
+```python
+{
+    'success': False,
+    'error_code': 'API 에러 코드 또는 EXCEPTION',
+    'message': '에러 메시지',
+    'detail': '상세 응답 (dict 또는 None)'
+}
+```
+
+**사용 예제:**
+
+```python
+from core.api.rest_client import RESTClient
+
+client = RESTClient()
+
+# 매수 주문 (시장가)
+result = client.place_order(
+    stock_code="005930",
+    order_type="02",  # 매수
+    quantity=10,
+    price=0  # 시장가
+)
+
+if result['success']:
+    order_data = result['data']
+    print(f"주문 성공: 주문번호 {order_data['ODNO']}")
+else:
+    print(f"주문 실패: {result['message']} (코드: {result['error_code']})")
+```
+
+##### `get_balance() -> Dict`
+
+계좌 잔고를 조회합니다.
+
+**반환값:**
+
+- 계좌 잔고 정보 딕셔너리
+
+**사용 예제:**
+
+```python
+from core.api.rest_client import RESTClient
+
+client = RESTClient()
+balance = client.get_balance()
+
+if balance and not balance.get('error'):
+    print(f"예수금: {balance.get('dnca_tot_amt')}")
+    for holding in balance.get('output1', []):
+        print(f"종목: {holding['prdt_name']}, 수량: {holding['hldg_qty']}")
+```
+
+### TradingEngine
+
+자동 매매를 관리하는 클래스입니다.
+
+#### 클래스 정의
+
+```python
+class TradingEngine:
+    def __init__(self, kis_api=None, db_session=None):
+        """
+        트레이딩 엔진 초기화
+
+        Args:
+            kis_api: KIS API 클라이언트
+            db_session: 데이터베이스 세션
+        """
+```
+
+#### 주요 메서드
+
+##### `execute_buy_order(stock_code: str, quantity: int, price: int = 0) -> Dict`
+
+매수 주문을 실행합니다.
+
+**매개변수:**
+
+- `stock_code`: 종목 코드
+- `quantity`: 주문 수량
+- `price`: 주문 가격 (0=시장가)
+
+**반환값:**
+
+- 주문 결과 딕셔너리 (`place_order()`와 동일한 구조)
+
+##### `execute_sell_order(stock_code: str, quantity: int, price: int = 0) -> Dict`
+
+매도 주문을 실행합니다.
+
+**매개변수:**
+
+- `stock_code`: 종목 코드
+- `quantity`: 주문 수량
+- `price`: 주문 가격 (0=시장가)
+
+**반환값:**
+
+- 주문 결과 딕셔너리
+
+**사용 예제:**
+
+```python
+from core.trading.trading_engine import TradingEngine
+
+engine = TradingEngine()
+
+# 매수
+buy_result = engine.execute_buy_order("005930", 10)
+if buy_result['success']:
+    print(f"매수 성공: {buy_result['data']}")
+
+# 매도
+sell_result = engine.execute_sell_order("005930", 5)
+if sell_result['success']:
+    print(f"매도 성공: {sell_result['data']}")
+```
+
+---
+
 ## 📊 Phase 1: 감시 리스트 (Watchlist)
 
 ### StockScreener
@@ -39,12 +211,13 @@ core/
 종목 스크리닝을 담당하는 클래스입니다.
 
 #### 클래스 정의
+
 ```python
 class StockScreener:
     def __init__(self, data_source=None):
         """
         종목 스크리너 초기화
-        
+
         Args:
             data_source: 데이터 소스 (선택적)
         """
@@ -53,9 +226,11 @@ class StockScreener:
 #### 주요 메서드
 
 ##### `screen_stocks(criteria: Dict) -> List[Dict]`
+
 지정된 기준에 따라 종목을 스크리닝합니다.
 
 **매개변수:**
+
 - `criteria`: 스크리닝 기준 딕셔너리
   - `min_market_cap`: 최소 시가총액
   - `max_market_cap`: 최대 시가총액
@@ -65,9 +240,11 @@ class StockScreener:
   - `sector`: 업종 필터
 
 **반환값:**
+
 - 스크리닝된 종목 리스트
 
 **사용 예제:**
+
 ```python
 from core.watchlist.stock_screener import StockScreener
 
@@ -85,13 +262,16 @@ for stock in stocks:
 ```
 
 ##### `apply_momentum_filter(stocks: List[Dict], period: int = 20) -> List[Dict]`
+
 모멘텀 필터를 적용합니다.
 
 **매개변수:**
+
 - `stocks`: 종목 리스트
 - `period`: 모멘텀 계산 기간 (기본 20일)
 
 **반환값:**
+
 - 필터링된 종목 리스트
 
 ### WatchlistManager
@@ -99,12 +279,13 @@ for stock in stocks:
 감시 리스트를 관리하는 클래스입니다.
 
 #### 클래스 정의
+
 ```python
 class WatchlistManager:
     def __init__(self, db_path: str = "data/watchlist.db"):
         """
         감시 리스트 관리자 초기화
-        
+
         Args:
             db_path: 데이터베이스 경로
         """
@@ -113,17 +294,21 @@ class WatchlistManager:
 #### 주요 메서드
 
 ##### `add_stock(stock_code: str, stock_name: str, category: str = "default") -> bool`
+
 감시 리스트에 종목을 추가합니다.
 
 **매개변수:**
+
 - `stock_code`: 종목 코드
 - `stock_name`: 종목명
 - `category`: 카테고리 (기본값: "default")
 
 **반환값:**
+
 - 성공 여부 (bool)
 
 **사용 예제:**
+
 ```python
 from core.watchlist.watchlist_manager import WatchlistManager
 
@@ -134,12 +319,15 @@ if success:
 ```
 
 ##### `get_stocks(category: str = None) -> List[Dict]`
+
 감시 리스트의 종목들을 조회합니다.
 
 **매개변수:**
+
 - `category`: 특정 카테고리 (선택적)
 
 **반환값:**
+
 - 종목 리스트
 
 ---
@@ -151,12 +339,13 @@ if success:
 일일 종목 선정을 담당하는 클래스입니다.
 
 #### 클래스 정의
+
 ```python
 class DailyUpdater:
     def __init__(self, watchlist_manager=None, price_analyzer=None):
         """
         일일 업데이터 초기화
-        
+
         Args:
             watchlist_manager: 감시 리스트 관리자
             price_analyzer: 가격 분석기
@@ -166,12 +355,15 @@ class DailyUpdater:
 #### 주요 메서드
 
 ##### `update_daily_selection() -> List[str]`
+
 일일 종목 선정을 실행합니다.
 
 **반환값:**
+
 - 선정된 종목 코드 리스트
 
 **사용 예제:**
+
 ```python
 from core.daily_selection.daily_updater import DailyUpdater
 
@@ -185,12 +377,13 @@ print(f"오늘 선정된 종목: {selected_stocks}")
 가격 분석을 담당하는 클래스입니다.
 
 #### 클래스 정의
+
 ```python
 class PriceAnalyzer:
     def __init__(self, api_client=None):
         """
         가격 분석기 초기화
-        
+
         Args:
             api_client: API 클라이언트
         """
@@ -199,16 +392,20 @@ class PriceAnalyzer:
 #### 주요 메서드
 
 ##### `analyze_stock(stock_code: str, period: int = 20) -> Dict`
+
 개별 종목을 분석합니다.
 
 **매개변수:**
+
 - `stock_code`: 종목 코드
 - `period`: 분석 기간
 
 **반환값:**
+
 - 분석 결과 딕셔너리
 
 **사용 예제:**
+
 ```python
 from core.daily_selection.price_analyzer import PriceAnalyzer
 
@@ -226,12 +423,13 @@ print(f"분석 결과: {result}")
 일일 성과 분석을 담당하는 클래스입니다.
 
 #### 클래스 정의
+
 ```python
 class DailyPerformanceAnalyzer:
     def __init__(self, data_dir: str = "data/performance"):
         """
         일일 성과 분석기 초기화
-        
+
         Args:
             data_dir: 데이터 저장 디렉토리
         """
@@ -240,17 +438,21 @@ class DailyPerformanceAnalyzer:
 #### 주요 메서드
 
 ##### `analyze_daily_performance(date: str, selected_stocks: List[str], metrics: Dict) -> Dict`
+
 일일 성과를 분석합니다.
 
 **매개변수:**
+
 - `date`: 분석 날짜 (YYYY-MM-DD)
 - `selected_stocks`: 선정된 종목 리스트
 - `metrics`: 성과 지표
 
 **반환값:**
+
 - 분석 결과 딕셔너리
 
 **사용 예제:**
+
 ```python
 from core.learning.analysis.daily_performance import DailyPerformanceAnalyzer
 
@@ -267,12 +469,13 @@ result = analyzer.analyze_daily_performance(
 파라미터 관리를 담당하는 클래스입니다.
 
 #### 클래스 정의
+
 ```python
 class ParameterManager:
     def __init__(self, data_dir: str = "data/parameters"):
         """
         파라미터 관리자 초기화
-        
+
         Args:
             data_dir: 데이터 저장 디렉토리
         """
@@ -281,15 +484,19 @@ class ParameterManager:
 #### 주요 메서드
 
 ##### `create_random_parameter_set(strategy_name: str) -> ParameterSet`
+
 랜덤 파라미터 세트를 생성합니다.
 
 **매개변수:**
+
 - `strategy_name`: 전략명
 
 **반환값:**
+
 - 파라미터 세트 객체
 
 **사용 예제:**
+
 ```python
 from core.learning.optimization.parameter_manager import ParameterManager
 
@@ -307,12 +514,13 @@ print(f"생성된 파라미터: {params.parameters}")
 실시간 시장 모니터링을 담당하는 클래스입니다.
 
 #### 클래스 정의
+
 ```python
 class MarketMonitor:
     def __init__(self, config: MonitoringConfig = None, data_dir: str = "data/market_monitoring"):
         """
         시장 모니터 초기화
-        
+
         Args:
             config: 모니터링 설정
             data_dir: 데이터 저장 디렉토리
@@ -322,12 +530,15 @@ class MarketMonitor:
 #### 주요 메서드
 
 ##### `add_symbols(symbols: List[str]) -> None`
+
 모니터링 대상 종목을 추가합니다.
 
 **매개변수:**
+
 - `symbols`: 종목 코드 리스트
 
 **사용 예제:**
+
 ```python
 from core.market_monitor.market_monitor import MarketMonitor
 
@@ -337,9 +548,11 @@ monitor.start_monitoring()
 ```
 
 ##### `get_current_snapshot() -> MarketSnapshot`
+
 현재 시장 스냅샷을 조회합니다.
 
 **반환값:**
+
 - 시장 스냅샷 객체
 
 ### AnomalyDetector
@@ -347,12 +560,13 @@ monitor.start_monitoring()
 이상 감지를 담당하는 클래스입니다.
 
 #### 클래스 정의
+
 ```python
 class AnomalyDetector:
     def __init__(self, config: AnomalyConfig = None, data_dir: str = "data/anomaly_detection"):
         """
         이상 감지기 초기화
-        
+
         Args:
             config: 이상 감지 설정
             data_dir: 데이터 저장 디렉토리
@@ -362,16 +576,20 @@ class AnomalyDetector:
 #### 주요 메서드
 
 ##### `detect_anomalies(current_snapshot: MarketSnapshot, recent_snapshots: List[MarketSnapshot]) -> List[AnomalyAlert]`
+
 이상 상황을 감지합니다.
 
 **매개변수:**
+
 - `current_snapshot`: 현재 스냅샷
 - `recent_snapshots`: 최근 스냅샷들
 
 **반환값:**
+
 - 이상 알림 리스트
 
 **사용 예제:**
+
 ```python
 from core.market_monitor.anomaly_detector import AnomalyDetector
 
@@ -390,12 +608,13 @@ for alert in alerts:
 시스템 성능 최적화를 담당하는 클래스입니다.
 
 #### 클래스 정의
+
 ```python
 class PerformanceOptimizer:
     def __init__(self, data_dir: str = "data/performance"):
         """
         성능 최적화기 초기화
-        
+
         Args:
             data_dir: 데이터 저장 디렉토리
         """
@@ -404,15 +623,19 @@ class PerformanceOptimizer:
 #### 주요 메서드
 
 ##### `manual_optimization(level: OptimizationLevel = None) -> Dict`
+
 수동 최적화를 실행합니다.
 
 **매개변수:**
+
 - `level`: 최적화 레벨
 
 **반환값:**
+
 - 최적화 결과 딕셔너리
 
 **사용 예제:**
+
 ```python
 from core.performance.optimizer import PerformanceOptimizer, OptimizationLevel
 
@@ -430,12 +653,13 @@ print(f"최적화 결과: {result['overall_success']}")
 시스템 안정성을 관리하는 클래스입니다.
 
 #### 클래스 정의
+
 ```python
 class StabilityManager:
     def __init__(self, data_dir: str = "data/stability"):
         """
         안정성 관리자 초기화
-        
+
         Args:
             data_dir: 데이터 저장 디렉토리
         """
@@ -444,15 +668,18 @@ class StabilityManager:
 #### 주요 메서드
 
 ##### `register_component(component: str, **config) -> None`
+
 컴포넌트를 등록합니다.
 
 **매개변수:**
+
 - `component`: 컴포넌트명
 - `circuit_breaker_config`: 회로 차단기 설정
 - `fallback_function`: 대체 함수
 - `health_check_function`: 헬스 체크 함수
 
 **사용 예제:**
+
 ```python
 from core.resilience.stability_manager import StabilityManager
 
@@ -468,14 +695,17 @@ manager.register_component(
 ### 데코레이터
 
 #### `@retry(max_attempts=3, delay=1.0, backoff=2.0)`
+
 함수에 재시도 로직을 추가합니다.
 
 **매개변수:**
+
 - `max_attempts`: 최대 시도 횟수
 - `delay`: 초기 지연 시간
 - `backoff`: 지연 시간 배수
 
 **사용 예제:**
+
 ```python
 from core.resilience.stability_manager import retry
 
@@ -494,6 +724,7 @@ def unstable_api_call():
 플러그인을 등록하고 관리하는 클래스입니다.
 
 #### 클래스 정의
+
 ```python
 class PluginRegistry:
     def __init__(self):
@@ -503,15 +734,19 @@ class PluginRegistry:
 #### 주요 메서드
 
 ##### `register_plugin(plugin: BasePlugin) -> bool`
+
 플러그인을 등록합니다.
 
 **매개변수:**
+
 - `plugin`: 플러그인 인스턴스
 
 **반환값:**
+
 - 등록 성공 여부
 
 **사용 예제:**
+
 ```python
 from core.plugins.registry import PluginRegistry
 from my_plugin import CustomAnalyzer
@@ -530,12 +765,13 @@ success = registry.register_plugin(plugin)
 패키지를 관리하는 클래스입니다.
 
 #### 클래스 정의
+
 ```python
 class PackageManager:
     def __init__(self, repository_path: str = "data/packages"):
         """
         패키지 관리자 초기화
-        
+
         Args:
             repository_path: 패키지 저장소 경로
         """
@@ -544,15 +780,19 @@ class PackageManager:
 #### 주요 메서드
 
 ##### `install_package(package_path: str) -> bool`
+
 패키지를 설치합니다.
 
 **매개변수:**
+
 - `package_path`: 패키지 파일 경로
 
 **반환값:**
+
 - 설치 성공 여부
 
 **사용 예제:**
+
 ```python
 from core.packages.installer import PackageInstaller
 
@@ -569,6 +809,7 @@ success = installer.install_package("my_strategy.hqp")
 의존성 주입 컨테이너입니다.
 
 #### 클래스 정의
+
 ```python
 class DIContainer:
     def __init__(self):
@@ -578,14 +819,17 @@ class DIContainer:
 #### 주요 메서드
 
 ##### `register(interface: type, implementation: type, lifetime: Lifetime = Lifetime.TRANSIENT) -> None`
+
 서비스를 등록합니다.
 
 **매개변수:**
+
 - `interface`: 인터페이스 타입
-- `implementation`: 구현 타입  
+- `implementation`: 구현 타입
 - `lifetime`: 생명주기
 
 **사용 예제:**
+
 ```python
 from core.di.container import DIContainer, Lifetime
 
@@ -594,12 +838,15 @@ container.register(IStockScreener, StockScreener, Lifetime.SINGLETON)
 ```
 
 ##### `resolve(service_type: type) -> object`
+
 서비스를 해결합니다.
 
 **매개변수:**
+
 - `service_type`: 서비스 타입
 
 **반환값:**
+
 - 서비스 인스턴스
 
 ---
@@ -609,6 +856,7 @@ container.register(IStockScreener, StockScreener, Lifetime.SINGLETON)
 ### 공통 데이터 타입
 
 #### StockInfo
+
 ```python
 @dataclass
 class StockInfo:
@@ -623,8 +871,9 @@ class StockInfo:
 ```
 
 #### MarketSnapshot
+
 ```python
-@dataclass  
+@dataclass
 class MarketSnapshot:
     timestamp: datetime
     market_status: MarketStatus
@@ -635,6 +884,7 @@ class MarketSnapshot:
 ```
 
 #### PerformanceMetrics
+
 ```python
 @dataclass
 class PerformanceMetrics:
@@ -679,23 +929,25 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 ### 설정 파일
 
 #### monitoring_config.json
+
 ```json
 {
-    "update_interval": 30,
-    "max_symbols": 100,
-    "price_change_threshold": 0.05,
-    "volume_change_threshold": 2.0,
-    "enable_alerts": true
+  "update_interval": 30,
+  "max_symbols": 100,
+  "price_change_threshold": 0.05,
+  "volume_change_threshold": 2.0,
+  "enable_alerts": true
 }
 ```
 
 #### optimization_config.json
+
 ```json
 {
-    "optimization_level": "balanced",
-    "auto_optimization": true,
-    "memory_threshold": 80.0,
-    "cpu_threshold": 85.0
+  "optimization_level": "balanced",
+  "auto_optimization": true,
+  "memory_threshold": 80.0,
+  "cpu_threshold": 85.0
 }
 ```
 
@@ -706,15 +958,19 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 ### 공통 예외
 
 #### `HantuQuantException`
+
 시스템의 기본 예외 클래스입니다.
 
 #### `APIConnectionError`
+
 API 연결 오류 시 발생합니다.
 
 #### `DataValidationError`
+
 데이터 검증 실패 시 발생합니다.
 
 #### `OptimizationError`
+
 최적화 과정에서 오류 발생 시 발생합니다.
 
 ### 예외 처리 예제
@@ -841,5 +1097,5 @@ API 관련 문의나 버그 리포트는 다음을 통해 연락주세요:
 
 ---
 
-**마지막 업데이트**: 2024-01-17
-**API 버전**: v1.0.0 
+**마지막 업데이트**: 2026-02-03
+**API 버전**: v1.1.0
