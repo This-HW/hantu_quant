@@ -10,6 +10,7 @@ User=ubuntu
 Group=ubuntu
 WorkingDirectory=/opt/hantu_quant
 Environment="PATH=/opt/hantu_quant/venv/bin:/usr/local/bin:/usr/bin:/bin"
+EnvironmentFile=/opt/hantu_quant/.env
 
 # API 서버 실행 (uvicorn)
 ExecStart=/opt/hantu_quant/venv/bin/python -m uvicorn api-server.main:app --host 0.0.0.0 --port 8000
