@@ -115,9 +115,9 @@ try:
     from core.resilience.error_recovery import get_error_recovery_system
 
     error_recovery_system = get_error_recovery_system()
-    # 자동 모니터링 시작 (60초 간격)
-    error_recovery_system.start_monitoring(interval_seconds=60)
-    logger.info("자동 에러 복구 시스템 활성화됨 (모니터링 간격: 60초)")
+    # 자동 모니터링 시작 (30분 간격)
+    error_recovery_system.start_monitoring(interval_seconds=1800)
+    logger.info("자동 에러 복구 시스템 활성화됨 (모니터링 간격: 30분)")
 except Exception as e:
     logger.warning(f"자동 에러 복구 시스템 설정 실패: {e}")
 
