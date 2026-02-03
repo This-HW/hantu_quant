@@ -6,18 +6,62 @@
 - 통합 모니터링 및 알림
 """
 
-import schedule
-import time
-import threading
 import sys
 import os
-from datetime import datetime, timedelta
-from typing import Dict, Any
 import argparse
-import traceback
 
 # 프로젝트 루트 디렉토리를 Python 경로에 추가
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+# ============================================================================
+# 환경 체크 (import 전 실행하여 불필요한 DB 연결 방지)
+# ============================================================================
+def check_environment_early():
+    """
+    스크립트 실행 환경을 조기에 체크합니다.
+    start 명령 시 로컬 환경에서는 차단됩니다.
+    """
+    # argparse로 명령 확인
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument('command', nargs='?', default=None)
+    parser.add_argument('--force-local', action='store_true')
+    args, _ = parser.parse_known_args()
+
+    # start 명령이 아니면 환경 체크 생략
+    if args.command != 'start':
+        return
+
+    # 환경 체크 (최소한의 import만 사용)
+    from core.utils.env_utils import can_run_scheduler, get_environment
+
+    force_local = args.force_local
+    can_run, message = can_run_scheduler(force_local=force_local)
+
+    if not can_run:
+        print(message)
+        sys.exit(1)
+
+    # 경고 메시지 출력 (로컬 강제 실행 시)
+    env = get_environment()
+    if env == "local" and force_local:
+        print(message, flush=True)
+        print(flush=True)
+
+
+# 환경 체크 실행
+check_environment_early()
+
+
+# ============================================================================
+# 이제 안전하게 모든 모듈 import 가능
+# ============================================================================
+import schedule
+import time
+import threading
+from datetime import datetime, timedelta
+from typing import Dict, Any
+import traceback
 
 from workflows.phase1_watchlist import Phase1Workflow
 from workflows.phase2_daily_selection import Phase2CLI
@@ -2247,7 +2291,12 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="사용 가능한 명령")
 
     # 스케줄러 시작
-    subparsers.add_parser("start", help="스케줄러 시작")
+    start_parser = subparsers.add_parser("start", help="스케줄러 시작")
+    start_parser.add_argument(
+        "--force-local",
+        action="store_true",
+        help="로컬 환경에서 강제 실행 (디버깅 전용, SSH 터널 필요)"
+    )
 
     # 스케줄러 중지
     subparsers.add_parser("stop", help="스케줄러 중지")
@@ -2270,6 +2319,7 @@ def main():
         parser.print_help()
         return
 
+    # 환경 체크는 이미 check_environment_early()에서 수행됨
     # 스케줄러 생성 (병렬 워커 수 설정)
     scheduler = IntegratedScheduler(p_parallel_workers=4)
 
