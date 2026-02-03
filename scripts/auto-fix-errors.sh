@@ -72,7 +72,9 @@ validate_path() {
     # 화이트리스트 검증 (루트 포함)
     case "$normalized" in
         /opt/hantu_quant|/opt/hantu_quant/*|\
-        /Users/grimm/Documents/Dev/hantu_quant|/Users/grimm/Documents/Dev/hantu_quant/*)
+        /Users/grimm/Documents/Dev/hantu_quant|/Users/grimm/Documents/Dev/hantu_quant/*|\
+        /home/ubuntu/hantu_quant_dev|/home/ubuntu/hantu_quant_dev/*|\
+        /home/ubuntu/.local/share/claude|/home/ubuntu/.local/share/claude/*)
             echo "$normalized"
             return 0
             ;;
@@ -129,8 +131,9 @@ VALIDATED_DEV_DIR=$(validate_path "$DEV_PROJECT_DIR") || {
 if [ ! -x "$VALIDATED_CLAUDE_PATH" ]; then
     ERROR_MSG="Claude Code가 설치되지 않았습니다: $VALIDATED_CLAUDE_PATH"
     echo "ERROR: $ERROR_MSG" >&2
-    # 로그 디렉토리 생성 후 DB 적재 시도
+    # 로그 디렉토리 생성 후 로컬 로그 + DB 적재 시도
     mkdir -p "$VALIDATED_DEV_DIR/logs"
+    log "$ERROR_MSG"
     log_error_to_db "$ERROR_MSG" "MissingDependency"
     exit 1
 fi
@@ -138,8 +141,8 @@ fi
 # 로그 디렉토리 생성 (개발 레포, 검증된 경로 사용)
 mkdir -p "$VALIDATED_DEV_DIR/logs"
 
-# 에러 트랩 설정 (스크립트 에러 시 DB 적재)
-trap 'log_error_to_db "Auto-fix script failed at line $LINENO" "ScriptFailure"; rm -f $LOCKFILE' ERR
+# 에러 트랩 설정 (스크립트 에러 시 DB 적재 + 로컬 로그)
+trap 'ERROR_MSG="Auto-fix script failed at line $LINENO"; log "$ERROR_MSG"; log_error_to_db "$ERROR_MSG" "ScriptFailure"; rm -f $LOCKFILE' ERR
 
 log "DB 접속 정보: $DB_USER@$DB_HOST:5432/$DB_NAME"
 
