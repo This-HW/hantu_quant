@@ -1,0 +1,42 @@
+# deploy.yml 수정안 (dev repo 추가)
+
+# Line 52 이후에 추가:
+
+      - name: Deploy to server
+        id: deploy
+        run: |
+          ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
+            set -e
+
+            # 1. 운영 레포지토리 업데이트
+            echo "=== Updating Production Repository ==="
+            cd /opt/hantu_quant
+
+            # ... (기존 로직) ...
+
+            git reset --hard origin/main
+            COMMIT_SHA=$(git rev-parse --short HEAD)
+            echo "✅ Production updated: $COMMIT_SHA"
+
+            # 2. Dev 레포지토리 업데이트 (추가)
+            echo ""
+            echo "=== Updating Dev Repository ==="
+            if [ -d "/home/ubuntu/hantu_quant_dev" ]; then
+              cd /home/ubuntu/hantu_quant_dev
+
+              # Stash uncommitted changes
+              if [ -n "$(git status --porcelain)" ]; then
+                git stash push -m "auto-stash-before-deploy-$(date +%Y%m%d-%H%M%S)"
+              fi
+
+              git fetch origin main
+              git checkout main
+              git reset --hard origin/main
+
+              echo "✅ Dev repository updated: $(git rev-parse --short HEAD)"
+            else
+              echo "⚠️ Dev repository not found, skipping..."
+            fi
+
+            # ... (나머지 배포 로직) ...
+          ENDSSH
