@@ -135,6 +135,19 @@ jobs:
               echo "⚠️ WARNING: DB migration had issues, continuing..."
             fi
 
+            # Update systemd service files
+            echo "=== Updating systemd service files ==="
+            if [ -f "deploy/hantu-api.service" ]; then
+              sudo cp deploy/hantu-api.service /etc/systemd/system/
+              echo "✅ hantu-api.service updated"
+            fi
+            if [ -f "deploy/hantu-scheduler.service" ]; then
+              sudo cp deploy/hantu-scheduler.service /etc/systemd/system/
+              echo "✅ hantu-scheduler.service updated"
+            fi
+            sudo systemctl daemon-reload
+            echo "✅ systemd daemon reloaded"
+
             # Restart API server
             echo "=== Restarting API server ==="
             sudo systemctl restart hantu-api
