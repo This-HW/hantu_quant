@@ -74,11 +74,16 @@ class PyKRXClient(MarketDataClient):
             raise ValueError(f"종가 컬럼을 찾을 수 없습니다. 사용 가능한 컬럼: {df.columns.tolist()}")
 
         try:
-            value = self._retry_with_backoff(_fetch)
+            # KeyError는 pykrx 알려진 이슈이므로 재시도 없이 즉시 폴백
+            value = _fetch()
             self._logger.info(f"KOSPI 조회 성공: {value:.2f}")
             return value
+        except KeyError as e:
+            # pykrx KRX 웹사이트 스크래핑 실패 (알려진 이슈 #229)
+            self._logger.warning(f"KOSPI 조회 실패 (KRX API 불안정): {e}")
+            raise ValueError(f"KOSPI 조회 실패: {e}") from e
         except Exception as e:
-            self._logger.error(f"KOSPI 조회 실패: {e}", exc_info=True)
+            self._logger.warning(f"KOSPI 조회 실패: {e}", exc_info=True)
             raise ValueError(f"KOSPI 조회 실패: {e}") from e
 
     @cache_with_ttl(ttl=300, key_prefix="kosdaq_index")
@@ -99,11 +104,16 @@ class PyKRXClient(MarketDataClient):
             raise ValueError(f"종가 컬럼을 찾을 수 없습니다. 사용 가능한 컬럼: {df.columns.tolist()}")
 
         try:
-            value = self._retry_with_backoff(_fetch)
+            # KeyError는 pykrx 알려진 이슈이므로 재시도 없이 즉시 폴백
+            value = _fetch()
             self._logger.info(f"KOSDAQ 조회 성공: {value:.2f}")
             return value
+        except KeyError as e:
+            # pykrx KRX 웹사이트 스크래핑 실패 (알려진 이슈 #229)
+            self._logger.warning(f"KOSDAQ 조회 실패 (KRX API 불안정): {e}")
+            raise ValueError(f"KOSDAQ 조회 실패: {e}") from e
         except Exception as e:
-            self._logger.error(f"KOSDAQ 조회 실패: {e}", exc_info=True)
+            self._logger.warning(f"KOSDAQ 조회 실패: {e}", exc_info=True)
             raise ValueError(f"KOSDAQ 조회 실패: {e}") from e
 
     @cache_with_ttl(ttl=600, key_prefix="sector_etf")
