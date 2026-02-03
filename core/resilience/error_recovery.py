@@ -97,7 +97,7 @@ class ErrorDetector:
         
         # 시스템 메트릭 임계값
         self._system_thresholds = {
-            'cpu_high': 90.0,
+            'cpu_high': 95.0,  # CPU 임계값 상향 (90 → 95)
             'memory_high': 95.0,
             'disk_full': 95.0,
             'network_error_rate': 10.0,
@@ -140,8 +140,8 @@ class ErrorDetector:
         current_time = datetime.now()
         
         try:
-            # CPU 사용률 체크
-            cpu_percent = psutil.cpu_percent(interval=1)
+            # CPU 사용률 체크 (interval=0으로 즉시 측정, 블로킹 방지)
+            cpu_percent = psutil.cpu_percent(interval=0)
             if cpu_percent > self._system_thresholds['cpu_high']:
                 anomalies.append(ErrorEvent(
                     timestamp=current_time,
@@ -591,31 +591,32 @@ class ErrorRecoverySystem:
             }
         )
     
-    def start_monitoring(self, interval_seconds: int = 60):
-        """자동 모니터링 시작"""
+    def start_monitoring(self, interval_seconds: int = 1800):
+        """자동 모니터링 시작 (기본 30분 간격)"""
         if self._monitoring:
             self._logger.warning("모니터링이 이미 실행 중입니다.")
             return
-        
+
         self._monitoring = True
-        
+
         def monitoring_loop():
             while self._monitoring:
                 try:
                     # 시스템 이상 감지
                     anomalies = self._detector.detect_system_anomalies()
-                    
+
+                    # anomalies 자체가 ErrorEvent이므로 직접 처리
                     for anomaly in anomalies:
-                        self.report_error(
-                            anomaly.message, 
-                            anomaly.component,
-                            anomaly.severity,
-                            0
-                        )
-                    
+                        # 데이터베이스 저장 및 복구 시도
+                        self._save_error_event(anomaly)
+
+                        if anomaly.severity in [ErrorSeverity.HIGH, ErrorSeverity.CRITICAL]:
+                            self._recovery_manager.attempt_recovery(anomaly)
+                            self._save_error_event(anomaly)  # 복구 결과 업데이트
+
                 except Exception as e:
                     self._logger.error(f"모니터링 중 오류: {e}", exc_info=True)
-                
+
                 time.sleep(interval_seconds)
         
         self._monitor_thread = threading.Thread(target=monitoring_loop, daemon=True)
