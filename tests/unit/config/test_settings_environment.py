@@ -46,7 +46,7 @@ class TestGetDefaultDatabaseURL:
 
         # Assert
         assert result == "postgresql://hantu@localhost:15432/hantu_quant"
-        mock_logger.info.assert_any_call("환경 감지: HANTU_ENV=local (환경변수 우선)")
+        mock_logger.debug.assert_any_call("환경 감지: HANTU_ENV=local (환경변수 우선)")
 
     def test_hantu_env_server_override(self, mock_logger, monkeypatch):
         """HANTU_ENV=server 설정 시 로컬 포트 사용"""
@@ -59,7 +59,7 @@ class TestGetDefaultDatabaseURL:
 
         # Assert
         assert result == "postgresql://hantu@localhost:5432/hantu_quant"
-        mock_logger.info.assert_any_call("환경 감지: HANTU_ENV=server (환경변수 우선)")
+        mock_logger.debug.assert_any_call("환경 감지: HANTU_ENV=server (환경변수 우선)")
 
     def test_hantu_env_test_override(self, mock_logger, monkeypatch):
         """HANTU_ENV=test 설정 시 SQLite 사용"""
@@ -72,7 +72,7 @@ class TestGetDefaultDatabaseURL:
 
         # Assert
         assert result.startswith("sqlite:///")
-        mock_logger.info.assert_any_call("환경 감지: HANTU_ENV=test (환경변수 우선)")
+        mock_logger.debug.assert_any_call("환경 감지: HANTU_ENV=test (환경변수 우선)")
 
     @patch('core.config.settings.ROOT_DIR', Path('/Users/grimm/Documents/Dev/hantu_quant'))
     def test_local_path_detection(self, mock_logger, monkeypatch):
@@ -86,7 +86,7 @@ class TestGetDefaultDatabaseURL:
 
         # Assert
         assert result == "postgresql://hantu@localhost:15432/hantu_quant"
-        mock_logger.info.assert_any_call("환경 감지: 로컬 (경로: /Users/grimm/Documents/Dev/hantu_quant)")
+        mock_logger.debug.assert_any_call("환경 감지: 로컬 (경로: /Users/grimm/Documents/Dev/hantu_quant)")
 
     @patch('core.config.settings.ROOT_DIR', Path('/home/user/hantu_quant'))
     def test_local_home_path_detection(self, mock_logger, monkeypatch):
@@ -100,7 +100,7 @@ class TestGetDefaultDatabaseURL:
 
         # Assert
         assert result == "postgresql://hantu@localhost:15432/hantu_quant"
-        mock_logger.info.assert_any_call("환경 감지: 로컬 (경로: /home/user/hantu_quant)")
+        mock_logger.debug.assert_any_call("환경 감지: 로컬 (경로: /home/user/hantu_quant)")
 
     @patch('core.config.settings.ROOT_DIR', Path('/opt/hantu_quant'))
     def test_server_opt_path_detection(self, mock_logger, monkeypatch):
@@ -114,7 +114,7 @@ class TestGetDefaultDatabaseURL:
 
         # Assert
         assert result == "postgresql://hantu@localhost:5432/hantu_quant"
-        mock_logger.info.assert_any_call("환경 감지: 서버 (경로: /opt/hantu_quant)")
+        mock_logger.debug.assert_any_call("환경 감지: 서버 (경로: /opt/hantu_quant)")
 
     @patch('core.config.settings.ROOT_DIR', Path('/home/ubuntu/hantu_quant'))
     def test_server_ubuntu_path_detection(self, mock_logger, monkeypatch):
@@ -128,7 +128,7 @@ class TestGetDefaultDatabaseURL:
 
         # Assert
         assert result == "postgresql://hantu@localhost:5432/hantu_quant"
-        mock_logger.info.assert_any_call("환경 감지: 서버 (경로: /home/ubuntu/hantu_quant)")
+        mock_logger.debug.assert_any_call("환경 감지: 서버 (경로: /home/ubuntu/hantu_quant)")
 
     @patch('core.config.settings.ROOT_DIR', Path('/srv/hantu_quant'))
     def test_server_srv_path_detection(self, mock_logger, monkeypatch):
@@ -142,7 +142,7 @@ class TestGetDefaultDatabaseURL:
 
         # Assert
         assert result == "postgresql://hantu@localhost:5432/hantu_quant"
-        mock_logger.info.assert_any_call("환경 감지: 서버 (경로: /srv/hantu_quant)")
+        mock_logger.debug.assert_any_call("환경 감지: 서버 (경로: /srv/hantu_quant)")
 
     @patch('core.config.settings.ROOT_DIR', Path('/unknown/path/hantu_quant'))
     def test_unknown_path_fallback(self, mock_logger, monkeypatch):

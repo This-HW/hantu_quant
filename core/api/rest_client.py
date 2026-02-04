@@ -33,7 +33,7 @@ _RATE_LIMIT_TIME_FILE = os.path.join(tempfile.gettempdir(), "hantu_api_last_requ
 _RATE_LIMIT_BACKOFF_FILE = os.path.join(tempfile.gettempdir(), "hantu_api_backoff.txt")
 
 # 적응형 Rate Limit 상수
-_DEFAULT_MIN_INTERVAL = 0.5  # 기본 최소 간격 (초) - KIS 권장: 초당 2-3건
+_DEFAULT_MIN_INTERVAL = 1.0  # 기본 최소 간격 (초) - 초당 1건으로 보수적 제한
 _MAX_BACKOFF_MULTIPLIER = 10.0  # 최대 백오프 배수
 _BACKOFF_DECAY_RATE = 0.95  # 성공 시 백오프 감소율 (천천히 감소)
 
