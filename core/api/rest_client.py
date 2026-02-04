@@ -33,9 +33,9 @@ _RATE_LIMIT_TIME_FILE = os.path.join(tempfile.gettempdir(), "hantu_api_last_requ
 _RATE_LIMIT_BACKOFF_FILE = os.path.join(tempfile.gettempdir(), "hantu_api_backoff.txt")
 
 # 적응형 Rate Limit 상수
-_DEFAULT_MIN_INTERVAL = 0.35  # 기본 최소 간격 (초)
-_MAX_BACKOFF_MULTIPLIER = 5.0  # 최대 백오프 배수
-_BACKOFF_DECAY_RATE = 0.9  # 성공 시 백오프 감소율
+_DEFAULT_MIN_INTERVAL = 0.5  # 기본 최소 간격 (초) - KIS 권장: 초당 2-3건
+_MAX_BACKOFF_MULTIPLIER = 10.0  # 최대 백오프 배수
+_BACKOFF_DECAY_RATE = 0.95  # 성공 시 백오프 감소율 (천천히 감소)
 
 
 def _get_backoff_multiplier() -> float:
@@ -61,11 +61,11 @@ def _set_backoff_multiplier(multiplier: float) -> None:
 
 
 def _increase_backoff() -> float:
-    """Rate Limit 에러 시 백오프 증가 (x2)"""
+    """Rate Limit 에러 시 백오프 크게 증가 (x3)"""
     current = _get_backoff_multiplier()
-    new_multiplier = min(current * 2.0, _MAX_BACKOFF_MULTIPLIER)
+    new_multiplier = min(current * 3.0, _MAX_BACKOFF_MULTIPLIER)
     _set_backoff_multiplier(new_multiplier)
-    logger.warning(f"Rate Limit 감지 - 백오프 배수 증가: {current:.1f} -> {new_multiplier:.1f}")
+    logger.warning(f"Rate Limit 감지 - 백오프 배수 증가: {current:.1f}x -> {new_multiplier:.1f}x (다음 요청부터 {_DEFAULT_MIN_INTERVAL * new_multiplier:.2f}초 간격 적용)")
     return new_multiplier
 
 
@@ -122,8 +122,8 @@ def _get_wait_time_for_kis_error(error_code: str) -> float:
         # EGW00203: 서버 과부하/점검 - 긴 대기 필요
         return 15.0
     elif error_code == KISErrorCode.RATE_LIMIT:
-        # EGW00201: Rate Limit - 중간 대기
-        return 5.0
+        # EGW00201: Rate Limit - 긴 대기 필요 (API 제한 회복 대기)
+        return 10.0
     elif error_code == KISErrorCode.SERVICE_ERROR:
         # EGW00500: 서비스 오류 - 표준 대기
         return 10.0
