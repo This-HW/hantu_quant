@@ -59,7 +59,7 @@ class PyKRXClient(MarketDataClient):
     @cache_with_ttl(ttl=300, key_prefix="kospi_index")
     def get_kospi(self) -> float:
         """KOSPI 지수 조회 (5분 캐시)"""
-        def _fetch():
+        try:
             today = datetime.now().strftime("%Y%m%d")
             df = self._stock.get_index_ohlcv(today, today, "KOSPI")
             if df.empty:
@@ -70,17 +70,13 @@ class PyKRXClient(MarketDataClient):
             # 컬럼명 폴백 로직
             for col in ['종가', 'Close', 'close', 'CLOSE']:
                 if col in df.columns:
-                    return float(df.iloc[-1][col])
+                    value = float(df.iloc[-1][col])
+                    self._logger.info(f"KOSPI 조회 성공: {value:.2f}")
+                    return value
             raise ValueError(f"종가 컬럼을 찾을 수 없습니다. 사용 가능한 컬럼: {df.columns.tolist()}")
-
-        try:
-            # KeyError는 pykrx 알려진 이슈이므로 재시도 없이 즉시 폴백
-            value = _fetch()
-            self._logger.info(f"KOSPI 조회 성공: {value:.2f}")
-            return value
         except KeyError as e:
             # pykrx KRX 웹사이트 스크래핑 실패 (알려진 이슈 #229)
-            self._logger.warning(f"KOSPI 조회 실패 (KRX API 불안정): {e}")
+            self._logger.warning(f"KOSPI 조회 실패 (KRX API 불안정, KeyError): {e}")
             raise ValueError(f"KOSPI 조회 실패: {e}") from e
         except Exception as e:
             self._logger.warning(f"KOSPI 조회 실패: {e}", exc_info=True)
@@ -89,7 +85,7 @@ class PyKRXClient(MarketDataClient):
     @cache_with_ttl(ttl=300, key_prefix="kosdaq_index")
     def get_kosdaq(self) -> float:
         """KOSDAQ 지수 조회 (5분 캐시)"""
-        def _fetch():
+        try:
             today = datetime.now().strftime("%Y%m%d")
             df = self._stock.get_index_ohlcv(today, today, "KOSDAQ")
             if df.empty:
@@ -100,17 +96,13 @@ class PyKRXClient(MarketDataClient):
             # 컬럼명 폴백 로직
             for col in ['종가', 'Close', 'close', 'CLOSE']:
                 if col in df.columns:
-                    return float(df.iloc[-1][col])
+                    value = float(df.iloc[-1][col])
+                    self._logger.info(f"KOSDAQ 조회 성공: {value:.2f}")
+                    return value
             raise ValueError(f"종가 컬럼을 찾을 수 없습니다. 사용 가능한 컬럼: {df.columns.tolist()}")
-
-        try:
-            # KeyError는 pykrx 알려진 이슈이므로 재시도 없이 즉시 폴백
-            value = _fetch()
-            self._logger.info(f"KOSDAQ 조회 성공: {value:.2f}")
-            return value
         except KeyError as e:
             # pykrx KRX 웹사이트 스크래핑 실패 (알려진 이슈 #229)
-            self._logger.warning(f"KOSDAQ 조회 실패 (KRX API 불안정): {e}")
+            self._logger.warning(f"KOSDAQ 조회 실패 (KRX API 불안정, KeyError): {e}")
             raise ValueError(f"KOSDAQ 조회 실패: {e}") from e
         except Exception as e:
             self._logger.warning(f"KOSDAQ 조회 실패: {e}", exc_info=True)
