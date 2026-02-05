@@ -6,7 +6,7 @@ pydantic>=2.0.0
 websockets==15.0.1
 pandas==2.3.3
 numpy==1.26.4  # PyKRX 1.2.3 호환성 (requires <2.0)
-sqlalchemy==2.0.45
+sqlalchemy==2.0.46
 python-dotenv==1.2.1
 schedule==1.2.2
 PyYAML>=6.0.0  # Config 파일 (phase2.yaml)
