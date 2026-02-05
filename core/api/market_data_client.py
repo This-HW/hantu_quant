@@ -61,10 +61,23 @@ class PyKRXClient(MarketDataClient):
         """KOSPI 지수 조회 (5분 캐시)"""
         try:
             today = datetime.now().strftime("%Y%m%d")
-            df = self._stock.get_index_ohlcv(today, today, "KOSPI")
+            df = None
+            try:
+                df = self._stock.get_index_ohlcv(today, today, "KOSPI")
+            except KeyError as ke:
+                # PyKRX 내부 KeyError (예: '지수명') 즉시 폴백
+                self._logger.warning(f"KOSPI 오늘 조회 실패 (PyKRX 내부 에러): {ke}", exc_info=False)
+
             if df is None or (isinstance(df, pd.DataFrame) and df.empty):
                 yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
-                df = self._stock.get_index_ohlcv(yesterday, yesterday, "KOSPI")
+                try:
+                    df = self._stock.get_index_ohlcv(yesterday, yesterday, "KOSPI")
+                except KeyError as ke:
+                    # 어제 조회도 실패하면 에러 발생
+                    error_msg = str(ke).replace('%', '%%')
+                    self._logger.warning(f"KOSPI 어제 조회도 실패 (PyKRX 불안정): {error_msg}", exc_info=False)
+                    raise ValueError(f"KOSPI 조회 실패: {error_msg}") from ke
+
             if df is None or (isinstance(df, pd.DataFrame) and df.empty):
                 raise ValueError("KOSPI 데이터 없음")
 
@@ -79,11 +92,10 @@ class PyKRXClient(MarketDataClient):
                     self._logger.info(f"KOSPI 조회 성공: {value:.2f}")
                     return value
             raise ValueError(f"종가 컬럼을 찾을 수 없습니다. 사용 가능한 컬럼: {df.columns.tolist()}")
-        except (KeyError, ValueError, AttributeError) as e:
-            # pykrx KRX API 불안정 (KeyError '지수명' 등)
-            # 재귀 로깅 방지 (exc_info=False) + % 포맷 문자열 이스케이프
+        except (ValueError, AttributeError) as e:
+            # 이미 위에서 KeyError는 처리했으므로 여기서는 ValueError/AttributeError만
             error_msg = str(e).replace('%', '%%')
-            self._logger.warning(f"KOSPI 조회 실패 (KRX API 불안정): {error_msg}", exc_info=False)
+            self._logger.warning(f"KOSPI 조회 실패: {error_msg}", exc_info=False)
             raise ValueError(f"KOSPI 조회 실패: {error_msg}") from e
         except Exception as e:
             error_type = type(e).__name__
@@ -95,10 +107,23 @@ class PyKRXClient(MarketDataClient):
         """KOSDAQ 지수 조회 (5분 캐시)"""
         try:
             today = datetime.now().strftime("%Y%m%d")
-            df = self._stock.get_index_ohlcv(today, today, "KOSDAQ")
+            df = None
+            try:
+                df = self._stock.get_index_ohlcv(today, today, "KOSDAQ")
+            except KeyError as ke:
+                # PyKRX 내부 KeyError (예: '지수명') 즉시 폴백
+                self._logger.warning(f"KOSDAQ 오늘 조회 실패 (PyKRX 내부 에러): {ke}", exc_info=False)
+
             if df is None or (isinstance(df, pd.DataFrame) and df.empty):
                 yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
-                df = self._stock.get_index_ohlcv(yesterday, yesterday, "KOSDAQ")
+                try:
+                    df = self._stock.get_index_ohlcv(yesterday, yesterday, "KOSDAQ")
+                except KeyError as ke:
+                    # 어제 조회도 실패하면 에러 발생
+                    error_msg = str(ke).replace('%', '%%')
+                    self._logger.warning(f"KOSDAQ 어제 조회도 실패 (PyKRX 불안정): {error_msg}", exc_info=False)
+                    raise ValueError(f"KOSDAQ 조회 실패: {error_msg}") from ke
+
             if df is None or (isinstance(df, pd.DataFrame) and df.empty):
                 raise ValueError("KOSDAQ 데이터 없음")
 
@@ -113,11 +138,10 @@ class PyKRXClient(MarketDataClient):
                     self._logger.info(f"KOSDAQ 조회 성공: {value:.2f}")
                     return value
             raise ValueError(f"종가 컬럼을 찾을 수 없습니다. 사용 가능한 컬럼: {df.columns.tolist()}")
-        except (KeyError, ValueError, AttributeError) as e:
-            # pykrx KRX API 불안정 (KeyError '지수명' 등)
-            # 재귀 로깅 방지 (exc_info=False) + % 포맷 문자열 이스케이프
+        except (ValueError, AttributeError) as e:
+            # 이미 위에서 KeyError는 처리했으므로 여기서는 ValueError/AttributeError만
             error_msg = str(e).replace('%', '%%')
-            self._logger.warning(f"KOSDAQ 조회 실패 (KRX API 불안정): {error_msg}", exc_info=False)
+            self._logger.warning(f"KOSDAQ 조회 실패: {error_msg}", exc_info=False)
             raise ValueError(f"KOSDAQ 조회 실패: {error_msg}") from e
         except Exception as e:
             error_type = type(e).__name__
