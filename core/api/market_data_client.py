@@ -62,11 +62,16 @@ class PyKRXClient(MarketDataClient):
         try:
             today = datetime.now().strftime("%Y%m%d")
             df = self._stock.get_index_ohlcv(today, today, "KOSPI")
-            if df.empty:
+            if df is None or (isinstance(df, pd.DataFrame) and df.empty):
                 yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
                 df = self._stock.get_index_ohlcv(yesterday, yesterday, "KOSPI")
-            if df.empty:
+            if df is None or (isinstance(df, pd.DataFrame) and df.empty):
                 raise ValueError("KOSPI 데이터 없음")
+
+            # DataFrame 검증
+            if not isinstance(df, pd.DataFrame):
+                raise ValueError(f"예상치 못한 데이터 타입: {type(df)}")
+
             # 컬럼명 폴백 로직
             for col in ['종가', 'Close', 'close', 'CLOSE']:
                 if col in df.columns:
@@ -74,12 +79,12 @@ class PyKRXClient(MarketDataClient):
                     self._logger.info(f"KOSPI 조회 성공: {value:.2f}")
                     return value
             raise ValueError(f"종가 컬럼을 찾을 수 없습니다. 사용 가능한 컬럼: {df.columns.tolist()}")
-        except (KeyError, ValueError) as e:
+        except (KeyError, ValueError, AttributeError) as e:
             # pykrx KRX API 불안정 (KeyError '지수명' 등)
             # 재귀 로깅 방지 (exc_info=False) + % 포맷 문자열 이스케이프
             error_msg = str(e).replace('%', '%%')
             self._logger.warning(f"KOSPI 조회 실패 (KRX API 불안정): {error_msg}", exc_info=False)
-            raise ValueError(f"KOSPI 조회 실패: {str(e)}") from e
+            raise ValueError(f"KOSPI 조회 실패: {error_msg}") from e
         except Exception as e:
             error_type = type(e).__name__
             self._logger.warning(f"KOSPI 조회 실패 (예상치 못한 에러): {error_type}", exc_info=False)
@@ -91,11 +96,16 @@ class PyKRXClient(MarketDataClient):
         try:
             today = datetime.now().strftime("%Y%m%d")
             df = self._stock.get_index_ohlcv(today, today, "KOSDAQ")
-            if df.empty:
+            if df is None or (isinstance(df, pd.DataFrame) and df.empty):
                 yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
                 df = self._stock.get_index_ohlcv(yesterday, yesterday, "KOSDAQ")
-            if df.empty:
+            if df is None or (isinstance(df, pd.DataFrame) and df.empty):
                 raise ValueError("KOSDAQ 데이터 없음")
+
+            # DataFrame 검증
+            if not isinstance(df, pd.DataFrame):
+                raise ValueError(f"예상치 못한 데이터 타입: {type(df)}")
+
             # 컬럼명 폴백 로직
             for col in ['종가', 'Close', 'close', 'CLOSE']:
                 if col in df.columns:
@@ -103,12 +113,12 @@ class PyKRXClient(MarketDataClient):
                     self._logger.info(f"KOSDAQ 조회 성공: {value:.2f}")
                     return value
             raise ValueError(f"종가 컬럼을 찾을 수 없습니다. 사용 가능한 컬럼: {df.columns.tolist()}")
-        except (KeyError, ValueError) as e:
+        except (KeyError, ValueError, AttributeError) as e:
             # pykrx KRX API 불안정 (KeyError '지수명' 등)
             # 재귀 로깅 방지 (exc_info=False) + % 포맷 문자열 이스케이프
             error_msg = str(e).replace('%', '%%')
             self._logger.warning(f"KOSDAQ 조회 실패 (KRX API 불안정): {error_msg}", exc_info=False)
-            raise ValueError(f"KOSDAQ 조회 실패: {str(e)}") from e
+            raise ValueError(f"KOSDAQ 조회 실패: {error_msg}") from e
         except Exception as e:
             error_type = type(e).__name__
             self._logger.warning(f"KOSDAQ 조회 실패 (예상치 못한 에러): {error_type}", exc_info=False)
