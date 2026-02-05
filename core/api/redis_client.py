@@ -126,6 +126,14 @@ def _json_serialize(value: Any) -> bytes:
         if isinstance(obj, (datetime, date)):
             return obj.isoformat()
 
+        # pandas Timestamp 처리 (dict 키로 사용될 수 있음)
+        try:
+            import pandas as pd
+            if isinstance(obj, pd.Timestamp):
+                return obj.isoformat()
+        except ImportError:
+            pass
+
         # pandas DataFrame/Series 처리
         if hasattr(obj, 'to_dict'):
             # DataFrame의 경우 Timestamp 인덱스를 문자열로 변환
@@ -140,6 +148,18 @@ def _json_serialize(value: Any) -> bytes:
 
         # 기본 타입 변환
         return str(obj)
+
+    # DataFrame의 경우 인덱스를 문자열로 변환
+    try:
+        import pandas as pd
+        if isinstance(value, pd.DataFrame):
+            # DatetimeIndex를 문자열로 변환
+            if isinstance(value.index, pd.DatetimeIndex):
+                value_copy = value.copy()
+                value_copy.index = value_copy.index.astype(str)
+                value = value_copy.to_dict(orient='split')
+    except Exception:
+        pass  # 실패 시 원본 값 사용
 
     try:
         return json.dumps(value, default=json_default, ensure_ascii=False).encode('utf-8')
