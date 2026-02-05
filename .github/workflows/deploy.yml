@@ -51,6 +51,17 @@ jobs:
 
             cd /opt/hantu_quant
 
+            # Load environment variables
+            echo "=== Loading Environment Variables ==="
+            if [ -f .env ]; then
+              set -a
+              source .env
+              set +a
+              echo "✅ Environment variables loaded"
+            else
+              echo "⚠️ Warning: .env file not found"
+            fi
+
             echo "=== Server Git Status Check ==="
             CURRENT_BRANCH=$(git branch --show-current)
             echo "Current branch: $CURRENT_BRANCH"
