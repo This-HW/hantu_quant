@@ -79,9 +79,9 @@ class PyKRXClient(MarketDataClient):
             # 재귀 로깅 방지 (exc_info=False) + % 포맷 문자열 이스케이프
             error_msg = str(e).replace('%', '%%')
             self._logger.warning(f"KOSPI 조회 실패 (KRX API 불안정): {error_msg}", exc_info=False)
-            raise ValueError(f"KOSPI 조회 실패: {error_msg}") from e
+            raise ValueError(f"KOSPI 조회 실패: {str(e)}") from e
         except Exception as e:
-            error_type = type(e).__name__.replace('%', '%%')
+            error_type = type(e).__name__
             self._logger.warning(f"KOSPI 조회 실패 (예상치 못한 에러): {error_type}", exc_info=False)
             raise ValueError(f"KOSPI 조회 실패: {error_type}") from e
 
@@ -108,9 +108,9 @@ class PyKRXClient(MarketDataClient):
             # 재귀 로깅 방지 (exc_info=False) + % 포맷 문자열 이스케이프
             error_msg = str(e).replace('%', '%%')
             self._logger.warning(f"KOSDAQ 조회 실패 (KRX API 불안정): {error_msg}", exc_info=False)
-            raise ValueError(f"KOSDAQ 조회 실패: {error_msg}") from e
+            raise ValueError(f"KOSDAQ 조회 실패: {str(e)}") from e
         except Exception as e:
-            error_type = type(e).__name__.replace('%', '%%')
+            error_type = type(e).__name__
             self._logger.warning(f"KOSDAQ 조회 실패 (예상치 못한 에러): {error_type}", exc_info=False)
             raise ValueError(f"KOSDAQ 조회 실패: {error_type}") from e
 
