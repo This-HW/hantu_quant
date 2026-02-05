@@ -63,7 +63,7 @@ class PyKRXClient(MarketDataClient):
             today = datetime.now().strftime("%Y%m%d")
             df = None
             try:
-                df = self._stock.get_index_ohlcv(today, today, "KOSPI")
+                df = self._stock.get_index_ohlcv(today, today, "1001")  # KOSPI (PyKRX 1.2.3+ 티커 코드)
             except KeyError as ke:
                 # PyKRX 내부 KeyError (예: '지수명') 즉시 폴백
                 self._logger.warning(f"KOSPI 오늘 조회 실패 (PyKRX 내부 에러): {ke}", exc_info=False)
@@ -71,7 +71,7 @@ class PyKRXClient(MarketDataClient):
             if df is None or (isinstance(df, pd.DataFrame) and df.empty):
                 yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
                 try:
-                    df = self._stock.get_index_ohlcv(yesterday, yesterday, "KOSPI")
+                    df = self._stock.get_index_ohlcv(yesterday, yesterday, "1001")  # KOSPI
                 except KeyError as ke:
                     # 어제 조회도 실패하면 에러 발생
                     error_msg = str(ke).replace('%', '%%')
@@ -109,7 +109,7 @@ class PyKRXClient(MarketDataClient):
             today = datetime.now().strftime("%Y%m%d")
             df = None
             try:
-                df = self._stock.get_index_ohlcv(today, today, "KOSDAQ")
+                df = self._stock.get_index_ohlcv(today, today, "2001")  # KOSDAQ (PyKRX 1.2.3+ 티커 코드)
             except KeyError as ke:
                 # PyKRX 내부 KeyError (예: '지수명') 즉시 폴백
                 self._logger.warning(f"KOSDAQ 오늘 조회 실패 (PyKRX 내부 에러): {ke}", exc_info=False)
@@ -117,7 +117,7 @@ class PyKRXClient(MarketDataClient):
             if df is None or (isinstance(df, pd.DataFrame) and df.empty):
                 yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
                 try:
-                    df = self._stock.get_index_ohlcv(yesterday, yesterday, "KOSDAQ")
+                    df = self._stock.get_index_ohlcv(yesterday, yesterday, "2001")  # KOSDAQ
                 except KeyError as ke:
                     # 어제 조회도 실패하면 에러 발생
                     error_msg = str(ke).replace('%', '%%')
