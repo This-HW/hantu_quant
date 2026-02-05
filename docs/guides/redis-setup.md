@@ -280,7 +280,8 @@ sudo systemctl status redis-server
 
 ```bash
 # PING 테스트 (비밀번호 필요)
-redis-cli -a YOUR_PASSWORD PING
+# 보안: REDISCLI_AUTH 환경변수 사용 (프로세스 목록에 노출 방지)
+REDISCLI_AUTH="YOUR_PASSWORD" redis-cli PING
 
 # 예상 출력: PONG
 ```
@@ -289,7 +290,7 @@ redis-cli -a YOUR_PASSWORD PING
 
 ```bash
 # maxmemory 확인
-redis-cli -a YOUR_PASSWORD CONFIG GET maxmemory
+REDISCLI_AUTH="YOUR_PASSWORD" redis-cli CONFIG GET maxmemory
 
 # 예상 출력:
 # 1) "maxmemory"
@@ -389,18 +390,24 @@ journalctl -u hantu-scheduler -n 50 | grep -i redis
 # 서비스 상태
 sudo systemctl status redis-server
 
+# 비밀번호 환경변수 설정 (세션 유지)
+export REDISCLI_AUTH="YOUR_PASSWORD"
+
 # 메모리 사용량
-redis-cli -a PASSWORD INFO memory
+redis-cli INFO memory
 
 # 캐시 통계
-redis-cli -a PASSWORD INFO stats
+redis-cli INFO stats
 
 # 연결된 클라이언트
-redis-cli -a PASSWORD CLIENT LIST
+redis-cli CLIENT LIST
 
 # 모든 키 목록 (주의: 프로덕션에서는 SCAN 사용)
-redis-cli -a PASSWORD --scan
+redis-cli --scan
 ```
+
+> **보안 팁**: `redis-cli -a PASSWORD` 대신 `REDISCLI_AUTH` 환경변수를 사용하세요.
+> `-a` 옵션은 `ps aux`에서 비밀번호가 노출됩니다.
 
 ---
 
@@ -544,7 +551,7 @@ journalctl -u hantu-api -n 50 | grep -i redis
 **증상**:
 
 ```bash
-redis-cli -a PASSWORD INFO stats | grep evicted_keys
+REDISCLI_AUTH="PASSWORD" redis-cli INFO stats | grep evicted_keys
 # evicted_keys:1523  (0이 아님)
 ```
 
@@ -570,8 +577,9 @@ redis-cli -a PASSWORD INFO stats | grep evicted_keys
 3. **불필요한 키 삭제**
    ```bash
    # 만료 시간이 긴 키 확인
-   redis-cli -a PASSWORD --scan | while read key; do
-       TTL=$(redis-cli -a PASSWORD TTL "$key")
+   export REDISCLI_AUTH="PASSWORD"
+   redis-cli --scan | while read key; do
+       TTL=$(redis-cli TTL "$key")
        echo "$key: $TTL"
    done | sort -t: -k2 -n
    ```
