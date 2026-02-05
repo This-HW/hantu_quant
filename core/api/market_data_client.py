@@ -74,13 +74,14 @@ class PyKRXClient(MarketDataClient):
                     self._logger.info(f"KOSPI 조회 성공: {value:.2f}")
                     return value
             raise ValueError(f"종가 컬럼을 찾을 수 없습니다. 사용 가능한 컬럼: {df.columns.tolist()}")
-        except KeyError as e:
-            # pykrx KRX 웹사이트 스크래핑 실패 (알려진 이슈 #229)
-            self._logger.warning(f"KOSPI 조회 실패 (KRX API 불안정, KeyError): {e}")
-            raise ValueError(f"KOSPI 조회 실패: {e}") from e
+        except (KeyError, ValueError) as e:
+            # pykrx KRX API 불안정 (KeyError '지수명' 등)
+            # exc_info=False로 재귀 로깅 방지
+            self._logger.warning(f"KOSPI 조회 실패 (KRX API 불안정): {str(e)}")
+            raise ValueError(f"KOSPI 조회 실패: {str(e)}") from e
         except Exception as e:
-            self._logger.warning(f"KOSPI 조회 실패: {e}", exc_info=True)
-            raise ValueError(f"KOSPI 조회 실패: {e}") from e
+            self._logger.warning(f"KOSPI 조회 실패 (예상치 못한 에러): {type(e).__name__}")
+            raise ValueError(f"KOSPI 조회 실패: {type(e).__name__}") from e
 
     @cache_with_ttl(ttl=300, key_prefix="kosdaq_index")
     def get_kosdaq(self) -> float:
@@ -100,13 +101,14 @@ class PyKRXClient(MarketDataClient):
                     self._logger.info(f"KOSDAQ 조회 성공: {value:.2f}")
                     return value
             raise ValueError(f"종가 컬럼을 찾을 수 없습니다. 사용 가능한 컬럼: {df.columns.tolist()}")
-        except KeyError as e:
-            # pykrx KRX 웹사이트 스크래핑 실패 (알려진 이슈 #229)
-            self._logger.warning(f"KOSDAQ 조회 실패 (KRX API 불안정, KeyError): {e}")
-            raise ValueError(f"KOSDAQ 조회 실패: {e}") from e
+        except (KeyError, ValueError) as e:
+            # pykrx KRX API 불안정 (KeyError '지수명' 등)
+            # exc_info=False로 재귀 로깅 방지
+            self._logger.warning(f"KOSDAQ 조회 실패 (KRX API 불안정): {str(e)}")
+            raise ValueError(f"KOSDAQ 조회 실패: {str(e)}") from e
         except Exception as e:
-            self._logger.warning(f"KOSDAQ 조회 실패: {e}", exc_info=True)
-            raise ValueError(f"KOSDAQ 조회 실패: {e}") from e
+            self._logger.warning(f"KOSDAQ 조회 실패 (예상치 못한 에러): {type(e).__name__}")
+            raise ValueError(f"KOSDAQ 조회 실패: {type(e).__name__}") from e
 
     @cache_with_ttl(ttl=600, key_prefix="sector_etf")
     def get_sector_etf_prices(self, etf_ticker: str, period_days: int = 60) -> Optional[pd.DataFrame]:
