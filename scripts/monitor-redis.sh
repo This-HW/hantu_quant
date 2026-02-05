@@ -28,7 +28,24 @@ fi
 ENV_FILE="$APP_DIR/.env"
 
 if [ -f "$ENV_FILE" ]; then
-    REDIS_PASSWORD=$(grep "^REDIS_URL=" "$ENV_FILE" | sed -n 's/.*:\([^@]*\)@.*/\1/p')
+    # Python으로 URL 파싱 및 디코딩 (URL 인코딩된 비밀번호 처리)
+    REDIS_PASSWORD=$(ENV_FILE_PATH="$ENV_FILE" python3 -c '
+import os
+from urllib.parse import urlparse, unquote
+
+env_file = os.environ.get("ENV_FILE_PATH")
+try:
+    with open(env_file) as f:
+        for line in f:
+            if line.startswith("REDIS_URL="):
+                url = line.split("=", 1)[1].strip()
+                parsed = urlparse(url)
+                if parsed.password:
+                    print(unquote(parsed.password))
+                break
+except Exception:
+    pass
+')
 fi
 
 # Redis 연결 확인
