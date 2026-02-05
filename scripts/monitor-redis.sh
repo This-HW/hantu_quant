@@ -51,7 +51,7 @@ fi
 # Redis 연결 확인
 check_redis_connection() {
     if [ -n "$REDIS_PASSWORD" ]; then
-        redis-cli -a "$REDIS_PASSWORD" PING 2>/dev/null | grep -q PONG
+        REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli PING 2>/dev/null | grep -q PONG
     else
         redis-cli PING 2>/dev/null | grep -q PONG
     fi
@@ -60,7 +60,7 @@ check_redis_connection() {
 # Redis 명령어 실행
 redis_cmd() {
     if [ -n "$REDIS_PASSWORD" ]; then
-        redis-cli -a "$REDIS_PASSWORD" --no-auth-warning "$@" 2>/dev/null
+        REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli "$@" 2>/dev/null
     else
         redis-cli "$@" 2>/dev/null
     fi

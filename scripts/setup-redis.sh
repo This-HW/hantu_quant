@@ -85,6 +85,7 @@ log_info "백업 디렉토리 생성: $BACKUP_DIR"
 # 1-4. redis.conf 백업
 if [ -f "$REDIS_CONF" ]; then
     cp "$REDIS_CONF" "$BACKUP_DIR/redis.conf.backup"
+    chmod 600 "$BACKUP_DIR/redis.conf.backup"  # 보안: 소유자만 읽기
     log_info "redis.conf 백업 완료: $BACKUP_DIR/redis.conf.backup"
 else
     log_error "redis.conf 파일을 찾을 수 없습니다: $REDIS_CONF"
@@ -254,7 +255,7 @@ else
 fi
 
 # 검증 2: Redis 연결 테스트
-if redis-cli -a "$REDIS_PASSWORD" PING 2>/dev/null | grep -q PONG; then
+if REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli PING 2>/dev/null | grep -q PONG; then
     log_info "Redis 연결: PONG (성공)"
 else
     log_error "Redis 연결: 실패"
@@ -269,7 +270,7 @@ else
 fi
 
 # 검증 4: 메모리 설정 확인
-MAXMEMORY=$(redis-cli -a "$REDIS_PASSWORD" CONFIG GET maxmemory 2>/dev/null | tail -1)
+MAXMEMORY=$(REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli CONFIG GET maxmemory 2>/dev/null | tail -1)
 if [ "$MAXMEMORY" == "268435456" ]; then  # 256MB = 268435456 bytes
     log_info "메모리 제한: 256MB (설정됨)"
 else
