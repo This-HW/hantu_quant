@@ -128,6 +128,10 @@ def _json_serialize(value: Any) -> bytes:
 
         # pandas DataFrame/Series 처리
         if hasattr(obj, 'to_dict'):
+            # DataFrame의 경우 Timestamp 인덱스를 문자열로 변환
+            if hasattr(obj, 'to_json'):
+                import json as _json
+                return _json.loads(obj.to_json(orient='split', date_format='iso'))
             return obj.to_dict()
 
         # numpy 타입 처리
