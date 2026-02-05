@@ -261,6 +261,30 @@ def get_price(stock_code: str):
 - **초기화**: 매일 00:00 자동 캐시 초기화
 - **보안**: JSON 직렬화 (pickle 대신), SHA-256 해싱
 
+### Redis 설치 및 설정
+
+**자동 설치 (권장)**:
+
+```bash
+# OCI 서버에서 실행
+sudo ./scripts/setup-redis.sh
+```
+
+**모니터링**:
+
+```bash
+./scripts/monitor-redis.sh          # 1회 조회
+./scripts/monitor-redis.sh --watch  # 실시간 (5초 갱신)
+```
+
+**롤백**:
+
+```bash
+sudo ./scripts/rollback-redis.sh
+```
+
+**상세 가이드**: `docs/guides/redis-setup.md` 참조
+
 ---
 
 ## Rate Limiting
@@ -802,6 +826,7 @@ grep "consecutive_failures" logs/*.log
 - [CLI 레퍼런스](docs/CLI_REFERENCE.md)
 - [API 레퍼런스](docs/API_REFERENCE.md)
 - [환경 변수 설정 가이드](docs/guides/env-setup.md) - **.env 설정 및 DATABASE_URL 트러블슈팅**
+- [Redis 설치 가이드](docs/guides/redis-setup.md) - **캐싱 시스템 자동 설치 및 모니터링**
 
 ### 배포 및 인프라
 
