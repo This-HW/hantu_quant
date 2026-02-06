@@ -153,6 +153,11 @@ def _json_serialize(value: Any) -> bytes:
                     else:
                         return str(val)
 
+                # DataFrame/Series의 인덱스를 문자열로 강제 변환 (Timestamp → str)
+                if isinstance(value.index, pd.DatetimeIndex):
+                    value = value.copy()  # 원본 보호
+                    value.index = value.index.astype(str)
+
                 index_list = [convert_index_to_str(idx) for idx in value.index]
 
                 if isinstance(value, pd.DataFrame):
