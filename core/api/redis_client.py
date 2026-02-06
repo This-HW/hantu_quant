@@ -145,7 +145,7 @@ def _json_serialize(value: Any) -> bytes:
         # 기본 타입 변환
         return str(obj)
 
-    # DataFrame의 경우 인덱스와 컬럼을 문자열로 변환
+    # DataFrame의 경우 인덱스와 컬럼을 문자열로 변환 후 dict로 변환
     try:
         import pandas as pd
         if isinstance(value, pd.DataFrame):
@@ -154,7 +154,12 @@ def _json_serialize(value: Any) -> bytes:
             value_copy.index = value_copy.index.astype(str)
             # 컬럼도 항상 문자열로 변환
             value_copy.columns = value_copy.columns.astype(str)
-            value = value_copy.to_dict(orient='split')
+            # orient='index'로 변환하여 모든 키가 문자열이 되도록 보장
+            value = {
+                'index': [str(idx) for idx in value_copy.index.tolist()],
+                'columns': [str(col) for col in value_copy.columns.tolist()],
+                'data': value_copy.values.tolist()
+            }
     except Exception:
         pass  # 실패 시 원본 값 사용
 
