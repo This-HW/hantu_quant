@@ -149,15 +149,18 @@ def _json_serialize(value: Any) -> bytes:
         # 기본 타입 변환
         return str(obj)
 
-    # DataFrame의 경우 인덱스를 문자열로 변환
+    # DataFrame의 경우 인덱스와 컬럼을 문자열로 변환
     try:
         import pandas as pd
         if isinstance(value, pd.DataFrame):
-            # DatetimeIndex를 문자열로 변환
-            if isinstance(value.index, pd.DatetimeIndex):
-                value_copy = value.copy()
+            value_copy = value.copy()
+            # 인덱스가 DatetimeIndex면 문자열로 변환
+            if isinstance(value_copy.index, pd.DatetimeIndex):
                 value_copy.index = value_copy.index.astype(str)
-                value = value_copy.to_dict(orient='split')
+            # 컬럼이 DatetimeIndex면 문자열로 변환
+            if isinstance(value_copy.columns, pd.DatetimeIndex):
+                value_copy.columns = value_copy.columns.astype(str)
+            value = value_copy.to_dict(orient='split')
     except Exception:
         pass  # 실패 시 원본 값 사용
 

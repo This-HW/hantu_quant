@@ -47,7 +47,9 @@ class TestKISWebSocketMessageParsing:
         ask_volumes = "|".join([str(100 * (i+1)) for i in range(10)])
         bid_volumes = "|".join([str(200 * (i+1)) for i in range(10)])
 
-        body = f"005930|153000|X|{ask_prices}|{bid_prices}|{ask_volumes}|{bid_volumes}|5500|11000|0|0|0"
+        # 필드 60개 맞추기: stock_code|timestamp|X + ask_prices(10) + bid_prices(10) + ask_volumes(10) + bid_volumes(10) + total_ask|total_bid + padding(15개)
+        padding = "|".join(["0"] * 15)
+        body = f"005930|153000|X|{ask_prices}|{bid_prices}|{ask_volumes}|{bid_volumes}|5500|11000|{padding}"
 
         result = client._normalize_kis_message("H0STASP0", body)
 
