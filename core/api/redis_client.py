@@ -149,30 +149,30 @@ def _json_serialize(value: Any) -> bytes:
     try:
         import pandas as pd
         if isinstance(value, (pd.DataFrame, pd.Series)):
-            value_copy = value.copy()
-            # 인덱스를 항상 문자열로 변환 (Timestamp, DatetimeIndex 등 모두 처리)
-            if hasattr(value_copy, 'index'):
-                value_copy.index = value_copy.index.astype(str)
+            # 인덱스를 문자열 리스트로 변환
+            index_list = [str(idx) for idx in value.index.tolist()]
 
-            if isinstance(value_copy, pd.DataFrame):
-                # 컬럼도 항상 문자열로 변환
-                value_copy.columns = value_copy.columns.astype(str)
+            if isinstance(value, pd.DataFrame):
+                # 컬럼도 문자열 리스트로 변환
+                columns_list = [str(col) for col in value.columns.tolist()]
                 # 구조화된 형식으로 변환 (모든 키가 문자열)
                 value = {
                     '__pandas_type__': 'dataframe',
-                    'index': [str(idx) for idx in value_copy.index.tolist()],
-                    'columns': [str(col) for col in value_copy.columns.tolist()],
-                    'data': value_copy.values.tolist()
+                    'index': index_list,
+                    'columns': columns_list,
+                    'data': value.values.tolist()
                 }
             else:  # Series
                 value = {
                     '__pandas_type__': 'series',
-                    'index': [str(idx) for idx in value_copy.index.tolist()],
-                    'data': value_copy.tolist()
+                    'index': index_list,
+                    'data': value.tolist()
                 }
+    except ImportError:
+        pass  # pandas 미설치 시 무시
     except Exception as e:
-        logger.debug(f"DataFrame/Series 전처리 실패, 원본 사용: {e}")
-        pass  # 실패 시 원본 값 사용
+        logger.error(f"DataFrame/Series 전처리 실패: {e}", exc_info=True)
+        raise TypeError(f"DataFrame/Series 직렬화 불가능: {e}") from e
 
     try:
         return json.dumps(value, default=json_default, ensure_ascii=False).encode('utf-8')
