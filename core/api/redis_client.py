@@ -131,12 +131,11 @@ def _json_serialize(value: Any) -> bytes:
             import pandas as pd
             if isinstance(obj, pd.Timestamp):
                 return obj.isoformat()
+            # DataFrame/Series는 여기서 처리하지 않음 (아래 메인 로직에서 처리)
+            if isinstance(obj, (pd.DataFrame, pd.Series)):
+                raise TypeError(f"DataFrame/Series는 메인 직렬화 로직에서 처리해야 함")
         except ImportError:
             pass
-
-        # pandas DataFrame/Series 처리
-        if hasattr(obj, 'to_dict'):
-            return obj.to_dict()
 
         # numpy 타입 처리
         if hasattr(obj, 'tolist'):
