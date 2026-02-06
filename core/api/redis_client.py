@@ -149,12 +149,18 @@ def _json_serialize(value: Any) -> bytes:
     try:
         import pandas as pd
         if isinstance(value, (pd.DataFrame, pd.Series)):
-            # 인덱스를 문자열 리스트로 변환
-            index_list = [str(idx) for idx in value.index.tolist()]
+            # 인덱스를 문자열 리스트로 변환 (Timestamp는 ISO 형식으로)
+            def convert_index_to_str(idx):
+                """인덱스 항목을 문자열로 변환 (Timestamp → ISO 형식)"""
+                if isinstance(idx, pd.Timestamp):
+                    return idx.isoformat()
+                return str(idx)
+
+            index_list = [convert_index_to_str(idx) for idx in value.index]
 
             if isinstance(value, pd.DataFrame):
                 # 컬럼도 문자열 리스트로 변환
-                columns_list = [str(col) for col in value.columns.tolist()]
+                columns_list = [convert_index_to_str(col) for col in value.columns]
                 # 구조화된 형식으로 변환 (모든 키가 문자열)
                 value = {
                     '__pandas_type__': 'dataframe',
