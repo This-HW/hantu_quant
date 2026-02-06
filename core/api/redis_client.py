@@ -145,22 +145,33 @@ def _json_serialize(value: Any) -> bytes:
         # 기본 타입 변환
         return str(obj)
 
-    # DataFrame의 경우 인덱스와 컬럼을 문자열로 변환 후 dict로 변환
+    # DataFrame/Series의 경우 인덱스와 컬럼을 문자열로 변환 후 dict로 변환
     try:
         import pandas as pd
-        if isinstance(value, pd.DataFrame):
+        if isinstance(value, (pd.DataFrame, pd.Series)):
             value_copy = value.copy()
             # 인덱스를 항상 문자열로 변환 (Timestamp, DatetimeIndex 등 모두 처리)
-            value_copy.index = value_copy.index.astype(str)
-            # 컬럼도 항상 문자열로 변환
-            value_copy.columns = value_copy.columns.astype(str)
-            # orient='index'로 변환하여 모든 키가 문자열이 되도록 보장
-            value = {
-                'index': [str(idx) for idx in value_copy.index.tolist()],
-                'columns': [str(col) for col in value_copy.columns.tolist()],
-                'data': value_copy.values.tolist()
-            }
-    except Exception:
+            if hasattr(value_copy, 'index'):
+                value_copy.index = value_copy.index.astype(str)
+
+            if isinstance(value_copy, pd.DataFrame):
+                # 컬럼도 항상 문자열로 변환
+                value_copy.columns = value_copy.columns.astype(str)
+                # 구조화된 형식으로 변환 (모든 키가 문자열)
+                value = {
+                    '__pandas_type__': 'dataframe',
+                    'index': [str(idx) for idx in value_copy.index.tolist()],
+                    'columns': [str(col) for col in value_copy.columns.tolist()],
+                    'data': value_copy.values.tolist()
+                }
+            else:  # Series
+                value = {
+                    '__pandas_type__': 'series',
+                    'index': [str(idx) for idx in value_copy.index.tolist()],
+                    'data': value_copy.tolist()
+                }
+    except Exception as e:
+        logger.debug(f"DataFrame/Series 전처리 실패, 원본 사용: {e}")
         pass  # 실패 시 원본 값 사용
 
     try:
@@ -176,13 +187,34 @@ def _json_deserialize(data: bytes) -> Any:
         data: JSON bytes
 
     Returns:
-        역직렬화된 객체
+        역직렬화된 객체 (DataFrame/Series 복원 포함)
 
     Raises:
         ValueError: 잘못된 JSON 형식
     """
     try:
-        return json.loads(data.decode('utf-8'))
+        obj = json.loads(data.decode('utf-8'))
+
+        # pandas DataFrame/Series 복원
+        if isinstance(obj, dict) and '__pandas_type__' in obj:
+            try:
+                import pandas as pd
+                if obj['__pandas_type__'] == 'dataframe':
+                    return pd.DataFrame(
+                        data=obj['data'],
+                        index=obj['index'],
+                        columns=obj['columns']
+                    )
+                elif obj['__pandas_type__'] == 'series':
+                    return pd.Series(
+                        data=obj['data'],
+                        index=obj['index']
+                    )
+            except Exception as e:
+                logger.warning(f"pandas 객체 복원 실패, dict 반환: {e}")
+                return obj
+
+        return obj
     except Exception as e:
         logger.error(f"JSON 역직렬화 실패: {e}", exc_info=True)
         raise ValueError("잘못된 JSON 데이터") from e
