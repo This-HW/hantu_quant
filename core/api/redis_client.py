@@ -121,31 +121,7 @@ def _json_serialize(value: Any) -> bytes:
     Raises:
         TypeError: 직렬화 불가능한 타입
     """
-    def json_default(obj):
-        """JSON 직렬화 기본 핸들러"""
-        # datetime 처리
-        if isinstance(obj, (datetime, date)):
-            return obj.isoformat()
-
-        # pandas Timestamp 처리 (dict 키로 사용될 수 있음)
-        try:
-            import pandas as pd
-            if isinstance(obj, pd.Timestamp):
-                return obj.isoformat()
-            # DataFrame/Series는 여기서 처리하지 않음 (아래 메인 로직에서 처리)
-            if isinstance(obj, (pd.DataFrame, pd.Series)):
-                raise TypeError(f"DataFrame/Series는 메인 직렬화 로직에서 처리해야 함")
-        except ImportError:
-            pass
-
-        # numpy 타입 처리
-        if hasattr(obj, 'tolist'):
-            return obj.tolist()
-
-        # 기본 타입 변환
-        return str(obj)
-
-    # DataFrame/Series의 경우 인덱스와 컬럼을 문자열로 변환 후 dict로 변환
+    # DataFrame/Series의 경우 먼저 dict로 변환 (json.dumps 호출 전)
     try:
         import pandas as pd
         if isinstance(value, (pd.DataFrame, pd.Series)):
@@ -201,6 +177,7 @@ def _json_serialize(value: Any) -> bytes:
                         'index': index_list,
                         'data': data_list
                     }
+                logger.debug(f"DataFrame/Series를 dict로 변환 완료: {type(value).__name__}")
             except Exception as e:
                 # DataFrame 전처리 실패 시 즉시 raise (원본을 json.dumps로 넘기지 않음)
                 logger.error(f"DataFrame/Series 전처리 실패: {e}", exc_info=True)
@@ -209,6 +186,31 @@ def _json_serialize(value: Any) -> bytes:
         pass  # pandas 미설치 시 무시
     except TypeError:
         raise  # DataFrame 직렬화 실패는 그대로 전달
+
+    def json_default(obj):
+        """JSON 직렬화 기본 핸들러 (남은 특수 타입 처리)"""
+        # datetime 처리
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+
+        # pandas Timestamp 처리
+        try:
+            import pandas as pd
+            if isinstance(obj, pd.Timestamp):
+                return obj.isoformat()
+            # DataFrame/Series가 여기까지 오면 안됨 (위에서 사전 처리됨)
+            if isinstance(obj, (pd.DataFrame, pd.Series)):
+                logger.error("DataFrame/Series가 json_default까지 전달됨 (사전 처리 누락)")
+                raise TypeError(f"DataFrame/Series는 사전 처리되어야 함")
+        except ImportError:
+            pass
+
+        # numpy 타입 처리
+        if hasattr(obj, 'tolist'):
+            return obj.tolist()
+
+        # 기본 타입 변환
+        return str(obj)
 
     try:
         return json.dumps(value, default=json_default, ensure_ascii=False).encode('utf-8')
