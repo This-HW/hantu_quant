@@ -13,6 +13,7 @@ import time
 import hashlib
 import functools
 import asyncio
+import numpy as np
 from collections import OrderedDict
 from typing import Any, Optional, Callable, Dict
 from datetime import datetime, date
@@ -148,36 +149,66 @@ def _json_serialize(value: Any) -> bytes:
     try:
         import pandas as pd
         if isinstance(value, (pd.DataFrame, pd.Series)):
-            # 인덱스를 문자열 리스트로 변환 (Timestamp는 ISO 형식으로)
-            def convert_index_to_str(idx):
-                """인덱스 항목을 문자열로 변환 (Timestamp → ISO 형식)"""
-                if isinstance(idx, pd.Timestamp):
-                    return idx.isoformat()
-                return str(idx)
+            try:
+                # 인덱스를 문자열 리스트로 변환 (Timestamp는 ISO 형식으로)
+                def convert_index_to_str(idx):
+                    """인덱스/컬럼을 JSON 직렬화 가능한 문자열로 변환"""
+                    if isinstance(idx, pd.Timestamp):
+                        return idx.isoformat()
+                    elif pd.isna(idx):
+                        return None
+                    else:
+                        return str(idx)
 
-            index_list = [convert_index_to_str(idx) for idx in value.index]
+                def convert_value(val):
+                    """데이터 값을 JSON 직렬화 가능한 타입으로 변환 (숫자는 유지)"""
+                    if pd.isna(val):
+                        return None
+                    elif isinstance(val, (int, np.integer)):
+                        return int(val)
+                    elif isinstance(val, (float, np.floating)):
+                        return float(val)
+                    elif isinstance(val, (bool, np.bool_)):
+                        return bool(val)
+                    elif isinstance(val, str):
+                        return val
+                    elif isinstance(val, pd.Timestamp):
+                        return val.isoformat()
+                    else:
+                        return str(val)
 
-            if isinstance(value, pd.DataFrame):
-                # 컬럼도 문자열 리스트로 변환
-                columns_list = [convert_index_to_str(col) for col in value.columns]
-                # 구조화된 형식으로 변환 (모든 키가 문자열)
-                value = {
-                    '__pandas_type__': 'dataframe',
-                    'index': index_list,
-                    'columns': columns_list,
-                    'data': value.values.tolist()
-                }
-            else:  # Series
-                value = {
-                    '__pandas_type__': 'series',
-                    'index': index_list,
-                    'data': value.tolist()
-                }
+                index_list = [convert_index_to_str(idx) for idx in value.index]
+
+                if isinstance(value, pd.DataFrame):
+                    # 컬럼도 문자열 리스트로 변환
+                    columns_list = [convert_index_to_str(col) for col in value.columns]
+                    # 데이터 값은 타입 유지 (숫자는 숫자로)
+                    data_list = []
+                    for row in value.values:
+                        data_list.append([convert_value(v) for v in row])
+
+                    # 구조화된 형식으로 변환 (모든 키가 문자열)
+                    value = {
+                        '__pandas_type__': 'dataframe',
+                        'index': index_list,
+                        'columns': columns_list,
+                        'data': data_list
+                    }
+                else:  # Series
+                    data_list = [convert_value(v) for v in value]
+                    value = {
+                        '__pandas_type__': 'series',
+                        'index': index_list,
+                        'data': data_list
+                    }
+            except Exception as e:
+                # DataFrame 전처리 실패 시 즉시 raise (원본을 json.dumps로 넘기지 않음)
+                logger.error(f"DataFrame/Series 전처리 실패: {e}", exc_info=True)
+                raise TypeError(f"DataFrame/Series 직렬화 불가능: {e}") from e
     except ImportError:
         pass  # pandas 미설치 시 무시
-    except Exception as e:
-        logger.error(f"DataFrame/Series 전처리 실패: {e}", exc_info=True)
-        raise TypeError(f"DataFrame/Series 직렬화 불가능: {e}") from e
+    except TypeError:
+        raise  # DataFrame 직렬화 실패는 그대로 전달
 
     try:
         return json.dumps(value, default=json_default, ensure_ascii=False).encode('utf-8')
