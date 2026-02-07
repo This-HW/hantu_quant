@@ -109,8 +109,29 @@ is_tunnel_running() {
     return 1  # Not running
 }
 
+# Detect environment
+detect_environment() {
+    local current_path
+    current_path=$(pwd)
+
+    # Server environment - no SSH tunnel needed
+    if [[ "$current_path" == /home/ubuntu/* ]] || [[ "$current_path" == /opt/* ]]; then
+        return 1  # Server environment
+    fi
+
+    # Local environment - SSH tunnel needed
+    return 0
+}
+
 # Start SSH tunnel
 start_tunnel() {
+    # Check if we're in server environment
+    if ! detect_environment; then
+        echo -e "${YELLOW}⭕ Server environment detected - SSH tunnel not needed${NC}"
+        log_info "Server environment detected - DB is on localhost, SSH tunnel not needed"
+        return 0
+    fi
+
     log_info "Starting SSH tunnel..."
 
     # Check if already running
@@ -205,6 +226,19 @@ show_status() {
     echo "Remote: ${REMOTE_HOST}:${REMOTE_PORT}"
     echo "Local:  localhost:${LOCAL_PORT}"
     echo ""
+
+    # Check environment
+    if ! detect_environment; then
+        echo -e "Environment: ${GREEN}Server${NC}"
+        echo -e "Status: ${GREEN}✅ SSH tunnel not needed (DB is local)${NC}"
+        echo ""
+        echo "DB Connection:"
+        echo "  Host: localhost"
+        echo "  Port: ${REMOTE_PORT}"
+        return 0
+    fi
+
+    echo -e "Environment: ${YELLOW}Local${NC}"
 
     if is_tunnel_running; then
         local pid
