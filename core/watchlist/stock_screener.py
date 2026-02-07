@@ -17,6 +17,8 @@ from core.utils.log_utils import get_logger
 from core.interfaces.trading import IStockScreener, ScreeningResult
 from core.plugins.decorators import plugin
 from core.di.injector import inject
+from core.api.rest_client import RestClient
+from core.daily_selection.price_analyzer import TechnicalIndicators
 
 # 새로운 아키텍처 imports - 사용 가능할 때만 import
 try:
@@ -62,6 +64,7 @@ class StockScreener(IStockScreener):
         """초기화 메서드"""
         self._config = config or APIConfig()
         self._logger = logger or get_logger(__name__)
+        self._rest_client = RestClient()
         self._v_screening_criteria = self._load_screening_criteria()
         self._v_sector_data = {}
         self._logger.info("StockScreener 초기화 완료 (새 아키텍처)")
@@ -1114,49 +1117,103 @@ class StockScreener(IStockScreener):
                     else:
                         _v_sector = "기타"
 
-            # 현재는 KRX 기본 정보만 사용하고, 주가/기술적 지표는 기본값 사용
-            # TODO: 추후 한국투자증권 API 연동 시 실제 데이터로 교체
+            # 한국투자증권 API를 통한 실제 데이터 조회
             try:
-                # 임시로 기본값 사용 (추후 실제 API 연동)
-                import random
+                # 1. 현재가 및 기본 정보 조회
+                price_data = self._rest_client.get_current_price(p_stock_code)
+                if not price_data:
+                    self._logger.warning(f"현재가 조회 실패 - {p_stock_code}")
+                    return None
 
-                # 종목별로 다른 값을 생성하되 일관성 유지
-                random.seed(hash(p_stock_code) % 1000)
+                _v_current_price = price_data.get("current_price", 0)
+                _v_volume = price_data.get("volume", 0)
 
-                _v_current_price = random.randint(10000, 100000)
-                _v_volume = random.randint(100000, 10000000)
-                _v_market_cap = random.randint(1000000000, 100000000000000)
+                # 2. 종목 상세 정보 조회 (시가총액, PER, PBR 등)
+                stock_info = self._rest_client.get_stock_info(p_stock_code)
+                if stock_info:
+                    _v_market_cap = stock_info.get("market_cap", 0)
+                    _v_per = stock_info.get("per", 0)
+                    _v_pbr = stock_info.get("pbr", 0)
+                else:
+                    _v_market_cap = 0
+                    _v_per = 0
+                    _v_pbr = 0
 
-                # 기술적 지표들 (스크리닝 통과 가능한 범위로 설정)
-                _v_ma_20 = _v_current_price * random.uniform(0.95, 1.02)
-                _v_ma_60 = _v_current_price * random.uniform(0.90, 1.00)
-                _v_ma_120 = _v_current_price * random.uniform(0.85, 0.98)
-                _v_rsi = random.uniform(35, 65)  # 30-70 범위
-                _v_volume_ratio = random.uniform(1.0, 3.0)
-                _v_price_momentum_1m = random.uniform(-5, 15)
-                _v_price_momentum_3m = random.uniform(-10, 25)
-                _v_price_momentum_6m = random.uniform(-15, 35)
-                _v_volatility = random.uniform(0.15, 0.35)
+                # 3. 일봉 데이터 조회 (기술적 지표 계산용)
+                chart_df = self._rest_client.get_daily_chart(p_stock_code, period_days=120)
+
+                if chart_df is not None and len(chart_df) > 0:
+                    # 이동평균 계산
+                    if len(chart_df) >= 20:
+                        _v_ma_20 = chart_df["close"].tail(20).mean()
+                    else:
+                        _v_ma_20 = _v_current_price
+
+                    if len(chart_df) >= 60:
+                        _v_ma_60 = chart_df["close"].tail(60).mean()
+                    else:
+                        _v_ma_60 = _v_current_price
+
+                    if len(chart_df) >= 120:
+                        _v_ma_120 = chart_df["close"].tail(120).mean()
+                    else:
+                        _v_ma_120 = _v_current_price
+
+                    # RSI 계산 (14일 기준) - TechnicalIndicators 사용 (SSOT)
+                    prices_list = chart_df["close"].values.tolist()
+                    _v_rsi = TechnicalIndicators.calculate_rsi(prices_list, p_period=14)
+
+                    # 거래량 비율 (최근 20일 평균 대비)
+                    if len(chart_df) >= 20:
+                        avg_volume = chart_df["volume"].tail(20).mean()
+                        _v_volume_ratio = _v_volume / avg_volume if avg_volume > 0 else 1.0
+                    else:
+                        _v_volume_ratio = 1.0
+
+                    # 가격 모멘텀 계산
+                    if len(chart_df) >= 20:  # 1개월 (약 20 거래일)
+                        price_1m_ago = chart_df["close"].iloc[-20]
+                        _v_price_momentum_1m = ((_v_current_price - price_1m_ago) / price_1m_ago) * 100
+                    else:
+                        _v_price_momentum_1m = 0.0
+
+                    if len(chart_df) >= 60:  # 3개월 (약 60 거래일)
+                        price_3m_ago = chart_df["close"].iloc[-60]
+                        _v_price_momentum_3m = ((_v_current_price - price_3m_ago) / price_3m_ago) * 100
+                    else:
+                        _v_price_momentum_3m = 0.0
+
+                    if len(chart_df) >= 120:  # 6개월 (약 120 거래일)
+                        price_6m_ago = chart_df["close"].iloc[-120]
+                        _v_price_momentum_6m = ((_v_current_price - price_6m_ago) / price_6m_ago) * 100
+                    else:
+                        _v_price_momentum_6m = 0.0
+
+                    # 변동성 계산 (20일 표준편차를 평균으로 나눔)
+                    if len(chart_df) >= 20:
+                        returns = chart_df["close"].pct_change().tail(20)
+                        _v_volatility = returns.std() * np.sqrt(252)  # 연율화
+                    else:
+                        _v_volatility = 0.0
+                else:
+                    # 차트 데이터 없으면 기본값
+                    _v_ma_20 = _v_current_price
+                    _v_ma_60 = _v_current_price
+                    _v_ma_120 = _v_current_price
+                    _v_rsi = 50.0
+                    _v_volume_ratio = 1.0
+                    _v_price_momentum_1m = 0.0
+                    _v_price_momentum_3m = 0.0
+                    _v_price_momentum_6m = 0.0
+                    _v_volatility = 0.0
 
                 self._logger.debug(
-                    f"기본값 사용 - {p_stock_code} ({_v_stock_name}): 가격={_v_current_price:,}, 거래량={_v_volume:,}"
+                    f"실제 데이터 조회 완료 - {p_stock_code} ({_v_stock_name}): 가격={_v_current_price:,}, 거래량={_v_volume:,}"
                 )
 
             except Exception as e:
-                self._logger.warning(f"기본값 생성 실패 - {p_stock_code}: {e}")
-                # 최종 기본값
-                _v_current_price = 50000
-                _v_volume = 1000000
-                _v_market_cap = 1000000000000
-                _v_ma_20 = 49000
-                _v_ma_60 = 48000
-                _v_ma_120 = 47000
-                _v_rsi = 55.0
-                _v_volume_ratio = 1.8
-                _v_price_momentum_1m = 8.0
-                _v_price_momentum_3m = 12.0
-                _v_price_momentum_6m = 18.0
-                _v_volatility = 0.25
+                self._logger.error(f"주식 데이터 조회 실패 - {p_stock_code}: {e}", exc_info=True)
+                return None
 
             # 종합 데이터 구성
             _v_stock_data = {
@@ -1167,14 +1224,14 @@ class StockScreener(IStockScreener):
                 "market_cap": _v_market_cap,
                 "current_price": _v_current_price,
                 "volume": _v_volume,
-                # 재무 데이터 (종목별로 다양한 값 생성)
-                "roe": random.uniform(5.0, 25.0),  # 5-25% 범위
-                "per": random.uniform(8.0, 20.0),  # 8-20배 범위
-                "pbr": random.uniform(0.8, 3.0),  # 0.8-3.0배 범위
-                "debt_ratio": random.uniform(20.0, 80.0),  # 20-80% 범위
-                "revenue_growth": random.uniform(-5.0, 20.0),  # -5% ~ 20% 범위
-                "operating_margin": random.uniform(3.0, 25.0),  # 3-25% 범위
-                # 기술적 데이터 (실제 계산값 또는 기본값)
+                # 재무 데이터 (API에서 조회한 실제 값 또는 기본값)
+                "roe": 0.0,  # TODO: 재무제표 API 연동 시 실제 데이터로 교체
+                "per": _v_per,  # get_stock_info()에서 조회
+                "pbr": _v_pbr,  # get_stock_info()에서 조회
+                "debt_ratio": 0.0,  # TODO: 재무제표 API 연동 시 실제 데이터로 교체
+                "revenue_growth": 0.0,  # TODO: 재무제표 API 연동 시 실제 데이터로 교체
+                "operating_margin": 0.0,  # TODO: 재무제표 API 연동 시 실제 데이터로 교체
+                # 기술적 데이터 (실제 계산값)
                 "ma_20": _v_ma_20,
                 "ma_60": _v_ma_60,
                 "ma_120": _v_ma_120,
@@ -1182,12 +1239,12 @@ class StockScreener(IStockScreener):
                 "volume_ratio": _v_volume_ratio,
                 "price_momentum_1m": _v_price_momentum_1m,
                 "volatility": _v_volatility,
-                # 모멘텀 데이터 (종목별로 다양한 값 생성)
-                "relative_strength": random.uniform(-0.1, 0.3),  # -10% ~ 30% 범위
+                # 모멘텀 데이터 (실제 계산값)
+                "relative_strength": 0.0,  # TODO: 시장 대비 상대 강도 계산 로직 추가
                 "price_momentum_3m": _v_price_momentum_3m,
                 "price_momentum_6m": _v_price_momentum_6m,
-                "volume_momentum": random.uniform(0.1, 0.5),  # 10% ~ 50% 범위
-                "sector_momentum": random.uniform(-0.05, 0.15),  # -5% ~ 15% 범위
+                "volume_momentum": 0.0,  # TODO: 거래량 모멘텀 계산 로직 추가
+                "sector_momentum": 0.0,  # TODO: 섹터 모멘텀 계산 로직 추가
             }
 
             return _v_stock_data

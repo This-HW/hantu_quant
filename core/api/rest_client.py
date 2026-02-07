@@ -2,9 +2,9 @@
 REST API client module.
 """
 
-import logging
 import os
 import time
+import logging  # tenacity의 before_sleep_log에서 logging.WARNING 사용
 import requests
 import fcntl
 import tempfile
@@ -24,8 +24,9 @@ from tenacity import (
 from core.config import settings
 from core.config.api_config import APIConfig, KISErrorCode, KISEndpoint
 from core.api.redis_client import cache_with_ttl, invalidate_function_cache
+from core.utils.log_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # 글로벌 Rate Limiter (프로세스/스레드 간 공유)
 _RATE_LIMIT_LOCK_FILE = os.path.join(tempfile.gettempdir(), "hantu_api_rate_limit.lock")
@@ -1084,3 +1085,7 @@ class KISRestClient:
         self.clear_daily_chart_cache()
         self.clear_stock_info_cache()
         logger.info("모든 REST API 캐시 무효화 완료")
+
+
+# 하위 호환성 별칭
+RestClient = KISRestClient
