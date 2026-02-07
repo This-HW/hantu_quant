@@ -417,6 +417,13 @@ class IntegratedScheduler:
         schedule.every().thursday.at("16:00").do(self._run_market_close_tasks)
         schedule.every().friday.at("16:00").do(self._run_market_close_tasks)
 
+        # 장 마감 후 자동 유지보수 (매일 16:30, 평일만)
+        schedule.every().monday.at("16:30").do(self._run_auto_maintenance)
+        schedule.every().tuesday.at("16:30").do(self._run_auto_maintenance)
+        schedule.every().wednesday.at("16:30").do(self._run_auto_maintenance)
+        schedule.every().thursday.at("16:30").do(self._run_auto_maintenance)
+        schedule.every().friday.at("16:30").do(self._run_auto_maintenance)
+
         # Phase 4: AI 학습 시스템 (일일 성과 분석: 매일 17:00)
         schedule.every().day.at("17:00").do(self._run_daily_performance_analysis)
 
@@ -488,7 +495,9 @@ class IntegratedScheduler:
         print("├─ 자동 매매 시작: 매일 09:00 (평일)")
         print("├─ 자동 매매 중지: 매일 15:30 (평일)")
         print("├─ 매매 헬스체크: 장 시간 중 30분마다 (평일)")
+        print("│  └─ 문제 발견 시: 텔레그램 알람 + 자동 유지보수 트리거")
         print("├─ 마감 후 정리: 매일 16:00")
+        print("├─ 자동 유지보수: 매일 16:30 (평일, 장 마감 후)")
         print("├─ AI 성과 분석: 매일 17:00")
         print("├─ 재무 데이터 수집: 매주 토요일 10:00")
         print("│  └─ 자동 유지보수: 토요일 11:00 (데이터 수집 후)")
@@ -1713,11 +1722,12 @@ class IntegratedScheduler:
             print(f"시스템 모니터링 시작 오류: {e}")
 
     def _run_health_check(self):
-        """자동 매매 헬스체크 실행"""
+        """자동 매매 헬스체크 실행 (문제 발견 시 알람 + 자동 수정)"""
         try:
             logger.info("=== 자동 매매 헬스체크 시작 ===")
 
             from core.monitoring.trading_health_checker import get_health_checker
+            from core.utils.telegram_notifier import get_telegram_notifier
 
             health_checker = get_health_checker()
             result = health_checker.check_trading_health()
@@ -1725,10 +1735,57 @@ class IntegratedScheduler:
             if result.is_healthy:
                 logger.info("헬스체크 완료: 시스템 정상")
             else:
-                logger.warning(f"헬스체크 완료: {len(result.issues)}개 문제 발견")
+                # 문제 발견 시 처리
+                issue_count = len(result.issues)
+                logger.warning(f"헬스체크 완료: {issue_count}개 문제 발견")
+
+                # 1. 텔레그램 알람 전송
+                try:
+                    notifier = get_telegram_notifier()
+                    if notifier.is_enabled():
+                        issues_text = "\n".join([f"• {issue}" for issue in result.issues[:5]])  # 최대 5개만
+                        message = (
+                            f"🚨 장중 헬스체크 문제 발견\n\n"
+                            f"발견 시각: {datetime.now().strftime('%H:%M:%S')}\n"
+                            f"문제 수: {issue_count}개\n\n"
+                            f"주요 문제:\n{issues_text}"
+                        )
+                        if issue_count > 5:
+                            message += f"\n... 외 {issue_count - 5}개"
+
+                        notifier.send_message(message, level="warning")
+                        logger.info("헬스체크 알람 전송 완료")
+                except Exception as e:
+                    logger.error(f"헬스체크 알람 전송 실패: {e}", exc_info=True)
+
+                # 2. 심각한 문제 시 자동 유지보수 트리거
+                critical_issues = [issue for issue in result.issues if "critical" in issue.lower() or "심각" in issue.lower()]
+                if critical_issues:
+                    logger.warning(f"심각한 문제 {len(critical_issues)}개 발견 - 자동 유지보수 트리거")
+                    try:
+                        notifier = get_telegram_notifier()
+                        if notifier.is_enabled():
+                            notifier.send_message(
+                                "⚠️ 심각한 문제 발견 - 자동 유지보수 시작",
+                                level="high"
+                            )
+                        self._run_auto_maintenance()
+                    except Exception as e:
+                        logger.error(f"자동 유지보수 트리거 실패: {e}", exc_info=True)
 
         except Exception as e:
             logger.error(f"헬스체크 실행 오류: {e}", exc_info=True)
+            # 헬스체크 자체가 실패하면 알람
+            try:
+                from core.utils.telegram_notifier import get_telegram_notifier
+                notifier = get_telegram_notifier()
+                if notifier.is_enabled():
+                    notifier.send_message(
+                        f"❌ 헬스체크 실행 실패\n\n오류: {str(e)}",
+                        level="high"
+                    )
+            except Exception:
+                pass  # 알람 실패는 무시
 
     def _run_auto_maintenance(self):
         """자동 유지보수 실행"""
