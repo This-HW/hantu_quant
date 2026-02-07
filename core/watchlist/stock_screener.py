@@ -67,12 +67,118 @@ class StockScreener(IStockScreener):
         self._rest_client = RestClient()
         self._v_screening_criteria = self._load_screening_criteria()
         self._v_sector_data = {}
+        # Task 5: 종목 리스트 캐싱
+        self._stock_list_cache: Optional[List[Dict]] = None
+        self._stock_list_cache_time: Optional[datetime] = None
+        self._cache_ttl_seconds = 3600  # 1시간 캐시
+        # Task 4: 섹터 매핑 외부화
+        self._sector_mapping = self._load_sector_mapping()
         self._logger.info("StockScreener 초기화 완료 (새 아키텍처)")
 
     def initialize(self):
         """플러그인 초기화 메서드 (플러그인 데코레이터 요구사항)"""
         self._logger.info("StockScreener 플러그인 초기화 완료")
         return True
+
+    def _infer_sector(self, p_stock_code: str, p_stock_name: str) -> str:
+        """섹터 추론 (Task 3 & 4)"""
+        # 1단계: 종목 코드 직접 매핑
+        _v_sector = self._sector_mapping.get("code_map", {}).get(p_stock_code)
+        if _v_sector:
+            return _v_sector
+
+        # 2단계: 종목명 키워드 매칭
+        _v_name_lower = p_stock_name.lower()
+        _v_name_keywords = self._sector_mapping.get("name_keywords", {})
+
+        for _v_sector, _v_keywords in _v_name_keywords.items():
+            if any(keyword in _v_name_lower for keyword in _v_keywords):
+                return _v_sector
+
+        # 3단계: 종목 코드 숫자 패턴 기반
+        if p_stock_code.isdigit():
+            _v_code_int = int(p_stock_code)
+            _v_remainder = _v_code_int % 1000
+
+            if _v_remainder < 100:
+                return "바이오"
+            elif _v_remainder < 200:
+                return "전자"
+            elif _v_remainder < 300:
+                return "인터넷"
+            elif _v_remainder < 400:
+                return "화학"
+            elif _v_remainder < 500:
+                return "금융"
+            elif _v_remainder < 600:
+                return "건설"
+            elif _v_remainder < 700:
+                return "에너지"
+            elif _v_remainder < 800:
+                return "자동차"
+            elif _v_remainder < 900:
+                return "엔터"
+
+        return "기타"
+
+    def _load_sector_mapping(self) -> Dict:
+        """섹터 매핑 파일 로드 (Task 4)"""
+        from pathlib import Path
+
+        try:
+            _v_project_root = Path(__file__).parent.parent.parent
+            _v_mapping_file = _v_project_root / "config" / "sector_mapping.json"
+
+            if not _v_mapping_file.exists():
+                self._logger.warning(f"섹터 매핑 파일 없음: {_v_mapping_file}")
+                return {"code_map": {}, "name_keywords": {}}
+
+            with open(_v_mapping_file, "r", encoding="utf-8") as f:
+                _v_mapping = json.load(f)
+
+            self._logger.info("섹터 매핑 로드 완료")
+            return _v_mapping
+
+        except Exception as e:
+            self._logger.error(f"섹터 매핑 로드 실패: {e}", exc_info=True)
+            return {"code_map": {}, "name_keywords": {}}
+
+    def _get_stock_list_cached(self) -> List[Dict]:
+        """종목 리스트를 캐싱하여 반환 (Task 5)"""
+        from pathlib import Path
+
+        # 캐시가 유효한지 확인
+        if self._stock_list_cache is not None and self._stock_list_cache_time is not None:
+            elapsed = (datetime.now() - self._stock_list_cache_time).total_seconds()
+            if elapsed < self._cache_ttl_seconds:
+                self._logger.debug(f"종목 리스트 캐시 사용 (나이: {elapsed:.0f}초)")
+                return self._stock_list_cache
+
+        # 캐시가 없거나 만료되었으면 파일에서 로드
+        try:
+            _v_project_root = Path(__file__).parent.parent.parent
+            _v_stock_dir = _v_project_root / "data" / "stock"
+            _v_stock_list_files = list(_v_stock_dir.glob("krx_stock_list_*.json"))
+
+            if not _v_stock_list_files:
+                self._logger.warning(f"종목 리스트 파일을 찾을 수 없음: {_v_stock_dir}")
+                return []
+
+            _v_stock_list_file = max(_v_stock_list_files, key=lambda x: x.name)
+            with open(_v_stock_list_file, "r", encoding="utf-8") as f:
+                _v_stock_list = json.load(f)
+
+            # 캐시 업데이트
+            self._stock_list_cache = _v_stock_list
+            self._stock_list_cache_time = datetime.now()
+            self._logger.info(
+                f"종목 리스트 캐시 업데이트 완료: {len(_v_stock_list)}개 종목"
+            )
+            return _v_stock_list
+
+        except Exception as e:
+            self._logger.error(f"종목 리스트 로드 실패: {e}", exc_info=True)
+            return []
 
     def _load_screening_criteria(self) -> Dict:
         """스크리닝 기준 로드"""
@@ -745,47 +851,27 @@ class StockScreener(IStockScreener):
             _v_sector = "기타"
 
             from pathlib import Path
-            import json
+            # Task 5: 캐싱된 종목 리스트 사용
+            _v_stock_list = self._get_stock_list_cached()
 
-            # 프로젝트 루트 경로 기준으로 절대 경로 생성
-            _v_project_root = Path(__file__).parent.parent.parent
-            _v_stock_dir = _v_project_root / "data" / "stock"
+            # 종목 코드로 검색
+            for stock in _v_stock_list:
+                if stock.get("ticker") == p_stock_code:
+                    _v_stock_name = stock.get("name", f"종목{p_stock_code}")
+                    _v_market = stock.get("market", "기타")
 
-            # 가장 최신 종목 리스트 파일 찾기
-            _v_stock_list_files = list(_v_stock_dir.glob("krx_stock_list_*.json"))
-            if _v_stock_list_files:
-                _v_stock_list_file = max(
-                    _v_stock_list_files, key=lambda x: x.name
-                )  # 가장 최신 파일
-
-                try:
-                    with open(_v_stock_list_file, "r", encoding="utf-8") as f:
-                        _v_stock_list = json.load(f)
-
-                    # 종목 코드로 검색
-                    for stock in _v_stock_list:
-                        if stock.get("ticker") == p_stock_code:
-                            _v_stock_name = stock.get("name", f"종목{p_stock_code}")
-                            _v_market = stock.get("market", "기타")
-
-                            # 시장 명칭 통일
-                            if _v_market == "코스닥":
-                                _v_market = "KOSDAQ"
-                            elif _v_market == "KOSPI":
-                                _v_market = "KOSPI"
-                            else:
-                                _v_market = "기타"
-
-                            break
+                    # 시장 명칭 통일
+                    if _v_market == "코스닥":
+                        _v_market = "KOSDAQ"
+                    elif _v_market == "KOSPI":
+                        _v_market = "KOSPI"
+                    else:
+                        _v_market = "기타"
 
                     self._logger.debug(
                         f"종목 정보 로드 성공: {p_stock_code} → {_v_stock_name} ({_v_market})"
                     )
-
-                except Exception as e:
-                    self._logger.warning(f"종목 리스트 파일 로드 실패: {e}")
-            else:
-                self._logger.warning(f"종목 리스트 파일을 찾을 수 없음: {_v_stock_dir}")
+                    break
 
             # 종목 정보가 없으면 기본값 사용
             if not _v_stock_name:
@@ -799,331 +885,8 @@ class StockScreener(IStockScreener):
                     f"종목 정보 없음, 기본값 사용: {p_stock_code} → {_v_stock_name} ({_v_market})"
                 )
 
-            # 섹터 추정 (확장된 매핑 사용)
-            _v_sector_map = {
-                # 반도체
-                "005930": "반도체",
-                "000660": "반도체",
-                "042700": "반도체",
-                "000990": "반도체",
-                "006800": "반도체",
-                "019170": "반도체",
-                "307950": "반도체",
-                "189300": "반도체",
-                # 인터넷/IT
-                "035420": "인터넷",
-                "035720": "인터넷",
-                "181710": "인터넷",
-                "036570": "인터넷",
-                "030000": "인터넷",
-                "060250": "인터넷",
-                "122870": "인터넷",
-                "192820": "인터넷",
-                # 자동차
-                "005380": "자동차",
-                "000270": "자동차",
-                "012330": "자동차",
-                "161390": "자동차",
-                "204320": "자동차",
-                "006400": "자동차부품",
-                "077500": "자동차부품",
-                # 바이오/제약
-                "068270": "바이오",
-                "207940": "바이오",
-                "086900": "바이오",
-                "328130": "바이오",
-                "196170": "바이오",
-                "145720": "바이오",
-                "006280": "제약",
-                "009420": "제약",
-                "185750": "제약",
-                "000100": "제약",
-                "128940": "제약",
-                # 화학
-                "051910": "화학",
-                "001570": "화학",
-                "011170": "화학",
-                "002380": "화학",
-                "001040": "화학",
-                "004020": "화학",
-                "014680": "화학",
-                "005420": "화학",
-                # 에너지/전력
-                "096770": "에너지",
-                "010950": "에너지",
-                "267250": "에너지",
-                "015760": "전력",
-                "001500": "전력",
-                "153460": "전력",
-                "092220": "전력",
-                # 통신
-                "034730": "통신",
-                "017670": "통신",
-                "030200": "통신",
-                "137310": "통신",
-                # 전자
-                "066570": "전자",
-                "009150": "전자",
-                "000370": "전자",
-                "018260": "전자",
-                "108320": "전자",
-                "267270": "전자",
-                # 배터리
-                "373220": "배터리",
-                # 금융
-                "055550": "금융",
-                "316140": "금융",
-                "024110": "금융",
-                "000810": "금융",
-                "032830": "금융",
-                "138930": "금융",
-                "105560": "금융",
-                # 건설
-                "028260": "건설",
-                "006360": "건설",
-                "047040": "건설",
-                "025540": "건설",
-                "052690": "건설",
-                # 철강
-                "005490": "철강",
-                "003670": "철강",
-                "014820": "철강",
-                "001230": "철강",
-                # 조선
-                "009540": "조선",
-                "067630": "조선",
-                "042660": "조선",
-                # 항공
-                "003490": "항공",
-                "047810": "항공",
-                # 엔터테인먼트
-                "041510": "엔터",
-                "376300": "엔터",
-            }
-
-            # 종목 코드 패턴 기반 섹터 추정
-            _v_sector = _v_sector_map.get(p_stock_code, None)
-            if not _v_sector:
-                # 실제 데이터 기반 다단계 섹터 배정 시스템
-                _v_code_int = int(p_stock_code) if p_stock_code.isdigit() else 0
-
-                # 1단계: 확장된 종목명 기반 분류
-                _v_name_lower = _v_stock_name.lower()
-
-                # 바이오/제약
-                if any(
-                    keyword in _v_name_lower
-                    for keyword in [
-                        "바이오",
-                        "bio",
-                        "제약",
-                        "의료",
-                        "헬스",
-                        "병원",
-                        "메디",
-                        "medi",
-                        "팜",
-                        "pharm",
-                        "생명과학",
-                    ]
-                ):
-                    _v_sector = "바이오"
-                # IT/테크
-                elif any(
-                    keyword in _v_name_lower
-                    for keyword in [
-                        "테크",
-                        "tech",
-                        "솔루션",
-                        "소프트",
-                        "soft",
-                        "시스템",
-                        "system",
-                        "네트워크",
-                        "it",
-                        "데이터",
-                        "ai",
-                    ]
-                ):
-                    _v_sector = "인터넷"
-                # 전자
-                elif any(
-                    keyword in _v_name_lower
-                    for keyword in [
-                        "전자",
-                        "electronic",
-                        "반도체",
-                        "semi",
-                        "디스플레이",
-                        "led",
-                        "lcd",
-                        "칩",
-                        "chip",
-                    ]
-                ):
-                    _v_sector = "전자"
-                # 화학
-                elif any(
-                    keyword in _v_name_lower
-                    for keyword in [
-                        "화학",
-                        "chemical",
-                        "케미",
-                        "chem",
-                        "정유",
-                        "석유",
-                        "플라스틱",
-                        "고무",
-                    ]
-                ):
-                    _v_sector = "화학"
-                # 금융
-                elif any(
-                    keyword in _v_name_lower
-                    for keyword in [
-                        "금융",
-                        "finance",
-                        "은행",
-                        "bank",
-                        "증권",
-                        "보험",
-                        "카드",
-                        "캐피탈",
-                        "리츠",
-                        "reit",
-                    ]
-                ):
-                    _v_sector = "금융"
-                # 건설/철강
-                elif any(
-                    keyword in _v_name_lower
-                    for keyword in [
-                        "건설",
-                        "construction",
-                        "철강",
-                        "steel",
-                        "스틸",
-                        "제철",
-                        "건축",
-                        "토목",
-                    ]
-                ):
-                    _v_sector = "건설"
-                # 에너지
-                elif any(
-                    keyword in _v_name_lower
-                    for keyword in [
-                        "에너지",
-                        "energy",
-                        "전력",
-                        "power",
-                        "발전",
-                        "태양광",
-                        "풍력",
-                        "가스",
-                        "gas",
-                    ]
-                ):
-                    _v_sector = "에너지"
-                # 통신
-                elif any(
-                    keyword in _v_name_lower
-                    for keyword in ["통신", "telecom", "kt", "sk텔레콤", "텔레콤"]
-                ):
-                    _v_sector = "통신"
-                # 자동차
-                elif any(
-                    keyword in _v_name_lower
-                    for keyword in [
-                        "자동차",
-                        "auto",
-                        "현대차",
-                        "기아",
-                        "타이어",
-                        "모터",
-                        "모비스",
-                    ]
-                ):
-                    _v_sector = "자동차"
-                # 엔터테인먼트/미디어
-                elif any(
-                    keyword in _v_name_lower
-                    for keyword in [
-                        "엔터",
-                        "entertainment",
-                        "방송",
-                        "미디어",
-                        "media",
-                        "게임",
-                        "game",
-                        "콘텐츠",
-                    ]
-                ):
-                    _v_sector = "엔터"
-                # 조선/해운
-                elif any(
-                    keyword in _v_name_lower
-                    for keyword in [
-                        "조선",
-                        "shipbuilding",
-                        "해운",
-                        "선박",
-                        "항만",
-                        "해양",
-                    ]
-                ):
-                    _v_sector = "조선"
-                # 항공
-                elif any(
-                    keyword in _v_name_lower
-                    for keyword in ["항공", "airline", "에어", "air", "항공기"]
-                ):
-                    _v_sector = "항공"
-                # 식품
-                elif any(
-                    keyword in _v_name_lower
-                    for keyword in ["식품", "food", "푸드", "농업", "농산", "수산"]
-                ):
-                    _v_sector = "식품"
-                # 홀딩스/투자 (특수 분류)
-                elif any(
-                    keyword in _v_name_lower
-                    for keyword in [
-                        "홀딩스",
-                        "holding",
-                        "지주",
-                        "투자",
-                        "invest",
-                        "스팩",
-                        "spac",
-                    ]
-                ):
-                    _v_sector = "홀딩스"
-                else:
-                    # 2단계: 더 균등한 숫자 패턴 기반 분류
-                    _v_remainder = (
-                        _v_code_int % 1000
-                    )  # 더 세밀한 분배를 위해 1000으로 변경
-                    if _v_remainder < 100:
-                        _v_sector = "바이오"
-                    elif _v_remainder < 200:
-                        _v_sector = "전자"
-                    elif _v_remainder < 300:
-                        _v_sector = "인터넷"
-                    elif _v_remainder < 400:
-                        _v_sector = "화학"
-                    elif _v_remainder < 500:
-                        _v_sector = "금융"
-                    elif _v_remainder < 600:
-                        _v_sector = "건설"
-                    elif _v_remainder < 700:
-                        _v_sector = "에너지"
-                    elif _v_remainder < 800:
-                        _v_sector = "자동차"
-                    elif _v_remainder < 900:
-                        _v_sector = "엔터"
-                    else:
-                        _v_sector = "기타"
+            # Task 3 & 4: 외부 파일 기반 섹터 추론 사용
+            _v_sector = self._infer_sector(p_stock_code, _v_stock_name)
 
             # 한국투자증권 API를 통한 실제 데이터 조회
             try:
@@ -1253,6 +1016,8 @@ class StockScreener(IStockScreener):
                 "price_momentum_6m": _v_price_momentum_6m,
                 "volume_momentum": 0.0,  # TODO: 거래량 모멘텀 계산 로직 추가
                 "sector_momentum": 0.0,  # TODO: 섹터 모멘텀 계산 로직 추가
+                # Task 1: OHLCV 데이터 추가 (실제 차트 데이터, date 인덱스 포함)
+                "ohlcv": chart_df.reset_index().to_dict('records') if chart_df is not None and len(chart_df) > 0 else [],
             }
 
             return _v_stock_data

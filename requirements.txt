@@ -23,6 +23,7 @@ pyarrow==21.0.0  # pandas 3.0 대비
 yfinance>=0.2.0  # Yahoo Finance API (VIX, 환율)
 psutil>=5.9.0  # 시스템 메트릭 (P2-3)
 aiohttp>=3.9.0  # 비동기 HTTP 클라이언트 (P2-4)
+joblib>=1.3.0  # 안전한 모델 직렬화 (pickle 대체)
 
 # 데이터베이스 (PostgreSQL 지원)
 psycopg2-binary>=2.9.9  # PostgreSQL 드라이버

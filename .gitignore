@@ -55,6 +55,7 @@ examples/env_test.py
 config/telegram_config.json
 config/*.json
 !config/*.example.json
+!config/sector_mapping.json
 *.pem
 *.key
 *.cert

@@ -5,7 +5,7 @@ Phase 4: AI 학습 시스템 - 데이터 저장소
 
 import os
 import json
-import pickle
+import joblib
 import sqlite3
 from typing import Dict, List, Optional, Any, Union
 from datetime import datetime, timedelta
@@ -254,7 +254,7 @@ class LearningDataStorage:
             
         except Exception as e:
             if self.logger:
-                self.logger.error(f"학습 데이터 저장 실패: {e}")
+                self.logger.error(f"학습 데이터 저장 실패: {e}", exc_info=True)
             raise DataStorageError(f"학습 데이터 저장 실패: {e}")
     
     def load_learning_data(self, stock_code: str, date: str) -> Union['LearningData', Dict[str, Any], None]:
@@ -304,7 +304,7 @@ class LearningDataStorage:
                     
         except Exception as e:
             if self.logger:
-                self.logger.error(f"학습 데이터 로드 실패: {e}")
+                self.logger.error(f"학습 데이터 로드 실패: {e}", exc_info=True)
             return None
     
     def get_learning_data_by_date_range(self, start_date: str, end_date: str) -> List[Dict]:
@@ -336,7 +336,7 @@ class LearningDataStorage:
                 
         except Exception as e:
             if self.logger:
-                self.logger.error(f"학습 데이터 조회 실패: {e}")
+                self.logger.error(f"학습 데이터 조회 실패: {e}", exc_info=True)
             return []
     
     # === 피처 데이터 관리 ===
@@ -382,7 +382,7 @@ class LearningDataStorage:
             
         except Exception as e:
             if self.logger:
-                self.logger.error(f"피처 셋 저장 실패: {e}")
+                self.logger.error(f"피처 셋 저장 실패: {e}", exc_info=True)
             raise DataStorageError(f"피처 셋 저장 실패: {e}")
     
     # === 모델 관리 ===
@@ -390,12 +390,11 @@ class LearningDataStorage:
                   hyperparameters: Dict, performance_metrics: Dict) -> bool:
         """모델 저장"""
         try:
-            # 모델 파일 경로 생성
-            model_file = self.storage_path / "models" / f"{model_name}_{version}.pkl"
-            
-            # 모델 객체 저장
-            with open(model_file, 'wb') as f:
-                pickle.dump(model, f)
+            # 모델 파일 경로 생성 (.joblib 확장자 사용)
+            model_file = self.storage_path / "models" / f"{model_name}_{version}.joblib"
+
+            # 모델 객체 저장 (joblib 사용, compress=3으로 압축)
+            joblib.dump(model, str(model_file), compress=3)
             
             # 데이터베이스에 메타데이터 저장
             with sqlite3.connect(str(self.db_path)) as conn:
@@ -423,7 +422,7 @@ class LearningDataStorage:
             
         except Exception as e:
             if self.logger:
-                self.logger.error(f"모델 저장 실패: {e}")
+                self.logger.error(f"모델 저장 실패: {e}", exc_info=True)
             raise DataStorageError(f"모델 저장 실패: {e}")
     
     def load_model(self, model_name: str, version: Optional[str] = None) -> Optional[Any]:
@@ -447,16 +446,15 @@ class LearningDataStorage:
                 result = cursor.fetchone()
                 if not result:
                     return None
-                
-                # 모델 객체 로드
-                with open(result[0], 'rb') as f:
-                    model = pickle.load(f)
-                
+
+                # 모델 객체 로드 (joblib 사용)
+                model = joblib.load(result[0])
+
                 return model
-                
+
         except Exception as e:
             if self.logger:
-                self.logger.error(f"모델 로드 실패: {e}")
+                self.logger.error(f"모델 로드 실패: {e}", exc_info=True)
             return None
     
     # === 성과 지표 관리 ===
@@ -492,7 +490,7 @@ class LearningDataStorage:
             
         except Exception as e:
             if self.logger:
-                self.logger.error(f"성과 지표 저장 실패: {e}")
+                self.logger.error(f"성과 지표 저장 실패: {e}", exc_info=True)
             raise DataStorageError(f"성과 지표 저장 실패: {e}")
     
     def get_performance_history(self, model_name: str, days: int = 30) -> List[Dict]:
@@ -528,7 +526,7 @@ class LearningDataStorage:
                 
         except Exception as e:
             if self.logger:
-                self.logger.error(f"성과 이력 조회 실패: {e}")
+                self.logger.error(f"성과 이력 조회 실패: {e}", exc_info=True)
             return []
     
     # === 데이터 정리 및 유지보수 ===
@@ -565,7 +563,7 @@ class LearningDataStorage:
             
         except Exception as e:
             if self.logger:
-                self.logger.error(f"데이터 정리 실패: {e}")
+                self.logger.error(f"데이터 정리 실패: {e}", exc_info=True)
             return False
     
     def get_storage_stats(self) -> Dict[str, Any]:
@@ -592,7 +590,7 @@ class LearningDataStorage:
             
         except Exception as e:
             if self.logger:
-                self.logger.error(f"저장소 통계 조회 실패: {e}")
+                self.logger.error(f"저장소 통계 조회 실패: {e}", exc_info=True)
             return {}
 
 
