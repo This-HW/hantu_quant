@@ -2,6 +2,8 @@
 
 DataFrame/Series의 Timestamp 인덱스/컬럼 직렬화 회귀 방지.
 관련 에러: "keys must be str, int, float, bool or None, not Timestamp"
+
+현재 구현: __pandas_type__ 메타데이터를 사용하여 역직렬화 시 DataFrame/Series 복원.
 """
 
 import pytest
@@ -14,7 +16,7 @@ class TestDataFrameSerialization:
     """DataFrame 직렬화/역직렬화 테스트"""
 
     def test_timestamp_index(self):
-        """Timestamp 인덱스를 가진 DataFrame"""
+        """Timestamp 인덱스를 가진 DataFrame - 직렬화 성공 및 복원"""
         dates = pd.date_range('2024-01-01', periods=5, freq='D')
         df = pd.DataFrame({
             'price': [100, 101, 102, 103, 104],
@@ -24,11 +26,10 @@ class TestDataFrameSerialization:
         serialized = _json_serialize(df)
         deserialized = _json_deserialize(serialized)
 
-        assert isinstance(deserialized, dict)
-        assert 'columns' in deserialized
-        assert 'index' in deserialized
-        assert 'data' in deserialized
-        assert len(deserialized['data']) == 5
+        # __pandas_type__ 메타데이터로 DataFrame 복원됨
+        assert isinstance(deserialized, pd.DataFrame)
+        assert len(deserialized) == 5
+        assert list(deserialized.columns) == ['price', 'volume']
 
     def test_timestamp_columns(self):
         """Timestamp 컬럼을 가진 DataFrame"""
@@ -41,9 +42,8 @@ class TestDataFrameSerialization:
         serialized = _json_serialize(df)
         deserialized = _json_deserialize(serialized)
 
-        assert isinstance(deserialized, dict)
-        assert len(deserialized['columns']) == 3
-        assert len(deserialized['data']) == 5
+        assert isinstance(deserialized, pd.DataFrame)
+        assert deserialized.shape == (5, 3)
 
     def test_normal_dataframe(self):
         """일반 DataFrame (회귀 테스트)"""
@@ -56,9 +56,9 @@ class TestDataFrameSerialization:
         serialized = _json_serialize(df)
         deserialized = _json_deserialize(serialized)
 
-        assert isinstance(deserialized, dict)
-        assert deserialized['columns'] == ['A', 'B', 'C']
-        assert len(deserialized['data']) == 3
+        assert isinstance(deserialized, pd.DataFrame)
+        assert list(deserialized.columns) == ['A', 'B', 'C']
+        assert len(deserialized) == 3
 
     def test_complex_timestamp_index(self):
         """복잡한 Timestamp 인덱스 (KIS API 응답 유사 구조)"""
@@ -79,9 +79,9 @@ class TestDataFrameSerialization:
         serialized = _json_serialize(df)
         deserialized = _json_deserialize(serialized)
 
-        assert isinstance(deserialized, dict)
-        assert len(deserialized['index']) == 3
-        assert len(deserialized['columns']) == 5
+        assert isinstance(deserialized, pd.DataFrame)
+        assert len(deserialized) == 3
+        assert len(deserialized.columns) == 5
 
     def test_empty_dataframe(self):
         """빈 DataFrame"""
@@ -90,7 +90,21 @@ class TestDataFrameSerialization:
         serialized = _json_serialize(df)
         deserialized = _json_deserialize(serialized)
 
-        assert isinstance(deserialized, dict)
+        assert isinstance(deserialized, pd.DataFrame)
+        assert len(deserialized) == 0
+
+    def test_data_values_preserved(self):
+        """직렬화-역직렬화 후 데이터 값 보존 확인"""
+        df = pd.DataFrame({
+            'price': [100, 200, 300],
+            'name': ['A', 'B', 'C']
+        })
+
+        serialized = _json_serialize(df)
+        deserialized = _json_deserialize(serialized)
+
+        assert deserialized['price'].tolist() == [100, 200, 300]
+        assert deserialized['name'].tolist() == ['A', 'B', 'C']
 
 
 class TestSeriesSerialization:
@@ -104,10 +118,8 @@ class TestSeriesSerialization:
         serialized = _json_serialize(series)
         deserialized = _json_deserialize(serialized)
 
-        assert isinstance(deserialized, dict)
-        assert 'index' in deserialized
-        assert 'data' in deserialized
-        assert len(deserialized['data']) == 5
+        assert isinstance(deserialized, pd.Series)
+        assert len(deserialized) == 5
 
     def test_normal_series(self):
         """일반 Series (회귀 테스트)"""
@@ -116,8 +128,8 @@ class TestSeriesSerialization:
         serialized = _json_serialize(series)
         deserialized = _json_deserialize(serialized)
 
-        assert isinstance(deserialized, dict)
-        assert deserialized['data'] == [1, 2, 3]
+        assert isinstance(deserialized, pd.Series)
+        assert deserialized.tolist() == [1, 2, 3]
 
 
 class TestBasicSerialization:
