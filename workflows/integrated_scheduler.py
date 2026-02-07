@@ -425,12 +425,21 @@ class IntegratedScheduler:
         # 평일에는 DB에 저장된 최신 데이터를 재사용
         schedule.every().saturday.at("10:00").do(self._run_fundamental_data_collection)
 
+        # 재무 데이터 수집 후 자동 유지보수 (토요일 11:00)
+        schedule.every().saturday.at("11:00").do(self._run_auto_maintenance)
+
         # Phase 4: 강화된 적응형 학습 (주말 - 대량 데이터 분석)
         # 토요일 20:00에 실행하여 주간 데이터 기반 포괄적 분석
         schedule.every().saturday.at("20:00").do(self._run_enhanced_adaptive_learning)
 
+        # 강화된 적응형 학습 후 자동 유지보수 (토요일 21:00)
+        schedule.every().saturday.at("21:00").do(self._run_auto_maintenance)
+
         # Phase 4: 주간 깊이 학습 (매주 토요일 22:00)
         schedule.every().saturday.at("22:00").do(self._run_weekly_adaptive_learning)
+
+        # 주간 깊이 학습 후 자동 유지보수 (토요일 23:30)
+        schedule.every().saturday.at("23:30").do(self._run_auto_maintenance)
 
         # Phase 5: 시스템 모니터링 시작 (스케줄러 시작 시)
         schedule.every().day.at("00:01").do(self._start_system_monitoring)
@@ -441,6 +450,9 @@ class IntegratedScheduler:
         # ML 학습 조건 체크: 주말에만 실행 (B단계 자동 트리거용)
         # 일요일 10:00에 실행하여 주간 데이터 축적 후 ML 학습 조건 체크
         schedule.every().sunday.at("10:00").do(self._check_ml_trigger)
+
+        # ML 학습 조건 체크 후 자동 유지보수 (일요일 11:00)
+        schedule.every().sunday.at("11:00").do(self._run_auto_maintenance)
 
         # [방안 B] 주간 백테스트: 매주 금요일 16:00
         # Note: 백테스트 결과는 17:00 가중치 조정(scheduler.py)에 반영됨
@@ -478,11 +490,16 @@ class IntegratedScheduler:
         print("├─ 매매 헬스체크: 장 시간 중 30분마다 (평일)")
         print("├─ 마감 후 정리: 매일 16:00")
         print("├─ AI 성과 분석: 매일 17:00")
+        print("├─ 재무 데이터 수집: 매주 토요일 10:00")
+        print("│  └─ 자동 유지보수: 토요일 11:00 (데이터 수집 후)")
         print("├─ 강화된 적응형 학습: 매주 토요일 20:00 (대량 데이터 분석)")
+        print("│  └─ 자동 유지보수: 토요일 21:00 (학습 후)")
         print("├─ 주간 깊이 학습: 매주 토요일 22:00")
+        print("│  └─ 자동 유지보수: 토요일 23:30 (학습 후)")
+        print("├─ 자동 유지보수: 매주 일요일 03:00 (정기)")
         print("├─ ML 학습 조건 체크: 매주 일요일 10:00 (B단계 자동 트리거)")
-        print("├─ 시스템 모니터링: 24시간 실시간")
-        print("└─ 자동 유지보수: 매주 일요일 03:00")
+        print("│  └─ 자동 유지보수: 일요일 11:00 (체크 후)")
+        print("└─ 시스템 모니터링: 24시간 실시간")
 
         # 텔레그램 스케줄러 시작 알림 전송
         try:
