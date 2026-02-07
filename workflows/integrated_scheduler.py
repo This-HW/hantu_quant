@@ -1753,7 +1753,7 @@ class IntegratedScheduler:
                         if issue_count > 5:
                             message += f"\n... 외 {issue_count - 5}개"
 
-                        notifier.send_message(message, level="warning")
+                        notifier.send_message(message, "warning")
                         logger.info("헬스체크 알람 전송 완료")
                 except Exception as e:
                     logger.error(f"헬스체크 알람 전송 실패: {e}", exc_info=True)
@@ -1767,7 +1767,7 @@ class IntegratedScheduler:
                         if notifier.is_enabled():
                             notifier.send_message(
                                 "⚠️ 심각한 문제 발견 - 자동 유지보수 시작",
-                                level="high"
+                                "high"
                             )
                         self._run_auto_maintenance()
                     except Exception as e:
@@ -1781,8 +1781,8 @@ class IntegratedScheduler:
                 notifier = get_telegram_notifier()
                 if notifier.is_enabled():
                     notifier.send_message(
-                        f"❌ 헬스체크 실행 실패\n\n오류: {str(e)}",
-                        level="high"
+                        "❌ 헬스체크 실행 실패\n\n상세 로그를 확인하세요",
+                        "high"
                     )
             except Exception:
                 pass  # 알람 실패는 무시

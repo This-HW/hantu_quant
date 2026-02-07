@@ -454,6 +454,14 @@ class StockScreener(IStockScreener):
             if "ohlcv" in p_stock_data and p_stock_data["ohlcv"]:
                 return pd.DataFrame(p_stock_data["ohlcv"])
 
+            # TODO: CRITICAL - 시뮬레이션 데이터 사용 중!
+            # _fetch_stock_data()에서 chart_df를 "ohlcv" 키로 추가하여 실제 데이터 사용 필요
+            # 현재 screen_by_technical()의 MA 기울기 계산이 랜덤 데이터 기반으로 동작함
+            stock_code = p_stock_data.get("stock_code", "UNKNOWN")
+            self._logger.warning(
+                f"[{stock_code}] OHLCV 데이터 없음 - 시뮬레이션 데이터 사용 (실제 데이터 연동 필요)"
+            )
+
             # 시뮬레이션 데이터 생성
             _v_current_price = p_stock_data.get("current_price", 10000)
             _v_dates = pd.date_range(end=datetime.now(), periods=30, freq="D")
@@ -1446,7 +1454,8 @@ class StockScreener(IStockScreener):
 
             # 상향 배열 체크: 현재가 > 20일선 > 60일선 > 120일선
             return _v_current_price > _v_ma_20 > _v_ma_60 > _v_ma_120
-        except Exception:
+        except Exception as e:
+            self._logger.warning(f"MA 추세 체크 실패: {e}", exc_info=True)
             return False
 
     def _calculate_ma_slope(self, p_stock_data: Dict) -> float:
@@ -1473,7 +1482,8 @@ class StockScreener(IStockScreener):
             _v_slope_pct = (_v_slope / _v_y[-1]) * 100 if _v_y[-1] != 0 else 0.0
 
             return _v_slope_pct
-        except Exception:
+        except Exception as e:
+            self._logger.warning(f"MA 기울기 계산 실패: {e}", exc_info=True)
             return 0.0
 
     def _check_ma_convergence(self, p_stock_data: Dict) -> bool:
@@ -1492,7 +1502,8 @@ class StockScreener(IStockScreener):
 
             # 수렴 조건: 각 갭이 2% 이내
             return _v_gap_5_20 <= 0.02 and _v_gap_20_60 <= 0.02
-        except Exception:
+        except Exception as e:
+            self._logger.warning(f"MA 수렴 체크 실패: {e}", exc_info=True)
             return False
 
     def _screen_single_stock_static(self, p_stock_code: str) -> Optional[Dict]:

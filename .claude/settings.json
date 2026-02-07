@@ -151,11 +151,7 @@
       "Read",
       "WebSearch"
     ],
-    "deny": [
-      "Bash(dd:*)",
-      "Bash(mkfs:*)",
-      "Bash(shred:*)"
-    ]
+    "deny": ["Bash(dd:*)", "Bash(mkfs:*)", "Bash(shred:*)"]
   },
   "hooks": {
     "PreToolUse": [
@@ -212,47 +208,32 @@
   "mcpServers": {
     "context7": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@context7/mcp-server"
-      ],
+      "args": ["-y", "@context7/mcp-server"],
       "env": {
         "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
       }
     },
     "exa": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@exa/mcp-server"
-      ],
+      "args": ["-y", "@exa/mcp-server"],
       "env": {
         "EXA_API_KEY": "${EXA_API_KEY}"
       }
     },
     "tavily": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@tavily/mcp-server"
-      ],
+      "args": ["-y", "@tavily/mcp-server"],
       "env": {
         "TAVILY_API_KEY": "${TAVILY_API_KEY}"
       }
     },
     "sequential-thinking": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-sequential-thinking"
-      ]
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
     },
     "magic": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@21st-dev/mcp-server"
-      ],
+      "args": ["-y", "@21st-dev/mcp-server"],
       "env": {
         "MAGIC_API_KEY": "${MAGIC_API_KEY}"
       }
@@ -262,30 +243,24 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-postgres",
-        "postgresql://localhost:15432/hantu_quant"
+        "postgresql://${HANTU_DB_USER:-hantu}@localhost:${HANTU_DB_PORT:-15432}/${HANTU_DB_NAME:-hantu_quant}"
       ],
       "env": {
         "PGPASSWORD": "${HANTU_QUANT_DB_PASSWORD}"
       },
       "notes": [
-        "Replace ${DB_PORT}, ${DB_NAME}, ${DB_PASSWORD} with actual values",
-        "Example: postgresql://localhost:15432/hantu_quant"
+        "DB 연결 정보는 환경변수로 관리됩니다 (보안)",
+        "HANTU_DB_USER (기본값: hantu), HANTU_DB_PORT (기본값: 15432), HANTU_DB_NAME (기본값: hantu_quant)",
+        "비밀번호: HANTU_QUANT_DB_PASSWORD 환경변수 필수"
       ]
     },
     "kis-trade-mcp": {
       "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote",
-        "http://localhost:3000/sse"
-      ]
+      "args": ["-y", "mcp-remote", "http://localhost:3000/sse"]
     },
     "kis-code-assistant": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@anthropics/mcp-proxy"
-      ],
+      "args": ["-y", "@anthropics/mcp-proxy"],
       "env": {
         "SERVER_URL": "https://smithery.ai/server/@KISOpenAPI/kis-code-assistant-mcp"
       }
