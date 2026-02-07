@@ -36,7 +36,7 @@ log_info "실행 권한 부여: $AUTO_FIX_SCRIPT"
 
 # crontab 항목 정의
 CRON_COMMENT="# Auto-fix errors scheduler (hantu_quant)"
-CRON_SCHEDULE="0,30 8-15 * * 1-5"
+CRON_SCHEDULE="0,30 * * * *"
 CRON_COMMAND="$AUTO_FIX_SCRIPT"
 CRON_ENTRY="$CRON_SCHEDULE $CRON_COMMAND"
 
@@ -88,7 +88,7 @@ echo "$NEW_CRONTAB" | crontab -
 log_info "Crontab 등록 완료!"
 log_info ""
 log_info "등록된 작업:"
-log_info "1. 자동 에러 수정: 평일 08:00~15:30, 30분마다"
+log_info "1. 자동 에러 수정: 매일 24시간, 30분마다 (48회/일)"
 log_info "2. 로그 정리: 매일 02:00 (압축/삭제)"
 log_info ""
 log_info "현재 crontab 내용:"

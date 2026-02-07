@@ -3,13 +3,13 @@
 # 자동 에러 수정 스크립트
 #
 # 목적: 에러 로그를 수집하고 Claude Code로 자동 분석/수정
-# 실행: crontab으로 평일 6:00~17:30 30분마다 실행 (24회/일)
+# 실행: crontab으로 매일 24시간 30분마다 실행 (48회/일)
 #
 # 주요 기능:
 #   1. 로컬 로그, systemd 로그, DB 에러 로그 수집
 #   2. 에러가 없으면 즉시 종료 (토큰 절약)
 #   3. 에러 있으면 Claude Code로 분석 및 수정
-#   4. 테스트 통과 시 [skip ci] 커밋 후 서비스 재시작
+#   4. 테스트 통과 시 git commit/push 후 CI/CD 자동 배포
 #
 # 환경변수 (필수):
 #   - DB_HOST: PostgreSQL 호스트
@@ -225,33 +225,52 @@ log "최신 코드 동기화 완료: $(git rev-parse --short HEAD)"
 # 가상환경 활성화 (검증된 경로 사용)
 source "$VALIDATED_DEV_DIR/venv/bin/activate"
 
-PROMPT="에러 로그를 분석하고 수정해줘.
+PROMPT="자동 에러 수정 작업을 수행해줘.
 
-## 로컬 애플리케이션 로그
+## 에러 로그
+
+### 로컬 애플리케이션 로그
 ${LOCAL_ERRORS:-없음}
 
-## Systemd 서비스 로그
+### Systemd 서비스 로그
 ${SYSTEM_ERRORS:-없음}
 
-## DB 에러 로그 (미해결)
+### DB 에러 로그 (미해결)
 ${DB_ERRORS:-없음}
 
-## 작업 규칙 (반드시 준수)
-1. 에러 원인을 분석하고 해당 코드를 수정해
-2. 수정 후 pytest tests/unit/ -x --tb=short 실행
-3. 테스트 통과하면:
+## 작업 지시
+
+1. **에러 분석 및 수정**
+   - 에러의 근본 원인을 파악해
+   - 관련 코드를 수정해 (CLAUDE.md의 코드 품질 규칙 준수)
+   - 필요시 에이전트를 활용해:
+     * fix-bugs: 버그 수정
+     * verify-code: 코드 검증
+     * write-tests: 테스트 작성
+
+2. **테스트 실행**
+   - pytest tests/unit/ -x --tb=short 실행
+   - 테스트 실패 시: git checkout -- . 로 롤백 후 실패 원인 보고
+
+3. **커밋 및 배포** (테스트 통과 시)
    - git add -A
    - git commit -m 'fix: 자동 에러 수정 - \$(date +%Y%m%d_%H%M)
 
-     Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>'
+     Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>'
    - git push origin main
    - (배포는 CI/CD가 자동 처리)
-4. 테스트 실패하면:
-   - git checkout -- . 로 모든 변경사항 롤백
-   - 실패 원인만 간단히 보고
-5. 수정한 DB 에러는 resolved 컬럼 업데이트:
-   - psql -h \"\$DB_HOST\" -U \"\$DB_USER\" -d \"\$DB_NAME\" -c \"UPDATE error_logs SET resolved = NOW(), resolution_note = '자동 수정' WHERE id IN (수정된_에러_ID들)\"
-6. 최종 결과를 한 줄로 요약해줘
+
+4. **DB 에러 로그 업데이트**
+   - 수정 완료된 에러는 resolved 처리:
+     psql -h \"\$DB_HOST\" -U \"\$DB_USER\" -d \"\$DB_NAME\" -c \"UPDATE error_logs SET resolved = NOW(), resolution_note = '자동 수정' WHERE id IN (수정된_에러_ID들)\"
+
+5. **최종 보고**
+   - 수정 내용을 한 줄로 요약해줘
+
+## 참고
+- CLAUDE.md의 프로젝트 규칙을 준수해
+- .claude/rules/의 코드 품질, SSOT, 에러 로깅 규칙을 따라
+- 복잡한 에러는 에이전트에게 위임해도 돼
 "
 
 log "Claude Code 실행 시작"
