@@ -7,11 +7,11 @@
 import numpy as np
 from typing import Dict, Optional, List
 from dataclasses import dataclass
-import logging
 
 from .kelly_calculator import KellyCalculator, KellyResult
+from core.utils.log_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -86,7 +86,8 @@ class PositionSizer:
         signal_strength: float = 1.0,
         trade_returns: Optional[List[float]] = None,
         current_positions: Optional[Dict[str, float]] = None,
-        sector: Optional[str] = None
+        sector: Optional[str] = None,
+        market_regime: Optional['MarketRegime'] = None
     ) -> PositionSize:
         """
         종합 포지션 크기 계산
@@ -101,6 +102,7 @@ class PositionSizer:
             trade_returns: 과거 거래 수익률
             current_positions: 현재 보유 포지션 {종목: 비중}
             sector: 종목의 섹터
+            market_regime: 시장 체제 (동적 Kelly 조정용, Optional)
 
         Returns:
             PositionSize: 포지션 크기 결과
@@ -135,6 +137,19 @@ class PositionSizer:
             if kelly_result.final_position > 0:
                 kelly_multiplier = kelly_result.final_position / 0.10  # 기본 10% 대비
                 methods_used.append('kelly')
+
+                # Regime-adjusted Kelly (시장 상황별 조정)
+                if market_regime is not None:
+                    from .regime_adjuster import RegimeAdjuster
+                    adjustment = RegimeAdjuster.adjust_kelly(
+                        kelly_result.final_position, market_regime
+                    )
+                    kelly_multiplier = adjustment.adjusted_fraction / 0.10
+                    methods_used.append('regime')
+                    logger.info(
+                        f"Regime-adjusted Kelly: {adjustment.regime} "
+                        f"({adjustment.original_fraction:.4f} → {adjustment.adjusted_fraction:.4f})"
+                    )
 
         # 5. 신호 강도 반영
         signal_multiplier = 1.0
@@ -239,14 +254,6 @@ class PositionSizer:
             current_total = sum(current_positions.values())
             remaining = self.config.max_portfolio_risk - current_total
             position_size = min(position_size, max(0, remaining))
-
-            # 섹터 제한
-            if sector:
-                sum(
-                    v for k, v in current_positions.items()
-                    # 섹터 체크 로직 필요
-                )
-                # TODO: 섹터 정보 기반 제한
 
         # 최소 포지션
         if position_size < 0.01:  # 1% 미만이면 투자하지 않음

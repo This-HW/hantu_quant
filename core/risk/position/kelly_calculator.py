@@ -7,9 +7,10 @@
 import numpy as np
 from typing import Dict, Optional, List, Tuple
 from dataclasses import dataclass
-import logging
 
-logger = logging.getLogger(__name__)
+from core.utils.log_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -230,21 +231,26 @@ class KellyCalculator:
             fractions = [0.25, 0.5, 0.75, 1.0]
 
         results = {}
+        original_fraction = self.config.kelly_fraction
 
-        for fraction in fractions:
-            self.config.kelly_fraction = fraction
-            kelly_result = self.calculate(trade_returns)
+        try:
+            for fraction in fractions:
+                self.config.kelly_fraction = fraction
+                kelly_result = self.calculate(trade_returns)
 
-            # 예상 복리 수익률
-            expected_growth = self._estimate_growth_rate(
-                trade_returns,
-                kelly_result.final_position
-            )
+                # 예상 복리 수익률
+                expected_growth = self._estimate_growth_rate(
+                    trade_returns,
+                    kelly_result.final_position
+                )
 
-            results[f"kelly_{int(fraction * 100)}"] = {
-                'position': kelly_result.final_position,
-                'expected_growth': expected_growth,
-            }
+                results[f"kelly_{int(fraction * 100)}"] = {
+                    'position': kelly_result.final_position,
+                    'expected_growth': expected_growth,
+                }
+        finally:
+            # State mutation 방지: 원래 값으로 복원
+            self.config.kelly_fraction = original_fraction
 
         return results
 

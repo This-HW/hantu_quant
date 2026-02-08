@@ -6,6 +6,7 @@
 
 from .kelly_calculator import KellyCalculator, KellyConfig, KellyResult
 from .position_sizer import PositionSizer, PositionSize, SizingConfig
+from .regime_adjuster import RegimeAdjuster, RegimeAdjustment
 
 __all__ = [
     'KellyCalculator',
@@ -14,4 +15,6 @@ __all__ = [
     'PositionSizer',
     'PositionSize',
     'SizingConfig',
+    'RegimeAdjuster',
+    'RegimeAdjustment',
 ]

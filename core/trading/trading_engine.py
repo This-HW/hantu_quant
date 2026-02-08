@@ -17,6 +17,8 @@ from ..trading.trade_journal import TradeJournal
 from ..trading.dynamic_stop_loss import DynamicStopLossCalculator, StopLossResult
 from ..utils.log_utils import get_logger
 from ..utils.telegram_notifier import get_telegram_notifier
+from ..risk.position.kelly_calculator import KellyCalculator
+from ..market.market_regime import MarketRegimeDetector
 
 logger = get_logger(__name__)
 
@@ -81,6 +83,9 @@ class TradingConfig:
     min_volume_ratio: float = 1.5  # 최소 거래량 비율
     max_price_change: float = 0.30  # 최대 가격 변동률 (30%)
 
+    # Dynamic Kelly 설정 (P1)
+    use_regime_adjusted_kelly: bool = True  # 시장 상황별 Kelly 조정
+
 
 class TradingEngine:
     """자동 매매 실행 엔진"""
@@ -126,6 +131,10 @@ class TradingEngine:
         self._circuit_handler = None
         self._opportunity_detector = None
         self._daily_summary_generator = None
+
+        # Kelly Calculator & Regime Detector (지연 초기화)
+        self.kelly_calculator = KellyCalculator()
+        self.regime_detector = None  # lazy init
 
         self.logger.info(
             f"자동 매매 엔진 초기화 완료 "
@@ -699,37 +708,53 @@ class TradingEngine:
     def _calculate_kelly_size(
         self, account_balance: float, stock_code: str, stock_data: Optional[Dict]
     ) -> float:
-        """Kelly Criterion 기반 포지션 사이징"""
+        """Kelly Criterion 기반 포지션 사이징 (KellyCalculator 위임)"""
         try:
             if not self.config.use_kelly_criterion:
                 return account_balance * self.config.position_size_value
 
-            # 과거 성과에서 승률과 평균 수익/손실 계산
-            win_rate, avg_win, avg_loss = self._get_historical_performance()
+            # 과거 거래 수익률 조회
+            trade_returns = self._get_trade_returns(stock_code)
 
-            if win_rate <= 0 or avg_win <= 0 or avg_loss <= 0:
-                # 데이터 부족 시 기본 비율 사용
+            if not trade_returns or len(trade_returns) < 30:
+                self.logger.warning(
+                    f"Kelly: {stock_code} 거래 데이터 부족 ({len(trade_returns) if trade_returns else 0}건)"
+                )
                 return account_balance * self.config.position_size_value
 
-            # Kelly Criterion: f = (bp - q) / b
-            # f = 베팅 비율, b = 배당률, p = 승률, q = 패율
-            p = win_rate
-            q = 1 - win_rate
-            b = avg_win / avg_loss  # 승/패 비율
+            # KellyCalculator로 위임 (Half Kelly + 신뢰구간 조정 포함)
+            kelly_result = self.kelly_calculator.calculate(trade_returns)
 
-            kelly_fraction = (b * p - q) / b
+            # final_position은 이미 Half Kelly + confidence interval + min/max clip 적용됨
+            kelly_fraction = kelly_result.final_position
 
-            # 보수적 접근: Kelly 결과에 multiplier 적용
-            kelly_fraction = kelly_fraction * self.config.kelly_multiplier
+            # Regime-adjusted Kelly
+            if self.config.use_regime_adjusted_kelly:
+                try:
+                    if self.regime_detector is None:
+                        self.regime_detector = MarketRegimeDetector()
+                    regime_result = self.regime_detector.detect_regime()
 
-            # 최대 비율 제한
+                    from ..risk.position.regime_adjuster import RegimeAdjuster
+                    adjustment = RegimeAdjuster.adjust_kelly(kelly_fraction, regime_result.regime)
+                    kelly_fraction = adjustment.adjusted_fraction
+
+                    self.logger.info(
+                        f"Kelly Regime-adjusted: {regime_result.regime.value} "
+                        f"({adjustment.original_fraction:.4f} → {adjustment.adjusted_fraction:.4f})"
+                    )
+                except Exception as e:
+                    self.logger.warning(f"Regime 감지 실패, 기본 Kelly 사용: {e}", exc_info=True)
+
+            # TradingEngine 포지션 제한 적용 (kelly_multiplier는 KellyCalculator에서 이미 조정됨)
             kelly_fraction = min(kelly_fraction, self.config.max_position_pct)
-            kelly_fraction = max(kelly_fraction, 0.01)  # 최소 1%
+            kelly_fraction = max(kelly_fraction, 0.01)
 
             position_amount = account_balance * kelly_fraction
 
             self.logger.info(
-                f"Kelly Criterion: 승률={win_rate:.2%}, 배당률={b:.2f}, Kelly비율={kelly_fraction:.2%}"
+                f"Kelly Criterion: {stock_code} 승률={kelly_result.win_rate:.2%}, "
+                f"Kelly비율={kelly_fraction:.2%}, 투자금액={position_amount:,.0f}원"
             )
 
             return position_amount
@@ -738,17 +763,20 @@ class TradingEngine:
             self.logger.error(f"Kelly 사이징 계산 실패: {e}", exc_info=True)
             return account_balance * self.config.position_size_value
 
-    def _get_historical_performance(self) -> Tuple[float, float, float]:
-        """과거 성과 데이터 조회 (승률, 평균 수익, 평균 손실)"""
+    def _get_trade_returns(self, stock_code: str = None, days: int = 60) -> List[float]:
+        """과거 거래 수익률(%) 조회
+
+        Args:
+            stock_code: 종목 코드 (None이면 전체)
+            days: 조회 기간 (일)
+
+        Returns:
+            수익률 리스트 (예: [0.03, -0.01, 0.05, ...])
+        """
         try:
-            # 매매일지에서 과거 30일 데이터 수집
-            from datetime import timedelta
+            returns = []
 
-            wins = []
-            losses = []
-
-            # 최근 30일 매매 요약 파일 찾기
-            for i in range(30):
+            for i in range(days):
                 date = (datetime.now() - timedelta(days=i)).strftime("%Y%m%d")
                 summary_file = f"data/trades/trade_summary_{date}.json"
 
@@ -757,26 +785,26 @@ class TradingEngine:
                         summary = json.load(f)
 
                     for detail in summary.get("details", []):
-                        pnl = detail.get("pnl", 0)
-                        if pnl > 0:
-                            wins.append(pnl)
-                        elif pnl < 0:
-                            losses.append(abs(pnl))
+                        # stock_code 필터
+                        if stock_code and detail.get("stock_code") != stock_code:
+                            continue
 
-            if not wins and not losses:
-                # 데이터 없으면 기본값 사용
-                return 0.6, 100000, 50000  # 60% 승률, 평균 수익 10만원, 평균 손실 5만원
+                        entry_price = detail.get("entry_price", 0)
+                        exit_price = detail.get("exit_price", 0)
 
-            total_trades = len(wins) + len(losses)
-            win_rate = len(wins) / total_trades if total_trades > 0 else 0.5
-            avg_win = sum(wins) / len(wins) if wins else 100000
-            avg_loss = sum(losses) / len(losses) if losses else 50000
+                        if entry_price > 0 and exit_price > 0:
+                            return_pct = (exit_price - entry_price) / entry_price
+                            returns.append(return_pct)
+                        elif detail.get("pnl") and entry_price > 0:
+                            # pnl만 있는 경우 수익률 환산
+                            return_pct = detail["pnl"] / (entry_price * detail.get("quantity", 1))
+                            returns.append(return_pct)
 
-            return win_rate, avg_win, avg_loss
+            return returns
 
         except Exception as e:
-            self.logger.error(f"과거 성과 조회 실패: {e}", exc_info=True)
-            return 0.6, 100000, 50000
+            self.logger.error(f"과거 거래 수익률 조회 실패: {e}", exc_info=True)
+            return []
 
     def calculate_dynamic_stop(self, stock_code: str, entry_price: float) -> float:
         """변동성별 차등 손절가 계산 (P0-5a)
@@ -1032,7 +1060,7 @@ class TradingEngine:
                 if result.get("success"):
                     position.partial_sold = True
                     position.partial_profit_price = position.current_price
-                    position.quantity -= sell_quantity
+                    # sell() 내부에서 이미 position.quantity 차감됨
                     self.logger.info(
                         f"✅ 1차 부분 익절 완료 - {position.stock_code}: "
                         f"{sell_quantity}주 @ {position.current_price:,.0f}원, "
