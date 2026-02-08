@@ -1001,4 +1001,65 @@ StrategyBacktester
 ---
 
 **문서 작성 완료**: 2026-02-08
-**다음 단계**: 사용자 승인 후 Wave 1 (4개 독립 모듈) 병렬 구현 시작
+**최종 업데이트**: 2026-02-08
+
+---
+
+## 11. 구현 진행 상황
+
+### Wave 1 (완료)
+
+| #   | 작업명             | 상태         | 비고                                                 |
+| --- | ------------------ | ------------ | ---------------------------------------------------- |
+| 7   | DataSplitter       | ✅ 완료      | `core/backtesting/data_splitter.py` - purge gap 포함 |
+| 10  | MarketRegime       | ✅ 설계 완료 | 구현 대기 (PyKRX 데이터 연동 필요)                   |
+| 11  | CorrelationMonitor | ✅ 설계 완료 | 구현 대기                                            |
+| 12  | SlippageMonitor    | ✅ 설계 완료 | 구현 대기                                            |
+
+### Wave 2 (완료)
+
+| #   | 작업명              | 상태         | 비고                                                        |
+| --- | ------------------- | ------------ | ----------------------------------------------------------- |
+| 8   | WalkForwardAnalyzer | ✅ 완료      | `core/backtesting/walk_forward.py` - Rolling window + purge |
+| 9   | Dynamic Kelly       | ✅ 설계 완료 | KellyCalculator 클래스 활용 준비 완료                       |
+
+### Wave 3 (완료)
+
+| 작업                  | 상태    | 비고                                                                   |
+| --------------------- | ------- | ---------------------------------------------------------------------- |
+| 백테스트 CLI 스크립트 | ✅ 완료 | `scripts/run_backtest.py`, `run_walk_forward.py`, `backtest_report.py` |
+| PerformanceAnalyzer   | ✅ 완료 | `core/backtesting/performance_analyzer.py`                             |
+| BacktestResult SSOT   | ✅ 완료 | `BacktestResult.empty()` classmethod 추가                              |
+
+### 코드 품질 개선 (Phase 2 코드 리뷰 반영)
+
+**Must Fix (5/5 완료)**:
+
+- MF-1: 백테스트 실데이터 연동 (KIS API)
+- MF-2: Max Drawdown 누적 수익률 기반 계산
+- MF-3: Sharpe Ratio 표준편차 0 처리
+- MF-4: SimpleBacktester 난수 시드 고정
+- MF-5: BacktestResult에서 trades 분리
+
+**Should Fix (9/10 완료)**:
+
+- SF-1: trading_config 미정의 변수 버그 수정
+- SF-2: max_positions 파라미터화
+- SF-3: BacktestResult.empty() SSOT
+- SF-4: WalkForwardConfig 파라미터 문서화
+- SF-5: PerformanceAnalyzer 제로 분모 로깅
+- SF-7: Kelly signal_confidence 범위 검증
+- SF-8: TradingEngine JSON 에러 처리
+- SF-9: 부분익절 임계값 설정 연동
+- SF-6: 생략 (기존 quant_config.py에 이미 설정 패턴 존재)
+- SF-10: 미진행 (대규모 리팩토링 필요)
+
+**Consider (1/8 완료)**:
+
+- C-7: Kelly Calculator state mutation 방지
+
+### 남은 작업
+
+- P1 작업 #9~#12: 실제 구현 (설계 완료, 코드 작성 대기)
+- 모의투자 데이터 축적 후 Walk-Forward 검증
+- 실거래 허용 조건 달성 확인

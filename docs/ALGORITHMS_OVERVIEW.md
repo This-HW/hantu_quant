@@ -51,10 +51,40 @@
 - 월~금: 16:00 마감/요약 반영
 - 토/일: 비실행
 
+## Backtesting · 백테스트 시스템
+
+- **StrategyBacktester** (`core/backtesting/strategy_backtester.py`)
+  - KIS API 실데이터 기반 백테스트 (P0 MF-1)
+  - 거래 비용 반영: TradingCosts 모듈 (수수료 0.015%, 증권거래세 0.23%, 슬리페이지 0.05%)
+  - 손절/익절/보유기간 기반 청산 시뮬레이션
+- **SimpleBacktester** (`core/backtesting/simple_backtester.py`)
+  - 예상 수익률 기반 경량 시뮬레이션 (난수 시드 고정으로 재현성 보장)
+- **DataSplitter** (`core/backtesting/data_splitter.py`)
+  - 시계열 Train/Val/Test 분할 (무작위 X, 시간순)
+  - Purge gap: Train/Test 경계에 N일 격리 (데이터 누수 방지)
+- **WalkForwardAnalyzer** (`core/backtesting/walk_forward.py`)
+  - Rolling window 방식 Out-of-Sample 검증
+  - 설정: train 180일, test 30일, step 30일, purge 5일
+  - Overfitting Ratio: Test Sharpe / Train Sharpe (> 0.5 양호)
+  - Consistency Score: Test 수익률 표준편차 (낮을수록 안정적)
+- **PerformanceAnalyzer** (`core/backtesting/performance_analyzer.py`)
+  - Sharpe/Sortino/Calmar Ratio, Max Drawdown, Profit Factor 등 종합 지표
+
+## Risk · 리스크 관리
+
+- **KellyCalculator** (`core/risk/position/kelly_calculator.py`)
+  - 켈리 공식: f* = (p*b - q) / b
+  - Half Kelly (보수적), 신뢰구간 조정, signal_confidence 범위 검증
+  - 최적 분율 추정: 임시 인스턴스 패턴 (state mutation 방지)
+- **PositionSizer** (`core/risk/position/position_sizer.py`)
+  - 리스크 기반 포지션 사이징 + 섹터 제약
+- **CorrelationMatrix** (`core/risk/correlation/correlation_matrix.py`)
+  - 종목 간 상관계수 계산, 고상관 종목 식별
+
 ## 데이터 표준 경로
 
 - 스크리닝 파티션: `data/watchlist/screening_YYYYMMDD.json`
 - 감시리스트 이력: `data/watchlist/history.json`
 - 일일선정: `data/daily_selection/daily_selection_YYYYMMDD.json`
 - 학습 라벨: `data/learning/labels/*.json`
-
+- 백테스트 결과: `reports/backtest/`, `reports/walk_forward/`

@@ -367,8 +367,30 @@ ls -la reports/backtest/
 
 ---
 
+## Walk-Forward 파라미터 가이드
+
+`WalkForwardConfig` 주요 파라미터와 권장값:
+
+| 파라미터            | 기본값 | 권장 범위          | 설명                                    |
+| ------------------- | ------ | ------------------ | --------------------------------------- |
+| `train_window_days` | 180    | 90~365             | 학습 윈도우. 최소 90일 이상 권장        |
+| `test_window_days`  | 30     | 20~60              | 테스트 윈도우. train의 1/6~1/3이 적절   |
+| `step_days`         | 30     | test_window와 동일 | 겹침 없이 진행하려면 test_window와 동일 |
+| `min_train_trades`  | 20     | 15~50              | 통계적 유의성 위해 최소 15건 이상       |
+| `purge_days`        | 5      | 3~10               | 보유 기간과 동일하게 설정 권장          |
+
+**판정 기준**:
+
+- Overfitting Ratio > 0.5: 양호 (Test가 Train의 50% 이상)
+- Consistency Score < 0.05: 안정적 (Test 수익률 변동 낮음)
+
+---
+
 ## 참고 문서
 
 - **백테스트 시스템 설계**: `docs/planning/phase4/wave3-backtest-system.md`
+- **P1 구현 계획**: `docs/design/p1-implementation-plan.md`
+- **수익성 개선 로드맵**: `docs/analysis/profitability-improvement-roadmap.md`
+- **알고리즘 개요**: `docs/ALGORITHMS_OVERVIEW.md`
 - **백테스트 모듈**: `core/backtesting/`
 - **기존 스크립트**: `scripts/run_p0_backtest.py`

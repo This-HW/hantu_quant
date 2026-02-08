@@ -694,21 +694,33 @@ class VWAPOrder:
 
 ### P0 완료 조건
 
-- [ ] 백테스트 실제 데이터 사용
-- [ ] 거래 비용 반영
-- [ ] Phase 1 가중치 조정
-- [ ] Phase 1 필터 완화
-- [ ] 손절/익절 개선 (변동성별 + 부분 익절)
-- [ ] 백테스트 재실행 (Out-of-Sample 검증 통과)
+- [x] 백테스트 실제 데이터 사용 (MF-1: KIS API 실데이터 연동)
+- [x] 거래 비용 반영 (MF-2: TradingCosts 모듈 구현)
+- [x] Phase 1 가중치 조정 (완료)
+- [x] Phase 1 필터 완화 (완료)
+- [x] 손절/익절 개선 (MF-4: 변동성별 손절 + 부분 익절)
+- [ ] 백테스트 재실행 (Out-of-Sample 검증 통과) - 모의투자 데이터 축적 후 진행
 
-### P1 완료 조건
+### P1 완료 조건 (코드 구현 완료, 실데이터 검증 대기)
 
-- [ ] In/Out-of-Sample 분리
-- [ ] Walk-Forward Analysis
-- [ ] 동적 Kelly 사이징
-- [ ] 시장 체제 감지
-- [ ] 상관관계 기반 포지션 제한
-- [ ] 슬리페이지 모니터링
+- [x] In/Out-of-Sample 분리 (#7: DataSplitter + purge gap)
+- [x] Walk-Forward Analysis (#8: WalkForwardAnalyzer)
+- [ ] 동적 Kelly 사이징 (#9: TradingEngine 통합 대기)
+- [ ] 시장 체제 감지 (#10: MarketRegimeDetector 구현 대기)
+- [ ] 상관관계 기반 포지션 제한 (#11: CorrelationMonitor 구현 대기)
+- [ ] 슬리페이지 모니터링 (#12: SlippageMonitor 구현 대기)
+
+### P1 코드 품질 개선 (Should Fix / Consider)
+
+- [x] SF-1: strategy_backtester.py trading_config 미정의 버그 수정
+- [x] SF-2: strategy_backtester.py max_positions 파라미터화
+- [x] SF-3: BacktestResult.empty() SSOT classmethod 추가
+- [x] SF-4: WalkForwardConfig 파라미터 문서화
+- [x] SF-5: PerformanceAnalyzer 제로 분모 로깅 강화
+- [x] SF-7: Kelly Calculator signal_confidence 범위 검증
+- [x] SF-8: TradingEngine JSON 로드 에러 처리 강화
+- [x] SF-9: TradingEngine 부분익절 임계값 설정 연동
+- [x] C-7: Kelly Calculator state mutation 방지 (임시 인스턴스 패턴)
 
 ### P2 완료 조건
 
