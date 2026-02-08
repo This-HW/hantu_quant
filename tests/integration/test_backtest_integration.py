@@ -31,7 +31,7 @@ class TestStrategyBacktesterWithPerformanceAnalyzer:
     @pytest.fixture
     def mock_kis_api(self):
         """KISAPI 완전 모킹"""
-        with patch('core.backtesting.strategy_backtester.KISAPI') as mock_api_cls:
+        with patch('core.backtesting.base_backtester.KISAPI') as mock_api_cls:
             mock_api_instance = MagicMock()
             mock_api_instance.get_stock_history.return_value = None
             mock_api_instance.get_current_price.return_value = {
@@ -204,7 +204,7 @@ class TestWalkForwardWithReporter:
     @pytest.fixture
     def mock_kis_api(self):
         """KISAPI 완전 모킹"""
-        with patch('core.backtesting.strategy_backtester.KISAPI') as mock_api_cls:
+        with patch('core.backtesting.base_backtester.KISAPI') as mock_api_cls:
             mock_api_instance = MagicMock()
             mock_api_instance.get_stock_history.return_value = None
             mock_api_cls.return_value = mock_api_instance

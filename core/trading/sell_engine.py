@@ -286,7 +286,7 @@ class SellEngine(ISellEngine):
                     prev_close = closes.shift(1)
                     tr = _pd.concat([(highs - lows).abs(), (highs - prev_close).abs(), (lows - prev_close).abs()], axis=1).max(axis=1)
                     atr = tr.rolling(window=14, min_periods=5).mean().iloc[-1]
-                    if atr is not None:
+                    if atr is not None and _pd.notna(atr):
                         new_trailing = max(position.trailing_stop_price, current_price - self._config.get("atr_trailing_multiplier", 2.0) * float(atr))
                         if new_trailing > position.trailing_stop_price:
                             position.trailing_stop_price = new_trailing

@@ -60,6 +60,9 @@ class BaseBacktester(ABC):
         self.logger.info(f"백테스트 시작 [{strategy_name}]: {start_date} ~ {end_date}")
 
         try:
+            # 캐시 초기화 (이전 backtest 잔여 데이터 방지)
+            self.price_data_cache = {}
+
             # 1. 과거 일일 선정 데이터 로드
             daily_selections = self._load_historical_selections(start_date, end_date)
 
@@ -287,9 +290,10 @@ class BaseBacktester(ABC):
             max_drawdown = min(drawdowns) if len(drawdowns) > 0 else 0
 
             # Sharpe Ratio
+            std_returns = np.std(adjusted_returns) if len(adjusted_returns) > 1 else 0
             sharpe = (
-                np.mean(adjusted_returns) / np.std(adjusted_returns) * np.sqrt(252)
-                if len(adjusted_returns) > 1 else 0
+                np.mean(adjusted_returns) / std_returns * np.sqrt(252)
+                if std_returns > 0 else 0
             )
 
             # Profit Factor
