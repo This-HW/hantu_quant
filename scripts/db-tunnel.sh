@@ -134,6 +134,11 @@ start_tunnel() {
 
     log_info "Starting SSH tunnel..."
 
+    # Check SSH key (only in local environment)
+    if ! check_ssh_key; then
+        return 1
+    fi
+
     # Check if already running
     if is_tunnel_running; then
         local pid
@@ -141,11 +146,6 @@ start_tunnel() {
         echo -e "${YELLOW}⭕ SSH tunnel is already running (PID: $pid)${NC}"
         log_warn "Attempted to start tunnel, but it's already running (PID: $pid)"
         return 0
-    fi
-
-    # Check SSH key
-    if ! check_ssh_key; then
-        return 1
     fi
 
     # Check if port is already in use by another process
