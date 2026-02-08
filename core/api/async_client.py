@@ -16,7 +16,6 @@
 """
 
 import asyncio
-import logging
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -30,8 +29,9 @@ except ImportError:
 
 from core.config.api_config import APIConfig, KISErrorCode
 from core.api.redis_client import cache
+from core.utils.log_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass

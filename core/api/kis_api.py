@@ -2,7 +2,6 @@
 Korea Investment & Securities API client module.
 """
 
-import logging
 import pandas as pd
 from typing import Dict, List, Optional, Callable
 import asyncio
@@ -10,8 +9,9 @@ import asyncio
 from .rest_client import KISRestClient
 from .websocket_client import KISWebSocketClient
 from core.config.api_config import APIConfig
+from core.utils.log_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class KISAPI(KISRestClient):
     """한국투자증권 API 클라이언트"""

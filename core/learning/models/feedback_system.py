@@ -76,7 +76,7 @@ class FeedbackSystem:
                 self._unified_db_available = True
                 self._logger.info("통합 DB (PostgreSQL/SQLite) 연결 성공")
             except Exception as e:
-                self._logger.warning(f"통합 DB 연결 실패, 로컬 SQLite 사용: {e}")
+                self._logger.warning(f"통합 DB 연결 실패, 로컬 SQLite 사용: {e}", exc_info=True)
                 self._unified_db_available = False
 
         # 폴백: 로컬 SQLite 데이터베이스 초기화
@@ -243,7 +243,7 @@ class FeedbackSystem:
                             ))
 
                     except Exception as e:
-                        self._logger.warning(f"예측 기록 실패: {prediction.stock_code} - {e}")
+                        self._logger.warning(f"예측 기록 실패: {prediction.stock_code} - {e}", exc_info=True)
                 
                 conn.commit()
             
@@ -290,7 +290,7 @@ class FeedbackSystem:
                         recorded_count += 1
 
                 except Exception as e:
-                    self._logger.warning(f"예측 기록 실패 (통합DB): {prediction.stock_code} - {e}")
+                    self._logger.warning(f"예측 기록 실패 (통합DB): {prediction.stock_code} - {e}", exc_info=True)
 
             self._logger.info(f"예측 결과 기록 완료 (통합DB): {recorded_count}개")
             return recorded_count > 0
@@ -365,7 +365,7 @@ class FeedbackSystem:
                         updated_count += 1
                         
                     except Exception as e:
-                        self._logger.warning(f"피드백 업데이트 실패: {feedback.prediction_id} - {e}")
+                        self._logger.warning(f"피드백 업데이트 실패: {feedback.prediction_id} - {e}", exc_info=True)
                 
                 conn.commit()
             

@@ -229,7 +229,7 @@ class TradingEngine:
             self.logger.debug(f"피드백 기록 완료: {stock_code}")
 
         except Exception as e:
-            self.logger.warning(f"피드백 기록 실패 (무시): {e}")
+            self.logger.warning(f"피드백 기록 실패 (무시): {e}", exc_info=True)
 
     async def sell(
         self,
@@ -1305,6 +1305,9 @@ class TradingEngine:
 
             if result and result.get("success"):
                 # 손익 계산
+                if position.avg_price <= 0:
+                    self.logger.warning(f"유효하지 않은 평균 매입가: {position.avg_price}")
+                    return None
                 pnl = (current_price - position.avg_price) * position.quantity
                 return_rate = (current_price - position.avg_price) / position.avg_price
 

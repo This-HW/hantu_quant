@@ -93,7 +93,7 @@ class DataSynchronizer:
                 self._unified_db_available = True
                 self.logger.info("통합 DB 연결 성공 (PostgreSQL/SQLAlchemy)")
             except Exception as e:
-                self.logger.warning(f"통합 DB 연결 실패, SQLite 폴백 사용: {e}")
+                self.logger.warning(f"통합 DB 연결 실패, SQLite 폴백 사용: {e}", exc_info=True)
                 self._unified_db_available = False
 
         # SQLite 폴백용 스키마 준비
@@ -289,12 +289,12 @@ class DataSynchronizer:
 
                             except Exception as e:
                                 self.logger.warning(
-                                    f"개별 스크리닝 결과 처리 실패: {e}"
+                                    f"개별 스크리닝 결과 처리 실패: {e}", exc_info=True
                                 )
                                 continue
 
                     except Exception as e:
-                        self.logger.warning(f"스크리닝 파일 처리 실패 {file_path}: {e}")
+                        self.logger.warning(f"스크리닝 파일 처리 실패 {file_path}: {e}", exc_info=True)
                         continue
 
             self.logger.info(f"스크리닝 결과 동기화 완료 (통합 DB): {synced_count}건")
@@ -371,12 +371,12 @@ class DataSynchronizer:
 
                             except Exception as e:
                                 self.logger.warning(
-                                    f"개별 스크리닝 결과 처리 실패: {e}"
+                                    f"개별 스크리닝 결과 처리 실패: {e}", exc_info=True
                                 )
                                 continue
 
                     except Exception as e:
-                        self.logger.warning(f"스크리닝 파일 처리 실패 {file_path}: {e}")
+                        self.logger.warning(f"스크리닝 파일 처리 실패 {file_path}: {e}", exc_info=True)
                         continue
 
                 conn.commit()
@@ -505,11 +505,11 @@ class DataSynchronizer:
                                 synced_count += 1
 
                             except Exception as e:
-                                self.logger.warning(f"개별 선정 결과 처리 실패: {e}")
+                                self.logger.warning(f"개별 선정 결과 처리 실패: {e}", exc_info=True)
                                 continue
 
                     except Exception as e:
-                        self.logger.warning(f"선정 파일 처리 실패 {file_path}: {e}")
+                        self.logger.warning(f"선정 파일 처리 실패 {file_path}: {e}", exc_info=True)
                         continue
 
             self.logger.info(f"종목 선정 결과 동기화 완료 (통합 DB): {synced_count}건")
@@ -577,11 +577,11 @@ class DataSynchronizer:
                                 synced_count += 1
 
                             except Exception as e:
-                                self.logger.warning(f"개별 선정 결과 처리 실패: {e}")
+                                self.logger.warning(f"개별 선정 결과 처리 실패: {e}", exc_info=True)
                                 continue
 
                     except Exception as e:
-                        self.logger.warning(f"선정 파일 처리 실패 {file_path}: {e}")
+                        self.logger.warning(f"선정 파일 처리 실패 {file_path}: {e}", exc_info=True)
                         continue
 
                 conn.commit()
@@ -709,7 +709,7 @@ class DataSynchronizer:
 
                     except Exception as e:
                         self.logger.warning(
-                            f"종목 {sel.stock_code} 성과 추적 실패: {e}"
+                            f"종목 {sel.stock_code} 성과 추적 실패: {e}", exc_info=True
                         )
                         continue
 
@@ -799,7 +799,7 @@ class DataSynchronizer:
                             updated_count += 1
 
                     except Exception as e:
-                        self.logger.warning(f"종목 {stock_code} 성과 추적 실패: {e}")
+                        self.logger.warning(f"종목 {stock_code} 성과 추적 실패: {e}", exc_info=True)
                         continue
 
                 conn.commit()

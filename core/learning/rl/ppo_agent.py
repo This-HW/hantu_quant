@@ -9,7 +9,6 @@ Features:
 - 하이퍼파라미터 설정
 """
 
-import logging
 from typing import Dict, List, Optional, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -29,8 +28,9 @@ except ImportError:
     DummyVecEnv = None
 
 from .trading_env import GymTradingEnv, GYMNASIUM_AVAILABLE
+from core.utils.log_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass

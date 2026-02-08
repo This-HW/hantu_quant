@@ -123,7 +123,7 @@ class PredictionEngine:
                     if prediction:
                         model_predictions[model_name] = prediction
                 except Exception as e:
-                    self._logger.warning(f"{model_name} 예측 실패: {e}")
+                    self._logger.warning(f"{model_name} 예측 실패: {e}", exc_info=True)
             
             if not model_predictions:
                 self._logger.error(f"모든 모델 예측 실패: {stock_code}", exc_info=True)

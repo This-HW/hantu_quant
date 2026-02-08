@@ -7,7 +7,6 @@ API configuration management module.
 """
 
 import json
-import logging
 import ssl
 import time
 from datetime import datetime, timedelta
@@ -17,6 +16,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.ssl_ import create_urllib3_context
 
 from . import settings
+from core.utils.log_utils import get_logger
 
 
 class TLSAdapter(HTTPAdapter):
@@ -33,7 +33,7 @@ class TLSAdapter(HTTPAdapter):
         kwargs['ssl_context'] = ctx
         return super().init_poolmanager(*args, **kwargs)
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # KIS API 에러 코드 정의
 class KISErrorCode:

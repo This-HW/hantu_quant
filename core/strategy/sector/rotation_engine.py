@@ -9,12 +9,12 @@ import numpy as np
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
-import logging
 
 from .sector_map import Sector, SectorMap
 from .sector_analyzer import SectorAnalyzer, SectorMetrics
+from core.utils.log_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass

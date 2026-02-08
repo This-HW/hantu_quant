@@ -12,7 +12,6 @@ LSTM 가격 예측 모델 (P3-1)
 - 최소 3년 일봉 데이터 (학습용)
 """
 
-import logging
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
@@ -32,7 +31,9 @@ except ImportError:
     torch = None
     nn = None
 
-logger = logging.getLogger(__name__)
+from core.utils.log_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -329,7 +330,7 @@ if TORCH_AVAILABLE:
 
                     train_loss += loss.item()
 
-                train_loss /= len(train_loader)
+                train_loss /= len(train_loader) if len(train_loader) > 0 else 1
                 history['train_loss'].append(train_loss)
 
                 # 검증
@@ -343,7 +344,7 @@ if TORCH_AVAILABLE:
                         loss = criterion(outputs, batch_y)
                         val_loss += loss.item()
 
-                val_loss /= len(val_loader)
+                val_loss /= len(val_loader) if len(val_loader) > 0 else 1
                 history['val_loss'].append(val_loss)
 
                 if verbose and (epoch + 1) % 10 == 0:
@@ -443,7 +444,7 @@ if TORCH_AVAILABLE:
                 try:
                     results[stock_code] = self.predict(data, stock_code)
                 except Exception as e:
-                    logger.warning(f"예측 실패 ({stock_code}): {e}")
+                    logger.warning(f"예측 실패 ({stock_code}): {e}", exc_info=True)
             return results
 
         def save(self, filepath: Optional[str] = None) -> str:

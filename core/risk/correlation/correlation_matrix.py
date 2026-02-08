@@ -8,9 +8,10 @@ import pandas as pd
 import numpy as np
 from typing import Dict, List, Tuple
 from dataclasses import dataclass, field
-import logging
 
-logger = logging.getLogger(__name__)
+from core.utils.log_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass

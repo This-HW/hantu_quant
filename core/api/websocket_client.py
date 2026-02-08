@@ -6,7 +6,6 @@
 """
 
 import json
-import logging
 import asyncio
 import websockets
 from typing import Dict, Optional, Callable, List
@@ -14,8 +13,9 @@ from core.config.settings import (
     SERVER, SOCKET_VIRTUAL_URL, SOCKET_PROD_URL
 )
 from core.config.api_config import APIConfig
+from core.utils.log_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class KISWebSocketClient:

@@ -8,11 +8,11 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-import logging
 
 from .drawdown_monitor import DrawdownStatus, AlertLevel
+from core.utils.log_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class BreakerState(Enum):

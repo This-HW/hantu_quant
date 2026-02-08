@@ -286,12 +286,13 @@ class SellEngine(ISellEngine):
                     prev_close = closes.shift(1)
                     tr = _pd.concat([(highs - lows).abs(), (highs - prev_close).abs(), (lows - prev_close).abs()], axis=1).max(axis=1)
                     atr = tr.rolling(window=14, min_periods=5).mean().iloc[-1]
-                    if _np_is_finite := (atr is not None):
+                    if atr is not None:
                         new_trailing = max(position.trailing_stop_price, current_price - self._config.get("atr_trailing_multiplier", 2.0) * float(atr))
                         if new_trailing > position.trailing_stop_price:
                             position.trailing_stop_price = new_trailing
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"ATR 기반 트레일링 스탑 계산 실패: {e}", exc_info=True)
+            # ATR 계산 실패 시 기존 트레일링 스탑 유지
 
         if current_price <= position.trailing_stop_price and position.current_return > 0:
             return SellSignal(
@@ -445,8 +446,8 @@ class SellEngine(ISellEngine):
                         try:
                             foreign_net = float(inv[k])
                             break
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.error(f"외국인 순매수 데이터 파싱 실패: {e}", exc_info=True)
             trigger = False
             reason = []
             if imb is not None and imb > 0.2:
@@ -468,7 +469,8 @@ class SellEngine(ISellEngine):
                     timestamp=datetime.now().isoformat(),
                     confidence=0.6
                 )
-        except Exception:
+        except Exception as e:
+            logger.error(f"시장 상황 체크 실패: {e}", exc_info=True)
             return None
         return None
     

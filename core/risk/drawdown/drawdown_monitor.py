@@ -11,9 +11,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from collections import deque
-import logging
 
-logger = logging.getLogger(__name__)
+from core.utils.log_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class AlertLevel(Enum):

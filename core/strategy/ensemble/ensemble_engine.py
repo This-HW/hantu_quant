@@ -10,14 +10,14 @@ import numpy as np
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime
-import logging
 
 from .signal import Signal, SignalType, SignalSource, FinalSignal
 from .signal_aggregator import SignalAggregator, AggregatorConfig
 from .ta_scorer import TechnicalAnalysisScorer
 from .supply_demand_scorer import SupplyDemandScorer
+from core.utils.log_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass

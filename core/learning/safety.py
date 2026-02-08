@@ -4,14 +4,15 @@
 과적합 방지, 롤백 메커니즘, 학습 검증을 담당합니다.
 """
 
-import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from enum import Enum
 import copy
 
-logger = logging.getLogger(__name__)
+from core.utils.log_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class ValidationCheckType(Enum):

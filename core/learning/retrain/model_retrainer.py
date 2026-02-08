@@ -335,7 +335,7 @@ class ModelRetrainer:
         import random
 
         new_weight = self._config.incremental_data_weight
-        1 - new_weight
+        # old_weight = 1 - new_weight  # 사용되지 않아 삭제
 
         # 목표 샘플 수
         target_size = len(existing) + len(new)

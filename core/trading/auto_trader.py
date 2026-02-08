@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime
 from typing import Dict, List, Optional
 import pandas as pd
@@ -13,8 +12,9 @@ from core.config.trading_config import (
     MARKET_START_TIME, MARKET_END_TIME,
     MAX_RELATIVE_SPREAD, UPTICK_RATIO_BUY_MIN
 )
+from core.utils.log_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class AutoTrader:
     """매수-매도 통합 자동 매매 트레이더"""
@@ -106,7 +106,8 @@ class AutoTrader:
                     uptick_ratio = float((deltas > 0).sum()) / max(1, len(deltas))
                 else:
                     uptick_ratio = None
-            except Exception:
+            except Exception as e:
+                logger.error(f"호가/체결 데이터 조회 실패: {e}", exc_info=True)
                 uptick_ratio = None
 
             # 간단한 진입 가드: 스프레드/업틱 기준
@@ -118,8 +119,9 @@ class AutoTrader:
                     if a > 0 and b > 0:
                         rel_spread = (a - b) / ((a + b) / 2)
                         spread_ok = rel_spread <= MAX_RELATIVE_SPREAD
-                except Exception:
-                    spread_ok = True
+                except Exception as e:
+                    logger.error(f"스프레드 계산 실패: {e}", exc_info=True)
+                    spread_ok = True  # 계산 실패 시 스프레드 조건 통과로 처리
             uptick_ok = (uptick_ratio is None) or (uptick_ratio >= UPTICK_RATIO_BUY_MIN)
 
             if spread_ok and uptick_ok and self.strategy.should_buy(price_data):
@@ -443,4 +445,4 @@ class AutoTrader:
             notifier.send_message(message)
             
         except Exception as e:
-            logger.debug(f"매도 알림 발송 실패: {e}")  # 에러지만 치명적이지 않음 
+            logger.warning(f"매도 알림 발송 실패: {e}", exc_info=True)  # 에러지만 치명적이지 않음 

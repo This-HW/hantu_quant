@@ -47,8 +47,8 @@ def _get_backoff_multiplier() -> float:
                 content = f.read().strip()
                 if content:
                     return min(float(content), _MAX_BACKOFF_MULTIPLIER)
-    except (ValueError, OSError):
-        pass
+    except (ValueError, OSError) as e:
+        logger.debug(f"Backoff multiplier 파일 읽기 실패: {e}")
     return 1.0
 
 
@@ -57,8 +57,8 @@ def _set_backoff_multiplier(multiplier: float) -> None:
     try:
         with open(_RATE_LIMIT_BACKOFF_FILE, 'w') as f:
             f.write(str(min(multiplier, _MAX_BACKOFF_MULTIPLIER)))
-    except OSError:
-        pass
+    except OSError as e:
+        logger.debug(f"Backoff multiplier 파일 쓰기 실패: {e}")
 
 
 def _increase_backoff() -> float:

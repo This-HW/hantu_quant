@@ -939,7 +939,7 @@ class DailyUpdater(IDailyUpdater):
             info = kis.get_stock_info(p_stock_code) or {}
             return float(info.get("market_cap", 0.0))
         except Exception as e:
-            self._logger.warning(f"시가총액 조회 실패 ({p_stock_code}): {e}")
+            self._logger.warning(f"시가총액 조회 실패 ({p_stock_code}): {e}", exc_info=True)
             return 0.0
 
     def _get_volatility(self, p_stock_code: str) -> float:

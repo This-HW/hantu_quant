@@ -10,9 +10,10 @@ import numpy as np
 from typing import Dict, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
-import logging
 
-logger = logging.getLogger(__name__)
+from core.utils.log_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class Timeframe(Enum):
@@ -276,7 +277,7 @@ class MTFAnalyzer:
             abs(low - close.shift(1))
         ], axis=1).max(axis=1)
 
-        tr.rolling(14).mean()
+        # atr = tr.rolling(14).mean()  # 사용되지 않아 삭제
         trend_strength = min(1.0, abs(ma_diff) / 0.1)  # 10% 변화를 최대로
 
         # 이평선 대비 위치

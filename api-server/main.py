@@ -280,7 +280,9 @@ kis_client = KISAPI()
 
 print("🚀 실제 투자 환경 시작")
 print(f"📡 API 서버: {api_config.base_url}")
-print(f"🏦 계좌: {api_config.account_number}")
+# 계좌번호 마스킹 (보안)
+masked_account = f"{api_config.account_number[:4]}****{api_config.account_number[-4:]}" if len(api_config.account_number) >= 8 else "****"
+print(f"🏦 계좌: {masked_account}")
 
 # 실제 API 데이터 로딩 함수들
 def get_real_stock_price(stock_code: str) -> Dict:

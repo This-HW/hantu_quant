@@ -11,7 +11,6 @@ Usage:
 """
 
 import json
-import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime, date
 from pathlib import Path
@@ -26,8 +25,9 @@ from .models import (
     DailySelection,
     TradeHistory,
 )
+from core.utils.log_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class MigrationResult:

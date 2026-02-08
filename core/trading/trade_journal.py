@@ -19,7 +19,7 @@ def _get_selection_tracker():
         from core.daily_selection.selection_tracker import get_selection_tracker
         return get_selection_tracker()
     except ImportError:
-        logger.warning("selection_tracker를 import할 수 없습니다")
+        logger.warning("selection_tracker를 import할 수 없습니다", exc_info=True)
         return None
 
 
@@ -29,7 +29,7 @@ def _get_db_session():
         from core.database.unified_db import get_session
         return get_session
     except ImportError:
-        logger.warning("unified_db를 import할 수 없습니다")
+        logger.warning("unified_db를 import할 수 없습니다", exc_info=True)
         return None
 
 
@@ -39,7 +39,7 @@ def _get_trade_history_model():
         from core.database.models import TradeHistory, Stock
         return TradeHistory, Stock
     except ImportError:
-        logger.warning("TradeHistory 모델을 import할 수 없습니다")
+        logger.warning("TradeHistory 모델을 import할 수 없습니다", exc_info=True)
         return None, None
 
 
@@ -142,7 +142,7 @@ class TradeJournal:
                     events.append(event)
                 return events
         except Exception as e:
-            logger.debug(f"DB 이벤트 로드 실패: {e}")
+            logger.warning(f"DB 이벤트 로드 실패: {e}", exc_info=True)
             return []
 
     def _save(self) -> None:

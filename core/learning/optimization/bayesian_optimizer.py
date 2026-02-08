@@ -421,7 +421,7 @@ class BayesianOptimizer:
 
         try:
             # 간단한 그리드 서치로 획득 함수 최적화
-            float("-inf")
+            best_acq_value = float("-inf")
             best_params = None
 
             # 각 차원마다 몇 개 후보 생성

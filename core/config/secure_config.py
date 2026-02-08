@@ -5,14 +5,15 @@
 
 import os
 import json
-import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 import hashlib
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
+from core.utils.log_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class SecureConfig:
