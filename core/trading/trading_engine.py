@@ -477,17 +477,24 @@ class TradingEngine:
         try:
             self.api_config = APIConfig()
 
-            # 가상계좌 설정 확인
+            # 실전 계좌 보호 (P0: 서버 환경 블로킹 방지)
             if self.api_config.server != "virtual":
-                self.logger.warning(
-                    "실전 계좌가 설정되어 있습니다. 가상계좌로 변경을 권장합니다."
-                )
-                response = input("가상계좌로 변경하시겠습니까? (y/N): ").strip().lower()
-                if response == "y":
-                    self.api_config.server = "virtual"
-                    self.logger.info("가상계좌 모드로 변경되었습니다.")
+                # TRADING_PROD_ENABLE 환경변수로 실전 거래 명시적 허용 확인
+                prod_enable = os.environ.get("TRADING_PROD_ENABLE", "false").lower() == "true"
+
+                if not prod_enable:
+                    self.logger.critical(
+                        "실전 계좌 사용 시도 감지 - TRADING_PROD_ENABLE=true 설정 필요"
+                    )
+                    raise RuntimeError(
+                        "실전 거래가 차단되었습니다. "
+                        "의도적으로 실전 거래를 활성화하려면 환경변수 TRADING_PROD_ENABLE=true를 설정하세요. "
+                        "(CLAUDE.md 참조)"
+                    )
                 else:
-                    self.logger.info("현재 설정 유지")
+                    self.logger.warning(
+                        "실전 계좌 모드 활성화됨 (TRADING_PROD_ENABLE=true)"
+                    )
 
             self.api = KISAPI()
 

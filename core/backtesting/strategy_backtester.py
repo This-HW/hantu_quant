@@ -31,6 +31,7 @@ class StrategyBacktester:
         self.initial_capital = initial_capital
         self.api = KISAPI()
         self.trading_costs = TradingCosts()  # 거래 비용 계산기
+        self.price_data_cache = {}  # 가격 데이터 캐시 (look-ahead bias 방지)
 
     def _to_datetime(self, date_value) -> datetime:
         """str 또는 datetime 객체를 datetime으로 변환"""
@@ -69,7 +70,10 @@ class StrategyBacktester:
             self.logger.warning("백테스트할 데이터가 없습니다")
             return BacktestResult.empty("No Data")
 
-        # 2. 시뮬레이션 실행
+        # 2. 가격 데이터 로드 (look-ahead bias 방지)
+        self._load_price_data_for_backtest(daily_selections, start_date, end_date)
+
+        # 3. 시뮬레이션 실행
         trades = self._simulate_trading(
             daily_selections,
             trading_config.get('stop_loss_pct', 0.03),
@@ -78,7 +82,7 @@ class StrategyBacktester:
             trading_config.get('max_positions', 10)
         )
 
-        # 3. 성과 분석
+        # 4. 성과 분석
         result = self._analyze_performance(trades, start_date, end_date, "Historical Strategy")
 
         self.logger.info(f"백테스트 완료: 승률 {result.win_rate:.1%}, 총수익률 {result.total_return:.2%}")
@@ -117,6 +121,59 @@ class StrategyBacktester:
 
         self.logger.info(f"과거 선정 데이터: {len(selections)}개 종목")
         return selections
+
+    def _load_price_data_for_backtest(self, selections: List[Dict], start_date: str, end_date: str):
+        """백테스트용 과거 가격 데이터 로드 (look-ahead bias 방지)
+
+        전체 백테스트 기간의 가격 데이터를 미리 로드하여 캐시에 저장.
+        시뮬레이션 시 해당 날짜까지의 데이터만 참조하도록 함.
+        """
+        import pandas as pd
+
+        # 종목 코드 추출
+        stock_codes = set(sel['stock_code'] for sel in selections)
+        self.logger.info(f"가격 데이터 로드 시작: {len(stock_codes)}개 종목")
+
+        # datetime 변환
+        if isinstance(start_date, str):
+            start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        else:
+            start_dt = start_date
+
+        if isinstance(end_date, str):
+            end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        else:
+            end_dt = end_date
+
+        # 각 종목의 가격 데이터 로드
+        for code in stock_codes:
+            try:
+                # API를 통해 과거 데이터 조회 (충분한 기간)
+                # period=100: 백테스트 기간 + 여유분
+                price_df = self.api.get_daily_prices(code, period=100)
+
+                if price_df is None or price_df.empty:
+                    self.logger.warning(f"가격 데이터 없음: {code}")
+                    continue
+
+                # 인덱스를 datetime으로 변환
+                if not isinstance(price_df.index, pd.DatetimeIndex):
+                    price_df.index = pd.to_datetime(price_df.index)
+
+                # 백테스트 기간 내 데이터만 필터링
+                mask = (price_df.index >= start_dt) & (price_df.index <= end_dt)
+                filtered_df = price_df.loc[mask]
+
+                if not filtered_df.empty:
+                    self.price_data_cache[code] = filtered_df
+                    self.logger.debug(f"가격 데이터 로드 완료: {code} ({len(filtered_df)}일)")
+                else:
+                    self.logger.warning(f"백테스트 기간 내 데이터 없음: {code}")
+
+            except Exception as e:
+                self.logger.error(f"가격 데이터 로드 실패: {code} - {e}", exc_info=True)
+
+        self.logger.info(f"가격 데이터 로드 완료: {len(self.price_data_cache)}개 종목")
 
     def _simulate_trading(
         self,
@@ -187,7 +244,7 @@ class StrategyBacktester:
         take_profit_pct: float,
         max_holding_days: int
     ) -> List[Trade]:
-        """청산 여부 체크 (실제 데이터 기반)"""
+        """청산 여부 체크 (과거 데이터 기반, look-ahead bias 방지)"""
         closed = []
         to_remove = []
 
@@ -200,18 +257,33 @@ class StrategyBacktester:
             if holding_days == 0:
                 continue
 
-            # 실제 가격 데이터 조회 (KIS API - 과거 데이터)
+            # 캐시된 가격 데이터 조회 (look-ahead bias 방지)
             try:
-                # ✅ MF-1 수정: 해당 날짜의 과거 종가 조회 (look-ahead bias 방지)
-                # 최근 5일 데이터 조회 후 해당 날짜 종가 추출
-                price_data = self.api.get_daily_prices(code, period=5)
-
-                if not price_data or len(price_data) == 0:
-                    self.logger.warning(f"가격 조회 실패: {code} on {current_date}")
+                if code not in self.price_data_cache:
+                    self.logger.warning(f"가격 데이터 없음: {code}")
                     continue
 
-                # 가장 최근 종가 사용 (백테스트 날짜 기준)
-                current_price = price_data.iloc[-1]['close'] if not price_data.empty else 0
+                price_df = self.price_data_cache[code]
+
+                # current_date의 datetime 변환
+                current_dt = self._to_datetime(current_date)
+
+                # current_date까지의 데이터만 사용 (미래 데이터 차단)
+                # 인덱스가 date 타입인 경우와 datetime 타입인 경우 모두 처리
+                if hasattr(price_df.index, 'date'):
+                    mask = price_df.index.date <= current_dt.date()
+                else:
+                    mask = price_df.index <= current_dt
+
+                historical_data = price_df.loc[mask]
+
+                if historical_data.empty:
+                    self.logger.warning(f"해당 날짜 가격 데이터 없음: {code} on {current_date}")
+                    continue
+
+                # 해당 날짜의 종가 사용
+                current_price = historical_data.iloc[-1]['close']
+
                 if current_price <= 0:
                     self.logger.warning(f"유효하지 않은 가격: {code} - {current_price}원")
                     continue

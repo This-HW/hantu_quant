@@ -29,9 +29,13 @@ class DatabaseSession:
         return cls._instance
 
     def __init__(self):
-        """초기화"""
+        """초기화 (싱글톤이므로 최초 1회만 실행)"""
+        if self._initialized:
+            return
+
         self._init_database()
         self.session = self._create_session()
+        self._initialized = True
 
     def _init_database(self):
         """데이터베이스 초기화"""

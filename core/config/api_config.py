@@ -274,7 +274,11 @@ class APIConfig:
             with open(self._token_file, 'w') as f:
                 json.dump(token_data, f)
 
-            logger.debug("[_save_token] 토큰 정보 저장 완료")
+            # 파일 권한 제한 (소유자만 읽기/쓰기)
+            import os
+            os.chmod(self._token_file, 0o600)
+
+            logger.debug(f"[_save_token] 토큰 정보 저장 완료: {self._token_file} (권한: 600)")
 
         except Exception as e:
             logger.error(f"[_save_token] 토큰 정보 저장 중 오류 발생: {str(e)}", exc_info=True)
@@ -558,6 +562,12 @@ class APIConfig:
             }
             with open(self._ws_approval_key_file, 'w') as f:
                 json.dump(data, f)
+
+            # 파일 권한 제한 (소유자만 읽기/쓰기)
+            import os
+            os.chmod(self._ws_approval_key_file, 0o600)
+
+            logger.debug(f"[_save_ws_approval_key] WebSocket 접속키 저장 완료 (권한: 600)")
         except Exception as e:
             logger.error(f"[_save_ws_approval_key] 저장 실패: {e}", exc_info=True)
 

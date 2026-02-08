@@ -364,6 +364,30 @@ class SchedulerCore:
             logger.error(f"배치 {batch_index} 실행 오류: {e}", exc_info=True)
             return False
 
+    def _run_async_safe(self, coro):
+        """이벤트 루프 안전 실행 (스케줄러 스레드용)
+
+        스케줄러 스레드에서 async 함수를 안전하게 실행하기 위해
+        새로운 이벤트 루프를 생성하여 사용합니다.
+
+        Args:
+            coro: 실행할 코루틴
+
+        Returns:
+            코루틴 실행 결과 (에러 시 False)
+        """
+        try:
+            # 새 이벤트 루프 생성 (기존 루프와 충돌 방지)
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                return loop.run_until_complete(coro)
+            finally:
+                loop.close()
+        except Exception as e:
+            logger.error(f"비동기 실행 실패: {e}", exc_info=True)
+            return False
+
     def start_trading(self, from_recovery: bool = False) -> bool:
         """자동 매매 시작 (09:00)
 
@@ -382,7 +406,7 @@ class SchedulerCore:
             from core.trading.trading_engine import get_trading_engine
 
             engine = get_trading_engine()
-            success = asyncio.run(engine.start_trading())
+            success = self._run_async_safe(engine.start_trading())
 
             if success:
                 logger.info("[Phase 3] 자동 매매 시작 완료")
@@ -420,7 +444,7 @@ class SchedulerCore:
             from core.trading.trading_engine import get_trading_engine
 
             engine = get_trading_engine()
-            success = asyncio.run(engine.stop_trading(reason="스케줄러 자동 중지"))
+            success = self._run_async_safe(engine.stop_trading(reason="스케줄러 자동 중지"))
 
             if success:
                 logger.info("[Phase 3] 자동 매매 중지 완료")
