@@ -15,7 +15,16 @@ export TZ=Asia/Seoul
 
 # Configuration
 REMOTE_HOST="ubuntu@158.180.87.156"
-SSH_KEY="${SSH_KEY:-${HOME}/.ssh/id_rsa}"
+# Auto-detect SSH key: prefer ed25519, fallback to rsa
+if [[ -z "${SSH_KEY:-}" ]]; then
+    if [[ -f "${HOME}/.ssh/id_ed25519" ]]; then
+        SSH_KEY="${HOME}/.ssh/id_ed25519"
+    elif [[ -f "${HOME}/.ssh/id_rsa" ]]; then
+        SSH_KEY="${HOME}/.ssh/id_rsa"
+    else
+        SSH_KEY="${HOME}/.ssh/id_rsa"  # Default for error message
+    fi
+fi
 LOCAL_PORT="15432"
 REMOTE_PORT="5432"
 PID_FILE="/tmp/db-tunnel.pid"
