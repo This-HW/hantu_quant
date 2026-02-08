@@ -4,21 +4,19 @@
 일일 선정 데이터의 예상 수익률을 활용한 시뮬레이션
 """
 
-import json
 import numpy as np
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Dict, List, Optional
-from dataclasses import asdict
+
+from core.backtesting.base_backtester import BaseBacktester
+from core.backtesting.models import Trade
 
 from core.utils.log_utils import get_logger
-from core.backtesting.trading_costs import TradingCosts
-from core.backtesting.models import BacktestResult, Trade
 
 logger = get_logger(__name__)
 
 
-class SimpleBacktester:
+class SimpleBacktester(BaseBacktester):
     """간단한 백테스터 (예상 수익률 기반 시뮬레이션)"""
 
     def __init__(self, initial_capital: float = 100000000, random_seed: Optional[int] = None):
@@ -27,12 +25,44 @@ class SimpleBacktester:
             initial_capital: 초기 자본금 (기본: 1억원)
             random_seed: 난수 시드 (재현성 확보용)
         """
-        self.logger = logger
-        self.initial_capital = initial_capital
-        self.trading_costs = TradingCosts()  # 거래 비용 계산기
+        super().__init__(initial_capital)
 
         # ✅ MF-5 수정: 난수 시드 고정 (재현성 확보)
         self.random_state = np.random.RandomState(random_seed)
+
+    def _get_strategy_name(self) -> str:
+        """전략명 반환"""
+        return "Simple Expected Return Strategy"
+
+    def _load_historical_selections(self, start_date: str, end_date: str) -> List[Dict]:
+        """과거 일일 선정 데이터 로드 (필드 정규화 포함)
+
+        Args:
+            start_date: 시작일 (YYYY-MM-DD)
+            end_date: 종료일 (YYYY-MM-DD)
+
+        Returns:
+            List[Dict]: 선정 데이터 목록
+        """
+        # 부모 클래스에서 기본 로드
+        selections = super()._load_historical_selections(start_date, end_date)
+
+        # 필드 정규화 (SimpleBacktester 전용)
+        for stock in selections:
+            # entry_price 없으면 current_price 사용
+            if 'entry_price' not in stock:
+                stock['entry_price'] = stock.get('current_price', 0)
+
+            # expected_return 없으면 target_price로부터 계산
+            if 'expected_return' not in stock:
+                entry = stock['entry_price']
+                target = stock.get('target_price', entry)
+                if entry > 0:
+                    stock['expected_return'] = (target - entry) / entry * 100
+                else:
+                    stock['expected_return'] = 0
+
+        return selections
 
     def backtest_selection_strategy(
         self,
@@ -41,8 +71,8 @@ class SimpleBacktester:
         selection_criteria: Dict,
         trading_config: Dict,
         strategy_name: str = "Default"
-    ) -> BacktestResult:
-        """선정 전략 백테스트
+    ):
+        """선정 전략 백테스트 (레거시 API)
 
         일일 선정 데이터의 expected_return을 실제 수익률로 가정
         (현실성을 위해 50-70% 달성률 적용)
@@ -50,84 +80,27 @@ class SimpleBacktester:
         Args:
             start_date: 시작일 (YYYY-MM-DD)
             end_date: 종료일 (YYYY-MM-DD)
-            selection_criteria: 선정 기준
+            selection_criteria: 선정 기준 (미사용)
             trading_config: 매매 설정
 
         Returns:
             BacktestResult: 백테스트 결과
         """
-        self.logger.info(f"백테스트 시작: {start_date} ~ {end_date}")
-
-        # 1. 과거 일일 선정 데이터 로드
-        daily_selections = self._load_historical_selections(start_date, end_date)
-
-        if not daily_selections:
-            self.logger.warning("백테스트할 데이터가 없습니다")
-            return BacktestResult.empty("No Data")
-
-        # 2. 시뮬레이션 실행
-        trades = self._simulate_trading(
-            daily_selections,
-            trading_config.get('achievement_rate', 0.6),  # 예상 수익률 60% 달성
-            trading_config.get('max_holding_days', 10)
+        # 부모 클래스의 backtest() 메서드 호출
+        return self.backtest(
+            start_date=start_date,
+            end_date=end_date,
+            achievement_rate=trading_config.get('achievement_rate', 0.6),
+            max_holding_days=trading_config.get('max_holding_days', 10)
         )
 
-        # 3. 성과 분석
-        result = self._analyze_performance(trades, start_date, end_date, strategy_name)
-
-        self.logger.info(f"백테스트 완료: 승률 {result.win_rate:.1%}, 총수익률 {result.total_return:.2%}")
-
-        return result
-
-    def _load_historical_selections(self, start_date: str, end_date: str) -> List[Dict]:
-        """과거 일일 선정 데이터 로드"""
-        selections = []
-
-        current_date = datetime.strptime(start_date, "%Y-%m-%d")
-        end = datetime.strptime(end_date, "%Y-%m-%d")
-
-        while current_date <= end:
-            date_str = current_date.strftime("%Y%m%d")
-            file_path = Path(f"data/daily_selection/daily_selection_{date_str}.json")
-
-            if file_path.exists():
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        stocks = data.get('data', {}).get('selected_stocks', [])
-
-                        # 필드 정규화
-                        for stock in stocks:
-                            stock['selection_date'] = current_date.strftime("%Y-%m-%d")
-
-                            # entry_price 없으면 current_price 사용
-                            if 'entry_price' not in stock:
-                                stock['entry_price'] = stock.get('current_price', 0)
-
-                            # expected_return 없으면 target_price로부터 계산
-                            if 'expected_return' not in stock:
-                                entry = stock['entry_price']
-                                target = stock.get('target_price', entry)
-                                if entry > 0:
-                                    stock['expected_return'] = (target - entry) / entry * 100
-                                else:
-                                    stock['expected_return'] = 0
-
-                        selections.extend(stocks)
-
-                except Exception as e:
-                    self.logger.error(f"데이터 로드 실패 {date_str}: {e}", exc_info=True)
-
-            current_date += timedelta(days=1)
-
-        self.logger.info(f"과거 선정 데이터: {len(selections)}개 종목")
-        return selections
 
     def _simulate_trading(
         self,
         selections: List[Dict],
-        achievement_rate: float,
-        max_holding_days: int
+        achievement_rate: float = 0.6,
+        max_holding_days: int = 10,
+        **kwargs
     ) -> List[Trade]:
         """매매 시뮬레이션 (현실적 버전)
 
@@ -135,6 +108,10 @@ class SimpleBacktester:
             selections: 일일 선정 종목 리스트
             achievement_rate: 예상 수익률 달성률 (0.5 = 50%)
             max_holding_days: 최대 보유 기간
+            **kwargs: 추가 파라미터 (미사용)
+
+        Returns:
+            List[Trade]: 거래 목록
         """
         trades = []
 
@@ -216,73 +193,3 @@ class SimpleBacktester:
                 trades.append(trade)
 
         return trades
-
-    def _analyze_performance(self, trades: List[Trade], start_date: str, end_date: str, strategy_name: str) -> BacktestResult:
-        """성과 분석"""
-        if not trades:
-            return BacktestResult.empty(strategy_name)
-
-        # 거래 분류
-        returns = [t.return_pct for t in trades if t.return_pct is not None]
-        winning_trades = [t for t in trades if t.return_pct and t.return_pct > 0]
-        losing_trades = [t for t in trades if t.return_pct and t.return_pct < 0]
-
-        # 기본 지표
-        win_rate = len(winning_trades) / len(trades) if trades else 0
-        avg_return = np.mean(returns) if returns else 0
-        avg_win = np.mean([t.return_pct for t in winning_trades]) if winning_trades else 0
-        avg_loss = np.mean([t.return_pct for t in losing_trades]) if losing_trades else 0
-
-        total_return = sum(returns)
-        best_trade = max(returns) if returns else 0
-        worst_trade = min(returns) if returns else 0
-
-        # Max Drawdown (간단한 계산)
-        cumulative_returns = np.cumsum(returns)
-        running_max = np.maximum.accumulate(cumulative_returns)
-        drawdowns = cumulative_returns - running_max
-        max_drawdown = min(drawdowns) if len(drawdowns) > 0 else 0
-
-        # Sharpe Ratio (연율화)
-        sharpe = (np.mean(returns) / np.std(returns) * np.sqrt(252)) if len(returns) > 1 and np.std(returns) > 0 else 0
-
-        # Profit Factor
-        total_profit = sum([t.return_pct for t in winning_trades]) if winning_trades else 0
-        total_loss = abs(sum([t.return_pct for t in losing_trades])) if losing_trades else 0
-        profit_factor = total_profit / total_loss if total_loss > 0 else 0
-
-        # 평균 보유 기간
-        avg_holding_days = np.mean([t.holding_days for t in trades if t.holding_days is not None]) if trades else 0
-
-        self.logger.info(
-            f"성과 분석 완료 - "
-            f"총거래: {len(trades)}건, 승률: {win_rate:.1%}, "
-            f"평균수익률: {avg_return:.2%}, 총수익률: {total_return:.2%}"
-        )
-
-        return BacktestResult(
-            strategy_name=strategy_name,
-            start_date=start_date,
-            end_date=end_date,
-            total_trades=len(trades),
-            winning_trades=len(winning_trades),
-            losing_trades=len(losing_trades),
-            win_rate=win_rate,
-            avg_return=avg_return,
-            avg_win=avg_win,
-            avg_loss=avg_loss,
-            max_drawdown=max_drawdown,
-            sharpe_ratio=sharpe,
-            total_return=total_return,
-            profit_factor=profit_factor,
-            best_trade=best_trade,
-            worst_trade=worst_trade,
-            avg_holding_days=avg_holding_days
-        )
-
-    def save_result(self, result: BacktestResult, output_path: str):
-        """결과 저장"""
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(asdict(result), f, indent=2, ensure_ascii=False)
-        self.logger.info(f"백테스트 결과 저장: {output_path}")
