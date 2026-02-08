@@ -17,13 +17,9 @@ logger = get_logger(__name__)
 class StrategyBacktester(BaseBacktester):
     """전략 백테스터 (BaseBacktester 상속)"""
 
-    def __init__(self, initial_capital: float = 100000000):
-        super().__init__(initial_capital)
-        self._strategy_name = "Historical Strategy"
-
     def _get_strategy_name(self) -> str:
-        """전략명 반환"""
-        return self._strategy_name
+        """전략명 반환 (기본값)"""
+        return "Historical Strategy"
 
     def backtest_selection_strategy(
         self,
@@ -45,11 +41,11 @@ class StrategyBacktester(BaseBacktester):
         Returns:
             BacktestResult: 백테스트 결과
         """
-        self._strategy_name = strategy_name
-        # 부모의 backtest() 메서드 호출
+        # 부모의 backtest() 메서드 호출 (strategy_name 전달)
         return self.backtest(
             start_date=start_date,
             end_date=end_date,
+            strategy_name=strategy_name,
             stop_loss_pct=trading_config.get('stop_loss_pct', 0.03),
             take_profit_pct=trading_config.get('take_profit_pct', 0.08),
             max_holding_days=trading_config.get('max_holding_days', 10),

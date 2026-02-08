@@ -44,6 +44,7 @@ class BaseBacktester(ABC):
         self,
         start_date: str,
         end_date: str,
+        strategy_name: str = None,
         **kwargs
     ) -> BacktestResult:
         """백테스트 템플릿 메서드 (공통 플로우)
@@ -51,12 +52,14 @@ class BaseBacktester(ABC):
         Args:
             start_date: 시작일 (YYYY-MM-DD)
             end_date: 종료일 (YYYY-MM-DD)
+            strategy_name: 전략명 (None이면 _get_strategy_name() 사용)
             **kwargs: 전략별 추가 파라미터
 
         Returns:
             BacktestResult: 백테스트 결과
         """
-        strategy_name = self._get_strategy_name()
+        if strategy_name is None:
+            strategy_name = self._get_strategy_name()
         self.logger.info(f"백테스트 시작 [{strategy_name}]: {start_date} ~ {end_date}")
 
         try:
@@ -273,10 +276,12 @@ class BaseBacktester(ABC):
             if not adjusted_returns:
                 return BacktestResult.empty(strategy_name)
 
-            winning_trades = [t for t in trades if t.return_pct and t.return_pct > 0]
-            losing_trades = [t for t in trades if t.return_pct and t.return_pct < 0]
+            # 비용 계산에 성공한 거래만 대상으로 승률 계산
+            valid_trades = [t for t in trades if t.return_pct is not None]
+            winning_trades = [t for t in valid_trades if t.return_pct > 0]
+            losing_trades = [t for t in valid_trades if t.return_pct < 0]
 
-            win_rate = len(winning_trades) / len(trades) if trades else 0
+            win_rate = len(winning_trades) / len(valid_trades) if valid_trades else 0
             avg_return = np.mean(adjusted_returns)
             avg_win = np.mean([t.return_pct for t in winning_trades]) if winning_trades else 0
             avg_loss = np.mean([t.return_pct for t in losing_trades]) if losing_trades else 0
@@ -305,13 +310,13 @@ class BaseBacktester(ABC):
             worst_trade = min(adjusted_returns) if adjusted_returns else 0
 
             avg_holding_days = (
-                np.mean([t.holding_days for t in trades if t.holding_days is not None])
-                if trades else 0
+                np.mean([t.holding_days for t in valid_trades if t.holding_days is not None])
+                if valid_trades else 0
             )
 
             self.logger.info(
                 f"성과 분석 완료 (거래비용 반영) - "
-                f"총거래: {len(trades)}건, 승률: {win_rate:.1%}, "
+                f"총거래: {len(valid_trades)}건, 승률: {win_rate:.1%}, "
                 f"평균수익률: {avg_return:.2%}, 총수익률: {total_return:.2%}"
             )
 
@@ -319,7 +324,7 @@ class BaseBacktester(ABC):
                 strategy_name=strategy_name,
                 start_date=start_date,
                 end_date=end_date,
-                total_trades=len(trades),
+                total_trades=len(valid_trades),
                 winning_trades=len(winning_trades),
                 losing_trades=len(losing_trades),
                 win_rate=win_rate,

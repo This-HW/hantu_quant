@@ -82,14 +82,16 @@ class SimpleBacktester(BaseBacktester):
             end_date: 종료일 (YYYY-MM-DD)
             selection_criteria: 선정 기준 (미사용)
             trading_config: 매매 설정
+            strategy_name: 전략명
 
         Returns:
             BacktestResult: 백테스트 결과
         """
-        # 부모 클래스의 backtest() 메서드 호출
+        # 부모 클래스의 backtest() 메서드 호출 (strategy_name 전달)
         return self.backtest(
             start_date=start_date,
             end_date=end_date,
+            strategy_name=strategy_name,
             achievement_rate=trading_config.get('achievement_rate', 0.6),
             max_holding_days=trading_config.get('max_holding_days', 10)
         )
