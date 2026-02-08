@@ -451,7 +451,18 @@ class APIConfig:
                 return True
             else:
                 logger.error(f"[refresh_token] 토큰 갱신 실패 - 상태 코드: {response.status_code}", exc_info=True)
-                logger.error(f"[refresh_token] 응답 본문: {response.text}", exc_info=True)
+                # 응답 본문에 민감 정보가 포함될 수 있으므로 마스킹
+                try:
+                    error_data = response.json()
+                    # access_token, appkey, appsecret 등 민감 필드 마스킹
+                    safe_error_data = {
+                        k: "***MASKED***" if k in ("access_token", "appkey", "appsecret", "approval_key") else v
+                        for k, v in error_data.items()
+                    }
+                    logger.error(f"[refresh_token] 응답 데이터: {safe_error_data}")
+                except Exception:
+                    # JSON 파싱 실패 시 응답 본문 길이만 로깅
+                    logger.error(f"[refresh_token] 응답 본문 길이: {len(response.text)} bytes")
                 return False
 
         except Exception as e:
@@ -535,6 +546,12 @@ class APIConfig:
                 "secretkey": self.app_secret
             }
 
+            # 로깅 시 민감 정보 마스킹
+            safe_data = data.copy()
+            safe_data["appkey"] = "***MASKED***"
+            safe_data["secretkey"] = "***MASKED***"
+            logger.debug(f"[get_ws_approval_key] 접속키 요청: {safe_data}")
+
             headers = {"content-type": "application/json; charset=utf-8"}
             # TLS 1.2+ 세션 사용
             response = self._session.post(url, json=data, headers=headers, timeout=settings.REQUEST_TIMEOUT)
@@ -547,6 +564,16 @@ class APIConfig:
                 return self.ws_approval_key
             else:
                 logger.error(f"[get_ws_approval_key] 접속키 발급 실패: {response.status_code}", exc_info=True)
+                # 응답 본문에 민감 정보가 포함될 수 있으므로 마스킹
+                try:
+                    error_data = response.json()
+                    safe_error_data = {
+                        k: "***MASKED***" if k in ("approval_key", "appkey", "secretkey") else v
+                        for k, v in error_data.items()
+                    }
+                    logger.error(f"[get_ws_approval_key] 응답 데이터: {safe_error_data}")
+                except Exception:
+                    logger.error(f"[get_ws_approval_key] 응답 본문 길이: {len(response.text)} bytes")
                 return None
 
         except Exception as e:

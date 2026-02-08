@@ -19,11 +19,11 @@ logger = get_logger(__name__)
 class SimpleBacktester(BaseBacktester):
     """간단한 백테스터 (예상 수익률 기반 시뮬레이션)"""
 
-    def __init__(self, initial_capital: float = 100000000, random_seed: Optional[int] = None):
+    def __init__(self, initial_capital: float = 100000000, random_seed: Optional[int] = 42):
         """
         Args:
             initial_capital: 초기 자본금 (기본: 1억원)
-            random_seed: 난수 시드 (재현성 확보용)
+            random_seed: 난수 시드 (기본: 42, 재현성 확보)
         """
         super().__init__(initial_capital)
 

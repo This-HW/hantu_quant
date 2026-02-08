@@ -8,9 +8,9 @@ from dataclasses import dataclass
 from typing import Optional
 
 
-@dataclass
+@dataclass(frozen=True)
 class BacktestResult:
-    """백테스트 결과"""
+    """백테스트 결과 (불변 객체)"""
     strategy_name: str
     start_date: str
     end_date: str
@@ -23,6 +23,7 @@ class BacktestResult:
     avg_loss: float
     max_drawdown: float
     sharpe_ratio: float
+    sortino_ratio: float  # 하방 리스크 고려 (Sharpe보다 보수적)
     total_return: float
     profit_factor: float  # 총이익 / 총손실
     best_trade: float
@@ -45,6 +46,7 @@ class BacktestResult:
             avg_loss=0.0,
             max_drawdown=0.0,
             sharpe_ratio=0.0,
+            sortino_ratio=0.0,
             total_return=0.0,
             profit_factor=0.0,
             best_trade=0.0,
@@ -66,3 +68,21 @@ class Trade:
     return_pct: Optional[float]
     holding_days: Optional[int]
     exit_reason: Optional[str]  # "stop_loss", "take_profit", "time_limit"
+
+    def validate(self) -> None:
+        """거래 데이터 유효성 검증
+
+        Raises:
+            ValueError: 유효하지 않은 데이터
+        """
+        if self.entry_price < 0:
+            raise ValueError(f"entry_price must be >= 0, got {self.entry_price}")
+
+        if self.exit_price is not None and self.exit_price < 0:
+            raise ValueError(f"exit_price must be >= 0, got {self.exit_price}")
+
+        if self.quantity <= 0:
+            raise ValueError(f"quantity must be > 0, got {self.quantity}")
+
+        if self.holding_days is not None and self.holding_days < 0:
+            raise ValueError(f"holding_days must be >= 0, got {self.holding_days}")

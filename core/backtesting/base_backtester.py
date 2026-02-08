@@ -38,6 +38,7 @@ class BaseBacktester(ABC):
         self.initial_capital = initial_capital
         self.api = KISAPI()
         self.trading_costs = TradingCosts()
+        # TODO: 캐시 TTL 설정 고려 (백테스트 기간이 길 경우 메모리 부담)
         self.price_data_cache: Dict = {}  # 가격 데이터 캐시
 
     def backtest(
@@ -301,6 +302,14 @@ class BaseBacktester(ABC):
                 if std_returns > 0 else 0
             )
 
+            # Sortino Ratio (하방 리스크만 고려)
+            downside_returns = [r for r in adjusted_returns if r < 0]
+            downside_std = np.std(downside_returns) if len(downside_returns) > 1 else 0
+            sortino = (
+                np.mean(adjusted_returns) / downside_std * np.sqrt(252)
+                if downside_std > 0 else 0
+            )
+
             # Profit Factor
             total_profit = sum([t.return_pct for t in winning_trades])
             total_loss = abs(sum([t.return_pct for t in losing_trades]))
@@ -317,7 +326,8 @@ class BaseBacktester(ABC):
             self.logger.info(
                 f"성과 분석 완료 (거래비용 반영) - "
                 f"총거래: {len(valid_trades)}건, 승률: {win_rate:.1%}, "
-                f"평균수익률: {avg_return:.2%}, 총수익률: {total_return:.2%}"
+                f"평균수익률: {avg_return:.2%}, 총수익률: {total_return:.2%}, "
+                f"Sharpe: {sharpe:.2f}, Sortino: {sortino:.2f}"
             )
 
             return BacktestResult(
@@ -333,6 +343,7 @@ class BaseBacktester(ABC):
                 avg_loss=avg_loss,
                 max_drawdown=max_drawdown,
                 sharpe_ratio=sharpe,
+                sortino_ratio=sortino,
                 total_return=total_return,
                 profit_factor=profit_factor,
                 best_trade=best_trade,
