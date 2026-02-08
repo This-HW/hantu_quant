@@ -247,26 +247,30 @@ class KellyCalculator:
             fractions = [0.25, 0.5, 0.75, 1.0]
 
         results = {}
-        original_fraction = self.config.kelly_fraction
 
-        try:
-            for fraction in fractions:
-                self.config.kelly_fraction = fraction
-                kelly_result = self.calculate(trade_returns)
+        for fraction in fractions:
+            # State mutation 방지: 임시 계산기를 사용
+            temp_config = KellyConfig(
+                kelly_fraction=fraction,
+                max_position=self.config.max_position,
+                min_position=self.config.min_position,
+                use_confidence_interval=self.config.use_confidence_interval,
+                confidence_level=self.config.confidence_level,
+                min_trades=self.config.min_trades,
+            )
+            temp_calculator = KellyCalculator(temp_config)
+            kelly_result = temp_calculator.calculate(trade_returns)
 
-                # 예상 복리 수익률
-                expected_growth = self._estimate_growth_rate(
-                    trade_returns,
-                    kelly_result.final_position
-                )
+            # 예상 복리 수익률
+            expected_growth = self._estimate_growth_rate(
+                trade_returns,
+                kelly_result.final_position
+            )
 
-                results[f"kelly_{int(fraction * 100)}"] = {
-                    'position': kelly_result.final_position,
-                    'expected_growth': expected_growth,
-                }
-        finally:
-            # State mutation 방지: 원래 값으로 복원
-            self.config.kelly_fraction = original_fraction
+            results[f"kelly_{int(fraction * 100)}"] = {
+                'position': kelly_result.final_position,
+                'expected_growth': expected_growth,
+            }
 
         return results
 
