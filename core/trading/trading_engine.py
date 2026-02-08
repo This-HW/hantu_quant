@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 
 @dataclass
 class Position:
-    """포지션 정보"""
+    """포지션 정보 (P0-5b 부분 익절 확장)"""
 
     stock_code: str
     stock_name: str
@@ -35,6 +35,10 @@ class Position:
     unrealized_return: float
     stop_loss: float
     target_price: float
+
+    # P0-5b: 부분 익절 필드
+    partial_sold: bool = False  # 1차 익절 완료 여부
+    partial_profit_price: Optional[float] = None  # 1차 익절 가격
 
 
 @dataclass
@@ -774,6 +778,57 @@ class TradingEngine:
             self.logger.error(f"과거 성과 조회 실패: {e}", exc_info=True)
             return 0.6, 100000, 50000
 
+    def calculate_dynamic_stop(self, stock_code: str, entry_price: float) -> float:
+        """변동성별 차등 손절가 계산 (P0-5a)
+
+        Args:
+            stock_code: 종목 코드
+            entry_price: 진입가
+
+        Returns:
+            손절가
+        """
+        try:
+            # ATR 조회
+            df = self._get_ohlcv_data(stock_code)
+
+            if df is None or len(df) < self.config.atr_period:
+                # 데이터 부족 시 기본 손절 비율 사용
+                return entry_price * (1 - self.config.stop_loss_pct)
+
+            # ATR 계산
+            if self.dynamic_stop_calculator:
+                atr = self.dynamic_stop_calculator.calculate_atr(df)
+            else:
+                return entry_price * (1 - self.config.stop_loss_pct)
+
+            atr_percent = atr / entry_price if entry_price > 0 else 0
+
+            # 변동성별 차등 손절 비율 (P0-5a)
+            if atr_percent < 0.03:  # 저변동성
+                stop_loss_pct = 0.03
+                volatility_level = "저변동성"
+            elif atr_percent < 0.05:  # 중간
+                stop_loss_pct = 0.05
+                volatility_level = "중간변동성"
+            else:  # 고변동성
+                stop_loss_pct = 0.07
+                volatility_level = "고변동성"
+
+            stop_loss = entry_price * (1 - stop_loss_pct)
+
+            self.logger.info(
+                f"변동성별 차등 손절 - {stock_code}: "
+                f"ATR {atr:.0f}원 ({atr_percent:.2%}), {volatility_level}, "
+                f"손절비율 {stop_loss_pct:.1%}, 손절가 {stop_loss:,.0f}원"
+            )
+
+            return stop_loss
+
+        except Exception as e:
+            self.logger.error(f"변동성별 손절 계산 실패 {stock_code}: {e}", exc_info=True)
+            return entry_price * (1 - self.config.stop_loss_pct)
+
     def _calculate_stop_prices(
         self,
         stock_code: str,
@@ -826,8 +881,12 @@ class TradingEngine:
                 else:
                     self.logger.warning(
                         f"일봉 데이터 부족 ({len(df) if df is not None else 0}일) - "
-                        f"고정 비율 손절/익절 사용: {stock_code}"
+                        f"변동성별 차등 손절 사용: {stock_code}"
                     )
+                    # P0-5a: 변동성별 차등 손절 사용
+                    stop_loss = self.calculate_dynamic_stop(stock_code, entry_price)
+                    take_profit = entry_price * (1 + self.config.take_profit_pct)
+                    return stop_loss, take_profit, None
 
             # 고정 비율 손절/익절 (기본)
             stop_loss = entry_price * (1 - self.config.stop_loss_pct)
@@ -938,6 +997,91 @@ class TradingEngine:
             self.logger.error(f"매수 조건 확인 실패: {e}", exc_info=True)
             return False, f"오류: {e}"
 
+    async def check_partial_profit(self, position: Position) -> bool:
+        """부분 익절 체크 (P0-5b)
+
+        Args:
+            position: 포지션 정보
+
+        Returns:
+            부분 익절 실행 여부
+        """
+        try:
+            current_return = position.unrealized_return
+
+            # 1차 익절: 50% @ +5%
+            if current_return >= 0.05 and not position.partial_sold:
+                sell_quantity = position.quantity // 2
+
+                if sell_quantity <= 0:
+                    self.logger.warning(f"부분 익절 수량 부족: {position.stock_code}")
+                    return False
+
+                self.logger.info(
+                    f"📊 1차 부분 익절 조건 충족 - {position.stock_code}: "
+                    f"수익률 {current_return:.1%}, 수량 {sell_quantity}주 매도"
+                )
+
+                result = await self.sell(
+                    stock_code=position.stock_code,
+                    quantity=sell_quantity,
+                    order_type="시장가",
+                    reason="partial_profit_1"
+                )
+
+                if result.get("success"):
+                    position.partial_sold = True
+                    position.partial_profit_price = position.current_price
+                    position.quantity -= sell_quantity
+                    self.logger.info(
+                        f"✅ 1차 부분 익절 완료 - {position.stock_code}: "
+                        f"{sell_quantity}주 @ {position.current_price:,.0f}원, "
+                        f"잔여 {position.quantity}주"
+                    )
+                    return True
+                else:
+                    self.logger.error(
+                        f"1차 부분 익절 실패: {position.stock_code} - {result.get('message')}",
+                        exc_info=True
+                    )
+                    return False
+
+            # 2차 익절: 나머지 @ +10%
+            elif current_return >= 0.10:
+                self.logger.info(
+                    f"📊 2차 익절 조건 충족 - {position.stock_code}: "
+                    f"수익률 {current_return:.1%}, 잔여 {position.quantity}주 전량 매도"
+                )
+
+                result = await self.sell(
+                    stock_code=position.stock_code,
+                    quantity=position.quantity,
+                    order_type="시장가",
+                    reason="take_profit"
+                )
+
+                if result.get("success"):
+                    self.logger.info(
+                        f"✅ 2차 익절 완료 - {position.stock_code}: "
+                        f"{position.quantity}주 @ {position.current_price:,.0f}원"
+                    )
+                    return True
+                else:
+                    self.logger.error(
+                        f"2차 익절 실패: {position.stock_code} - {result.get('message')}",
+                        exc_info=True
+                    )
+                    return False
+
+            return False
+
+        except Exception as e:
+            self.logger.error(
+                f"부분 익절 체크 실패: {position.stock_code} - {e}",
+                exc_info=True
+            )
+            return False
+
     def _should_sell(self, position: Position) -> Tuple[bool, str]:
         """매도 조건 확인"""
         try:
@@ -947,8 +1091,8 @@ class TradingEngine:
             if current_return <= -self.config.stop_loss_pct:
                 return True, "stop_loss"
 
-            # 익절매 조건
-            if current_return >= self.config.take_profit_pct:
+            # 익절매 조건 (부분 익절 미사용 시에만)
+            if not position.partial_sold and current_return >= self.config.take_profit_pct:
                 return True, "take_profit"
 
             # 시간 기반 매도 (장 마감 30분 전)
@@ -1228,6 +1372,11 @@ class TradingEngine:
 
                 # 포지션 현재가 업데이트
                 await self._update_positions()
+
+                # P0-5b: 부분 익절 체크 (기존 포지션)
+                for stock_code, position in list(self.positions.items()):
+                    await self.check_partial_profit(position)
+                    await asyncio.sleep(0.5)  # API 호출 간격
 
                 # 매도 신호 확인 (기존 포지션)
                 positions_to_sell = []

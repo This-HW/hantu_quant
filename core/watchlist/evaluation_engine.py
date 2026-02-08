@@ -18,11 +18,11 @@ logger = get_logger(__name__)
 
 @dataclass
 class EvaluationWeights:
-    """평가 가중치 설정"""
-    fundamental: float = 0.4    # 재무제표 기반 40%
-    technical: float = 0.3      # 기술적 분석 30%
-    momentum: float = 0.2       # 모멘텀 분석 20%
-    sector: float = 0.1         # 섹터 분석 10%
+    """평가 가중치 설정 (P0-3 수익성 개선: 기술/모멘텀 중심)"""
+    fundamental: float = 0.25   # 재무제표 기반 25% (40% → 25%, -15%p)
+    technical: float = 0.35     # 기술적 분석 35% (30% → 35%, +5%p)
+    momentum: float = 0.30      # 모멘텀 분석 30% (20% → 30%, +10%p)
+    sector: float = 0.10        # 섹터 분석 10% (유지)
     
     def validate(self) -> bool:
         """가중치 합계 검증"""
@@ -124,49 +124,49 @@ class EvaluationEngine:
             _v_score = 0.0
             _v_max_score = 6.0
             
-            # ROE 점수 (0-20점)
+            # ROE 점수 (P0-4 완화: 20→12)
             _v_roe = p_stock_data.get("roe", 0.0)
             if _v_roe >= 20:
                 _v_score += 1.0
             elif _v_roe >= 15:
                 _v_score += 0.8
-            elif _v_roe >= 10:
+            elif _v_roe >= 12:  # 완화: 10→12 (더 넓게)
                 _v_score += 0.6
-            elif _v_roe >= 5:
+            elif _v_roe >= 8:   # 완화: 5→8
                 _v_score += 0.4
-            
-            # PER 점수 (업종 평균 대비)
+
+            # PER 점수 (업종 평균 대비, P0-4 완화: 0.6→0.8)
             _v_per = p_stock_data.get("per", 999.0)
             _v_sector_avg_per = self._get_sector_average("per", p_stock_data.get("sector", ""))
             if _v_sector_avg_per > 0:
                 _v_per_ratio = _v_per / _v_sector_avg_per
-                if _v_per_ratio <= 0.6:
+                if _v_per_ratio <= 0.8:  # 완화: 0.6→0.8
                     _v_score += 1.0
-                elif _v_per_ratio <= 0.8:
-                    _v_score += 0.8
                 elif _v_per_ratio <= 1.0:
-                    _v_score += 0.6
+                    _v_score += 0.8
                 elif _v_per_ratio <= 1.2:
+                    _v_score += 0.6
+                elif _v_per_ratio <= 1.5:  # 완화: 추가 구간
                     _v_score += 0.4
-            
-            # PBR 점수
+
+            # PBR 점수 (P0-4 완화: 1.0→2.0)
             _v_pbr = p_stock_data.get("pbr", 999.0)
             if _v_pbr <= 1.0:
                 _v_score += 1.0
             elif _v_pbr <= 1.5:
                 _v_score += 0.8
-            elif _v_pbr <= 2.0:
+            elif _v_pbr <= 2.0:  # 완화: 기준 확대
                 _v_score += 0.6
             elif _v_pbr <= 3.0:
                 _v_score += 0.4
-            
-            # 부채비율 점수
+
+            # 부채비율 점수 (P0-4 완화: 100→150)
             _v_debt_ratio = p_stock_data.get("debt_ratio", 999.0)
             if _v_debt_ratio <= 50:
                 _v_score += 1.0
             elif _v_debt_ratio <= 100:
                 _v_score += 0.8
-            elif _v_debt_ratio <= 150:
+            elif _v_debt_ratio <= 150:  # 완화: 기준 확대
                 _v_score += 0.6
             elif _v_debt_ratio <= 200:
                 _v_score += 0.4
@@ -530,10 +530,10 @@ class EvaluationEngine:
                 
                 _v_weights_data = _v_config.get("weights", {})
                 self._v_weights = EvaluationWeights(
-                    fundamental=_v_weights_data.get("fundamental", 0.4),
-                    technical=_v_weights_data.get("technical", 0.3),
-                    momentum=_v_weights_data.get("momentum", 0.2),
-                    sector=_v_weights_data.get("sector", 0.1)
+                    fundamental=_v_weights_data.get("fundamental", 0.25),
+                    technical=_v_weights_data.get("technical", 0.35),
+                    momentum=_v_weights_data.get("momentum", 0.30),
+                    sector=_v_weights_data.get("sector", 0.10)
                 )
                 
                 logger.info("평가 설정 로드 완료")

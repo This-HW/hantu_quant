@@ -7,6 +7,7 @@
 from .correlation_matrix import CorrelationMatrix, CorrelationResult
 from .diversification_score import DiversificationScore, DiversificationResult
 from .portfolio_optimizer import PortfolioOptimizer, OptimizationResult
+from .correlation_monitor import CorrelationMonitor, CorrelationCheckResult
 
 __all__ = [
     'CorrelationMatrix',
@@ -15,4 +16,6 @@ __all__ = [
     'DiversificationResult',
     'PortfolioOptimizer',
     'OptimizationResult',
+    'CorrelationMonitor',
+    'CorrelationCheckResult',
 ]

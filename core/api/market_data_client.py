@@ -428,3 +428,72 @@ class MarketDataClientWithFallback:
         fallback_value = self._config.get("api_fallback", {}).get("usd_krw_default", 1300.0)
         self._logger.info(f"USD/KRW 폴백값 사용: {fallback_value:.2f}")
         return fallback_value
+
+    @cache_with_ttl(ttl=600, key_prefix="kospi_history")
+    def get_kospi_history(self, start_date: str, end_date: str) -> list[dict]:
+        """KOSPI 지수 히스토리 조회 (10분 캐시)
+
+        Args:
+            start_date: 시작 날짜 (YYYYMMDD)
+            end_date: 종료 날짜 (YYYYMMDD)
+
+        Returns:
+            [{'date': 'YYYY-MM-DD', 'close': float, ...}, ...]
+        """
+        # 1차: PyKRX
+        krx = self._get_krx_client()
+        if krx:
+            try:
+                df = krx._stock.get_index_ohlcv(start_date, end_date, "1001")  # KOSPI
+                if not df.empty:
+                    # DataFrame을 dict 리스트로 변환
+                    result = []
+                    for idx, row in df.iterrows():
+                        # 날짜 형식 변환
+                        date_str = idx.strftime("%Y-%m-%d") if hasattr(idx, 'strftime') else str(idx)
+
+                        # 컬럼명 폴백
+                        close_val = None
+                        for col in ['종가', 'Close', 'close', 'CLOSE']:
+                            if col in df.columns:
+                                close_val = float(row[col])
+                                break
+
+                        if close_val is not None:
+                            result.append({
+                                'date': date_str,
+                                'close': close_val
+                            })
+
+                    if result:
+                        self._logger.debug(f"KOSPI 히스토리 조회 성공 (PyKRX): {len(result)}일")
+                        return result
+            except Exception as e:
+                self._logger.warning(f"PyKRX KOSPI 히스토리 조회 실패: {e}", exc_info=True)
+
+        # 2차: Yahoo Finance
+        yahoo = self._get_yahoo_client()
+        if yahoo:
+            try:
+                ticker = yahoo._yf.Ticker("^KS11")
+                # YYYYMMDD → YYYY-MM-DD 변환
+                start_fmt = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:]}"
+                end_fmt = f"{end_date[:4]}-{end_date[4:6]}-{end_date[6:]}"
+                df = ticker.history(start=start_fmt, end=end_fmt)
+
+                if not df.empty:
+                    result = []
+                    for idx, row in df.iterrows():
+                        date_str = idx.strftime("%Y-%m-%d") if hasattr(idx, 'strftime') else str(idx)
+                        result.append({
+                            'date': date_str,
+                            'close': float(row['Close'])
+                        })
+                    self._logger.info(f"PyKRX 실패, Yahoo로 KOSPI 히스토리 조회 성공: {len(result)}일")
+                    return result
+            except Exception as e:
+                self._logger.warning(f"Yahoo KOSPI 히스토리 조회 실패: {e}", exc_info=True)
+
+        # 폴백: 빈 리스트
+        self._logger.warning("KOSPI 히스토리 조회 실패, 빈 리스트 반환")
+        return []

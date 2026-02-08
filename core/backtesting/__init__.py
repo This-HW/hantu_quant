@@ -1,5 +1,8 @@
-"""백테스팅 모듈"""
+"""백테스팅 모듈
 
-from .strategy_backtester import StrategyBacktester, BacktestResult, Trade
+Walk-Forward Analysis 및 전략 백테스팅
+"""
 
-__all__ = ['StrategyBacktester', 'BacktestResult', 'Trade']
+from .data_splitter import DataSplitter, DataSplit
+
+__all__ = ['DataSplitter', 'DataSplit']
