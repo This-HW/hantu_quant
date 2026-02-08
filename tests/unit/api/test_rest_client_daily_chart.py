@@ -158,25 +158,29 @@ def test_get_daily_chart_empty_response():
 
 def test_get_daily_chart_invalid_date_format():
     """잘못된 날짜 형식 처리 확인 (엣지 케이스)"""
+    from core.api import redis_client
+
     client = KISRestClient()
 
-    with patch.object(client, 'request_endpoint') as mock_request:
-        mock_request.return_value = {
-            "output2": [
-                {
-                    "stck_bsop_date": "invalid",  # 잘못된 형식
-                    "stck_oprc": "100",
-                    "stck_hgpr": "110",
-                    "stck_lwpr": "90",
-                    "stck_clpr": "105",
-                    "acml_vol": "1000000"
-                }
-            ]
-        }
+    # 캐시 우회
+    with patch.object(redis_client, 'cache_with_ttl', lambda **kwargs: lambda f: f):
+        with patch.object(client, 'request_endpoint') as mock_request:
+            mock_request.return_value = {
+                "output2": [
+                    {
+                        "stck_bsop_date": "invalid",  # 잘못된 형식
+                        "stck_oprc": "100",
+                        "stck_hgpr": "110",
+                        "stck_lwpr": "90",
+                        "stck_clpr": "105",
+                        "acml_vol": "1000000"
+                    }
+                ]
+            }
 
-        df = client.get_daily_chart("005930", period_days=30)
-        # 예외가 발생하면 None 반환
-        assert df is None
+            df = client.get_daily_chart("005930", period_days=30)
+            # 예외가 발생하면 None 반환
+            assert df is None
 
 
 @pytest.mark.skip(reason="기존 버그: 필드 누락 시 None 대신 DataFrame 반환 (Redis 에러와 무관)")

@@ -242,23 +242,24 @@ def test_check_new_position_상관관계_계산_오류_시_허용(monitor_defaul
 
 
 def test_monitor_초기화_음수_threshold():
-    """에러 케이스: 음수 threshold"""
-    # 현재 구현은 검증 없음 (개선 필요)
-    monitor = CorrelationMonitor(correlation_threshold=-0.5)
-    assert monitor.correlation_threshold == -0.5
+    """에러 케이스: 음수 threshold → ValueError 발생"""
+    # 검증 로직이 구현됨
+    with pytest.raises(ValueError, match="correlation_threshold must be in \\[0, 1\\]"):
+        CorrelationMonitor(correlation_threshold=-0.5)
 
 
 def test_monitor_초기화_threshold_범위_초과():
-    """에러 케이스: threshold > 1.0"""
-    # 상관계수는 -1 ~ 1 범위
-    monitor = CorrelationMonitor(correlation_threshold=1.5)
-    assert monitor.correlation_threshold == 1.5  # 검증 없음
+    """에러 케이스: threshold > 1.0 → ValueError 발생"""
+    # 검증 로직이 구현됨
+    with pytest.raises(ValueError, match="correlation_threshold must be in \\[0, 1\\]"):
+        CorrelationMonitor(correlation_threshold=1.5)
 
 
 def test_monitor_초기화_max_pairs_음수():
-    """에러 케이스: 음수 max_pairs"""
-    monitor = CorrelationMonitor(max_high_corr_pairs=-1)
-    assert monitor.max_high_corr_pairs == -1
+    """에러 케이스: 음수 max_pairs → ValueError 발생"""
+    # 검증 로직이 구현됨
+    with pytest.raises(ValueError, match="max_high_corr_pairs must be >= 0"):
+        CorrelationMonitor(max_high_corr_pairs=-1)
 
 
 # ========== Refactor: 테스트 유틸리티 ==========

@@ -173,11 +173,10 @@ def test_splitter_초기화_잘못된_ratio():
 
 
 def test_splitter_초기화_음수_ratio():
-    """에러 케이스: 음수 비율 (현재 구현은 검증 안함)"""
-    # 현재 구현은 음수 검증이 없음 (개선 필요)
-    # test_ratio > 0 검증만 있음
-    splitter = DataSplitter(train_ratio=-0.1, val_ratio=0.0)
-    assert splitter.train_ratio == -0.1
+    """에러 케이스: 음수 비율 → ValueError 발생"""
+    # 음수 검증이 구현되어 있음
+    with pytest.raises(ValueError, match="train_ratio must be in \\(0, 1\\]"):
+        DataSplitter(train_ratio=-0.1, val_ratio=0.0)
 
 
 def test_split_walk_forward_잘못된_date_key(splitter_default, sample_data):

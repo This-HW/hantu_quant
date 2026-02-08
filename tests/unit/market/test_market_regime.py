@@ -108,17 +108,20 @@ def mock_kospi_high_vol_data():
     dates = []
     data = []
 
+    # 시드 고정으로 안정적인 테스트
+    np.random.seed(42)
+
     for i in range(60):
         date = datetime.now() - timedelta(days=60-i)
-        # 고변동성: 일변동 ±3%
-        change = np.random.uniform(-0.03, 0.03)
+        # 고변동성: 일변동 ±5% (확실히 25% 임계값 초과)
+        change = np.random.uniform(-0.05, 0.05)
         price = base_price * (1 + change)
         dates.append(date.strftime("%Y%m%d"))
         data.append({
             'date': dates[-1],
             'open': price,
-            'high': price * 1.03,
-            'low': price * 0.97,
+            'high': price * 1.05,
+            'low': price * 0.95,
             'close': price,
             'volume': 1000000
         })
@@ -293,22 +296,20 @@ def test_detect_regime_API_실패_시_기본값(detector_default):
 
 
 def test_detector_초기화_음수_lookback():
-    """에러 케이스: 음수 lookback_days"""
-    # 현재 구현은 음수 검증 없음 (개선 필요)
-    detector = MarketRegimeDetector(lookback_days=-10)
-    # 에러는 발생하지 않지만, 로직 오류 가능성
-    assert detector.lookback_days == -10
+    """에러 케이스: 음수 lookback_days → ValueError 발생"""
+    # 음수 검증이 구현되어 있음
+    with pytest.raises(ValueError, match="lookback_days must be >= 20"):
+        MarketRegimeDetector(lookback_days=-10)
 
 
 def test_detector_초기화_잘못된_threshold():
-    """에러 케이스: bull < bear (논리 오류)"""
-    # bull_threshold < bear_threshold는 논리적으로 이상함
-    detector = MarketRegimeDetector(
-        bull_threshold=-0.001,
-        bear_threshold=0.001
-    )
-    # 초기화는 성공하지만 판단 로직 오류 가능
-    assert detector.bull_threshold < detector.bear_threshold
+    """에러 케이스: bull < bear (논리 오류) → ValueError 발생"""
+    # bull_threshold < bear_threshold는 논리적으로 이상함 → 검증 구현됨
+    with pytest.raises(ValueError, match="bull_threshold .* must be > bear_threshold"):
+        MarketRegimeDetector(
+            bull_threshold=-0.001,
+            bear_threshold=0.001
+        )
 
 
 # ========== Refactor: 테스트 유틸리티 ==========

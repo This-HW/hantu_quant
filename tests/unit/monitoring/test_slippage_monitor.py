@@ -20,11 +20,17 @@ from core.monitoring.slippage_monitor import (
 
 @pytest.fixture
 def temp_save_path():
-    """임시 저장 경로"""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-        yield f.name
+    """임시 저장 경로 (허용된 디렉토리 내)"""
+    # SlippageMonitor는 data/monitoring 하위 경로만 허용
+    project_root = Path(__file__).parent.parent.parent
+    allowed_dir = project_root / "data" / "monitoring"
+    allowed_dir.mkdir(parents=True, exist_ok=True)
+
+    temp_file = allowed_dir / f"test_slippage_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    yield str(temp_file)
+
     # 테스트 후 삭제
-    Path(f.name).unlink(missing_ok=True)
+    temp_file.unlink(missing_ok=True)
 
 
 @pytest.fixture
