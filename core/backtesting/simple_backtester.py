@@ -9,62 +9,30 @@ import numpy as np
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
 
 from core.utils.log_utils import get_logger
 from core.backtesting.trading_costs import TradingCosts
+from core.backtesting.models import BacktestResult, Trade
 
 logger = get_logger(__name__)
-
-
-@dataclass
-class BacktestResult:
-    """백테스트 결과"""
-    strategy_name: str
-    start_date: str
-    end_date: str
-    total_trades: int
-    winning_trades: int
-    losing_trades: int
-    win_rate: float
-    avg_return: float
-    avg_win: float
-    avg_loss: float
-    max_drawdown: float
-    sharpe_ratio: float
-    total_return: float
-    profit_factor: float  # 총이익 / 총손실
-    best_trade: float
-    worst_trade: float
-    avg_holding_days: float
-
-
-@dataclass
-class Trade:
-    """거래 기록"""
-    stock_code: str
-    stock_name: str
-    entry_date: str
-    entry_price: float
-    exit_date: Optional[str]
-    exit_price: Optional[float]
-    quantity: int
-    return_pct: Optional[float]
-    holding_days: Optional[int]
-    exit_reason: Optional[str]  # "stop_loss", "take_profit", "time_limit"
 
 
 class SimpleBacktester:
     """간단한 백테스터 (예상 수익률 기반 시뮬레이션)"""
 
-    def __init__(self, initial_capital: float = 100000000):
+    def __init__(self, initial_capital: float = 100000000, random_seed: Optional[int] = None):
         """
         Args:
             initial_capital: 초기 자본금 (기본: 1억원)
+            random_seed: 난수 시드 (재현성 확보용)
         """
         self.logger = logger
         self.initial_capital = initial_capital
         self.trading_costs = TradingCosts()  # 거래 비용 계산기
+
+        # ✅ MF-5 수정: 난수 시드 고정 (재현성 확보)
+        self.random_state = np.random.RandomState(random_seed)
 
     def backtest_selection_strategy(
         self,
@@ -190,7 +158,8 @@ class SimpleBacktester:
 
                 # 실제 수익률 = 예상 수익률 × 달성률 × 랜덤 노이즈
                 # 노이즈: -1.0~1.5 범위 (손실 가능성 포함)
-                noise = np.random.uniform(-1.0, 1.5)
+                # ✅ MF-5 수정: RandomState 사용 (재현성 보장)
+                noise = self.random_state.uniform(-1.0, 1.5)
                 actual_return = expected_return * achievement_rate * noise
 
                 # 거래 비용 반영
@@ -223,7 +192,8 @@ class SimpleBacktester:
                     exit_reason = "time_limit"
 
                 # 보유 기간 (랜덤 3~10일)
-                holding_days = np.random.randint(3, max_holding_days + 1)
+                # ✅ MF-5 수정: RandomState 사용 (재현성 보장)
+                holding_days = self.random_state.randint(3, max_holding_days + 1)
 
                 # Trade 생성
                 entry_date = sel.get('selection_date', '2025-01-01')

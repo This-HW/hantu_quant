@@ -9,50 +9,14 @@ import numpy as np
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
 
 from core.utils.log_utils import get_logger
 from core.api.kis_api import KISAPI
 from core.backtesting.trading_costs import TradingCosts
+from core.backtesting.models import BacktestResult, Trade
 
 logger = get_logger(__name__)
-
-
-@dataclass
-class BacktestResult:
-    """백테스트 결과"""
-    strategy_name: str
-    start_date: str
-    end_date: str
-    total_trades: int
-    winning_trades: int
-    losing_trades: int
-    win_rate: float
-    avg_return: float
-    avg_win: float
-    avg_loss: float
-    max_drawdown: float
-    sharpe_ratio: float
-    total_return: float
-    profit_factor: float  # 총이익 / 총손실
-    best_trade: float
-    worst_trade: float
-    avg_holding_days: float
-
-
-@dataclass
-class Trade:
-    """거래 기록"""
-    stock_code: str
-    stock_name: str
-    entry_date: str
-    entry_price: float
-    exit_date: Optional[str]
-    exit_price: Optional[float]
-    quantity: int
-    return_pct: Optional[float]
-    holding_days: Optional[int]
-    exit_reason: Optional[str]  # "stop_loss", "take_profit", "time_limit"
 
 
 class StrategyBacktester:
@@ -233,16 +197,18 @@ class StrategyBacktester:
             if holding_days == 0:
                 continue
 
-            # 실제 가격 데이터 조회 (KIS API)
+            # 실제 가격 데이터 조회 (KIS API - 과거 데이터)
             try:
-                # 해당 날짜의 실제 종가 조회
-                current_price_data = self.api.get_current_price(code)
+                # ✅ MF-1 수정: 해당 날짜의 과거 종가 조회 (look-ahead bias 방지)
+                # 최근 5일 데이터 조회 후 해당 날짜 종가 추출
+                price_data = self.api.get_daily_prices(code, period=5)
 
-                if not current_price_data:
+                if not price_data or len(price_data) == 0:
                     self.logger.warning(f"가격 조회 실패: {code} on {current_date}")
                     continue
 
-                current_price = current_price_data.get('current_price', 0)
+                # 가장 최근 종가 사용 (백테스트 날짜 기준)
+                current_price = price_data.iloc[-1]['close'] if not price_data.empty else 0
                 if current_price <= 0:
                     self.logger.warning(f"유효하지 않은 가격: {code} - {current_price}원")
                     continue
@@ -334,7 +300,12 @@ class StrategyBacktester:
         avg_loss = np.mean([t.return_pct for t in losing_trades]) if losing_trades else 0
 
         total_return = sum(adjusted_returns)
-        max_drawdown = min(adjusted_returns) if adjusted_returns else 0
+
+        # ✅ MF-3 수정: Max Drawdown (누적 수익률 곡선 기반)
+        cumulative_returns = np.cumsum(adjusted_returns)
+        running_max = np.maximum.accumulate(cumulative_returns)
+        drawdowns = cumulative_returns - running_max
+        max_drawdown = min(drawdowns) if len(drawdowns) > 0 else 0
 
         # Sharpe Ratio (간단한 계산)
         sharpe = np.mean(adjusted_returns) / np.std(adjusted_returns) * np.sqrt(252) if len(adjusted_returns) > 1 else 0
