@@ -71,7 +71,7 @@ class SlippageMonitor:
             self.save_path = Path(save_path).resolve()
 
             # 테스트 환경 예외: tests/ 디렉토리 내 경로 허용
-            is_test_path = 'tests' in str(self.save_path.parts)
+            is_test_path = 'tests' in self.save_path.parts
 
             if not is_test_path:
                 try:

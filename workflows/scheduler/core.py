@@ -379,7 +379,6 @@ class SchedulerCore:
         try:
             # 새 이벤트 루프 생성 (기존 루프와 충돌 방지)
             loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
             try:
                 return loop.run_until_complete(coro)
             finally:

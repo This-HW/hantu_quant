@@ -7,6 +7,7 @@ API configuration management module.
 """
 
 import json
+import os
 import ssl
 import time
 from datetime import datetime, timedelta
@@ -275,7 +276,6 @@ class APIConfig:
                 json.dump(token_data, f)
 
             # 파일 권한 제한 (소유자만 읽기/쓰기)
-            import os
             os.chmod(self._token_file, 0o600)
 
             logger.debug(f"[_save_token] 토큰 정보 저장 완료: {self._token_file} (권한: 600)")
@@ -564,7 +564,6 @@ class APIConfig:
                 json.dump(data, f)
 
             # 파일 권한 제한 (소유자만 읽기/쓰기)
-            import os
             os.chmod(self._ws_approval_key_file, 0o600)
 
             logger.debug(f"[_save_ws_approval_key] WebSocket 접속키 저장 완료 (권한: 600)")
