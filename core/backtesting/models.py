@@ -29,6 +29,29 @@ class BacktestResult:
     worst_trade: float
     avg_holding_days: float
 
+    @classmethod
+    def empty(cls, strategy_name: str = "No Data") -> 'BacktestResult':
+        """빈 결과 생성 (SSOT)"""
+        return cls(
+            strategy_name=strategy_name,
+            start_date="",
+            end_date="",
+            total_trades=0,
+            winning_trades=0,
+            losing_trades=0,
+            win_rate=0.0,
+            avg_return=0.0,
+            avg_win=0.0,
+            avg_loss=0.0,
+            max_drawdown=0.0,
+            sharpe_ratio=0.0,
+            total_return=0.0,
+            profit_factor=0.0,
+            best_trade=0.0,
+            worst_trade=0.0,
+            avg_holding_days=0.0
+        )
+
 
 @dataclass
 class Trade:

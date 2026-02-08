@@ -63,7 +63,7 @@ class SimpleBacktester:
 
         if not daily_selections:
             self.logger.warning("백테스트할 데이터가 없습니다")
-            return self._empty_result("No Data")
+            return BacktestResult.empty("No Data")
 
         # 2. 시뮬레이션 실행
         trades = self._simulate_trading(
@@ -220,7 +220,7 @@ class SimpleBacktester:
     def _analyze_performance(self, trades: List[Trade], start_date: str, end_date: str, strategy_name: str) -> BacktestResult:
         """성과 분석"""
         if not trades:
-            return self._empty_result(strategy_name)
+            return BacktestResult.empty(strategy_name)
 
         # 거래 분류
         returns = [t.return_pct for t in trades if t.return_pct is not None]
@@ -278,28 +278,6 @@ class SimpleBacktester:
             best_trade=best_trade,
             worst_trade=worst_trade,
             avg_holding_days=avg_holding_days
-        )
-
-    def _empty_result(self, strategy_name: str) -> BacktestResult:
-        """빈 결과"""
-        return BacktestResult(
-            strategy_name=strategy_name,
-            start_date="",
-            end_date="",
-            total_trades=0,
-            winning_trades=0,
-            losing_trades=0,
-            win_rate=0.0,
-            avg_return=0.0,
-            avg_win=0.0,
-            avg_loss=0.0,
-            max_drawdown=0.0,
-            sharpe_ratio=0.0,
-            total_return=0.0,
-            profit_factor=0.0,
-            best_trade=0.0,
-            worst_trade=0.0,
-            avg_holding_days=0.0
         )
 
     def save_result(self, result: BacktestResult, output_path: str):

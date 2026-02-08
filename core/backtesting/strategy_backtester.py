@@ -8,7 +8,7 @@ import json
 import numpy as np
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 from dataclasses import asdict
 
 from core.utils.log_utils import get_logger
@@ -67,14 +67,15 @@ class StrategyBacktester:
 
         if not daily_selections:
             self.logger.warning("백테스트할 데이터가 없습니다")
-            return self._empty_result("No Data")
+            return BacktestResult.empty("No Data")
 
         # 2. 시뮬레이션 실행
         trades = self._simulate_trading(
             daily_selections,
             trading_config.get('stop_loss_pct', 0.03),
             trading_config.get('take_profit_pct', 0.08),
-            trading_config.get('max_holding_days', 10)
+            trading_config.get('max_holding_days', 10),
+            trading_config.get('max_positions', 10)
         )
 
         # 3. 성과 분석
@@ -122,7 +123,8 @@ class StrategyBacktester:
         selections: List[Dict],
         stop_loss_pct: float,
         take_profit_pct: float,
-        max_holding_days: int
+        max_holding_days: int,
+        max_positions: int = 10
     ) -> List[Trade]:
         """매매 시뮬레이션"""
         trades = []
@@ -144,8 +146,9 @@ class StrategyBacktester:
             trades.extend(closed_trades)
 
             # 2. 새로운 진입
-            if len(portfolio) < 10:  # 최대 10개 종목
-                for sel in by_date[date][:10-len(portfolio)]:
+            # max_positions는 메서드 파라미터로 전달됨
+            if len(portfolio) < max_positions:
+                for sel in by_date[date][:max_positions-len(portfolio)]:
                     code = sel['stock_code']
                     if code not in portfolio:
                         trade = Trade(
@@ -264,7 +267,7 @@ class StrategyBacktester:
     def _analyze_performance(self, trades: List[Trade], start_date: str, end_date: str, strategy_name: str) -> BacktestResult:
         """성과 분석 (거래 비용 반영)"""
         if not trades:
-            return self._empty_result(strategy_name)
+            return BacktestResult.empty(strategy_name)
 
         # 거래 비용을 반영한 실제 수익률 재계산
         adjusted_returns = []
@@ -272,24 +275,33 @@ class StrategyBacktester:
             if t.return_pct is None or t.entry_price is None or t.exit_price is None:
                 continue
 
-            # 순손익 계산 (비용 반영)
-            net_pnl = self.trading_costs.calculate_net_pnl(
-                buy_price=t.entry_price,
-                sell_price=t.exit_price,
-                quantity=t.quantity
-            )
+            if t.quantity <= 0:
+                self.logger.warning(f"유효하지 않은 수량: {t.stock_code}, quantity={t.quantity}")
+                continue
 
-            # 실제 수익률 (비용 반영 후)
-            buy_cost = self.trading_costs.calculate_buy_cost(t.entry_price, t.quantity)
-            adjusted_return_pct = net_pnl / buy_cost if buy_cost > 0 else 0
+            try:
+                # 순손익 계산 (비용 반영)
+                net_pnl = self.trading_costs.calculate_net_pnl(
+                    buy_price=t.entry_price,
+                    sell_price=t.exit_price,
+                    quantity=t.quantity
+                )
 
-            adjusted_returns.append(adjusted_return_pct)
+                # 실제 수익률 (비용 반영 후)
+                buy_cost = self.trading_costs.calculate_buy_cost(t.entry_price, t.quantity)
+                adjusted_return_pct = net_pnl / buy_cost if buy_cost > 0 else 0
 
-            # Trade 객체 업데이트 (비용 반영 수익률로)
-            t.return_pct = adjusted_return_pct
+                adjusted_returns.append(adjusted_return_pct)
+
+                # Trade 객체 업데이트 (비용 반영 수익률로)
+                t.return_pct = adjusted_return_pct
+
+            except Exception as e:
+                self.logger.error(f"거래 비용 계산 실패 ({t.stock_code}): {e}", exc_info=True)
+                continue
 
         if not adjusted_returns:
-            return self._empty_result(strategy_name)
+            return BacktestResult.empty(strategy_name)
 
         winning_trades = [t for t in trades if t.return_pct and t.return_pct > 0]
         losing_trades = [t for t in trades if t.return_pct and t.return_pct < 0]
@@ -344,28 +356,6 @@ class StrategyBacktester:
             best_trade=best_trade,
             worst_trade=worst_trade,
             avg_holding_days=avg_holding_days
-        )
-
-    def _empty_result(self, strategy_name: str) -> BacktestResult:
-        """빈 결과"""
-        return BacktestResult(
-            strategy_name=strategy_name,
-            start_date="",
-            end_date="",
-            total_trades=0,
-            winning_trades=0,
-            losing_trades=0,
-            win_rate=0.0,
-            avg_return=0.0,
-            avg_win=0.0,
-            avg_loss=0.0,
-            max_drawdown=0.0,
-            sharpe_ratio=0.0,
-            total_return=0.0,
-            profit_factor=0.0,
-            best_trade=0.0,
-            worst_trade=0.0,
-            avg_holding_days=0.0
         )
 
     def save_result(self, result: BacktestResult, output_path: str):

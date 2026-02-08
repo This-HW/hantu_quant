@@ -94,6 +94,14 @@ class KellyCalculator:
         Returns:
             KellyResult: 켈리 계산 결과
         """
+        # signal_confidence 범위 클리핑 (0.0 ~ 1.0)
+        if not (0.0 <= signal_confidence <= 1.0):
+            logger.warning(
+                f"signal_confidence 범위 초과: {signal_confidence}, 클리핑 적용",
+                exc_info=True
+            )
+            signal_confidence = max(0.0, min(1.0, signal_confidence))
+
         if len(trade_returns) < self.config.min_trades:
             return KellyResult(sample_size=len(trade_returns))
 
@@ -164,6 +172,14 @@ class KellyCalculator:
         Returns:
             KellyResult: 켈리 계산 결과
         """
+        # signal_confidence 범위 클리핑 (0.0 ~ 1.0)
+        if not (0.0 <= signal_confidence <= 1.0):
+            logger.warning(
+                f"signal_confidence 범위 초과: {signal_confidence}, 클리핑 적용",
+                exc_info=True
+            )
+            signal_confidence = max(0.0, min(1.0, signal_confidence))
+
         full_kelly = self._calculate_kelly(win_rate, win_loss_ratio)
         adjusted_kelly = full_kelly * self.config.kelly_fraction * signal_confidence
 

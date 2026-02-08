@@ -74,6 +74,11 @@ class TradingConfig:
     use_trailing_stop: bool = True  # 트레일링 스탑 사용 여부
     trailing_activation_pct: float = 0.02  # 트레일링 활성화 수익률 (2%)
 
+    # 부분 익절 설정 (P0-5b)
+    partial_profit_first_pct: float = 0.05  # 1차 익절 기준 (5%)
+    partial_profit_first_ratio: float = 0.5  # 1차 익절 비율 (50%)
+    partial_profit_second_pct: float = 0.10  # 2차 익절 기준 (10%)
+
     # 매매 시간 설정
     market_start: str = "09:00"
     market_end: str = "15:30"
@@ -781,8 +786,20 @@ class TradingEngine:
                 summary_file = f"data/trades/trade_summary_{date}.json"
 
                 if os.path.exists(summary_file):
-                    with open(summary_file, "r", encoding="utf-8") as f:
-                        summary = json.load(f)
+                    try:
+                        with open(summary_file, "r", encoding="utf-8") as f:
+                            summary = json.load(f)
+                    except json.JSONDecodeError as e:
+                        self.logger.warning(f"거래 요약 파일 파싱 실패 {date}: {e}")
+                        continue
+                    except Exception as e:
+                        self.logger.error(f"거래 요약 파일 로드 실패 {date}: {e}", exc_info=True)
+                        continue
+
+                    # 파일이 비어있거나 details가 없는 경우 처리
+                    if not summary or not isinstance(summary, dict):
+                        self.logger.warning(f"거래 요약 파일이 비어있거나 잘못된 형식 {date}")
+                        continue
 
                     for detail in summary.get("details", []):
                         # stock_code 필터
@@ -1037,9 +1054,9 @@ class TradingEngine:
         try:
             current_return = position.unrealized_return
 
-            # 1차 익절: 50% @ +5%
-            if current_return >= 0.05 and not position.partial_sold:
-                sell_quantity = position.quantity // 2
+            # 1차 익절: config에서 비율 읽기
+            if current_return >= self.config.partial_profit_first_pct and not position.partial_sold:
+                sell_quantity = int(position.quantity * self.config.partial_profit_first_ratio)
 
                 if sell_quantity <= 0:
                     self.logger.warning(f"부분 익절 수량 부족: {position.stock_code}")
@@ -1047,7 +1064,9 @@ class TradingEngine:
 
                 self.logger.info(
                     f"📊 1차 부분 익절 조건 충족 - {position.stock_code}: "
-                    f"수익률 {current_return:.1%}, 수량 {sell_quantity}주 매도"
+                    f"수익률 {current_return:.1%}, 수량 {sell_quantity}주 매도 "
+                    f"(기준: {self.config.partial_profit_first_pct:.1%}, "
+                    f"비율: {self.config.partial_profit_first_ratio:.1%})"
                 )
 
                 result = await self.sell(
@@ -1074,11 +1093,12 @@ class TradingEngine:
                     )
                     return False
 
-            # 2차 익절: 나머지 @ +10%
-            elif current_return >= 0.10:
+            # 2차 익절: config에서 비율 읽기
+            elif current_return >= self.config.partial_profit_second_pct:
                 self.logger.info(
                     f"📊 2차 익절 조건 충족 - {position.stock_code}: "
-                    f"수익률 {current_return:.1%}, 잔여 {position.quantity}주 전량 매도"
+                    f"수익률 {current_return:.1%}, 잔여 {position.quantity}주 전량 매도 "
+                    f"(기준: {self.config.partial_profit_second_pct:.1%})"
                 )
 
                 result = await self.sell(

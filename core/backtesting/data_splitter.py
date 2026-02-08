@@ -6,7 +6,7 @@ Walk-Forward Analysis를 위한 시계열 데이터 분할
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Any
 from core.utils.log_utils import get_logger
 
 logger = get_logger(__name__)

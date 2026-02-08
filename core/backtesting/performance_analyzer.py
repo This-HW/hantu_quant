@@ -45,7 +45,10 @@ class PerformanceAnalyzer:
             std_return = np.std(returns_array, ddof=1)  # 표본 표준편차
 
             if std_return == 0:
-                self.logger.warning("표준편차가 0으로 샤프 비율 계산 불가")
+                self.logger.warning(
+                    f"표준편차가 0으로 샤프 비율 계산 불가 "
+                    f"(평균={avg_return:.6f}, 샘플수={len(returns)})"
+                )
                 return 0.0
 
             # 일일 무위험 수익률 (연율 / 252 영업일)
@@ -96,7 +99,10 @@ class PerformanceAnalyzer:
             downside_std = np.std(downside_returns, ddof=1)
 
             if downside_std == 0:
-                self.logger.warning("하방 표준편차가 0으로 소르티노 비율 계산 불가")
+                self.logger.warning(
+                    f"하방 표준편차가 0으로 소르티노 비율 계산 불가 "
+                    f"(하방 샘플수={len(downside_returns)}, 평균={avg_return:.6f})"
+                )
                 return 0.0
 
             # 일일 무위험 수익률
@@ -134,7 +140,12 @@ class PerformanceAnalyzer:
                 return 0.0
 
             if max_drawdown == 0:
-                self.logger.warning("최대 손실폭이 0으로 칼마 비율 계산 불가")
+                returns_array = np.array(returns)
+                avg_return = np.mean(returns_array)
+                self.logger.warning(
+                    f"최대 손실폭이 0으로 칼마 비율 계산 불가 "
+                    f"(평균={avg_return:.6f}, 샘플수={len(returns)})"
+                )
                 return 0.0
 
             returns_array = np.array(returns)
@@ -223,7 +234,7 @@ class PerformanceAnalyzer:
         """
         try:
             if not trades:
-                self.logger.warning("거래 데이터가 없습니다")
+                self.logger.warning("거래 데이터가 없습니다 (빈 trades 리스트)")
                 return self._empty_distribution()
 
             # 완료된 거래만 분석 (return_pct가 None이 아닌 것)

@@ -17,7 +17,20 @@ logger = get_logger(__name__)
 
 @dataclass
 class WalkForwardConfig:
-    """Walk-Forward Analysis 설정"""
+    """Walk-Forward Analysis 설정
+
+    Attributes:
+        train_window_days: 학습 윈도우 크기 (일). 기본 180일(6개월).
+            충분한 학습 데이터를 위해 최소 90일 이상 권장.
+        test_window_days: 테스트 윈도우 크기 (일). 기본 30일(1개월).
+            train_window_days의 1/6~1/3이 적절.
+        step_days: 윈도우 이동 간격 (일). 기본 30일.
+            test_window_days와 동일하면 겹침 없이 진행.
+        min_train_trades: 학습 구간 최소 거래 수. 기본 20건.
+            통계적 유의성을 위해 최소 15건 이상 권장.
+        purge_days: 학습/테스트 구간 사이 데이터 격리 기간 (일). 기본 5일.
+            Look-ahead bias 방지용. 보유 기간과 동일하게 설정 권장.
+    """
     train_window_days: int = 180  # 6개월
     test_window_days: int = 30    # 1개월
     step_days: int = 30           # 1개월씩 이동
