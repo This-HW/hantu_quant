@@ -12,6 +12,7 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass
 
 from core.utils.log_utils import get_logger
+from core.config.constants import RISK_FREE_RATE
 
 logger = get_logger(__name__)
 
@@ -78,9 +79,8 @@ class RiskParityOptimizer:
             # 7. 포트폴리오 변동성 계산
             portfolio_volatility = np.sqrt(np.dot(weights, np.dot(cov_matrix, weights)))
 
-            # 8. 샤프 비율 계산 (무위험 수익률 = 3%)
-            risk_free_rate = 0.03
-            sharpe_ratio = (portfolio_return - risk_free_rate) / portfolio_volatility if portfolio_volatility > 0 else 0
+            # 8. 샤프 비율 계산
+            sharpe_ratio = (portfolio_return - RISK_FREE_RATE) / portfolio_volatility if portfolio_volatility > 0 else 0
 
             # 9. 리스크 기여도 계산
             risk_contributions = self._calculate_risk_contributions(weights, cov_matrix)

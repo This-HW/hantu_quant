@@ -10,12 +10,13 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 from core.utils.log_utils import get_logger
 from core.api.kis_api import KISAPI
 from core.backtesting.trading_costs import TradingCosts
 from core.backtesting.models import BacktestResult, Trade
+from core.config.constants import RISK_FREE_RATE
 
 logger = get_logger(__name__)
 
@@ -245,7 +246,7 @@ class BaseBacktester(ABC):
         try:
             # 거래 비용을 반영한 실제 수익률 재계산
             adjusted_returns = []
-            for t in trades:
+            for i, t in enumerate(trades):
                 if t.return_pct is None or t.entry_price is None or t.exit_price is None:
                     continue
 
@@ -267,8 +268,8 @@ class BaseBacktester(ABC):
 
                     adjusted_returns.append(adjusted_return_pct)
 
-                    # Trade 객체 업데이트 (비용 반영 수익률로)
-                    t.return_pct = adjusted_return_pct
+                    # Trade 객체 업데이트 (불변 객체 생성)
+                    trades[i] = replace(t, return_pct=adjusted_return_pct)
 
                 except Exception as e:
                     self.logger.error(f"거래 비용 계산 실패 ({t.stock_code}): {e}", exc_info=True)
@@ -295,18 +296,21 @@ class BaseBacktester(ABC):
             drawdowns = cumulative_returns - running_max
             max_drawdown = min(drawdowns) if len(drawdowns) > 0 else 0
 
-            # Sharpe Ratio
-            std_returns = np.std(adjusted_returns) if len(adjusted_returns) > 1 else 0
+            # Sharpe Ratio (무위험 수익률 반영)
+            daily_risk_free = RISK_FREE_RATE / 252
+            excess_returns = [r - daily_risk_free for r in adjusted_returns]
+
+            std_returns = np.std(excess_returns, ddof=1) if len(excess_returns) > 1 else 0
             sharpe = (
-                np.mean(adjusted_returns) / std_returns * np.sqrt(252)
+                np.mean(excess_returns) / std_returns * np.sqrt(252)
                 if std_returns > 0 else 0
             )
 
-            # Sortino Ratio (하방 리스크만 고려)
-            downside_returns = [r for r in adjusted_returns if r < 0]
-            downside_std = np.std(downside_returns) if len(downside_returns) > 1 else 0
+            # Sortino Ratio (하방 리스크만 고려, 무위험 수익률 반영)
+            downside_returns = [r for r in excess_returns if r < 0]
+            downside_std = np.std(downside_returns, ddof=1) if len(downside_returns) > 1 else 0
             sortino = (
-                np.mean(adjusted_returns) / downside_std * np.sqrt(252)
+                np.mean(excess_returns) / downside_std * np.sqrt(252)
                 if downside_std > 0 else 0
             )
 

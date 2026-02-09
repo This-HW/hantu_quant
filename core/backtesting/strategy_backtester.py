@@ -4,7 +4,7 @@
 과거 데이터로 선정 기준 및 매매 전략 검증
 """
 
-from datetime import datetime
+from dataclasses import replace
 from typing import Dict, List
 
 from core.utils.log_utils import get_logger
@@ -110,14 +110,20 @@ class StrategyBacktester(BaseBacktester):
 
         # 남은 포지션 강제 청산
         for code, trade in portfolio.items():
-            trade.exit_date = sorted_dates[-1]
-            trade.exit_price = trade.entry_price  # 가정
-            trade.return_pct = 0.0
-            trade.holding_days = (
-                self._to_datetime(trade.exit_date)
+            exit_date = sorted_dates[-1]
+            exit_price = trade.entry_price  # 가정
+            holding_days = (
+                self._to_datetime(exit_date)
                 - self._to_datetime(trade.entry_date)
             ).days
-            trade.exit_reason = "end_of_backtest"
+            trade = replace(
+                trade,
+                exit_date=exit_date,
+                exit_price=exit_price,
+                return_pct=0.0,
+                holding_days=holding_days,
+                exit_reason="end_of_backtest"
+            )
             trades.append(trade)
 
         return trades
@@ -178,29 +184,32 @@ class StrategyBacktester(BaseBacktester):
                 return_pct = (current_price - trade.entry_price) / trade.entry_price
 
                 exit_triggered = False
+                exit_reason = None
 
                 # 손절 조건
                 if return_pct <= -stop_loss_pct:
-                    trade.return_pct = return_pct
-                    trade.exit_reason = "stop_loss"
+                    exit_reason = "stop_loss"
                     exit_triggered = True
 
                 # 익절 조건
                 elif return_pct >= take_profit_pct:
-                    trade.return_pct = return_pct
-                    trade.exit_reason = "take_profit"
+                    exit_reason = "take_profit"
                     exit_triggered = True
 
                 # 보유 기간 초과
                 elif holding_days >= max_holding_days:
-                    trade.return_pct = return_pct
-                    trade.exit_reason = "time_limit"
+                    exit_reason = "time_limit"
                     exit_triggered = True
 
                 if exit_triggered:
-                    trade.exit_date = current_date
-                    trade.exit_price = current_price
-                    trade.holding_days = holding_days
+                    trade = replace(
+                        trade,
+                        exit_date=current_date,
+                        exit_price=current_price,
+                        return_pct=return_pct,
+                        holding_days=holding_days,
+                        exit_reason=exit_reason
+                    )
                     closed.append(trade)
                     to_remove.append(code)
 

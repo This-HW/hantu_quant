@@ -23,6 +23,7 @@ from core.backtesting.strategy_backtester import BacktestResult
 from core.backtesting.walk_forward import WalkForwardAnalyzer, WalkForwardConfig, WalkForwardResult
 from core.backtesting.performance_analyzer import PerformanceAnalyzer
 from core.backtesting.models import Trade
+from core.config.constants import RISK_FREE_RATE
 
 
 class TestStrategyBacktesterWithPerformanceAnalyzer:
@@ -111,13 +112,13 @@ class TestStrategyBacktesterWithPerformanceAnalyzer:
         returns = [trade.return_pct for trade in sample_trades if trade.return_pct is not None]
 
         # Then: Sharpe Ratio 재계산
-        sharpe = analyzer.calculate_sharpe_ratio(returns, risk_free_rate=0.02)
+        sharpe = analyzer.calculate_sharpe_ratio(returns, risk_free_rate=RISK_FREE_RATE)
         assert isinstance(sharpe, float)
         # Sharpe는 높을수록 좋으므로 상한 체크 제거
         assert sharpe >= -5.0  # 최소값만 체크
 
         # Sortino Ratio 계산 (하방 편차가 0이면 0.0 반환)
-        sortino = analyzer.calculate_sortino_ratio(returns, risk_free_rate=0.02)
+        sortino = analyzer.calculate_sortino_ratio(returns, risk_free_rate=RISK_FREE_RATE)
         assert isinstance(sortino, float)
         # Note: Sortino는 하방 편차가 0이면 0.0을 반환하므로 조건 제거
 

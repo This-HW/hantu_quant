@@ -198,9 +198,9 @@ class TradeLog:
         )
 
 
-@dataclass
+@dataclass(frozen=True)
 class Trade:
-    """거래 정보"""
+    """거래 정보 (불변 객체)"""
 
     id: str
     stock_code: str
@@ -395,18 +395,26 @@ class TradeLogger:
             logger.warning(f"Trade not found: {trade_id}")
             return None
 
+        from dataclasses import replace
         trade = self._open_trades.pop(trade_id)
-        trade.exit_price = exit_price
-        trade.exit_reason = exit_reason
-        trade.is_closed = True
 
         # PnL 계산
         if trade.direction == "buy":
-            trade.pnl = (exit_price - trade.entry_price) * trade.quantity
-            trade.pnl_pct = (exit_price - trade.entry_price) / trade.entry_price * 100
+            pnl = (exit_price - trade.entry_price) * trade.quantity
+            pnl_pct = (exit_price - trade.entry_price) / trade.entry_price * 100
         else:
-            trade.pnl = (trade.entry_price - exit_price) * trade.quantity
-            trade.pnl_pct = (trade.entry_price - exit_price) / trade.entry_price * 100
+            pnl = (trade.entry_price - exit_price) * trade.quantity
+            pnl_pct = (trade.entry_price - exit_price) / trade.entry_price * 100
+
+        # 불변 객체 업데이트
+        trade = replace(
+            trade,
+            exit_price=exit_price,
+            exit_reason=exit_reason,
+            is_closed=True,
+            pnl=pnl,
+            pnl_pct=pnl_pct
+        )
 
         return self.log_trade(trade, context, stock_name)
 

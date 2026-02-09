@@ -13,6 +13,7 @@ from scipy.optimize import minimize
 
 from core.utils.log_utils import get_logger
 from core.portfolio.risk_parity_optimizer import PortfolioWeights
+from core.config.constants import RISK_FREE_RATE
 
 logger = get_logger(__name__)
 
@@ -20,14 +21,14 @@ logger = get_logger(__name__)
 class SharpeOptimizer:
     """샤프 비율 최적화기"""
 
-    def __init__(self, risk_free_rate: float = 0.03):
+    def __init__(self, risk_free_rate: float = None):
         """초기화
 
         Args:
-            risk_free_rate: 무위험 수익률 (기본값: 3%)
+            risk_free_rate: 무위험 수익률 (기본값: RISK_FREE_RATE 상수 사용)
         """
         self.logger = logger
-        self.risk_free_rate = risk_free_rate
+        self.risk_free_rate = risk_free_rate if risk_free_rate is not None else RISK_FREE_RATE
         self.min_weight = 0.01  # 최소 가중치 1%
         self.max_weight = 0.25  # 최대 가중치 25%
 

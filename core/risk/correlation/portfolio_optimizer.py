@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 
 from core.utils.log_utils import get_logger
+from core.config.constants import RISK_FREE_RATE
 
 logger = get_logger(__name__)
 
@@ -44,17 +45,17 @@ class PortfolioOptimizer:
 
     def __init__(
         self,
-        risk_free_rate: float = 0.03,
+        risk_free_rate: float = None,
         max_weight: float = 0.25,
         min_weight: float = 0.02
     ):
         """
         Args:
-            risk_free_rate: 무위험 수익률 (연간)
+            risk_free_rate: 무위험 수익률 (연간, 기본값: RISK_FREE_RATE 상수 사용)
             max_weight: 최대 종목 비중
             min_weight: 최소 종목 비중
         """
-        self.risk_free_rate = risk_free_rate
+        self.risk_free_rate = risk_free_rate if risk_free_rate is not None else RISK_FREE_RATE
         self.max_weight = max_weight
         self.min_weight = min_weight
 

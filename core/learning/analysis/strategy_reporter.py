@@ -17,6 +17,7 @@ import schedule
 from pathlib import Path
 
 from core.utils.log_utils import get_logger
+from core.config.constants import RISK_FREE_RATE
 
 logger = get_logger(__name__)
 
@@ -438,9 +439,8 @@ class StrategyReporter:
                 # 변동성 (연간)
                 volatility = np.std(daily_returns) * np.sqrt(252) * 100
 
-                # 샤프 비율 (무위험 수익률 3% 가정)
-                risk_free_rate = 0.03
-                excess_returns = daily_returns - risk_free_rate / 252
+                # 샤프 비율 (무위험 수익률 반영)
+                excess_returns = daily_returns - RISK_FREE_RATE / 252
                 sharpe_ratio = (
                     np.mean(excess_returns) / np.std(excess_returns) * np.sqrt(252)
                     if np.std(excess_returns) > 0

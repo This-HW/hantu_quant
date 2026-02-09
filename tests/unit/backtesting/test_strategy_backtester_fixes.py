@@ -126,6 +126,7 @@ class TestStrategyBacktesterFixes:
 
     def test_simulate_trading_uses_to_datetime(self):
         """_simulate_trading: _to_datetime 사용 확인"""
+        from dataclasses import replace
         # _simulate_trading 내부에서 holding_days 계산 시 _to_datetime 사용
         trade = Trade(
             stock_code="005930",
@@ -140,11 +141,12 @@ class TestStrategyBacktesterFixes:
             exit_reason="take_profit"
         )
 
-        # holding_days 계산
-        trade.holding_days = (
+        # holding_days 계산 (불변 객체이므로 replace 사용)
+        holding_days = (
             self.backtester._to_datetime(trade.exit_date)
             - self.backtester._to_datetime(trade.entry_date)
         ).days
+        trade = replace(trade, holding_days=holding_days)
 
         assert trade.holding_days == 9, "holding_days 계산 정확"
 

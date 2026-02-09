@@ -155,16 +155,10 @@ class AutoRecoverySystem:
 
                 # 비동기 함수를 동기로 실행
                 import asyncio
-                try:
-                    loop = asyncio.get_event_loop()
-                except Exception:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
 
                 # 백그라운드에서 실행
                 def start_engine():
-                    asyncio.set_event_loop(asyncio.new_event_loop())
-                    asyncio.get_event_loop().run_until_complete(engine.start_trading())
+                    asyncio.run(engine.start_trading())
 
                 import threading
                 thread = threading.Thread(target=start_engine, daemon=True)

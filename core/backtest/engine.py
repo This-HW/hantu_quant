@@ -404,28 +404,42 @@ class BacktestEngine:
         net_proceeds = trade_value - commission
 
         # 거래 기록 업데이트
-        for trade in reversed(self.trades):
+        from dataclasses import replace
+        for i, trade in enumerate(reversed(self.trades)):
             if trade.stock_code == stock_code and not trade.is_closed():
-                trade.exit_date = exit_date
-                trade.exit_price = exit_price
-                trade.exit_quantity = quantity
-                trade.exit_reason = exit_reason
-                trade.exit_commission = commission
-
                 # 손익 계산
                 entry_value = trade.entry_price * trade.entry_quantity
                 exit_value = exit_price * quantity
-                trade.pnl = exit_value - entry_value
-                trade.pnl_pct = trade.pnl / entry_value * 100
+                pnl = exit_value - entry_value
+                pnl_pct = pnl / entry_value * 100
 
                 total_cost = trade.entry_commission + commission + trade.slippage_cost
-                trade.net_pnl = trade.pnl - total_cost
-                trade.net_pnl_pct = trade.net_pnl / entry_value * 100
+                net_pnl = pnl - total_cost
+                net_pnl_pct = net_pnl / entry_value * 100
 
                 # 보유 기간
                 entry_dt = datetime.strptime(trade.entry_date, "%Y-%m-%d")
                 exit_dt = datetime.strptime(exit_date, "%Y-%m-%d")
-                trade.holding_days = (exit_dt - entry_dt).days
+                holding_days = (exit_dt - entry_dt).days
+
+                # 불변 객체 업데이트
+                updated_trade = replace(
+                    trade,
+                    exit_date=exit_date,
+                    exit_price=exit_price,
+                    exit_quantity=quantity,
+                    exit_reason=exit_reason,
+                    exit_commission=commission,
+                    pnl=pnl,
+                    pnl_pct=pnl_pct,
+                    net_pnl=net_pnl,
+                    net_pnl_pct=net_pnl_pct,
+                    holding_days=holding_days
+                )
+
+                # 리스트에서 업데이트된 객체로 교체
+                actual_index = len(self.trades) - 1 - i
+                self.trades[actual_index] = updated_trade
 
                 break
 

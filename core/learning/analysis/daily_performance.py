@@ -13,6 +13,7 @@ import json
 import os
 
 from core.utils.log_utils import get_logger
+from core.config.constants import RISK_FREE_RATE
 
 # KIS API 클라이언트 (선택적 import)
 try:
@@ -510,11 +511,8 @@ class DailyPerformanceAnalyzer:
         
         # 연간화된 수익률
         annualized_return = (1 + return_rate) ** (252 / hold_days) - 1
-        
-        # 무위험 수익률 (3% 가정)
-        risk_free_rate = 0.03
-        
-        return (annualized_return - risk_free_rate) / volatility
+
+        return (annualized_return - RISK_FREE_RATE) / volatility
     
     def _calculate_prediction_accuracy(self, actual_return: float, 
                                      target_return: float, stop_loss: float) -> float:

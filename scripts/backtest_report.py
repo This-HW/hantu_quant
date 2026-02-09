@@ -116,6 +116,7 @@ def load_backtest_result(input_path: str) -> tuple:
             avg_loss=result_dict.get('avg_loss', 0.0),
             max_drawdown=result_dict.get('max_drawdown', 0.0),
             sharpe_ratio=result_dict.get('sharpe_ratio', 0.0),
+            sortino_ratio=result_dict.get('sortino_ratio', 0.0),
             total_return=result_dict.get('total_return', 0.0),
             profit_factor=result_dict.get('profit_factor', 0.0),
             best_trade=result_dict.get('best_trade', 0.0),

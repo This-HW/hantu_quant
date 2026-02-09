@@ -25,6 +25,7 @@ from core.risk.drawdown import (
 from core.risk.drawdown.drawdown_monitor import AlertLevel
 from core.risk.drawdown.circuit_breaker import BreakerState
 from core.risk.drawdown.position_reducer import ReductionPriority, PositionInfo
+from core.config.constants import RISK_FREE_RATE
 
 
 # ========== Fixtures ==========
@@ -336,8 +337,8 @@ class TestPortfolioOptimizer:
 
     def test_optimizer_creation(self):
         """최적화기 생성 테스트"""
-        optimizer = PortfolioOptimizer(risk_free_rate=0.03)
-        assert optimizer.risk_free_rate == 0.03
+        optimizer = PortfolioOptimizer()
+        assert optimizer.risk_free_rate == RISK_FREE_RATE
 
     def test_min_variance_optimization(self, sample_price_data):
         """최소 분산 최적화"""

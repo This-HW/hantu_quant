@@ -55,9 +55,9 @@ class BacktestResult:
         )
 
 
-@dataclass
+@dataclass(frozen=True)
 class Trade:
-    """거래 기록"""
+    """거래 기록 (불변 객체)"""
     stock_code: str
     stock_name: str
     entry_date: str
@@ -68,6 +68,17 @@ class Trade:
     return_pct: Optional[float]
     holding_days: Optional[int]
     exit_reason: Optional[str]  # "stop_loss", "take_profit", "time_limit"
+
+    def __post_init__(self):
+        """데이터 클래스 생성 후 자동 검증"""
+        from core.utils.log_utils import get_logger
+        logger = get_logger(__name__)
+
+        try:
+            self.validate()
+        except ValueError as e:
+            logger.error(f"Trade 검증 실패: {e}", exc_info=True)
+            raise
 
     def validate(self) -> None:
         """거래 데이터 유효성 검증

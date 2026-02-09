@@ -474,8 +474,8 @@ class IntegratedScheduler:
         ]
         for day in weekdays:
             day_scheduler = getattr(schedule.every(), day)
-            for time in health_check_times:
-                day_scheduler.at(time).do(self._run_health_check)
+            for check_time in health_check_times:
+                day_scheduler.at(check_time).do(self._run_health_check)
 
         # 개발/테스트용 스케줄 (옵션)
         # schedule.every(10).minutes.do(self._run_daily_update)  # 10분마다 테스트
@@ -1660,8 +1660,6 @@ class IntegratedScheduler:
         except Exception as e:
             logger.error(f"주간 백테스트 오류: {e}", exc_info=True)
             print(f"주간 백테스트 오류: {e}")
-            import traceback
-
             traceback.print_exc()
 
     def _start_system_monitoring(self):
@@ -2002,14 +2000,10 @@ class IntegratedScheduler:
                     try:
                         import asyncio
 
-                        # 새로운 이벤트 루프 생성
-                        asyncio.set_event_loop(asyncio.new_event_loop())
-                        loop = asyncio.get_event_loop()
-                        loop.run_until_complete(trading_engine.start_trading())
+                        # asyncio.run()으로 새 이벤트 루프 자동 생성 및 실행
+                        asyncio.run(trading_engine.start_trading())
                     except Exception as e:
                         logger.error(f"자동 매매 실행 오류: {e}", exc_info=True)
-                        import traceback
-
                         logger.error(
                             f"상세 오류:\n{traceback.format_exc()}", exc_info=True
                         )
@@ -2044,8 +2038,6 @@ class IntegratedScheduler:
         except Exception as e:
             logger.error(f"자동 매매 시작 오류: {e}", exc_info=True)
             print(f"자동 매매 시작 오류: {e}")
-            import traceback
-
             logger.error(f"상세 오류:\n{traceback.format_exc()}", exc_info=True)
             return False
 
@@ -2068,9 +2060,8 @@ class IntegratedScheduler:
                         try:
                             import asyncio
 
-                            asyncio.set_event_loop(asyncio.new_event_loop())
-                            loop = asyncio.get_event_loop()
-                            loop.run_until_complete(
+                            # asyncio.run()으로 새 이벤트 루프 자동 생성 및 실행
+                            asyncio.run(
                                 trading_engine.stop_trading("스케줄러 자동 중지")
                             )
                         except Exception as e:
@@ -2109,8 +2100,6 @@ class IntegratedScheduler:
         except Exception as e:
             logger.error(f"자동 매매 중지 오류: {e}", exc_info=True)
             print(f"자동 매매 중지 오류: {e}")
-            import traceback
-
             logger.error(f"상세 오류:\n{traceback.format_exc()}", exc_info=True)
 
     def _send_data_to_ai_system(self):

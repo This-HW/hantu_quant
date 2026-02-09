@@ -23,9 +23,9 @@ class BacktestStatus(Enum):
     CANCELLED = "cancelled"
 
 
-@dataclass
+@dataclass(frozen=True)
 class Trade:
-    """개별 거래 기록"""
+    """개별 거래 기록 (불변 객체)"""
     trade_id: int
     stock_code: str
     stock_name: str

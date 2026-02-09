@@ -7,6 +7,8 @@ import numpy as np
 from typing import Dict, List
 from scipy import stats
 
+from core.config.constants import RISK_FREE_RATE
+
 def calculate_metrics(equity_curve: pd.Series,
                      trades: List[Dict],
                      initial_capital: float) -> Dict:
@@ -47,8 +49,7 @@ def calculate_metrics(equity_curve: pd.Series,
     metrics['volatility'] = returns.std() * np.sqrt(252) * 100
     
     # 3. 위험조정수익률
-    risk_free_rate = 0.03  # 3% (연간)
-    daily_rf = (1 + risk_free_rate) ** (1/252) - 1
+    daily_rf = (1 + RISK_FREE_RATE) ** (1/252) - 1
     excess_returns = returns - daily_rf
     
     # Sharpe Ratio
