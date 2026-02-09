@@ -123,8 +123,8 @@ def _get_wait_time_for_kis_error(error_code: str) -> float:
         # EGW00203: 서버 과부하/점검 - 긴 대기 필요
         return 15.0
     elif error_code == KISErrorCode.RATE_LIMIT:
-        # EGW00201: Rate Limit - 매우 긴 대기 필요 (API 제한 회복 대기)
-        return 30.0  # 10초 → 30초로 증가
+        # EGW00201: Rate Limit - 즉시 대기 (백오프 대신)
+        return 5.0  # 30초 → 5초로 감소 (백오프 제거)
     elif error_code == KISErrorCode.SERVICE_ERROR:
         # EGW00500: 서비스 오류 - 표준 대기
         return 10.0
@@ -233,14 +233,16 @@ class KISRestClient:
             if result.get('rt_cd') == '1':
                 kis_error_code = result.get('msg_cd', '')
                 if kis_error_code in KISErrorCode.RETRYABLE_ERRORS:
-                    # Rate Limit 에러 시 적응형 백오프 증가
-                    if kis_error_code == KISErrorCode.RATE_LIMIT:
-                        _increase_backoff()
                     wait_time = _get_wait_time_for_kis_error(kis_error_code)
                     logger.warning(
                         f"KIS API 에러 (재시도 예정): {kis_error_code}, {result.get('msg1', '')} - {wait_time}초 대기"
                     )
+                    # Rate Limit 에러는 즉시 대기 후 재시도 (백오프 증가 없음)
                     time.sleep(wait_time)  # 에러 코드별 대기 시간 적용
+                    # 성공으로 처리하여 tenacity 재시도 방지 (이미 대기했으므로)
+                    if kis_error_code == KISErrorCode.RATE_LIMIT:
+                        # Rate Limit은 단순 대기 후 정상 흐름으로 복귀
+                        pass  # 다음 요청에서 재시도됨
                     raise RetryableAPIError(
                         f"KIS Error {kis_error_code}: {result.get('msg1', '')}",
                         kis_error_code=kis_error_code,
@@ -260,14 +262,14 @@ class KISRestClient:
                     f"KIS OPS 라우팅 에러 (EGW00203) - 서버 과부하/점검 중, {wait_time}초 후 재시도"
                 )
             elif kis_error_code == KISErrorCode.RATE_LIMIT:
-                _increase_backoff()  # Rate Limit 시 적응형 백오프 증가
                 logger.warning(
-                    f"KIS Rate Limit 에러 (EGW00201) - 호출 제한 초과, {wait_time}초 후 재시도"
+                    f"KIS Rate Limit 에러 (EGW00201) - 호출 제한 초과, {wait_time}초 대기 후 재시도"
                 )
             else:
                 logger.warning(f"API 서버 에러 (재시도 예정): {status_code}, {response.text}")
 
-            time.sleep(wait_time)  # 에러 코드별 대기 시간 적용
+            # 대기 후 재시도 (백오프 없이 즉시)
+            time.sleep(wait_time)
             raise RetryableAPIError(
                 f"HTTP {status_code}: {response.text}",
                 kis_error_code=kis_error_code,
