@@ -1248,10 +1248,11 @@ class DailyUpdater(IDailyUpdater):
         sector_count = {}
 
         for stock in candidates:
-            sector = stock.get("sector", "기타")
+            sector = stock.get("sector", "")
+            is_classified = bool(sector) and sector != "기타"
 
-            # 섹터당 최대 N개 제한
-            if sector_count.get(sector, 0) >= max_per_sector:
+            # 섹터당 최대 N개 제한 (분류된 섹터만 적용, "기타"는 제외)
+            if is_classified and sector_count.get(sector, 0) >= max_per_sector:
                 self._logger.debug(
                     f"섹터 제한: {stock['stock_code']} ({sector}) - "
                     f"이미 {sector_count[sector]}개 선정됨"
@@ -2028,10 +2029,39 @@ class DailyUpdater(IDailyUpdater):
                 if current_price <= 0:
                     return None
 
-                # 가격 매력도 분석
+                # 일봉 데이터 조회 (기술적 분석용)
+                history_data = {
+                    "recent_close_prices": [],
+                    "recent_volumes": [],
+                    "volume": 0,
+                    "avg_volume": 0,
+                    "volume_ratio": 1.0
+                }
+
+                try:
+                    df_history = await async_api.get_stock_history(stock_code, period="D", count=30)
+                    if df_history is not None and not df_history.empty:
+                        # 날짜 기준 오름차순 정렬
+                        df_sorted = df_history.sort_values(by="date", ascending=True)
+                        prices = df_sorted["close"].tolist()
+                        volumes = df_sorted["volume"].tolist()
+
+                        history_data["recent_close_prices"] = prices
+                        history_data["recent_volumes"] = volumes
+
+                        if volumes:
+                            history_data["volume"] = volumes[-1]
+                            history_data["avg_volume"] = sum(volumes) / len(volumes)
+                            if history_data["avg_volume"] > 0:
+                                history_data["volume_ratio"] = volumes[-1] / history_data["avg_volume"]
+                except Exception as e:
+                    self._logger.warning(f"일봉 조회 실패 ({stock_code}), 기본값 사용: {e}", exc_info=True)
+
+                # 가격 매력도 분석 (일봉 데이터 포함)
                 stock_data = {
                     **stock,
-                    "current_price": current_price
+                    "current_price": current_price,
+                    **history_data
                 }
 
                 # PriceAnalyzer로 분석 (동기 호출)
@@ -2058,13 +2088,14 @@ class DailyUpdater(IDailyUpdater):
                     "stop_loss": analysis_result.stop_loss,
                     "expected_return": analysis_result.expected_return,
                     "selection_reason": analysis_result.selection_reason,
-                    "sector": stock.get("sector", "기타"),
+                    "sector": stock.get("sector", ""),
                     "market_cap": stock.get("market_cap", 0.0),
                 }
 
             except Exception as e:
-                self._logger.debug(
-                    f"종목 처리 실패 ({stock.get('stock_code')}): {e}"
+                self._logger.warning(
+                    f"종목 처리 실패 ({stock.get('stock_code')}): {e}",
+                    exc_info=True
                 )
                 return None
 

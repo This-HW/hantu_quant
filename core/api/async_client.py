@@ -443,6 +443,31 @@ class AsyncKISClient:
             logger.warning(f"가격 조회 실패 ({code}): {error}")
         return price_data
 
+    async def get_stock_history(self, stock_code: str, period: str = "D", count: int = 30):
+        """비동기 일봉 데이터 조회 (동기 API 래핑)
+
+        Args:
+            stock_code: 종목코드
+            period: 기간 구분 (D: 일봉, W: 주봉, M: 월봉)
+            count: 조회할 데이터 개수 (기본 30개)
+
+        Returns:
+            DataFrame or None: 일봉 데이터 (컬럼: date, open, high, low, close, volume)
+        """
+        if not self.session:
+            raise RuntimeError("세션이 초기화되지 않았습니다. async with 구문을 사용하세요.")
+
+        from core.api.kis_api import KISAPI
+
+        if not hasattr(self, '_kis_api'):
+            self._kis_api = KISAPI()
+
+        # AsyncKISClient의 Rate Limiter를 통과시켜 API 호출 카운트 반영
+        await self._rate_limit_wait()
+
+        # 동기 메서드를 별도 스레드에서 실행
+        return await asyncio.to_thread(self._kis_api.get_stock_history, stock_code, period, count)
+
 
 def get_prices_sync(
     stock_codes: List[str],
