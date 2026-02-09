@@ -827,6 +827,7 @@ grep "consecutive_failures" logs/*.log
 - [API 레퍼런스](docs/API_REFERENCE.md)
 - [환경 변수 설정 가이드](docs/guides/env-setup.md) - **.env 설정 및 DATABASE_URL 트러블슈팅**
 - [Redis 설치 가이드](docs/guides/redis-setup.md) - **캐싱 시스템 자동 설치 및 모니터링**
+- [Smithery MCP 설정 가이드](docs/guides/smithery-mcp-setup.md) - **kis-code-assistant-mcp 인증 문제 해결**
 
 ### 배포 및 인프라
 

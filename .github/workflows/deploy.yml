@@ -45,6 +45,8 @@ jobs:
 
       - name: Deploy to server
         id: deploy
+        env:
+          SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
         run: |
           ssh ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} << 'ENDSSH'
             set -e  # 에러 발생 시 즉시 중단
@@ -60,6 +62,23 @@ jobs:
               echo "✅ Environment variables loaded"
             else
               echo "⚠️ Warning: .env file not found"
+            fi
+
+            # Update Smithery API Key in .env
+            echo "=== Updating Smithery API Key ==="
+            if [ -n "$SMITHERY_API_KEY" ]; then
+              if grep -q "^SMITHERY_API_KEY=" .env 2>/dev/null; then
+                sed -i.bak "s/^SMITHERY_API_KEY=.*/SMITHERY_API_KEY=$SMITHERY_API_KEY/" .env
+                rm -f .env.bak
+                echo "✅ SMITHERY_API_KEY updated in .env"
+              else
+                echo "" >> .env
+                echo "# Smithery.ai MCP API Key" >> .env
+                echo "SMITHERY_API_KEY=$SMITHERY_API_KEY" >> .env
+                echo "✅ SMITHERY_API_KEY added to .env"
+              fi
+            else
+              echo "⚠️ Warning: SMITHERY_API_KEY not provided from GitHub Secrets"
             fi
 
             echo "=== Server Git Status Check ==="

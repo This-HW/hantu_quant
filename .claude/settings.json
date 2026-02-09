@@ -262,7 +262,8 @@
       "command": "npx",
       "args": ["-y", "@anthropics/mcp-proxy"],
       "env": {
-        "SERVER_URL": "https://smithery.ai/server/@KISOpenAPI/kis-code-assistant-mcp"
+        "SERVER_URL": "https://smithery.ai/server/@KISOpenAPI/kis-code-assistant-mcp",
+        "SMITHERY_API_KEY": "${SMITHERY_API_KEY}"
       }
     }
   }
