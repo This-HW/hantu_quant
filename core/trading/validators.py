@@ -93,19 +93,21 @@ class StockCodeValidator:
             result.add_error(f"종목 코드는 6자리여야 합니다 (입력: {len(stock_code)}자리)")
             return result
 
+        # 알파벳 포함 여부 체크 (잘못된 코드 필터링)
+        if not stock_code.isdigit():
+            # 특수 문자나 알파벳이 포함된 경우
+            result.add_error(f"종목 코드는 숫자만 포함해야 합니다 (입력: {stock_code})")
+            return result
+
         # 패턴 체크
         if not cls.KOSPI_PATTERN.match(stock_code):
             result.add_error("올바른 종목 코드 형식이 아닙니다")
             return result
 
-        # 숫자 범위 체크
-        try:
-            code_num = int(stock_code)
-            if code_num <= 0:
-                result.add_error("종목 코드는 양수여야 합니다")
-                return result
-        except ValueError:
-            result.add_error("종목 코드가 숫자가 아닙니다")
+        # 숫자 범위 체크 (isdigit() 통과 후이므로 int 변환 안전)
+        code_num = int(stock_code)
+        if code_num <= 0:
+            result.add_error("종목 코드는 양수여야 합니다")
             return result
 
         result.sanitized_value = stock_code

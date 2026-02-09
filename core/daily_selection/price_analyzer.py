@@ -1022,7 +1022,7 @@ class PriceAnalyzer(IPriceAnalyzer):
         # 빈 리스트 체크 - _safe_get_list는 항상 리스트를 반환
         if len(_v_prices) == 0:
             stock_code = p_stock_data.get("stock_code", "UNKNOWN")
-            self._logger.warning(f"{stock_code}: 가격 데이터가 없어 기술적 분석을 스킵합니다")
+            self._logger.info(f"{stock_code}: 가격 데이터가 없어 기술적 분석을 스킵합니다")
             return 50.0, []
 
         _v_highs = [p * 1.02 for p in _v_prices]
@@ -1251,7 +1251,7 @@ class PriceAnalyzer(IPriceAnalyzer):
                     _v_prices = [float(day.get("close", 0)) for day in daily_prices]
                     self._logger.debug(f"{_v_stock_code}: API에서 {len(_v_prices)}일 가격 데이터 조회 성공")
                 else:
-                    self._logger.warning(f"{_v_stock_code}: 가격 데이터 부족. 거래량 분석 불가")
+                    self._logger.info(f"{_v_stock_code}: 가격 데이터 부족. 거래량 분석 불가")
                     return 50.0
 
             # 거래량 분석

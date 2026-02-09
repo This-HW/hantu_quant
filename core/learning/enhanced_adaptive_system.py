@@ -1444,27 +1444,35 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
         def _unified_db_impl():
             """통합 DB 구현 (PostgreSQL)"""
             from ..database.session import DatabaseSession
-            from sqlalchemy import text
+            from psycopg2 import sql as psql
 
             # PostgreSQL VACUUM은 트랜잭션 외부에서만 실행 가능
-            # autocommit 모드로 별도 연결 생성 필요
             db = DatabaseSession()
-            engine = db.engine
 
-            # autocommit 모드로 연결 (트랜잭션 없음)
-            with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
-                tables = ['screening_history', 'selection_history', 'performance_tracking']
-                optimized_count = 0
+            # Raw connection으로 autocommit 설정
+            raw_conn = db.engine.raw_connection()
+            optimized_count = 0
+            cursor = None
 
-                for table in tables:
+            try:
+                raw_conn.autocommit = True
+                cursor = raw_conn.cursor()
+
+                for table in self.ALLOWED_TABLES:
                     try:
-                        # VACUUM ANALYZE 실행 (테이블 통계 갱신 및 디스크 공간 회수)
-                        conn.execute(text(f"VACUUM ANALYZE {table}"))
+                        # VACUUM ANALYZE 실행 (트랜잭션 외부, 안전한 식별자 사용)
+                        cursor.execute(psql.SQL("VACUUM ANALYZE {}").format(psql.Identifier(table)))
                         optimized_count += 1
+                        self.logger.info(f"테이블 {table} 최적화 완료")
                     except Exception as e:
-                        self.logger.warning(f"테이블 {table} 최적화 실패: {e}")
+                        self.logger.warning(f"테이블 {table} 최적화 실패: {e}", exc_info=True)
 
                 return {'status': 'completed', 'optimized_tables': optimized_count}
+
+            finally:
+                if cursor is not None:
+                    cursor.close()
+                raw_conn.close()
 
         def _sqlite_fallback():
             """SQLite 폴백 구현"""
