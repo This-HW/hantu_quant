@@ -13,6 +13,8 @@ import numpy as np
 from scipy import stats
 import json
 
+from core.config.constants import RISK_FREE_RATE, TRADING_DAYS_PER_YEAR
+
 
 class BacktestStatus(Enum):
     """백테스트 상태"""
@@ -290,8 +292,8 @@ class BacktestResult:
 class MetricsCalculator:
     """성과 지표 계산기"""
 
-    TRADING_DAYS_PER_YEAR = 252
-    RISK_FREE_RATE = 0.035  # 3.5% (연간)
+    TRADING_DAYS_PER_YEAR = TRADING_DAYS_PER_YEAR  # SSOT: core.config.constants
+    RISK_FREE_RATE = RISK_FREE_RATE  # SSOT: core.config.constants
 
     @classmethod
     def calculate_all_metrics(

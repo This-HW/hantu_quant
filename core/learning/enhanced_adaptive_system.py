@@ -1449,7 +1449,7 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             # PostgreSQL VACUUM은 트랜잭션 외부에서만 실행 가능
             # autocommit 모드로 별도 연결 생성 필요
             db = DatabaseSession()
-            engine = db.get_engine()
+            engine = db.engine
 
             # autocommit 모드로 연결 (트랜잭션 없음)
             with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
