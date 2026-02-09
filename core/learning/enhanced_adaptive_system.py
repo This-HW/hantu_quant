@@ -1446,19 +1446,25 @@ class EnhancedAdaptiveSystem(AdaptiveLearningSystem):
             from ..database.session import DatabaseSession
             from sqlalchemy import text
 
+            # PostgreSQL VACUUM은 트랜잭션 외부에서만 실행 가능
+            # autocommit 모드로 별도 연결 생성 필요
             db = DatabaseSession()
-            with db.get_session() as session:
-                # PostgreSQL VACUUM ANALYZE (테이블 통계 갱신 및 디스크 공간 회수)
-                # 주요 테이블에만 적용 (화이트리스트 검증됨)
+            engine = db.get_engine()
+
+            # autocommit 모드로 연결 (트랜잭션 없음)
+            with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
                 tables = ['screening_history', 'selection_history', 'performance_tracking']
+                optimized_count = 0
+
                 for table in tables:
                     try:
-                        # VACUUM은 트랜잭션 외부에서 실행되어야 하므로 별도 연결 사용
-                        session.execute(text(f"VACUUM ANALYZE {table}"))
+                        # VACUUM ANALYZE 실행 (테이블 통계 갱신 및 디스크 공간 회수)
+                        conn.execute(text(f"VACUUM ANALYZE {table}"))
+                        optimized_count += 1
                     except Exception as e:
                         self.logger.warning(f"테이블 {table} 최적화 실패: {e}")
 
-                return {'status': 'completed', 'optimized_tables': len(tables)}
+                return {'status': 'completed', 'optimized_tables': optimized_count}
 
         def _sqlite_fallback():
             """SQLite 폴백 구현"""
