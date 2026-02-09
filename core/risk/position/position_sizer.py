@@ -5,8 +5,11 @@
 """
 
 import numpy as np
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, TYPE_CHECKING
 from dataclasses import dataclass
+
+if TYPE_CHECKING:
+    from core.market.market_regime import MarketRegime
 
 from .kelly_calculator import KellyCalculator, KellyResult
 from core.utils.log_utils import get_logger

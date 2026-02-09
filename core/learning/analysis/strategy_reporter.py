@@ -489,7 +489,7 @@ class StrategyReporter:
                     else 0
                 )
                 sortino_ratio = (
-                    (annualized_return - risk_free_rate * 100) / downside_deviation
+                    (annualized_return - RISK_FREE_RATE * 100) / downside_deviation
                     if downside_deviation > 0
                     else 0
                 )
@@ -510,8 +510,8 @@ class StrategyReporter:
                         if np.var(benchmark_returns) > 0
                         else 0
                     )
-                    alpha = (annualized_return - risk_free_rate * 100) - beta * (
-                        np.mean(benchmark_returns) * 252 * 100 - risk_free_rate * 100
+                    alpha = (annualized_return - RISK_FREE_RATE * 100) - beta * (
+                        np.mean(benchmark_returns) * 252 * 100 - RISK_FREE_RATE * 100
                     )
                 else:
                     beta = 0
