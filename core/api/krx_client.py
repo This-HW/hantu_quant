@@ -619,6 +619,39 @@ class KRXClient:
             )
             return 0
 
+    _sector_map = None  # SectorMap 캐싱 (SF-2 해결)
+
+    def get_sector_by_code(self, stock_code: str) -> Optional[str]:
+        """종목 코드로 섹터 조회
+
+        우선순위:
+        1. KIS API - 현재 KIS API에 섹터 엔드포인트 없음
+        2. sector_map (DB → 하드코딩 → 기타)
+
+        Args:
+            stock_code: 종목 코드 (6자리)
+
+        Returns:
+            섹터 문자열 (예: "반도체") 또는 None
+        """
+        try:
+            # SectorMap 캐싱 (매번 인스턴스화 방지)
+            if KRXClient._sector_map is None:
+                from core.strategy.sector.sector_map import SectorMap
+                KRXClient._sector_map = SectorMap()
+
+            from core.strategy.sector.sector_map import Sector
+            sector_enum = KRXClient._sector_map.get_sector(stock_code)
+
+            if sector_enum != Sector.OTHER:
+                return sector_enum.value
+            else:
+                return "기타"
+
+        except Exception as e:
+            logger.error(f"[get_sector_by_code] 섹터 조회 오류: {e}", exc_info=True)
+            return None
+
     def load_fundamentals_from_db(
         self, stock_code: str, date: Optional[str] = None
     ) -> Optional[Dict]:

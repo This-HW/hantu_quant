@@ -943,18 +943,32 @@ class DailyUpdater(IDailyUpdater):
             return 0.0
 
     def _get_volatility(self, p_stock_code: str) -> float:
-        """변동성 조회 (더미 구현)"""
-        # 실제로는 과거 데이터로부터 변동성 계산
-        # 5% ~ 50% 범위로 다양화
-        volatility = 0.05 + (hash(p_stock_code) % 450) / 1000
-        return volatility
+        """변동성 조회
+
+        TODO: 일봉 데이터 기반 실제 변동성 계산 필요
+        현재는 중립값(0.15, 약 15%) 반환하여 스코어링에 영향 최소화
+
+        Args:
+            p_stock_code: 종목 코드
+
+        Returns:
+            변동성 (현재는 0.15 고정)
+        """
+        return 0.15
 
     def _get_sector_momentum(self, p_sector: str) -> float:
-        """섹터 모멘텀 조회 (더미 구현)"""
-        # 실제로는 섹터 지수 분석
-        # -20% ~ +20% 범위로 확장
-        momentum = (hash(p_sector) % 400 - 200) / 1000
-        return momentum
+        """섹터 모멘텀 조회
+
+        TODO: KIS API 업종 지수 데이터 연동 필요
+        현재는 중립값(0.0) 반환하여 스코어링에 영향 없음
+
+        Args:
+            p_sector: 섹터명 (예: "반도체", "인터넷")
+
+        Returns:
+            섹터 모멘텀 (현재는 0.0 고정)
+        """
+        return 0.0
 
     def _filter_and_select_stocks(
         self, p_analysis_results: List[PriceAttractivenessLegacy]
@@ -2245,9 +2259,22 @@ class DailyUpdater(IDailyUpdater):
             batch_stocks = batches[batch_index]
             self._logger.info(f"배치 {batch_index} 종목 수: {len(batch_stocks)}개")
 
+            # 배치 시작 시간 기록
+            batch_start_time = datetime.now()
+
             # 비동기 배치 처리
             selected_stocks = asyncio.run(
                 self.process_batch(batch_index, batch_stocks, market_condition)
+            )
+
+            # 배치 완료 시간 및 메트릭 저장
+            batch_end_time = datetime.now()
+            self._save_batch_metrics(
+                batch_index,
+                batch_start_time,
+                batch_end_time,
+                len(batch_stocks),
+                len(selected_stocks)
             )
 
             # 6. 부분 결과 저장
@@ -2278,6 +2305,71 @@ class DailyUpdater(IDailyUpdater):
         except Exception as e:
             self._logger.error(f"분산 배치 실행 실패 (배치 {batch_index}): {e}", exc_info=True)
             return False
+
+    def _save_batch_metrics(
+        self,
+        batch_index: int,
+        start_time: datetime,
+        end_time: datetime,
+        stocks_processed: int,
+        stocks_selected: int
+    ):
+        """배치 메트릭 저장 및 알림 전송
+
+        Args:
+            batch_index: 배치 번호
+            start_time: 시작 시간
+            end_time: 종료 시간
+            stocks_processed: 처리 종목 수
+            stocks_selected: 선정 종목 수
+        """
+        try:
+            from core.database.models import BatchMetrics
+            from core.database.unified_db import get_session
+
+            duration = (end_time - start_time).total_seconds()
+
+            # DB에 메트릭 저장
+            try:
+                with get_session() as session:
+                    metric = BatchMetrics(
+                        phase_name="phase2",
+                        batch_number=batch_index,
+                        start_time=start_time,
+                        end_time=end_time,
+                        duration_seconds=duration,
+                        api_calls_count=0,  # TODO: API 호출 수 추적 필요
+                        stocks_processed=stocks_processed,
+                        stocks_selected=stocks_selected,
+                        error_count=0  # TODO: 에러 수 추적 필요
+                    )
+                    session.add(metric)
+                    session.commit()
+
+                    self._logger.info(
+                        f"배치 #{batch_index} 메트릭 저장 완료: "
+                        f"{duration:.2f}초, {stocks_processed}종목 처리, {stocks_selected}종목 선정"
+                    )
+
+                    # 텔레그램 알림 전송
+                    try:
+                        stats = {
+                            'duration_seconds': duration,
+                            'stocks_processed': stocks_processed,
+                            'stocks_selected': stocks_selected,
+                            'api_calls_count': 0,
+                            'error_count': 0
+                        }
+                        notifier = get_telegram_notifier()
+                        notifier.send_batch_summary(batch_index, stats)
+                    except Exception as e:
+                        self._logger.error(f"배치 알림 전송 실패: {e}", exc_info=True)
+
+            except Exception as e:
+                self._logger.error(f"배치 메트릭 저장 실패: {e}", exc_info=True)
+
+        except Exception as e:
+            self._logger.error(f"배치 메트릭 처리 실패: {e}", exc_info=True)
 
     def _merge_batch_results(self, total_batches: int, market_condition: str) -> bool:
         """배치 결과 최종 병합

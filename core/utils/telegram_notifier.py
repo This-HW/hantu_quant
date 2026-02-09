@@ -832,6 +832,49 @@ KIS_ACCOUNT_NO=your_account
             logger.error(f"환경변수 검증 실패 알림 생성 실패: {e}", exc_info=True)
             return False
 
+    def send_batch_summary(self, batch_num: int, stats: Dict) -> bool:
+        """배치 완료 요약 알림
+
+        Args:
+            batch_num: 배치 번호 (0-17)
+            stats: 통계 정보
+                - duration_seconds: 소요 시간
+                - stocks_processed: 처리 종목 수
+                - stocks_selected: 선정 종목 수
+                - api_calls_count: API 호출 수
+                - error_count: 에러 발생 수
+
+        Returns:
+            전송 성공 여부
+        """
+        try:
+            duration = stats.get('duration_seconds', 0)
+            processed = stats.get('stocks_processed', 0)
+            selected = stats.get('stocks_selected', 0)
+            api_calls = stats.get('api_calls_count', 0)
+            errors = stats.get('error_count', 0)
+
+            # 분:초 형식으로 변환
+            minutes = int(duration // 60)
+            seconds = int(duration % 60)
+
+            message = (
+                f"🔹 Phase 2 - 배치 #{batch_num} 완료\n"
+                f"⏱ 소요: {minutes}분 {seconds}초\n"
+                f"📊 처리: {processed}종목 → 선정: {selected}종목\n"
+                f"🔌 API 호출: {api_calls}회"
+            )
+
+            if errors > 0:
+                message += f"\n❌ 에러: {errors}건"
+
+            priority = "high" if errors > 0 else "normal"
+            return self.send_message(message, priority=priority)
+
+        except Exception as e:
+            logger.error(f"배치 요약 알림 생성 실패: {e}", exc_info=True)
+            return False
+
     def is_enabled(self) -> bool:
         """텔레그램 알림 활성화 상태 확인"""
         return self._enabled

@@ -16,6 +16,9 @@ from typing import Optional, Literal, List
 from datetime import datetime
 from enum import Enum
 import re
+from core.utils.log_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class OrderType(str, Enum):
@@ -219,7 +222,12 @@ def validate_stock_code(code: str) -> bool:
     try:
         StockCode(code=code)
         return True
-    except Exception:
+    except Exception as e:
+        logger.warning(
+            f"종목코드 검증 실패: {code}",
+            exc_info=False,
+            extra={'code': code, 'error': str(e)}
+        )
         return False
 
 
@@ -236,7 +244,12 @@ def validate_price(price: int, change_rate: float = 0.0) -> bool:
     try:
         PriceData(current_price=price, change_rate=change_rate)
         return True
-    except Exception:
+    except Exception as e:
+        logger.warning(
+            f"가격 검증 실패: price={price}, change_rate={change_rate}",
+            exc_info=False,
+            extra={'price': price, 'change_rate': change_rate, 'error': str(e)}
+        )
         return False
 
 
@@ -254,9 +267,36 @@ def parse_ohlcv_list(data_list: List[dict]) -> List[OHLCVData]:
         try:
             ohlcv = OHLCVData(**data)
             valid_data.append(ohlcv)
-        except Exception:
+        except Exception as e:
+            logger.error(
+                f"OHLCV 파싱 실패: {e}",
+                exc_info=True,
+                extra={'item': data}
+            )
             continue
     return valid_data
+
+
+class PeriodDays(BaseModel):
+    """조회 기간 검증 모델 (일봉 조회용)
+
+    한국투자증권 API는 최대 365일까지 조회 가능
+    """
+    days: int = Field(..., ge=1, le=365, description="조회 기간 (1-365일)")
+
+    def __str__(self) -> str:
+        return str(self.days)
+
+
+class CountRange(BaseModel):
+    """조회 건수 검증 모델 (체결/분봉 조회용)
+
+    일반적으로 최대 1000건까지 조회 가능
+    """
+    count: int = Field(..., ge=1, le=1000, description="조회 건수 (1-1000건)")
+
+    def __str__(self) -> str:
+        return str(self.count)
 
 
 def create_order_request(

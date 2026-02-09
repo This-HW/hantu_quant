@@ -15,7 +15,6 @@ import threading
 
 from core.database.unified_db import get_session
 from core.database.models import Stock as DBStock, WatchlistStock as DBWatchlistStock
-from sqlalchemy import and_
 
 from core.utils.log_utils import get_logger
 from core.interfaces.trading import IWatchlistManager, WatchlistEntry
@@ -564,7 +563,12 @@ class WatchlistManager(IWatchlistManager):
                 self._logger.warning("DB 로드 실패, JSON 폴백 시도")
                 try:
                     self._load_from_json()
-                except:
+                except Exception as json_error:
+                    self._logger.error(
+                        f"JSON 폴백 로드 실패: {json_error}",
+                        exc_info=True,
+                        extra={'fallback_path': self._data_file}
+                    )
                     self._stocks = {}
             else:
                 self._stocks = {}
@@ -678,6 +682,47 @@ class WatchlistManager(IWatchlistManager):
             json.dump(_v_save_data, f, ensure_ascii=False, indent=2)
 
         self._logger.debug("감시 리스트 데이터 저장 완료 (JSON 백업)")
+
+    def update_sectors(self) -> Dict[str, int]:
+        """감시 리스트 종목들의 섹터 정보 갱신
+
+        Returns:
+            {'success': 성공 건수, 'failed': 실패 건수}
+        """
+        try:
+            from core.api.krx_client import KRXClient
+
+            krx = KRXClient()
+            success = 0
+            failed = 0
+
+            with self._lock:
+                for stock_code, stock in self._stocks.items():
+                    try:
+                        sector = krx.get_sector_by_code(stock_code)
+                        if sector:
+                            stock.sector = sector
+                            success += 1
+                            self._logger.debug(f"섹터 갱신 성공: {stock_code} → {sector}")
+                        else:
+                            self._logger.warning(f"섹터 조회 실패: {stock_code}")
+                            failed += 1
+                    except Exception as e:
+                        self._logger.error(
+                            f"섹터 갱신 에러: {stock_code}, {e}", exc_info=True
+                        )
+                        failed += 1
+
+                # DB 저장
+                if success > 0:
+                    self._save_data()
+
+            self._logger.info(f"섹터 갱신 완료 - 성공: {success}건, 실패: {failed}건")
+            return {'success': success, 'failed': failed}
+
+        except Exception as e:
+            self._logger.error(f"섹터 갱신 오류: {e}", exc_info=True)
+            return {'success': 0, 'failed': len(self._stocks)}
 
     def validate_data(self) -> Tuple[bool, List[str]]:
         """데이터 무결성 검증

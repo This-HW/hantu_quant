@@ -23,6 +23,7 @@ from core.watchlist.evaluation_engine import EvaluationEngine
 from core.utils.log_utils import get_logger
 from core.utils.telegram_notifier import get_telegram_notifier
 from core.utils.partial_result import PartialResult, save_failed_items
+from core.strategy.sector import SectorMap
 
 logger = get_logger(__name__)
 
@@ -31,7 +32,7 @@ class Phase1Workflow:
     
     def __init__(self, p_parallel_workers: int = 4):
         """초기화 메서드
-        
+
         Args:
             p_parallel_workers: 병렬 처리 워커 수 (기본값: 4)
         """
@@ -39,8 +40,9 @@ class Phase1Workflow:
         self.parallel_screener = ParallelStockScreener(p_max_workers=p_parallel_workers)
         self.watchlist_manager = WatchlistManager()
         self.evaluation_engine = EvaluationEngine()
+        self._sector_map = SectorMap()  # 섹터 매핑 관리자
         self._v_parallel_workers = p_parallel_workers
-        
+
         logger.info(f"Phase 1 워크플로우 초기화 완료 (병렬 워커: {p_parallel_workers}개)")
     
     def run_screening(self) -> Optional[Dict]:
@@ -553,20 +555,9 @@ class Phase1Workflow:
                 _v_market = "KOSPI" if p_stock_code.startswith(('0', '1', '2', '3')) else "KOSDAQ"
                 logger.warning(f"종목 정보 없음, 기본값 사용: {p_stock_code} → {_v_stock_name} ({_v_market})")
 
-            # 섹터 추정 (기본 매핑 사용)
-            _v_sector_map = {
-                "005930": "반도체", "000660": "반도체",
-                "035420": "인터넷", "035720": "인터넷",
-                "005380": "자동차", "000270": "자동차",
-                "068270": "바이오", "207940": "바이오",
-                "051910": "화학", "006400": "배터리",
-                "003670": "철강", "096770": "에너지",
-                "034730": "통신", "015760": "전력",
-                "017670": "통신", "030200": "통신",
-                "032830": "금융", "066570": "전자",
-                "028260": "건설", "009150": "전자"
-            }
-            _v_sector = _v_sector_map.get(p_stock_code, "기타")
+            # 섹터 조회 (SectorMap 사용 - DB → 하드코딩 → 기타)
+            sector_enum = self._sector_map.get_sector(p_stock_code)
+            _v_sector = sector_enum.value  # Enum → 문자열 (예: Sector.SEMICONDUCTOR → "반도체")
 
             # 재무 데이터 로드 (저장된 파일에서)
             _v_fundamental = self._load_fundamental_data(p_stock_code, _v_stock_dir)
@@ -863,6 +854,17 @@ class Phase1Workflow:
             f"감시 리스트 자동 추가 완료: {p_added_count}/{p_total_count}개 종목 "
             f"(성공률: {p_partial_result.success_rate:.1%})"
         )
+
+        # 섹터 정보 갱신 (신규 추가)
+        logger.info("감시 리스트 섹터 정보 갱신 시작")
+        try:
+            sector_result = self.watchlist_manager.update_sectors()
+            logger.info(
+                f"섹터 갱신 완료: 성공 {sector_result['success']}건, "
+                f"실패 {sector_result['failed']}건"
+            )
+        except Exception as e:
+            logger.error(f"섹터 갱신 오류: {e}", exc_info=True)
     
     def _send_screening_complete_notification(self, passed_stocks: List[Dict], all_results: List[Dict]) -> None:
         """스크리닝 완료 텔레그램 알림 전송"""

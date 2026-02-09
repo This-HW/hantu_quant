@@ -7,6 +7,7 @@
 from enum import Enum
 from typing import Dict, List, Optional
 from dataclasses import dataclass, field
+from core.utils.log_utils import get_logger
 
 
 class Sector(Enum):
@@ -123,15 +124,19 @@ class SectorMap:
     섹터 매핑 관리자
 
     종목과 섹터 간의 매핑을 관리합니다.
+    DB 조회 → 하드코딩 매핑 → 기타 순으로 섹터를 판단합니다.
     """
 
-    def __init__(self, custom_mapping: Optional[Dict[str, Dict]] = None):
+    def __init__(self, custom_mapping: Optional[Dict[str, Dict]] = None, use_db: bool = True):
         """
         Args:
             custom_mapping: 사용자 정의 종목-섹터 매핑
+            use_db: DB에서 섹터 정보 조회 여부 (기본값: True)
         """
         self._mapping = custom_mapping or KOSPI_SECTORS
         self._sector_stocks: Dict[Sector, List[str]] = {}
+        self._use_db = use_db
+        self._logger = get_logger(__name__)
         self._build_sector_index()
 
     def _build_sector_index(self):
@@ -143,9 +148,50 @@ class SectorMap:
             self._sector_stocks[sector].append(stock_code)
 
     def get_sector(self, stock_code: str) -> Sector:
-        """종목의 섹터 조회"""
+        """종목의 섹터 조회
+
+        우선순위:
+        1. DB (Stock 모델의 sector 필드)
+        2. 하드코딩 매핑 (KOSPI_SECTORS)
+        3. Sector.OTHER (폴백)
+
+        Args:
+            stock_code: 종목 코드 (예: "005930")
+
+        Returns:
+            종목의 섹터 (Sector Enum)
+        """
+        # 1. DB 조회
+        if self._use_db:
+            try:
+                from core.database.unified_db import get_session
+                from core.database.models import Stock as DBStock
+
+                with get_session() as session:
+                    db_stock = session.query(DBStock).filter_by(code=stock_code).first()
+                    if db_stock and db_stock.sector:
+                        # DB에 섹터 정보 있으면 Sector Enum으로 변환
+                        try:
+                            return Sector(db_stock.sector)
+                        except ValueError:
+                            # DB 값이 Sector Enum에 없으면 로깅 후 다음 단계
+                            self._logger.warning(
+                                f"DB 섹터 값이 Enum에 없음: {db_stock.sector} (종목: {stock_code})"
+                            )
+            except Exception as e:
+                # DB 조회 실패 시 로깅하고 다음 단계로 (하위 호환)
+                self._logger.debug(
+                    f"DB 섹터 조회 실패, 하드코딩 폴백: {e}",
+                    exc_info=True
+                )
+
+        # 2. 하드코딩 매핑
         info = self._mapping.get(stock_code)
-        return info['sector'] if info else Sector.OTHER
+        if info:
+            return info['sector']
+
+        # 3. 폴백
+        return Sector.OTHER
 
     def get_stocks_in_sector(self, sector: Sector) -> List[str]:
         """섹터의 종목 리스트 조회"""

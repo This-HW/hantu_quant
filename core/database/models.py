@@ -1227,6 +1227,43 @@ class DailyAccuracy(Base):
     )
 
 
+class BatchMetrics(Base):
+    """배치 처리 메트릭"""
+    __tablename__ = 'batch_metrics'
+
+    id = Column(Integer, primary_key=True)
+    phase_name = Column(String(20), nullable=False)  # "phase2"
+    batch_number = Column(Integer, nullable=False)  # 0-17
+    start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime, nullable=False)
+    duration_seconds = Column(Float, nullable=False)
+
+    api_calls_count = Column(Integer, default=0)
+    stocks_processed = Column(Integer, default=0)
+    stocks_selected = Column(Integer, default=0)
+    error_count = Column(Integer, default=0)
+
+    created_at = Column(DateTime, default=datetime.now)
+
+    __table_args__ = (
+        Index('ix_batch_metrics_phase_batch_time', 'phase_name', 'batch_number', 'start_time'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'phase_name': self.phase_name,
+            'batch_number': self.batch_number,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'end_time': self.end_time.isoformat() if self.end_time else None,
+            'duration_seconds': self.duration_seconds,
+            'api_calls_count': self.api_calls_count,
+            'stocks_processed': self.stocks_processed,
+            'stocks_selected': self.stocks_selected,
+            'error_count': self.error_count,
+        }
+
+
 class ModelPerformance(Base):
     """모델 성과 (ModelPerformanceMonitor용)"""
     __tablename__ = 'model_performance'

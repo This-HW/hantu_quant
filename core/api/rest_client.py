@@ -25,6 +25,8 @@ from core.config import settings
 from core.config.api_config import APIConfig, KISErrorCode, KISEndpoint
 from core.api.redis_client import cache_with_ttl, invalidate_function_cache
 from core.utils.log_utils import get_logger
+from core.models.validators import StockCode, PeriodDays, CountRange
+from pydantic import ValidationError, BaseModel, Field
 
 logger = get_logger(__name__)
 
@@ -428,6 +430,13 @@ class KISRestClient:
             캐시 TTL: 300초 (5분)
         """
         try:
+            # 입력 검증
+            try:
+                StockCode(code=stock_code)
+            except ValidationError as e:
+                logger.error(f"종목코드 입력 검증 실패: {e}", exc_info=True)
+                return None
+
             # 토큰 유효성 선확보 (헤더 생성 전)
             if not self.config.ensure_valid_token():
                 raise Exception("API 토큰이 유효하지 않습니다")
@@ -480,10 +489,18 @@ class KISRestClient:
             휴장일 고려하여 요청 기간을 1.3배로 확장
         """
         try:
+            # 입력 검증
+            try:
+                StockCode(code=stock_code)
+                period_validated = PeriodDays(days=period_days)
+            except ValidationError as e:
+                logger.error(f"입력 검증 실패: {e}", exc_info=True)
+                return None
+
             # 날짜 범위 계산 (YYYYMMDD 형식)
             # 휴장일(주말, 공휴일)을 고려하여 요청 기간을 1.3배로 확장
             end_date = datetime.now()
-            buffer_days = int(period_days * 1.3)
+            buffer_days = int(period_validated.days * 1.3)
             start_date = end_date - timedelta(days=buffer_days)
 
             params = {
@@ -519,8 +536,8 @@ class KISRestClient:
                 df.set_index("date", inplace=True)
 
                 # 요청한 기간만큼 데이터 제한
-                if len(df) > period_days:
-                    df = df.tail(period_days)
+                if len(df) > period_validated.days:
+                    df = df.tail(period_validated.days)
 
                 logger.info(f"일봉 데이터 조회 완료: {stock_code}, {len(df)}일 (표준 API)")
                 return df
@@ -546,6 +563,13 @@ class KISRestClient:
             캐시 TTL: 600초 (10분)
         """
         try:
+            # 입력 검증
+            try:
+                StockCode(code=stock_code)
+            except ValidationError as e:
+                logger.error(f"종목코드 입력 검증 실패: {e}", exc_info=True)
+                return None
+
             if not self.config.ensure_valid_token():
                 raise Exception("API 토큰이 유효하지 않습니다")
             url = f"{self.config.base_url}/uapi/domestic-stock/v1/quotations/inquire-price"
@@ -634,22 +658,49 @@ class KISRestClient:
     def place_order(self, stock_code: str, order_type: str, quantity: int,
                    price: int = 0, order_division: str = "00") -> Dict:
         """주문 실행
-        
+
         Args:
             stock_code: 종목코드 (6자리)
             order_type: 주문유형 ("01": 매도, "02": 매수)
             quantity: 주문수량
             price: 주문가격 (시장가일 경우 0)
             order_division: 주문구분 (00: 지정가, 01: 시장가)
-            
+
         Returns:
             Dict: 주문 결과
-        
+
         주의:
             - KIS 표준 매핑을 엄수합니다.
             - 시장가 주문 시 order_division="01" 및 price=0을 사용합니다.
         """
         try:
+            # 입력 검증
+            class OrderQuantity(BaseModel):
+                """주문 수량 검증 모델"""
+                quantity: int = Field(..., ge=1, le=10000, description="주문 수량")
+
+            try:
+                StockCode(code=stock_code)
+                OrderQuantity(quantity=quantity)
+                if order_division == "00" and price <= 0:  # 지정가 주문이면 가격 필수
+                    raise ValueError("지정가 주문은 양수 가격이 필요합니다")
+            except ValidationError as e:
+                logger.error(f"주문 입력 검증 실패: {e}", exc_info=True)
+                return {
+                    'success': False,
+                    'error_code': 'VALIDATION_ERROR',
+                    'message': str(e),
+                    'detail': None
+                }
+            except ValueError as e:
+                logger.error(f"주문 입력 검증 실패: {e}", exc_info=True)
+                return {
+                    'success': False,
+                    'error_code': 'VALIDATION_ERROR',
+                    'message': str(e),
+                    'detail': None
+                }
+
             # 실제 투자 보호 가드
             if self.config.server == 'prod' and not settings.TRADING_PROD_ENABLE:
                 logger.error("[place_order] 실제투자 모드이지만 TRADING_PROD_ENABLE=false - 주문 차단")
@@ -876,6 +927,13 @@ class KISRestClient:
         TR: FHKST01010200 (모의/실전 동일)
         """
         try:
+            # 입력 검증
+            try:
+                StockCode(code=stock_code)
+            except ValidationError as e:
+                logger.error(f"종목코드 입력 검증 실패: {e}", exc_info=True)
+                return None
+
             if not self.config.ensure_valid_token():
                 raise Exception("API 토큰이 유효하지 않습니다")
 
@@ -900,6 +958,14 @@ class KISRestClient:
         [미검증] count는 서버 스펙에 따라 제한될 수 있음
         """
         try:
+            # 입력 검증
+            try:
+                StockCode(code=stock_code)
+                CountRange(count=count)
+            except ValidationError as e:
+                logger.error(f"입력 검증 실패: {e}", exc_info=True)
+                return None
+
             if not self.config.ensure_valid_token():
                 raise Exception("API 토큰이 유효하지 않습니다")
 
@@ -932,6 +998,14 @@ class KISRestClient:
             분봉 데이터 DataFrame 또는 None
         """
         try:
+            # 입력 검증
+            try:
+                StockCode(code=stock_code)
+                CountRange(count=count)
+            except ValidationError as e:
+                logger.error(f"입력 검증 실패: {e}", exc_info=True)
+                return None
+
             if not self.config.ensure_valid_token():
                 raise Exception("API 토큰이 유효하지 않습니다")
 
@@ -965,6 +1039,13 @@ class KISRestClient:
         TR: FHKST01010900 (모의/실전 동일)
         """
         try:
+            # 입력 검증
+            try:
+                StockCode(code=stock_code)
+            except ValidationError as e:
+                logger.error(f"종목코드 입력 검증 실패: {e}", exc_info=True)
+                return None
+
             if not self.config.ensure_valid_token():
                 raise Exception("API 토큰이 유효하지 않습니다")
             url = f"{self.config.base_url}/uapi/domestic-stock/v1/quotations/inquire-investor"
@@ -984,6 +1065,13 @@ class KISRestClient:
         TR: FHKST01010600 (모의/실전 동일)
         """
         try:
+            # 입력 검증
+            try:
+                StockCode(code=stock_code)
+            except ValidationError as e:
+                logger.error(f"종목코드 입력 검증 실패: {e}", exc_info=True)
+                return None
+
             if not self.config.ensure_valid_token():
                 raise Exception("API 토큰이 유효하지 않습니다")
             url = f"{self.config.base_url}/uapi/domestic-stock/v1/quotations/inquire-member"
