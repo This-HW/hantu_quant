@@ -259,7 +259,24 @@ class KISRestClient:
             kis_error_code = _extract_kis_error_code(response.text)
             wait_time = _get_wait_time_for_kis_error(kis_error_code) if kis_error_code else 3.0
 
-            if kis_error_code == KISErrorCode.OPS_ROUTING_ERROR:
+            # 토큰 만료 에러 (EGW00123) 처리
+            if kis_error_code == KISErrorCode.TOKEN_EXPIRED:
+                logger.warning("토큰 만료 에러 (EGW00123) 감지 - 토큰 갱신 시도")
+                if self.config.refresh_token(force=True):
+                    logger.info("토큰 갱신 성공 - 재시도 진행")
+                    # 헤더 업데이트 필요
+                    if headers:
+                        headers['authorization'] = f'Bearer {self.config.access_token}'
+                else:
+                    logger.error("토큰 갱신 실패 - 재시도 불가", exc_info=True)
+                    raise NonRetryableAPIError(f"토큰 갱신 실패: {response.text}")
+                # 토큰 갱신 후 즉시 재시도
+                raise RetryableAPIError(
+                    f"HTTP {status_code}: 토큰 만료 (갱신 완료, 재시도)",
+                    kis_error_code=kis_error_code,
+                    wait_seconds=0  # 즉시 재시도
+                )
+            elif kis_error_code == KISErrorCode.OPS_ROUTING_ERROR:
                 logger.warning(
                     f"KIS OPS 라우팅 에러 (EGW00203) - 서버 과부하/점검 중, {wait_time}초 후 재시도"
                 )
