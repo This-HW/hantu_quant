@@ -57,8 +57,8 @@ def get_account_balance(api_config: APIConfig):
         "CANO": api_config.account_number,          # 계좌번호
         "ACNT_PRDT_CD": api_config.account_prod_code,  # 계좌상품코드
         "AFHR_FLPR_YN": "N",                        # 시간외단일가여부
-        "OFL_YN": "N",                              # 오프라인여부
-        "INQR_DVSN": "02",                          # 조회구분, 01: 주식, 02: 잔고
+        "OFL_YN": "",                               # 모의투자: 빈 문자열 (실전: "N")
+        "INQR_DVSN": "01",                          # 01: 대출일별 (모의투자는 02 미지원)
         "UNPR_DVSN": "01",                          # 단가구분, 01: 원화
         "FUND_STTL_ICLD_YN": "N",                   # 펀드결제분포함여부
         "FNCG_AMT_AUTO_RDPT_YN": "N",               # 융자금액자동상환여부
@@ -199,8 +199,8 @@ def get_stock_holdings(api_config: APIConfig):
         "CANO": api_config.account_number,          # 계좌번호
         "ACNT_PRDT_CD": api_config.account_prod_code,  # 계좌상품코드
         "AFHR_FLPR_YN": "N",                        # 시간외단일가여부
-        "OFL_YN": "N",                              # 오프라인여부
-        "INQR_DVSN": "01",                          # 조회구분, 01: 주식, 02: 잔고
+        "OFL_YN": "",                               # 모의투자: 빈 문자열 (실전: "N")
+        "INQR_DVSN": "01",                          # 01: 대출일별 (모의투자는 02 미지원)
         "UNPR_DVSN": "01",                          # 단가구분, 01: 원화
         "FUND_STTL_ICLD_YN": "N",                   # 펀드결제분포함여부
         "FNCG_AMT_AUTO_RDPT_YN": "N",               # 융자금액자동상환여부

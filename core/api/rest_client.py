@@ -818,7 +818,7 @@ class KISRestClient:
                 "ACNT_PRDT_CD": self.config.account_prod_code,  # 뒤 2자리(예: 01)
                 "AFHR_FLPR_YN": "N",
                 "OFL_YN": "",  # 모의투자 전용: 빈 문자열 (실전: "N")
-                "INQR_DVSN": "01",  # 01: 주식 잔고 조회 (02는 모의투자 미지원)
+                "INQR_DVSN": "01",  # 01: 대출일별 (KIS 공식 스펙) - 모의투자는 02(종목별) 미지원
                 "UNPR_DVSN": "01",
                 "FUND_STTL_ICLD_YN": "N",
                 "FNCG_AMT_AUTO_RDPT_YN": "N",
