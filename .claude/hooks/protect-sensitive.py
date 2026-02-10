@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-PreToolUse Hook: 민감한 파일 보호
+PreToolUse Hook: 민감한 파일 보호 + 메시지 콘텐츠 스캔
 
-Edit 또는 Write 도구가 민감한 파일에 접근하려 할 때 차단합니다.
+Edit/Write/Read 도구가 민감한 파일에 접근하려 할 때 차단합니다.
+Agent Teams 모드에서 message/broadcast 콘텐츠에 민감 정보가 포함되면 차단합니다.
 
 차단되는 파일:
 - .env* (환경 변수)
@@ -11,6 +12,12 @@ Edit 또는 Write 도구가 민감한 파일에 접근하려 할 때 차단합�
 - **/*secret* (시크릿)
 - ~/.ssh/** (SSH 키)
 - ~/.aws/** (AWS 인증)
+
+메시지 콘텐츠 스캔 (Agent Teams, S-C-08):
+- API 키 패턴 (sk-, pk_, AKIA 등)
+- 비밀번호/토큰 리터럴
+- SSH 개인키 블록
+- 데이터베이스 연결 문자열
 
 사용법:
   settings.json에서 PreToolUse hook으로 등록
@@ -81,6 +88,34 @@ PROTECTED_PATTERNS = [
     r'\.htpasswd$',           # Apache htpasswd
 ]
 
+# 메시지 콘텐츠 내 민감 정보 패턴 (Agent Teams S-C-08)
+SENSITIVE_CONTENT_PATTERNS = [
+    # API 키 패턴
+    (r'sk-[a-zA-Z0-9]{20,}', 'API 키 (sk-...)'),
+    (r'pk_[a-zA-Z0-9]{20,}', 'API 키 (pk_...)'),
+    (r'AKIA[0-9A-Z]{16}', 'AWS Access Key'),
+    (r'ghp_[a-zA-Z0-9]{36}', 'GitHub Personal Access Token'),
+    (r'gho_[a-zA-Z0-9]{36}', 'GitHub OAuth Token'),
+    (r'xoxb-[0-9]{10,13}-[a-zA-Z0-9-]+', 'Slack Bot Token'),
+    (r'xoxp-[0-9]{10,13}-[a-zA-Z0-9-]+', 'Slack User Token'),
+
+    # 비밀번호/토큰 할당 패턴
+    (r'(?:password|passwd|pwd)\s*[=:]\s*["\']?[^\s"\']{8,}', '비밀번호 리터럴'),
+    (r'(?:api_key|apikey|api-key)\s*[=:]\s*["\']?[^\s"\']{8,}', 'API 키 리터럴'),
+    (r'(?:secret|token)\s*[=:]\s*["\']?[^\s"\']{16,}', '시크릿/토큰 리터럴'),
+
+    # SSH 개인키 블록
+    (r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----', 'SSH 개인키'),
+    (r'-----BEGIN CERTIFICATE-----', '인증서'),
+
+    # 데이터베이스 연결 문자열
+    (r'(?:postgres|mysql|mongodb)://\S+:\S+@', 'DB 연결 문자열 (인증 정보 포함)'),
+    (r'(?:redis|amqp)://:\S+@', 'Redis/AMQP 연결 문자열'),
+
+    # JWT 토큰
+    (r'eyJ[a-zA-Z0-9_-]{20,}\.eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{20,}', 'JWT 토큰'),
+]
+
 # 차단 메시지
 BLOCK_MESSAGES = {
     'env': '환경 변수 파일은 직접 수정할 수 없습니다. 수동으로 설정하세요.',
@@ -92,6 +127,23 @@ BLOCK_MESSAGES = {
     'token': '토큰/패스워드 파일은 보호됩니다.',
     'package': '패키지 관리자 인증 파일은 보호됩니다.',
 }
+
+
+def check_content_sensitive(content: str) -> tuple[bool, str]:
+    """메시지/broadcast 콘텐츠에 민감 정보가 포함되어 있는지 확인 (S-C-08)"""
+    if not content:
+        return False, ''
+
+    for pattern, description in SENSITIVE_CONTENT_PATTERNS:
+        match = re.search(pattern, content, re.IGNORECASE)
+        if match:
+            # 매칭된 값은 마스킹하여 로깅
+            matched_text = match.group(0)
+            masked = matched_text[:4] + '***' + matched_text[-2:] if len(matched_text) > 6 else '***'
+            debug_log(f"Sensitive content detected: {description} ({masked})")
+            return True, f'메시지에 민감 정보가 포함되어 있습니다: {description}. 민감 정보를 제거한 후 다시 시도하세요.'
+
+    return False, ''
 
 
 def check_protected(file_path: str) -> tuple[bool, str]:
@@ -133,7 +185,25 @@ def main():
         tool_name = input_data.get('tool_name', '')
         tool_input = input_data.get('tool_input', {})
 
-        # Edit, Write, Read 도구인 경우만 검사
+        # Agent Teams 메시지 콘텐츠 스캔 (S-C-08)
+        if tool_name in ('message', 'broadcast'):
+            content = tool_input.get('content', '') or tool_input.get('message', '') or tool_input.get('prompt', '')
+            if not content and isinstance(tool_input, dict):
+                # 다양한 필드명에서 콘텐츠 추출 시도
+                for key in ('text', 'body', 'data'):
+                    content = tool_input.get(key, '')
+                    if content:
+                        break
+
+            is_sensitive, msg = check_content_sensitive(content)
+            if is_sensitive:
+                print(f"🔒 메시지 차단됨: {tool_name}", file=sys.stderr)
+                print(f"   {msg}", file=sys.stderr)
+                sys.exit(2)
+
+            sys.exit(0)
+
+        # Edit, Write, Read 도구인 경우만 파일 경로 검사
         if tool_name not in ('Edit', 'Write', 'Read'):
             sys.exit(0)
 

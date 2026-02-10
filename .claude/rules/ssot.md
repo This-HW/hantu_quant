@@ -198,32 +198,34 @@ function normalizeError(error: unknown): AppError {
 ### 문제 상황 (SSOT 위반)
 
 ```
-❌ 10개 파일에 SSH 주소 하드코딩:
-- agents/common/data/analyze-data.md
-- agents/common/data/optimize-queries.md
+❌ 여러 파일에 SSH 주소 하드코딩:
+- agents/domain/data-engineering/optimize-queries.md
+- agents/domain/data-analytics/analyze-data.md
 - agents/domain/quant/analyze-strategy.md
 - agents/domain/quant/fetch-market-data.md
 - rules/mcp-usage.md (2곳)
 - skills/common/db-query/skill.md
 - scripts/ssh-tunnel.sh
 
-→ 서버 주소 변경 시 10개 파일 수정 필요!
+→ 서버 주소 변경 시 여러 파일 수정 필요!
 ```
 
 ### 해결 방법 (SSOT 적용)
 
 ```bash
-# 1. SSOT 스크립트 생성
-scripts/db-tunnel.sh
-  ↳ REMOTE_HOST="ubuntu@158.180.87.156"  ← 단일 출처!
-  ↳ 모든 연결 정보 여기에만
+# 1. 환경 변수로 설정 (단일 출처!)
+export CLAUDE_DB_SSH_HOST="user@your-server.com"
 
-# 2. Agent/Skill/Rules는 스크립트 참조만
+# 2. SSOT 스크립트가 환경 변수 참조
+scripts/db-tunnel.sh
+  ↳ REMOTE_HOST="$CLAUDE_DB_SSH_HOST"  ← 환경 변수 참조!
+
+# 3. Agent/Skill/Rules는 스크립트 참조만
 > - SSH 터널 필요: `./scripts/db-tunnel.sh start`
 
-# 3. 서버 변경 시
-vim scripts/db-tunnel.sh
-  ↳ REMOTE_HOST만 변경 → 전체 반영!
+# 4. 서버 변경 시
+vim ~/.zshrc
+  ↳ CLAUDE_DB_SSH_HOST만 변경 → 전체 반영!
 ```
 
 ### 효과

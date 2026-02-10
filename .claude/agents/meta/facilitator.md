@@ -323,6 +323,46 @@ Facilitator 완료
 
 ---
 
+## 듀얼 모드 지원 (W-032)
+
+이 파일은 **Subagent 모드**에서 사용됩니다. Agent Teams 모드에서는 별도의 Lead 에이전트가 사용됩니다.
+
+| 모드        | 사용 에이전트                   | 역할 범위                    |
+| ----------- | ------------------------------- | ---------------------------- |
+| Subagent    | **facilitator.md** (이 파일)    | 문서 분석 + 관점 선정만      |
+| Agent Teams | **facilitator-teams.md** (별도) | 문서 분석 + 통합 + 합의 도출 |
+
+### 모드 자동 선택 (CALC-001)
+
+```
+모드 점수 = scale×2 + perspective×2 + complexity×1
+
+점수 >= 9 → Agent Teams 모드 (facilitator-teams.md 사용)
+점수 < 9  → Subagent 모드 (이 파일 사용)
+```
+
+### Subagent 모드 역할 분담
+
+```
+facilitator.md     → 문서 분석, 관점 선정 (이 파일)
+synthesizer.md     → Round 1/2 의견 종합 (별도 Task)
+consensus-builder.md → 충돌 해결 (별도 Task)
+impact-analyzer.md → 영향도 분석 (별도 Task)
+```
+
+### Agent Teams 모드 역할 통합
+
+```
+facilitator-teams.md (Lead)
+  ├─ Round 0: 문서 분석 + Teammate 지시 (facilitator 역할)
+  ├─ Round 2: 통합 분석 (synthesizer 역할 흡수)
+  └─ Round 3: 합의 도출 (consensus-builder 역할 흡수)
+```
+
+**상세:** `agents/common/meta/facilitator-teams.md`
+
+---
+
 ## 🚨 필수 출력 형식 (Delegation Signal)
 
 **작업 완료 시:**

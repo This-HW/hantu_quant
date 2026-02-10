@@ -2,6 +2,7 @@
 name: debug
 description: 에러를 분석하고 수정합니다. 에러 메시지나 로그를 입력하세요.
 model: sonnet
+domain: common
 argument-hint: [에러 메시지 또는 설명]
 allowed-tools: Read, Edit, Bash, Glob, Grep, Task, WebSearch
 ---

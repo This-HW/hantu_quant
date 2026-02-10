@@ -2,6 +2,7 @@
 name: project-sync
 description: |
   프로젝트 간 동기화 스킬. 여러 프로젝트의 공통 패턴, 설정, 의존성을 동기화합니다.
+domain: common
 invoke: /project-sync
 ---
 

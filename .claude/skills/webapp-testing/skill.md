@@ -2,6 +2,7 @@
 name: webapp-testing
 description: E2E 테스트 자동화. Playwright MCP를 사용하여 웹 애플리케이션을 테스트합니다.
 model: sonnet
+domain: common
 disable-model-invocation: true
 ---
 

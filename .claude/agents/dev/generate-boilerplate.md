@@ -244,7 +244,8 @@ export default router;
 
 ### 결과
 
-```
+```yaml
+# [예시 출력 - 실제 에이전트가 아님]
 생성됨: agents/common/dev/format-code.md
 
 ---
@@ -257,9 +258,7 @@ tools:
   - Read
   - Bash
 ---
-
 # 역할: 코드 포맷팅 전문가
-
 ...
 ```
 

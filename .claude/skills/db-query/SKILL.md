@@ -2,6 +2,7 @@
 name: db-query
 description: Execute database queries using PostgreSQL MCP. Use when users want to run SQL queries, analyze data, check schema, or optimize queries.
 model: sonnet
+domain: common
 disable-model-invocation: true
 ---
 

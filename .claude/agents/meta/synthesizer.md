@@ -420,6 +420,34 @@ UX: "사용자 페르소나 없음"
 
 ---
 
+## 듀얼 모드 지원 (W-032)
+
+이 파일은 **Subagent 모드**에서 사용됩니다. Agent Teams 모드에서는 Lead 에이전트가 Synthesizer 역할을 통합 수행합니다.
+
+| 모드        | Synthesizer 역할                 | 호출 방식      |
+| ----------- | -------------------------------- | -------------- |
+| Subagent    | **synthesizer.md** (이 파일)     | 별도 Task 호출 |
+| Agent Teams | **facilitator-teams.md** Round 2 | Lead에 통합    |
+
+### Agent Teams 모드에서의 차이점
+
+```
+Subagent 모드:
+  Main Claude → Task(synthesizer) → 결과 수신 → Task(consensus-builder)
+  - 각 Round마다 별도 Task 호출
+  - 결과는 파일/prompt를 통해 전달
+
+Agent Teams 모드:
+  Lead(facilitator-teams) → Round 2에서 직접 통합 수행
+  - Teammate 결과를 message로 수신
+  - 중복 제거, 충돌 감지를 Lead가 직접 수행
+  - 결과를 broadcast로 모든 Teammate에 공유
+```
+
+**이 파일은 변경 없이 유지됩니다.** Agent Teams 모드의 통합 로직은 `facilitator-teams.md`에 정의됩니다.
+
+---
+
 ## 🚨 필수 출력 형식 (Delegation Signal)
 
 ### Round 1 종합 완료 시

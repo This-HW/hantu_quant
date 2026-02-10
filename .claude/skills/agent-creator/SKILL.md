@@ -2,6 +2,7 @@
 name: agent-creator
 description: Create Claude Code sub-agents with optimal configuration. Use when users ask to create a new agent, custom agent, specialized assistant, or want to configure task-specific AI workflows.
 model: sonnet
+domain: common
 allowed-tools: Write, Read, Glob
 ---
 

@@ -2,6 +2,7 @@
 name: plan-task
 description: 체계적인 작업 계획 수립. 규모 판단 → 요구사항 명확화 → 사용자 여정 → 비즈니스 로직 순으로 진행합니다.
 model: opus
+domain: common
 argument-hint: [작업 설명]
 allowed-tools:
   - Read
@@ -364,6 +365,35 @@ if perspectives:
     # 리뷰 결과를 Work 폴더에 저장
     save_review_results(result)
 ```
+
+### Agent Teams 모드 자동 선택 (W-032)
+
+**Large 규모에서 CALC-001 점수 >= 9인 경우, Agent Teams 모드로 자동 전환:**
+
+```python
+# CALC-001 모드 자동 선택
+mode_score = scale * 2 + perspective * 2 + complexity * 1
+
+if mode_score >= 9:
+    # Agent Teams 모드: facilitator-teams.md (Lead) + Teammate 병렬
+    # 환경변수: CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 필요
+    result = run_skill("multi-perspective-review", planning_doc, mode="agent_teams")
+else:
+    # Subagent 모드: facilitator → 병렬 Task → synthesizer → consensus-builder
+    result = run_skill("multi-perspective-review", planning_doc, mode="subagent")
+```
+
+**모드별 차이:**
+
+| 항목      | Subagent 모드                 | Agent Teams 모드          |
+| --------- | ----------------------------- | ------------------------- |
+| 토큰 한도 | 150K (POL-002)                | 300K (POL-002)            |
+| 관점 수   | 4-9개                         | 4-9개                     |
+| 실행 방식 | 순차 Task 호출                | 병렬 Teammate             |
+| 합의 도출 | consensus-builder (별도 Task) | Lead가 직접 수행          |
+| 폴백      | -                             | Subagent 모드로 자동 전환 |
+
+**상세:** `skills/common/multi-perspective-review/skill.md` (Agent Teams 섹션)
 
 ### 리뷰 결과 저장
 

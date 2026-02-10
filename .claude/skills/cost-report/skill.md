@@ -2,6 +2,7 @@
 name: cost-report
 description: |
   비용 분석 리포트 스킬. Claude API 사용량, 토큰 소비, 에이전트별 비용을 분석합니다.
+domain: common
 invoke: /cost-report
 ---
 

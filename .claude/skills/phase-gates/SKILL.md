@@ -2,6 +2,7 @@
 name: phase-gates
 description: Phase 전환 자동화 및 게이트 검증. Planning, Development, Validation 단계 간 전환 조건 검증.
 model: sonnet
+domain: common
 allowed-tools: Read, Bash
 ---
 

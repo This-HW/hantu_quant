@@ -3,6 +3,7 @@ name: daily-report
 description: |
   일간 요약 리포트를 생성합니다. Work 진행 상황, 에이전트 실행 내역,
   헬스체크 결과, 주요 이벤트를 종합하여 리포트를 생성합니다.
+domain: common
 invoke: /daily-report
 ---
 

@@ -2,6 +2,7 @@
 name: multi-perspective-review
 description: 기획/문서를 여러 관점에서 협업 검토. 9개 관점의 전문가가 의견 교류하며 합의를 도출합니다.
 model: opus
+domain: common
 argument-hint: [문서 경로 또는 Work ID]
 allowed-tools:
   - Read
@@ -415,11 +416,133 @@ Round 1 결과 → 문서 수정 → Round 2 재리뷰:
 
 ---
 
+## Agent Teams 모드 (실험적)
+
+### 개요
+
+`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 환경 변수가 설정되면, 이 스킬은 **Agent Teams 모드**로 실행될 수 있습니다.
+Agent Teams는 spawnTeam() API를 사용하여 Teammate들이 병렬로 독립 분석을 수행합니다.
+
+### 모드 자동 선택 (CALC-001)
+
+```
+모드 점수 = scale×2 + perspective×2 + complexity×1
+
+조건:
+  점수 >= 9 → AGENT_TEAMS 모드 (자동 전환)
+  점수 < 9  → SUBAGENT 모드 (기본)
+
+사용자 오버라이드:
+  --agent-teams     → 강제 Teams 모드
+  --no-agent-teams  → 강제 Subagent 모드
+```
+
+### Agent Teams 실행 구조
+
+```
+Main Claude
+  └─ spawnTeam()
+       ├─ Lead: facilitator-teams (Opus)
+       │    ├─ Round 0: 문서 분석 + Teammate 지시 (broadcast)
+       │    ├─ Round 1: 독립 분석 수신 (message)
+       │    ├─ Round 2: 통합 분석 (Synthesizer 역할)
+       │    └─ Round 3: 합의 도출 (Consensus-Builder 역할)
+       │
+       └─ Teammates (각 관점별):
+            ├─ clarify-requirements (Requirements)
+            ├─ plan-implementation (Technical)
+            ├─ security-scan (Security)
+            ├─ impact-analyzer (Impact, 항상 포함)
+            └─ ... (문서 유형에 따라 선정)
+```
+
+### 폴백 전략 (Teams → Subagent)
+
+Agent Teams 모드에서 문제 발생 시, 자동으로 Subagent 모드로 전환합니다.
+
+#### 즉시 전환 트리거
+
+```
+다음 상황 발생 시 Subagent 모드로 즉시 폴백:
+
+1. VAL-001 검증 실패
+   → spawnTeam API 미지원, 환경 변수 미설정, 릴리즈 버전 미충족
+   → 기존 3-Round Deliberation으로 자동 전환
+
+2. Lead 초기화 실패 (30초 타임아웃)
+   → facilitator-teams.md 로드 실패
+   → 기존 facilitator.md + 개별 Meta 에이전트로 전환
+
+3. 전원 실패 (모든 Teammate FAILED)
+   → 결과물이 전혀 없는 상태
+   → Subagent 모드로 전환하여 전체 리뷰 재시작
+```
+
+#### 부분 복구 (Graceful Degradation)
+
+```
+조건: 과반수 실패이지만, 2개 이상 관점 결과 존재
+
+행동:
+  1. 실패 Teammate를 FORCE_PROCEEDED로 전환
+  2. 현재 결과로 CONSENSUS 진입 (축소된 합의)
+  3. 최종 리포트에 누락 관점 경고 표시
+
+리포트 추가:
+  ## ⚠️ 부분 리뷰 경고
+  다음 관점은 Teammate 실패로 포함되지 않았습니다:
+  - [관점명]: [실패 사유]
+  권장: 누락된 관점에 대해 별도 Subagent 리뷰를 실행하세요.
+```
+
+#### 사용자 결정 요청
+
+```
+조건: 결과 2개이지만 핵심 관점(Requirements, Technical) 누락
+
+AskUserQuestion:
+  A) 현재 결과로 리뷰 완료 (부분 리뷰)
+  B) Subagent 모드로 전환하여 전체 리뷰 재실행
+  C) 리뷰 취소
+```
+
+### 토큰 한도 (POL-002)
+
+```
+모드별 한도:
+  SUBAGENT 모드:     150,000 토큰
+  AGENT_TEAMS 모드:  300,000 토큰
+
+3계층 방어:
+  80% → 분석 범위 축소 (Level 3 참고 문서 스킵)
+  90% → Round 3 강제 진입 (즉시 합의 도출)
+  100% → 현재 결과로 정리 후 종료
+
+환경 변수 오버라이드:
+  CLAUDE_COST_LIMIT_SUBAGENT=150000
+  CLAUDE_COST_LIMIT_TEAMS=300000
+```
+
+### 관련 파일
+
+| 파일                                                                      | 역할                       |
+| ------------------------------------------------------------------------- | -------------------------- |
+| `agents/common/meta/facilitator-teams.md`                                 | Agent Teams Lead 에이전트  |
+| `hooks/teammate-idle.py`                                                  | Teammate 5분 타임아웃 감시 |
+| `hooks/pol002-monitor.py`                                                 | 토큰 사용량 3계층 방어     |
+| `docs/works/active/W-032-feature-adoption-2026/state-transition-table.md` | 상태 전이표                |
+| `docs/works/active/W-032-feature-adoption-2026/crash-recovery-path.md`    | 크래시 복구 경로           |
+
+---
+
 ## 확장 가능성
 
 ### 향후 계획
 
 ```
+✨ Agent Teams 모드 정식 지원
+   → 실험적 플래그 제거 후 기본 모드로 전환
+
 ✨ 자동 수정 제안 (--auto-fix)
    → Critical 이슈에 대한 자동 수정 PR 생성
 
