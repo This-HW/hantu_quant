@@ -392,7 +392,7 @@ class APIConfig:
         - 토큰 재발급은 1분당 1회 제한
 
         Args:
-            force: 강제 갱신 여부
+            force: 강제 갱신 여부 (True일 때 1분 제한 무시)
 
         Returns:
             bool: 갱신 성공 여부
@@ -412,8 +412,8 @@ class APIConfig:
                         logger.debug("[refresh_token] 토큰이 이미 유효함 (다른 프로세스가 갱신했을 수 있음)")
                         return True
 
-                    # 1분당 1회 재발급 제한 확인
-                    if not self._can_refresh_token():
+                    # 1분당 1회 재발급 제한 확인 (force=True일 때는 제한 무시)
+                    if not force and not self._can_refresh_token():
                         logger.warning("[refresh_token] 토큰 재발급 제한으로 기존 토큰 유지 시도")
                         # 기존 토큰이 있으면 그대로 사용
                         if self.access_token:
