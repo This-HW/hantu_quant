@@ -30,6 +30,23 @@ from pydantic import ValidationError, BaseModel, Field
 
 logger = get_logger(__name__)
 
+# 민감 정보 마스킹 대상 키
+_SENSITIVE_PARAM_KEYS = {'CANO', 'ACNT_PRDT_CD', 'access_token', 'appkey', 'appsecret'}
+
+
+def _sanitize_log_params(params: Optional[Dict]) -> Optional[Dict]:
+    """로그용 파라미터에서 민감 정보 마스킹"""
+    if not params:
+        return params
+    sanitized = {}
+    for k, v in params.items():
+        if k in _SENSITIVE_PARAM_KEYS and isinstance(v, str) and len(v) > 4:
+            sanitized[k] = v[:2] + '***' + v[-2:]
+        else:
+            sanitized[k] = v
+    return sanitized
+
+
 # 글로벌 Rate Limiter (프로세스/스레드 간 공유)
 _RATE_LIMIT_LOCK_FILE = os.path.join(tempfile.gettempdir(), "hantu_api_rate_limit.lock")
 _RATE_LIMIT_TIME_FILE = os.path.join(tempfile.gettempdir(), "hantu_api_last_request.txt")
@@ -184,13 +201,38 @@ class KISRestClient:
             )
 
         except NonRetryableAPIError as e:
-            logger.error(f"API 요청 실패 (재시도 불가): {e}", exc_info=True)
+            logger.error(
+                f"API 요청 실패 (재시도 불가): {e}",
+                exc_info=True,
+                extra={
+                    'method': method,
+                    'url': url,
+                    'params': _sanitize_log_params(params),
+                    'kis_error_code': getattr(e, 'kis_error_code', None)
+                }
+            )
             return {"error": str(e), "retryable": False}
         except RetryError as e:
-            logger.error(f"API 요청 실패 (최대 재시도 횟수 초과): {e}", exc_info=True)
+            logger.error(
+                f"API 요청 실패 (최대 재시도 횟수 초과): {e}",
+                exc_info=True,
+                extra={
+                    'method': method,
+                    'url': url,
+                    'params': _sanitize_log_params(params)
+                }
+            )
             return {"error": f"최대 재시도 횟수 초과: {e}", "retryable": True}
         except Exception as e:
-            logger.error(f"API 요청 오류: {e}", exc_info=True)
+            logger.error(
+                f"API 요청 오류: {e}",
+                exc_info=True,
+                extra={
+                    'method': method,
+                    'url': url,
+                    'params': _sanitize_log_params(params)
+                }
+            )
             return {"error": str(e)}
 
     @retry(
@@ -240,9 +282,42 @@ class KISRestClient:
                 kis_error_code = result.get('msg_cd', '')
                 if kis_error_code in KISErrorCode.RETRYABLE_ERRORS:
                     wait_time = _get_wait_time_for_kis_error(kis_error_code)
-                    logger.warning(
-                        f"KIS API 에러 (재시도 예정): {kis_error_code}, {result.get('msg1', '')} - {wait_time}초 대기"
-                    )
+
+                    # 에러별 로깅 강화
+                    log_extra = {
+                        'method': method,
+                        'url': url,
+                        'params': _sanitize_log_params(params),
+                        'kis_error_code': kis_error_code,
+                        'wait_seconds': wait_time
+                    }
+
+                    if kis_error_code == KISErrorCode.RATE_LIMIT:
+                        # EGW00201: Rate Limit 에러 - 백오프 배수 기록
+                        backoff_multiplier = _get_backoff_multiplier()
+                        log_extra['backoff_multiplier'] = backoff_multiplier
+                        logger.warning(
+                            f"KIS API 에러 (EGW00201 Rate Limit): {result.get('msg1', '')} - {wait_time}초 대기 (백오프: {backoff_multiplier:.1f}x)",
+                            extra=log_extra
+                        )
+                    elif kis_error_code == KISErrorCode.OPS_ROUTING_ERROR:
+                        # EGW00203: OPS Routing 에러 - 대기 시간 기록
+                        logger.warning(
+                            f"KIS API 에러 (EGW00203 OPS Routing): {result.get('msg1', '')} - {wait_time}초 대기",
+                            extra=log_extra
+                        )
+                    elif kis_error_code == KISErrorCode.TOKEN_EXPIRED:
+                        # EGW00123: Token Expired - 갱신 시도 기록 (다음 블록에서 처리)
+                        logger.warning(
+                            f"KIS API 에러 (EGW00123 Token Expired): {result.get('msg1', '')}",
+                            extra=log_extra
+                        )
+                    else:
+                        logger.warning(
+                            f"KIS API 에러 (재시도 예정): {kis_error_code}, {result.get('msg1', '')} - {wait_time}초 대기",
+                            extra=log_extra
+                        )
+
                     # Rate Limit 에러는 즉시 대기 후 재시도 (백오프 증가 없음)
                     time.sleep(wait_time)  # 에러 코드별 대기 시간 적용
                     # 성공으로 처리하여 tenacity 재시도 방지 (이미 대기했으므로)
@@ -263,20 +338,38 @@ class KISRestClient:
             kis_error_code = _extract_kis_error_code(response.text)
             wait_time = _get_wait_time_for_kis_error(kis_error_code) if kis_error_code else 3.0
 
+            # 공통 로깅 컨텍스트
+            log_extra = {
+                'method': method,
+                'url': url,
+                'params': _sanitize_log_params(params),
+                'status_code': status_code,
+                'kis_error_code': kis_error_code,
+                'wait_seconds': wait_time
+            }
+
             # 토큰 만료 에러 (EGW00123) 처리
             if kis_error_code == KISErrorCode.TOKEN_EXPIRED:
-                logger.warning("토큰 만료 에러 (EGW00123) 감지 - 토큰 갱신 시도")
+                logger.warning(
+                    "토큰 만료 에러 (EGW00123) 감지 - 토큰 갱신 시도",
+                    extra=log_extra
+                )
                 # 토큰 갱신 시도 (force=True로 1분 제한 우회)
                 # 다른 프로세스가 이미 갱신했을 수 있으므로 파일 재로드됨
                 refresh_success = self.config.refresh_token(force=True)
+                log_extra['refresh_success'] = refresh_success
                 if not refresh_success:
                     # 갱신 실패 - 재시도 불가능 에러로 처리
-                    logger.error("토큰 갱신 최종 실패 - 재시도 불가능", exc_info=True)
+                    logger.error(
+                        "토큰 갱신 최종 실패 - 재시도 불가능",
+                        exc_info=True,
+                        extra=log_extra
+                    )
                     raise NonRetryableAPIError(
                         f"토큰 갱신 실패: {response.text}"
                     )
                 else:
-                    logger.info("토큰 갱신 성공")
+                    logger.info("토큰 갱신 성공", extra=log_extra)
                 # 헤더 갱신 (새 토큰)
                 if headers:
                     headers['authorization'] = f'Bearer {self.config.access_token}'
@@ -287,15 +380,24 @@ class KISRestClient:
                     wait_seconds=0  # 즉시 재시도
                 )
             elif kis_error_code == KISErrorCode.OPS_ROUTING_ERROR:
+                # EGW00203: OPS Routing 에러 - 대기 시간 기록
                 logger.warning(
-                    f"KIS OPS 라우팅 에러 (EGW00203) - 서버 과부하/점검 중, {wait_time}초 후 재시도"
+                    f"KIS OPS 라우팅 에러 (EGW00203) - 서버 과부하/점검 중, {wait_time}초 후 재시도",
+                    extra=log_extra
                 )
             elif kis_error_code == KISErrorCode.RATE_LIMIT:
+                # EGW00201: Rate Limit 에러 - 백오프 배수 기록
+                backoff_multiplier = _get_backoff_multiplier()
+                log_extra['backoff_multiplier'] = backoff_multiplier
                 logger.warning(
-                    f"KIS Rate Limit 에러 (EGW00201) - 호출 제한 초과, {wait_time}초 대기 후 재시도"
+                    f"KIS Rate Limit 에러 (EGW00201) - 호출 제한 초과, {wait_time}초 대기 후 재시도 (백오프: {backoff_multiplier:.1f}x)",
+                    extra=log_extra
                 )
             else:
-                logger.warning(f"API 서버 에러 (재시도 예정): {status_code}, {response.text}")
+                logger.warning(
+                    f"API 서버 에러 (재시도 예정): {status_code}, {response.text}",
+                    extra=log_extra
+                )
 
             # 대기 후 재시도 (백오프 없이 즉시)
             time.sleep(wait_time)

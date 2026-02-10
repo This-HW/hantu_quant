@@ -19,6 +19,7 @@ from core.plugins.decorators import plugin
 from core.di.injector import inject
 from core.api.rest_client import RestClient
 from core.daily_selection.price_analyzer import TechnicalIndicators
+from core.watchlist.validator import ScreeningValidator
 
 # 새로운 아키텍처 imports - 사용 가능할 때만 import
 try:
@@ -73,6 +74,8 @@ class StockScreener(IStockScreener):
         self._cache_ttl_seconds = 3600  # 1시간 캐시
         # Task 4: 섹터 매핑 외부화
         self._sector_mapping = self._load_sector_mapping()
+        # 배치 1: 검증기 인스턴스 추가
+        self._validator = ScreeningValidator()
         self._logger.info("StockScreener 초기화 완료 (새 아키텍처)")
 
     def initialize(self):
@@ -742,9 +745,30 @@ class StockScreener(IStockScreener):
             self._logger.error(f"모멘텀 분석 스크리닝 오류: {e}", exc_info=True)
             return False, 0.0, {"error": str(e)}
 
+    def _map_fields_for_validation(self, stock_data: Dict) -> Dict:
+        """
+        validator가 기대하는 필드명으로 매핑
+
+        Args:
+            stock_data: 원본 종목 데이터
+
+        Returns:
+            Dict: 매핑된 데이터
+        """
+        return {
+            'code': stock_data.get('stock_code', ''),
+            'name': stock_data.get('stock_name', ''),
+            'price': stock_data.get('current_price', 0),
+            'volume': stock_data.get('volume', 0),
+            'market_cap': stock_data.get('market_cap', 0),
+            'per': stock_data.get('per', 0),
+            'pbr': stock_data.get('pbr', 0),
+            'roe': stock_data.get('roe', 0),
+        }
+
     def comprehensive_screening(self, p_stock_list: List[str]) -> List[ScreeningResult]:
         """
-        종합 스크리닝 실행 (새 인터페이스 구현)
+        종합 스크리닝 실행 (새 인터페이스 구현, 검증 통합)
 
         Args:
             p_stock_list: 스크리닝할 종목 리스트
@@ -753,6 +777,7 @@ class StockScreener(IStockScreener):
             List[ScreeningResult]: 스크리닝 결과 리스트
         """
         _v_results = []
+        _v_validation_failed_count = 0
 
         for _v_stock_code in p_stock_list:
             try:
@@ -760,6 +785,38 @@ class StockScreener(IStockScreener):
                 _v_stock_data = self._fetch_stock_data(_v_stock_code)
                 if not _v_stock_data:
                     continue
+
+                # 배치 1: 데이터 검증
+                if not self._validator:
+                    self._logger.error(f"Validator 초기화 실패 - 종목 {_v_stock_code} 검증 불가")
+                    continue
+
+                _v_mapped_data = self._map_fields_for_validation(_v_stock_data)
+                _v_validation_result = self._validator.validate_stock_data(
+                    _v_stock_code, _v_mapped_data
+                )
+
+                if not _v_validation_result.is_valid:
+                    _v_validation_failed_count += 1
+                    self._logger.warning(
+                        f"종목 {_v_stock_code} 검증 실패 (점수: {_v_validation_result.score:.2f})",
+                        extra={
+                            'issues': _v_validation_result.issues,
+                            'warnings': _v_validation_result.warnings,
+                            'stock_code': _v_stock_code
+                        }
+                    )
+                    continue  # 검증 실패 시 스크리닝 건너뜀
+
+                # 검증 경고가 있으면 로깅
+                if _v_validation_result.warnings:
+                    self._logger.info(
+                        f"종목 {_v_stock_code} 검증 경고",
+                        extra={
+                            'warnings': _v_validation_result.warnings,
+                            'quality_score': _v_validation_result.score
+                        }
+                    )
 
                 # 각 분석 실행
                 _v_fundamental_passed, _v_fundamental_score, _v_fundamental_details = (
@@ -803,7 +860,7 @@ class StockScreener(IStockScreener):
                 # 결과 객체 생성
                 _v_result = ScreeningResult(
                     stock_code=_v_stock_code,
-                    stock_name=_v_stock_data.get("name", ""),
+                    stock_name=_v_stock_data.get("stock_name", ""),
                     passed=_v_overall_passed,
                     score=_v_total_score,
                     details={
@@ -815,6 +872,10 @@ class StockScreener(IStockScreener):
                             "technical": _v_technical_score,
                             "momentum": _v_momentum_score,
                             "total": _v_total_score,
+                        },
+                        "validation": {
+                            "quality_score": _v_validation_result.score,
+                            "warnings": _v_validation_result.warnings,
                         },
                     },
                     signals=_v_signals,
@@ -832,7 +893,12 @@ class StockScreener(IStockScreener):
         # 점수 순으로 정렬
         _v_results.sort(key=lambda x: x.score, reverse=True)
 
-        self._logger.info(f"스크리닝 완료: {len(_v_results)}개 종목 처리")
+        # 최종 로깅
+        self._logger.info(
+            f"스크리닝 완료: {len(_v_results)}개 종목 처리 "
+            f"(검증 실패: {_v_validation_failed_count}개)"
+        )
+
         return _v_results
 
     def _fetch_stock_data(self, p_stock_code: str) -> Optional[Dict]:
