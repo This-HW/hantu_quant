@@ -37,18 +37,39 @@ class OrderSide(str, Enum):
 class StockCode(BaseModel):
     """종목코드 검증 모델
 
-    한국 주식시장 종목코드는 6자리 숫자
-    예: 005930 (삼성전자), 000660 (SK하이닉스)
+    한국 주식시장 종목코드 형식:
+    - 일반주: 6자리 숫자 (예: 005930 - 삼성전자)
+    - 우선주: 6자리, 마지막이 알파벳 (예: 0037T0 - 우선주)
+    - 스팩: 5자리 숫자 + K (예: 28513K - 스팩)
     """
     code: str = Field(..., min_length=6, max_length=6, description="종목코드 (6자리)")
 
     @field_validator('code')
     @classmethod
     def validate_code(cls, v: str) -> str:
-        """종목코드 형식 검증"""
-        if not re.match(r'^\d{6}$', v):
-            raise ValueError(f'종목코드 형식 오류: {v} (6자리 숫자 필요)')
-        return v
+        """종목코드 형식 검증
+
+        허용 형식:
+        - 일반주: 6자리 숫자 (^\d{6}$)
+        - 우선주: 5자리 숫자 + 알파벳 (^\d{5}[A-Z]0$)
+        - 스팩: 5자리 숫자 + K (^\d{5}K$)
+        """
+        # 일반주: 6자리 숫자
+        if re.match(r'^\d{6}$', v):
+            return v
+
+        # 우선주: 5자리 숫자 + 알파벳 + 0 (예: 0037T0, 0072Z0, 0099X0)
+        if re.match(r'^\d{5}[A-Z]0$', v):
+            return v
+
+        # 스팩: 5자리 숫자 + K (예: 28513K, 38380K)
+        if re.match(r'^\d{5}K$', v):
+            return v
+
+        raise ValueError(
+            f'종목코드 형식 오류: {v} '
+            f'(일반주: 6자리 숫자, 우선주: 5자리숫자+알파벳+0, 스팩: 5자리숫자+K)'
+        )
 
     def __str__(self) -> str:
         return self.code
@@ -130,8 +151,14 @@ class OrderRequest(BaseModel):
     @classmethod
     def validate_stock_code(cls, v: str) -> str:
         """종목코드 형식 검증"""
-        if not re.match(r'^\d{6}$', v):
-            raise ValueError(f'종목코드 형식 오류: {v}')
+        # 일반주, 우선주, 스팩 모두 허용
+        if re.match(r'^\d{6}$', v):  # 일반주
+            return v
+        if re.match(r'^\d{5}[A-Z]0$', v):  # 우선주
+            return v
+        if re.match(r'^\d{5}K$', v):  # 스팩
+            return v
+        raise ValueError(f'종목코드 형식 오류: {v}')
         return v
 
     @model_validator(mode='after')
@@ -155,9 +182,14 @@ class PositionData(BaseModel):
     @field_validator('stock_code')
     @classmethod
     def validate_stock_code(cls, v: str) -> str:
-        if not re.match(r'^\d{6}$', v):
-            raise ValueError(f'종목코드 형식 오류: {v}')
-        return v
+        # 일반주, 우선주, 스팩 모두 허용
+        if re.match(r'^\d{6}$', v):  # 일반주
+            return v
+        if re.match(r'^\d{5}[A-Z]0$', v):  # 우선주
+            return v
+        if re.match(r'^\d{5}K$', v):  # 스팩
+            return v
+        raise ValueError(f'종목코드 형식 오류: {v}')
 
     @model_validator(mode='after')
     def calculate_profit(self):
@@ -191,9 +223,14 @@ class TradeResult(BaseModel):
     @field_validator('stock_code')
     @classmethod
     def validate_stock_code(cls, v: str) -> str:
-        if not re.match(r'^\d{6}$', v):
-            raise ValueError(f'종목코드 형식 오류: {v}')
-        return v
+        # 일반주, 우선주, 스팩 모두 허용
+        if re.match(r'^\d{6}$', v):  # 일반주
+            return v
+        if re.match(r'^\d{5}[A-Z]0$', v):  # 우선주
+            return v
+        if re.match(r'^\d{5}K$', v):  # 스팩
+            return v
+        raise ValueError(f'종목코드 형식 오류: {v}')
 
     @property
     def is_fully_executed(self) -> bool:
