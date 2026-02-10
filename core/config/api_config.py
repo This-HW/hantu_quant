@@ -10,6 +10,8 @@ import json
 import os
 import ssl
 import time
+import fcntl
+import tempfile
 from datetime import datetime, timedelta
 from typing import Optional, Dict
 import requests
@@ -18,6 +20,9 @@ from urllib3.util.ssl_ import create_urllib3_context
 
 from . import settings
 from core.utils.log_utils import get_logger
+
+# 글로벌 토큰 갱신 락 파일 (멀티프로세스 대응)
+_TOKEN_REFRESH_LOCK_FILE = os.path.join(tempfile.gettempdir(), "hantu_token_refresh.lock")
 
 
 class TLSAdapter(HTTPAdapter):
@@ -379,7 +384,7 @@ class APIConfig:
         self.last_request_time = current_time
         
     def refresh_token(self, force: bool = False) -> bool:
-        """토큰 갱신
+        """토큰 갱신 (전역 락으로 동시 갱신 방지)
 
         한국투자증권 공식 규정:
         - 접근 토큰은 1일 1회 발급이 원칙
@@ -391,79 +396,93 @@ class APIConfig:
         Returns:
             bool: 갱신 성공 여부
         """
+        # 전역 락을 사용하여 멀티프로세스/스레드에서 동시 갱신 방지
         try:
-            # 토큰이 유효하고 강제 갱신이 아닌 경우
-            if not force and self.validate_token():
-                return True
+            with open(_TOKEN_REFRESH_LOCK_FILE, 'w') as lock_file:
+                # 배타적 락 획득 (다른 프로세스가 갱신 중이면 대기)
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
 
-            # 1분당 1회 재발급 제한 확인
-            if not self._can_refresh_token():
-                logger.warning("[refresh_token] 토큰 재발급 제한으로 기존 토큰 유지 시도")
-                # 기존 토큰이 있으면 그대로 사용
-                if self.access_token:
-                    return True
-                # 토큰이 없으면 대기 후 재시도
-                elapsed = datetime.now() - self._last_token_issued_at
-                wait_time = 60 - elapsed.total_seconds()
-                if wait_time > 0:
-                    logger.info(f"[refresh_token] {wait_time:.0f}초 대기 후 재발급 시도")
-                    time.sleep(wait_time + 1)
-
-            # API 호출 제한 적용
-            self.apply_rate_limit()
-
-            url = f"{self.base_url}/oauth2/tokenP"
-
-            data = {
-                "grant_type": "client_credentials",
-                "appkey": self.app_key,
-                "appsecret": self.app_secret
-            }
-
-            # 로깅 시 민감 정보 마스킹
-            safe_data = data.copy()
-            safe_data["appkey"] = "***MASKED***"
-            safe_data["appsecret"] = "***MASKED***"
-            logger.debug(f"[refresh_token] 토큰 갱신 요청: {safe_data}")
-
-            headers = {
-                "content-type": "application/json; charset=utf-8",
-                "Accept": "text/plain"
-            }
-            # TLS 1.2+ 세션 사용
-            response = self._session.post(url, json=data, headers=headers, timeout=settings.REQUEST_TIMEOUT)
-
-            if response.status_code == 200:
-                token_data = response.json()
-                self.access_token = token_data.get('access_token')
-                expires_in = int(token_data.get('expires_in', 86400))  # 기본값 24시간
-                self.token_expired_at = datetime.now() + timedelta(seconds=expires_in)
-                self._last_token_issued_at = datetime.now()  # 발급 시간 기록
-
-                # 로그에 토큰 데이터 마스킹
-                safe_token_data = {k: "***MASKED***" if k == "access_token" else v for k, v in token_data.items()}
-                logger.debug(f"[refresh_token] 토큰 응답: {safe_token_data}")
-
-                # 토큰 정보 저장
-                self._save_token()
-
-                logger.info("[refresh_token] 토큰 갱신 성공")
-                return True
-            else:
-                logger.error(f"[refresh_token] 토큰 갱신 실패 - 상태 코드: {response.status_code}", exc_info=True)
-                # 응답 본문에 민감 정보가 포함될 수 있으므로 마스킹
                 try:
-                    error_data = response.json()
-                    # access_token, appkey, appsecret 등 민감 필드 마스킹
-                    safe_error_data = {
-                        k: "***MASKED***" if k in ("access_token", "appkey", "appsecret", "approval_key") else v
-                        for k, v in error_data.items()
+                    # 락 획득 후 토큰 파일 재로드 (다른 프로세스가 이미 갱신했을 수 있음)
+                    self._load_token()
+
+                    # 토큰이 유효하고 강제 갱신이 아닌 경우
+                    if not force and self.validate_token():
+                        logger.debug("[refresh_token] 토큰이 이미 유효함 (다른 프로세스가 갱신했을 수 있음)")
+                        return True
+
+                    # 1분당 1회 재발급 제한 확인
+                    if not self._can_refresh_token():
+                        logger.warning("[refresh_token] 토큰 재발급 제한으로 기존 토큰 유지 시도")
+                        # 기존 토큰이 있으면 그대로 사용
+                        if self.access_token:
+                            return True
+                        # 토큰이 없으면 대기 후 재시도
+                        elapsed = datetime.now() - self._last_token_issued_at
+                        wait_time = 60 - elapsed.total_seconds()
+                        if wait_time > 0:
+                            logger.info(f"[refresh_token] {wait_time:.0f}초 대기 후 재발급 시도")
+                            time.sleep(wait_time + 1)
+
+                    # API 호출 제한 적용
+                    self.apply_rate_limit()
+
+                    url = f"{self.base_url}/oauth2/tokenP"
+
+                    data = {
+                        "grant_type": "client_credentials",
+                        "appkey": self.app_key,
+                        "appsecret": self.app_secret
                     }
-                    logger.error(f"[refresh_token] 응답 데이터: {safe_error_data}")
-                except Exception:
-                    # JSON 파싱 실패 시 응답 본문 길이만 로깅
-                    logger.error(f"[refresh_token] 응답 본문 길이: {len(response.text)} bytes")
-                return False
+
+                    # 로깅 시 민감 정보 마스킹
+                    safe_data = data.copy()
+                    safe_data["appkey"] = "***MASKED***"
+                    safe_data["appsecret"] = "***MASKED***"
+                    logger.debug(f"[refresh_token] 토큰 갱신 요청: {safe_data}")
+
+                    headers = {
+                        "content-type": "application/json; charset=utf-8",
+                        "Accept": "text/plain"
+                    }
+                    # TLS 1.2+ 세션 사용
+                    response = self._session.post(url, json=data, headers=headers, timeout=settings.REQUEST_TIMEOUT)
+
+                    if response.status_code == 200:
+                        token_data = response.json()
+                        self.access_token = token_data.get('access_token')
+                        expires_in = int(token_data.get('expires_in', 86400))  # 기본값 24시간
+                        self.token_expired_at = datetime.now() + timedelta(seconds=expires_in)
+                        self._last_token_issued_at = datetime.now()  # 발급 시간 기록
+
+                        # 로그에 토큰 데이터 마스킹
+                        safe_token_data = {k: "***MASKED***" if k == "access_token" else v for k, v in token_data.items()}
+                        logger.debug(f"[refresh_token] 토큰 응답: {safe_token_data}")
+
+                        # 토큰 정보 저장
+                        self._save_token()
+
+                        logger.info("[refresh_token] 토큰 갱신 성공")
+                        return True
+                    else:
+                        logger.error(f"[refresh_token] 토큰 갱신 실패 - 상태 코드: {response.status_code}", exc_info=True)
+                        # 응답 본문에 민감 정보가 포함될 수 있으므로 마스킹
+                        try:
+                            error_data = response.json()
+                            # access_token, appkey, appsecret 등 민감 필드 마스킹
+                            safe_error_data = {
+                                k: "***MASKED***" if k in ("access_token", "appkey", "appsecret", "approval_key") else v
+                                for k, v in error_data.items()
+                            }
+                            logger.error(f"[refresh_token] 응답 데이터: {safe_error_data}")
+                        except Exception:
+                            # JSON 파싱 실패 시 응답 본문 길이만 로깅
+                            logger.error(f"[refresh_token] 응답 본문 길이: {len(response.text)} bytes")
+                        return False
+
+                finally:
+                    # 락 해제
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
         except Exception as e:
             logger.error(f"[refresh_token] 토큰 갱신 중 오류 발생: {str(e)}", exc_info=True)
