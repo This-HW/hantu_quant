@@ -46,12 +46,13 @@ class KISErrorCode:
     """한국투자증권 API 에러 코드"""
     TOKEN_EXPIRED = "EGW00123"  # 토큰 만료
     TOKEN_INVALID = "EGW00121"  # 유효하지 않은 토큰
+    TOKEN_REFRESH_RATE_LIMIT = "EGW00133"  # 토큰 재발급 제한 (1분당 1회)
     RATE_LIMIT = "EGW00201"     # 호출 제한 초과
     OPS_ROUTING_ERROR = "EGW00203"  # OPS 라우팅 오류 (서버 과부하/점검)
     SERVICE_ERROR = "EGW00500"  # 서비스 오류
 
     # 재시도 가능한 에러 코드 목록
-    RETRYABLE_ERRORS = [RATE_LIMIT, OPS_ROUTING_ERROR, SERVICE_ERROR]
+    RETRYABLE_ERRORS = [RATE_LIMIT, OPS_ROUTING_ERROR, SERVICE_ERROR, TOKEN_REFRESH_RATE_LIMIT]
 
 
 class KISEndpoint:

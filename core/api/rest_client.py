@@ -127,6 +127,9 @@ def _get_wait_time_for_kis_error(error_code: str) -> float:
     elif error_code == KISErrorCode.RATE_LIMIT:
         # EGW00201: Rate Limit - 즉시 대기 (백오프 대신)
         return 5.0  # 30초 → 5초로 감소 (백오프 제거)
+    elif error_code == KISErrorCode.TOKEN_REFRESH_RATE_LIMIT:
+        # EGW00133: 토큰 재발급 제한 (1분당 1회) - 대기 후 재시도
+        return 3.0  # 짧은 대기 후 기존 토큰으로 재시도 (다른 프로세스가 갱신했을 수 있음)
     elif error_code == KISErrorCode.SERVICE_ERROR:
         # EGW00500: 서비스 오류 - 표준 대기
         return 10.0
@@ -262,14 +265,13 @@ class KISRestClient:
             # 토큰 만료 에러 (EGW00123) 처리
             if kis_error_code == KISErrorCode.TOKEN_EXPIRED:
                 logger.warning("토큰 만료 에러 (EGW00123) 감지 - 토큰 갱신 시도")
-                if self.config.refresh_token(force=True):
-                    logger.info("토큰 갱신 성공 - 재시도 진행")
-                    # 헤더 업데이트 필요
-                    if headers:
-                        headers['authorization'] = f'Bearer {self.config.access_token}'
-                else:
-                    logger.error("토큰 갱신 실패 - 재시도 불가", exc_info=True)
-                    raise NonRetryableAPIError(f"토큰 갱신 실패: {response.text}")
+                # 토큰 갱신 시도 (다른 프로세스가 이미 갱신했을 수 있음)
+                self.config.refresh_token(force=True)
+                # 갱신 성공 여부와 관계없이 현재 토큰으로 재시도
+                # (락 획득 후 다른 프로세스가 갱신한 경우 유효한 토큰이 로드됨)
+                if headers:
+                    headers['authorization'] = f'Bearer {self.config.access_token}'
+                logger.info("토큰 갱신 완료 - 재시도 진행 (기존 토큰 또는 새 토큰)")
                 # 토큰 갱신 후 즉시 재시도
                 raise RetryableAPIError(
                     f"HTTP {status_code}: 토큰 만료 (갱신 완료, 재시도)",
