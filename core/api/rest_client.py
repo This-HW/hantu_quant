@@ -270,16 +270,19 @@ class KISRestClient:
                 # 다른 프로세스가 이미 갱신했을 수 있으므로 파일 재로드됨
                 refresh_success = self.config.refresh_token(force=True)
                 if not refresh_success:
-                    # 갱신 실패 (EGW00133 등) - 현재 토큰으로 재시도 (다른 프로세스가 갱신했을 수 있음)
-                    logger.warning("토큰 갱신 실패 - 현재 토큰으로 재시도 (다른 프로세스가 갱신했을 수 있음)")
+                    # 갱신 실패 - 재시도 불가능 에러로 처리
+                    logger.error("토큰 갱신 최종 실패 - 재시도 불가능", exc_info=True)
+                    raise NonRetryableAPIError(
+                        f"토큰 갱신 실패: {response.text}"
+                    )
                 else:
                     logger.info("토큰 갱신 성공")
-                # 헤더 갱신 (새 토큰 또는 기존 토큰)
+                # 헤더 갱신 (새 토큰)
                 if headers:
                     headers['authorization'] = f'Bearer {self.config.access_token}'
                 # 토큰 갱신 후 즉시 재시도
                 raise RetryableAPIError(
-                    f"HTTP {status_code}: 토큰 만료 (갱신 시도 완료, 재시도)",
+                    f"HTTP {status_code}: 토큰 만료 (갱신 완료, 재시도)",
                     kis_error_code=kis_error_code,
                     wait_seconds=0  # 즉시 재시도
                 )

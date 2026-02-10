@@ -476,6 +476,16 @@ class APIConfig:
                                 for k, v in error_data.items()
                             }
                             logger.error(f"[refresh_token] 응답 데이터: {safe_error_data}")
+
+                            # 토큰 만료 에러(EGW00123)인 경우 기존 토큰 파일 삭제 후 재시도
+                            error_code = error_data.get('msg_cd', '')
+                            if error_code == KISErrorCode.TOKEN_EXPIRED:
+                                logger.warning("[refresh_token] 토큰 만료 에러(EGW00123) 감지 - 토큰 파일 초기화 후 재발급")
+                                self.clear_token()
+                                # 재귀 호출 방지 - 한 번만 재시도
+                                if not force:
+                                    logger.info("[refresh_token] 토큰 초기화 후 재발급 시도")
+                                    return self.refresh_token(force=True)
                         except Exception:
                             # JSON 파싱 실패 시 응답 본문 길이만 로깅
                             logger.error(f"[refresh_token] 응답 본문 길이: {len(response.text)} bytes")
