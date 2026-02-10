@@ -437,6 +437,9 @@ python3 scripts/security_check.py --fix
 ./scripts/db-tunnel.sh status   # 터널 상태 확인
 ./scripts/db-tunnel.sh stop     # 터널 중지
 python scripts/diagnose-db.py   # DB 연결 진단
+
+# 서버 복구 후 검증
+./scripts/verify-server-connection.sh  # 전체 연결 테스트 (Ping, SSH, DB)
 ```
 
 ---

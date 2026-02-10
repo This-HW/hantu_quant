@@ -2330,6 +2330,7 @@ class DailyUpdater(IDailyUpdater):
             duration = (end_time - start_time).total_seconds()
 
             # DB에 메트릭 저장
+            db_saved = False
             try:
                 with get_session() as session:
                     metric = BatchMetrics(
@@ -2345,28 +2346,62 @@ class DailyUpdater(IDailyUpdater):
                     )
                     session.add(metric)
                     session.commit()
+                    db_saved = True
 
                     self._logger.info(
                         f"배치 #{batch_index} 메트릭 저장 완료: "
                         f"{duration:.2f}초, {stocks_processed}종목 처리, {stocks_selected}종목 선정"
                     )
 
-                    # 텔레그램 알림 전송
-                    try:
-                        stats = {
-                            'duration_seconds': duration,
-                            'stocks_processed': stocks_processed,
-                            'stocks_selected': stocks_selected,
-                            'api_calls_count': 0,
-                            'error_count': 0
-                        }
-                        notifier = get_telegram_notifier()
-                        notifier.send_batch_summary(batch_index, stats)
-                    except Exception as e:
-                        self._logger.error(f"배치 알림 전송 실패: {e}", exc_info=True)
-
             except Exception as e:
-                self._logger.error(f"배치 메트릭 저장 실패: {e}", exc_info=True)
+                self._logger.warning(f"배치 메트릭 DB 저장 실패, JSON 폴백 사용: {e}", exc_info=True)
+
+                # JSON 파일로 폴백 저장 (배치별 개별 파일로 Race Condition 방지)
+                try:
+                    from core.config.settings import LOG_DIR
+
+                    metrics_dir = LOG_DIR / "metrics"
+                    metrics_dir.mkdir(parents=True, exist_ok=True)
+
+                    metrics_file = metrics_dir / f"batch_metrics_{datetime.now().strftime('%Y%m%d')}_batch{batch_index}.json"
+
+                    metric_data = {
+                        'phase_name': 'phase2',
+                        'batch_number': batch_index,
+                        'start_time': start_time.isoformat(),
+                        'end_time': end_time.isoformat(),
+                        'duration_seconds': duration,
+                        'api_calls_count': 0,
+                        'stocks_processed': stocks_processed,
+                        'stocks_selected': stocks_selected,
+                        'error_count': 0,
+                        'saved_at': datetime.now().isoformat()
+                    }
+
+                    with open(metrics_file, 'w', encoding='utf-8') as f:
+                        json.dump(metric_data, f, ensure_ascii=False, indent=2)
+
+                    self._logger.info(
+                        f"배치 #{batch_index} 메트릭 JSON 저장 완료: {metrics_file} "
+                        f"({duration:.2f}초, {stocks_processed}종목 처리, {stocks_selected}종목 선정)"
+                    )
+
+                except Exception as json_error:
+                    self._logger.error(f"JSON 폴백 저장 실패: {json_error}", exc_info=True)
+
+            # 텔레그램 알림 전송 (DB 저장 성공/실패 무관하게 항상 전송)
+            try:
+                stats = {
+                    'duration_seconds': duration,
+                    'stocks_processed': stocks_processed,
+                    'stocks_selected': stocks_selected,
+                    'api_calls_count': 0,
+                    'error_count': 0
+                }
+                notifier = get_telegram_notifier()
+                notifier.send_batch_summary(batch_index, stats)
+            except Exception as e:
+                self._logger.error(f"배치 알림 전송 실패: {e}", exc_info=True)
 
         except Exception as e:
             self._logger.error(f"배치 메트릭 처리 실패: {e}", exc_info=True)
