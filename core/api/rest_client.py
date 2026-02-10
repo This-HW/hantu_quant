@@ -790,8 +790,8 @@ class KISRestClient:
                 "CANO": self.config.account_number,       # 앞 8자리
                 "ACNT_PRDT_CD": self.config.account_prod_code,  # 뒤 2자리(예: 01)
                 "AFHR_FLPR_YN": "N",
-                "OFL_YN": "N",
-                "INQR_DVSN": "02",
+                "OFL_YN": "",
+                "INQR_DVSN": "01",  # 01: 조회, 02: 미사용
                 "UNPR_DVSN": "01",
                 "FUND_STTL_ICLD_YN": "N",
                 "FNCG_AMT_AUTO_RDPT_YN": "N",
