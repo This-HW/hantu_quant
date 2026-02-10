@@ -230,6 +230,9 @@ class ScreeningValidator:
         # 가격 검증
         if 'price' in data and data['price'] is not None:
             price = data['price']
+            # 타입 안전성 확보
+            if not isinstance(price, (int, float)):
+                return score  # 타입 검증에서 이미 처리됨
             if price <= 0:
                 issues.append(f"비정상 가격: {price}")
                 score -= 0.3
@@ -240,6 +243,8 @@ class ScreeningValidator:
         # 거래량 검증
         if 'volume' in data and data['volume'] is not None:
             volume = data['volume']
+            if not isinstance(volume, (int, float)):
+                return score
             if volume < 0:
                 issues.append(f"비정상 거래량: {volume}")
                 score -= 0.3
@@ -247,12 +252,16 @@ class ScreeningValidator:
         # 재무 비율 검증
         if 'roe' in data and data['roe'] is not None:
             roe = data['roe']
+            if not isinstance(roe, (int, float)):
+                return score
             if roe < -100 or roe > 200:
                 warnings.append(f"극단적 ROE: {roe}%")
                 score -= 0.1
 
         if 'per' in data and data['per'] is not None:
             per = data['per']
+            if not isinstance(per, (int, float)):
+                return score
             if per < 0 or per > 1000:
                 warnings.append(f"극단적 PER: {per}")
                 score -= 0.1
@@ -270,6 +279,9 @@ class ScreeningValidator:
 
         # 시가총액 vs 가격 일관성
         if all(k in data and data[k] is not None for k in ['market_cap', 'price']):
+            # 타입 안전성 확보
+            if not all(isinstance(data[k], (int, float)) for k in ['market_cap', 'price']):
+                return score  # 타입 검증에서 이미 처리됨
             # 시가총액이 가격보다 작으면 비정상
             if data['market_cap'] < data['price']:
                 issues.append(
@@ -279,6 +291,9 @@ class ScreeningValidator:
 
         # PER과 EPS 일관성 (있는 경우)
         if all(k in data and data[k] is not None for k in ['per', 'eps', 'price']):
+            # 타입 안전성 확보
+            if not all(isinstance(data[k], (int, float)) for k in ['per', 'eps', 'price']):
+                return score
             # PER = 가격 / EPS
             calculated_per = data['price'] / data['eps'] if data['eps'] != 0 else None
             if calculated_per and data['per'] != 0 and abs(calculated_per - data['per']) / data['per'] > 0.1:

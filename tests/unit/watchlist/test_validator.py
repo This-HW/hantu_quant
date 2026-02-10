@@ -88,7 +88,8 @@ class TestScreeningValidator:
         assert result.is_valid is False
         assert len(result.issues) > 0
         assert any('누락' in issue for issue in result.issues)
-        assert result.score < 0.6  # 품질 점수 낮음
+        # 5개 카테고리 중 1개만 0.0이면 평균 0.8 (4/5)
+        assert result.score < 0.85  # 품질 점수 낮음
 
     # ===== 테스트 3: 값 범위 검증 =====
     def test_validate_value_ranges(self, validator, invalid_stock_data):

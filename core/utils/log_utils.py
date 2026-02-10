@@ -197,6 +197,15 @@ class JSONFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         """로그 레코드를 JSON 문자열로 변환"""
+        # getMessage() 안전 처리 (pykrx 등 외부 라이브러리 로깅 호환)
+        try:
+            message = record.getMessage()
+        except (TypeError, ValueError):
+            # 포맷 실패 시 원본 메시지 사용
+            message = str(record.msg) if record.msg else ""
+            if record.args:
+                message += f" | args={record.args}"
+
         log_data = {
             'timestamp': datetime.now().isoformat(),
             'level': record.levelname,
@@ -204,7 +213,7 @@ class JSONFormatter(logging.Formatter):
             'module': record.module,
             'function': record.funcName,
             'line': record.lineno,
-            'message': record.getMessage(),
+            'message': message,
         }
 
         # trace_id 추가
