@@ -66,7 +66,8 @@ class PyKRXClient(MarketDataClient):
                 df = self._stock.get_index_ohlcv(today, today, "1001")  # KOSPI (PyKRX 1.2.3+ 티커 코드)
             except KeyError as ke:
                 # PyKRX 내부 KeyError (예: '지수명') 즉시 폴백
-                self._logger.warning(f"KOSPI 오늘 조회 실패 (PyKRX 내부 에러): {ke}", exc_info=False)
+                error_msg = repr(ke)  # KeyError 메시지를 안전하게 repr()로 변환
+                self._logger.warning(f"KOSPI 오늘 조회 실패 (PyKRX 내부 에러): {error_msg}", exc_info=False)
 
             if df is None or (isinstance(df, pd.DataFrame) and df.empty):
                 yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
@@ -74,7 +75,7 @@ class PyKRXClient(MarketDataClient):
                     df = self._stock.get_index_ohlcv(yesterday, yesterday, "1001")  # KOSPI
                 except KeyError as ke:
                     # 어제 조회도 실패하면 에러 발생
-                    error_msg = str(ke).replace('%', '%%')
+                    error_msg = repr(ke)  # KeyError 메시지를 안전하게 repr()로 변환
                     self._logger.warning(f"KOSPI 어제 조회도 실패 (PyKRX 불안정): {error_msg}", exc_info=False)
                     raise ValueError(f"KOSPI 조회 실패: {error_msg}") from ke
 
@@ -94,7 +95,7 @@ class PyKRXClient(MarketDataClient):
             raise ValueError(f"종가 컬럼을 찾을 수 없습니다. 사용 가능한 컬럼: {df.columns.tolist()}")
         except (ValueError, AttributeError) as e:
             # 이미 위에서 KeyError는 처리했으므로 여기서는 ValueError/AttributeError만
-            error_msg = str(e).replace('%', '%%')
+            error_msg = repr(e)  # 에러 메시지를 안전하게 repr()로 변환
             self._logger.warning(f"KOSPI 조회 실패: {error_msg}", exc_info=False)
             raise ValueError(f"KOSPI 조회 실패: {error_msg}") from e
         except Exception as e:
@@ -112,7 +113,8 @@ class PyKRXClient(MarketDataClient):
                 df = self._stock.get_index_ohlcv(today, today, "2001")  # KOSDAQ (PyKRX 1.2.3+ 티커 코드)
             except KeyError as ke:
                 # PyKRX 내부 KeyError (예: '지수명') 즉시 폴백
-                self._logger.warning(f"KOSDAQ 오늘 조회 실패 (PyKRX 내부 에러): {ke}", exc_info=False)
+                error_msg = repr(ke)  # KeyError 메시지를 안전하게 repr()로 변환
+                self._logger.warning(f"KOSDAQ 오늘 조회 실패 (PyKRX 내부 에러): {error_msg}", exc_info=False)
 
             if df is None or (isinstance(df, pd.DataFrame) and df.empty):
                 yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
@@ -120,7 +122,7 @@ class PyKRXClient(MarketDataClient):
                     df = self._stock.get_index_ohlcv(yesterday, yesterday, "2001")  # KOSDAQ
                 except KeyError as ke:
                     # 어제 조회도 실패하면 에러 발생
-                    error_msg = str(ke).replace('%', '%%')
+                    error_msg = repr(ke)  # KeyError 메시지를 안전하게 repr()로 변환
                     self._logger.warning(f"KOSDAQ 어제 조회도 실패 (PyKRX 불안정): {error_msg}", exc_info=False)
                     raise ValueError(f"KOSDAQ 조회 실패: {error_msg}") from ke
 
@@ -140,7 +142,7 @@ class PyKRXClient(MarketDataClient):
             raise ValueError(f"종가 컬럼을 찾을 수 없습니다. 사용 가능한 컬럼: {df.columns.tolist()}")
         except (ValueError, AttributeError) as e:
             # 이미 위에서 KeyError는 처리했으므로 여기서는 ValueError/AttributeError만
-            error_msg = str(e).replace('%', '%%')
+            error_msg = repr(e)  # 에러 메시지를 안전하게 repr()로 변환
             self._logger.warning(f"KOSDAQ 조회 실패: {error_msg}", exc_info=False)
             raise ValueError(f"KOSDAQ 조회 실패: {error_msg}") from e
         except Exception as e:
