@@ -791,7 +791,7 @@ class KISRestClient:
                 "ACNT_PRDT_CD": self.config.account_prod_code,  # 뒤 2자리(예: 01)
                 "AFHR_FLPR_YN": "N",
                 "OFL_YN": "",
-                "INQR_DVSN": "01",  # 01: 조회, 02: 미사용
+                "INQR_DVSN": "02",  # 02: 종목별 조회 (01: 대출일별)
                 "UNPR_DVSN": "01",
                 "FUND_STTL_ICLD_YN": "N",
                 "FNCG_AMT_AUTO_RDPT_YN": "N",
