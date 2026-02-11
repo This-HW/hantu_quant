@@ -52,6 +52,10 @@ class PyKRXClient(MarketDataClient):
         try:
             from pykrx import stock
             self._stock = stock
+
+            # pykrx 내부 로깅 에러 억제 (2026년 KRX 구조 변경으로 인한 로깅 버그)
+            import logging
+            logging.getLogger('pykrx').setLevel(logging.CRITICAL)
         except ImportError:
             self._logger.error("pykrx 패키지를 설치하세요: pip install pykrx", exc_info=True)
             raise
