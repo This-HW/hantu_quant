@@ -407,10 +407,22 @@ class APIConfig:
                     # 락 획득 후 토큰 파일 재로드 (다른 프로세스가 이미 갱신했을 수 있음)
                     self._load_token()
 
-                    # 토큰이 유효하고 강제 갱신이 아닌 경우
-                    if not force and self.validate_token():
-                        logger.debug("[refresh_token] 토큰이 이미 유효함 (다른 프로세스가 갱신했을 수 있음)")
+                    # 토큰이 유효한지 먼저 확인 (force=True일 때도 확인)
+                    if self.validate_token():
+                        if force:
+                            logger.info("[refresh_token] 토큰이 이미 유효함 (다른 프로세스가 갱신, force=True 무시)")
+                        else:
+                            logger.info("[refresh_token] 토큰이 이미 유효함 (다른 프로세스가 갱신했을 수 있음)")
                         return True
+
+                    # 토큰이 무효한 이유 로깅
+                    if not self.access_token:
+                        logger.debug("[refresh_token] 토큰 갱신 필요: access_token 없음")
+                    elif not self.token_expired_at:
+                        logger.debug("[refresh_token] 토큰 갱신 필요: token_expired_at 없음")
+                    elif datetime.now() + timedelta(minutes=10) >= self.token_expired_at:
+                        remaining = (self.token_expired_at - datetime.now()).total_seconds() / 60
+                        logger.debug(f"[refresh_token] 토큰 갱신 필요: 만료 임박 (남은 시간: {remaining:.1f}분)")
 
                     # 1분당 1회 재발급 제한 확인 (force=True일 때는 제한 무시)
                     if not force and not self._can_refresh_token():
