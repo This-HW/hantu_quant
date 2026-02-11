@@ -18,6 +18,7 @@ from typing import List, Optional, Tuple
 from core.utils.log_utils import get_logger
 from .config import SchedulerConfig
 from .notifications import NotificationService
+from .batch_utils import get_incomplete_batches, get_batch_completion_status
 
 logger = get_logger(__name__)
 
@@ -143,18 +144,27 @@ class RecoveryManager:
 
             # 2. Phase 2 미완료 배치 복구 (07:00~08:30 시간대 재시작)
             if phase2_start <= now < market_open:
-                # 현재 시간 기준으로 미완료 배치 계산
-                elapsed_minutes = (now.hour - 7) * 60 + now.minute
-                completed_batches = elapsed_minutes // 5
+                # 파일 기반으로 미완료 배치 확인
+                completed, incomplete = get_batch_completion_status(now.date())
 
-                if completed_batches < 18:
-                    logger.info(f"Phase 2 시간대 재시작 감지 - 배치 {completed_batches}-17 복구 실행 시작")
-                    print(f"[배치] Phase 2 복구: 배치 {completed_batches}-17 실행...")
+                if incomplete:
+                    logger.info(
+                        f"Phase 2 미완료 배치 감지: {len(incomplete)}개 배치 복구 필요"
+                    )
+                    logger.info(f"완료된 배치: {completed}")
+                    logger.info(f"미완료 배치: {incomplete}")
+                    print(f"[배치] Phase 2 복구: {len(incomplete)}개 배치 실행...")
 
-                    for i in range(completed_batches, 18):
-                        run_batch_callback(i)
+                    for batch_id in incomplete:
+                        logger.info(f"배치 {batch_id} 복구 실행 중...")
+                        run_batch_callback(batch_id)
 
-                    recovered_tasks.append(f"Phase 2 배치 {completed_batches}-17")
+                    recovered_tasks.append(
+                        f"Phase 2 배치 {len(incomplete)}개 (배치 ID: {incomplete})"
+                    )
+                else:
+                    logger.info("Phase 2 모든 배치 완료됨 - 복구 불필요")
+                    print("[배치] Phase 2 모든 배치 완료 - 복구 스킵")
 
             # 3. 자동 매매 (09:00~15:30 장중이면 시작)
             if now >= market_open and now < market_close:
