@@ -318,17 +318,24 @@ class KISRestClient:
                             extra=log_extra
                         )
 
-                    # Rate Limit 에러는 즉시 대기 후 재시도 (백오프 증가 없음)
-                    time.sleep(wait_time)  # 에러 코드별 대기 시간 적용
-                    # 성공으로 처리하여 tenacity 재시도 방지 (이미 대기했으므로)
+                    # Rate Limit 에러는 즉시 대기 후 tenacity 재시도 사용 (지수 백오프 방지)
                     if kis_error_code == KISErrorCode.RATE_LIMIT:
-                        # Rate Limit은 단순 대기 후 정상 흐름으로 복귀
-                        pass  # 다음 요청에서 재시도됨
-                    raise RetryableAPIError(
-                        f"KIS Error {kis_error_code}: {result.get('msg1', '')}",
-                        kis_error_code=kis_error_code,
-                        wait_seconds=wait_time
-                    )
+                        # EGW00201 Rate Limit - 5초 대기 후 즉시 재시도 (tenacity 백오프 건너뛰기)
+                        time.sleep(wait_time)
+                        # 다음 요청 시 rate_limit() 함수가 추가 대기 수행하므로 여기서는 재시도만 트리거
+                        raise RetryableAPIError(
+                            f"KIS Error {kis_error_code}: {result.get('msg1', '')}",
+                            kis_error_code=kis_error_code,
+                            wait_seconds=wait_time
+                        )
+                    else:
+                        # 기타 재시도 가능 에러 - 대기 후 재시도
+                        time.sleep(wait_time)
+                        raise RetryableAPIError(
+                            f"KIS Error {kis_error_code}: {result.get('msg1', '')}",
+                            kis_error_code=kis_error_code,
+                            wait_seconds=wait_time
+                        )
             # 성공 시 백오프 점진적 감소
             _decrease_backoff()
             return result
@@ -399,13 +406,23 @@ class KISRestClient:
                     extra=log_extra
                 )
 
-            # 대기 후 재시도 (백오프 없이 즉시)
-            time.sleep(wait_time)
-            raise RetryableAPIError(
-                f"HTTP {status_code}: {response.text}",
-                kis_error_code=kis_error_code,
-                wait_seconds=wait_time
-            )
+            # Rate Limit 에러는 즉시 대기 후 재시도 (tenacity 백오프 건너뛰기)
+            if kis_error_code == KISErrorCode.RATE_LIMIT:
+                # EGW00201 - 5초 대기 후 즉시 재시도
+                time.sleep(wait_time)
+                raise RetryableAPIError(
+                    f"HTTP {status_code}: {response.text}",
+                    kis_error_code=kis_error_code,
+                    wait_seconds=wait_time
+                )
+            else:
+                # 기타 5xx 에러 - 대기 후 재시도
+                time.sleep(wait_time)
+                raise RetryableAPIError(
+                    f"HTTP {status_code}: {response.text}",
+                    kis_error_code=kis_error_code,
+                    wait_seconds=wait_time
+                )
 
         # 4xx 클라이언트 에러 → 재시도 불가
         if 400 <= status_code < 500:
