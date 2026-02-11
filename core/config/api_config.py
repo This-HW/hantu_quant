@@ -424,18 +424,22 @@ class APIConfig:
                         remaining = (self.token_expired_at - datetime.now()).total_seconds() / 60
                         logger.debug(f"[refresh_token] 토큰 갱신 필요: 만료 임박 (남은 시간: {remaining:.1f}분)")
 
-                    # 1분당 1회 재발급 제한 확인 (force=True일 때는 제한 무시)
-                    if not force and not self._can_refresh_token():
-                        logger.warning("[refresh_token] 토큰 재발급 제한으로 기존 토큰 유지 시도")
-                        # 기존 토큰이 있으면 그대로 사용
-                        if self.access_token:
-                            return True
-                        # 토큰이 없으면 대기 후 재시도
+                    # 1분당 1회 재발급 제한 확인 (force=True일 때도 대기 필요)
+                    if not self._can_refresh_token():
+                        # 다른 프로세스가 최근 갱신했다면 대기
                         elapsed = datetime.now() - self._last_token_issued_at
                         wait_time = 60 - elapsed.total_seconds()
                         if wait_time > 0:
-                            logger.info(f"[refresh_token] {wait_time:.0f}초 대기 후 재발급 시도")
+                            if force:
+                                logger.warning(f"[refresh_token] force=True이지만 Rate Limit 보호를 위해 {wait_time:.0f}초 대기")
+                            else:
+                                logger.warning(f"[refresh_token] 토큰 재발급 제한으로 {wait_time:.0f}초 대기")
                             time.sleep(wait_time + 1)
+                            # 대기 후 토큰 재로드 (다른 프로세스가 갱신했을 수 있음)
+                            self._load_token()
+                            if self.validate_token():
+                                logger.info("[refresh_token] 대기 중 다른 프로세스가 토큰을 갱신함")
+                                return True
 
                     # API 호출 제한 적용
                     self.apply_rate_limit()
