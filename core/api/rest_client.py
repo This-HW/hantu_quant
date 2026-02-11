@@ -147,7 +147,7 @@ def _get_wait_time_for_kis_error(error_code: str) -> float:
     elif error_code == KISErrorCode.TOKEN_REFRESH_RATE_LIMIT:
         # EGW00133: 토큰 재발급 제한 (1분당 1회) - 짧은 대기 후 기존 토큰으로 재시도
         # 다른 프로세스가 토큰을 갱신했을 가능성이 높으므로 바로 재시도
-        return 1.0  # 1초 대기 (파일 시스템 동기화 시간)
+        return 2.0  # 2초 대기 (파일 시스템 동기화 + 락 해제 시간)
     elif error_code == KISErrorCode.SERVICE_ERROR:
         # EGW00500: 서비스 오류 - 표준 대기
         return 10.0
@@ -361,14 +361,14 @@ class KISRestClient:
                     "토큰 만료 에러 (EGW00123) 감지 - 토큰 갱신 시도",
                     extra=log_extra
                 )
-                # 토큰 갱신 시도 (force=True로 1분 제한 우회)
+                # 토큰 갱신 시도 (force=False로 1분 제한 준수)
                 # 다른 프로세스가 이미 갱신했을 수 있으므로 파일 재로드됨
-                refresh_success = self.config.refresh_token(force=True)
+                refresh_success = self.config.refresh_token(force=False)
                 log_extra['refresh_success'] = refresh_success
                 if not refresh_success:
                     # 갱신 실패 - 재시도 불가능 에러로 처리
                     logger.error(
-                        "토큰 갱신 최종 실패 - 재시도 불가능",
+                        "토큰 갱신 최종 실패 - 1분 대기 후 재시도 권장",
                         exc_info=True,
                         extra=log_extra
                     )
