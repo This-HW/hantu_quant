@@ -366,14 +366,16 @@ class KISRestClient:
                 refresh_success = self.config.refresh_token(force=False)
                 log_extra['refresh_success'] = refresh_success
                 if not refresh_success:
-                    # 갱신 실패 - 재시도 불가능 에러로 처리
-                    logger.error(
-                        "토큰 갱신 최종 실패 - 1분 대기 후 재시도 권장",
-                        exc_info=True,
+                    # 갱신 실패 - RetryableAPIError로 처리하여 재시도 허용
+                    # 다른 프로세스가 토큰을 갱신할 시간을 주기 위해 2초 대기
+                    logger.warning(
+                        "토큰 갱신 실패 - 2초 대기 후 재시도 (다른 프로세스가 갱신했을 가능성 있음)",
                         extra=log_extra
                     )
-                    raise NonRetryableAPIError(
-                        f"토큰 갱신 실패: {response.text}"
+                    raise RetryableAPIError(
+                        f"토큰 갱신 실패 (재시도 예정): {response.text}",
+                        kis_error_code=kis_error_code,
+                        wait_seconds=2.0  # 2초 대기 (파일 동기화 + 락 해제 시간)
                     )
                 else:
                     logger.info("토큰 갱신 성공", extra=log_extra)
