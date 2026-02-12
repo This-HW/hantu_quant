@@ -383,6 +383,8 @@ class KISRestClient:
                         extra=log_extra
                     )
                     time.sleep(2.0)
+                    # 토큰 파일 재로드하여 다른 프로세스가 갱신한 토큰 사용
+                    self.config._load_token()
                     raise RetryableAPIError(
                         f"토큰 갱신 실패 (재시도 예정): {response.text}",
                         kis_error_code=kis_error_code,
@@ -390,6 +392,8 @@ class KISRestClient:
                     )
                 else:
                     logger.info("토큰 갱신 성공 - 재시도 시 새 토큰 자동 적용", extra=log_extra)
+                    # 토큰 갱신 성공 후 메모리 상태를 파일과 동기화 (중요!)
+                    self.config._load_token()
                 # 토큰 갱신 후 즉시 재시도 (헤더는 재시도 시 _request에서 재생성됨)
                 raise RetryableAPIError(
                     f"HTTP {status_code}: 토큰 만료 (갱신 완료, 재시도)",
