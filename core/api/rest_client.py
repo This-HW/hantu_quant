@@ -142,8 +142,8 @@ def _get_wait_time_for_kis_error(error_code: str) -> float:
         # EGW00203: 서버 과부하/점검 - 긴 대기 필요
         return 15.0
     elif error_code == KISErrorCode.RATE_LIMIT:
-        # EGW00201: Rate Limit - 즉시 대기 (백오프 대신)
-        return 5.0  # 30초 → 5초로 감소 (백오프 제거)
+        # EGW00201: Rate Limit - 슬라이딩 윈도우 리셋 보장
+        return 60.0  # 1분 대기로 슬라이딩 윈도우 완전 리셋
     elif error_code == KISErrorCode.TOKEN_REFRESH_RATE_LIMIT:
         # EGW00133: 토큰 재발급 제한 (1분당 1회) - 짧은 대기 후 기존 토큰으로 재시도
         # 다른 프로세스가 토큰을 갱신했을 가능성이 높으므로 바로 재시도

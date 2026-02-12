@@ -103,10 +103,11 @@ class AsyncKISClient:
     DEFAULT_RATE_LIMIT_PER_SEC = 5
 
     # Rate Limit 에러 발생 시 대기 시간 (초)
-    RATE_LIMIT_WAIT_TIME = 10.0
+    # KIS API 슬라이딩 윈도우를 고려하여 1분 대기
+    RATE_LIMIT_WAIT_TIME = 60.0
 
     # 청크 처리 시 청크 간 대기 시간 (초)
-    CHUNK_WAIT_TIME = 1.5
+    CHUNK_WAIT_TIME = 2.0
 
     def __init__(
         self,
@@ -190,25 +191,25 @@ class AsyncKISClient:
             # 1초 윈도우 체크 (초당 5건)
             self._timestamps_1s = [t for t in self._timestamps_1s if now - t < 1.0]
             if len(self._timestamps_1s) >= 5:
-                wait_time = 1.0 - (now - self._timestamps_1s[0]) + 0.05  # 50ms 여유
+                wait_time = 1.0 - (now - self._timestamps_1s[0]) + 0.1  # 100ms 여유 (증가)
                 if wait_time > 0:
                     logger.debug(f"1초 Rate Limit 대기: {wait_time:.2f}초")
                     await asyncio.sleep(wait_time)
                     now = time.time()
 
-            # 1분 윈도우 체크 (분당 100건)
+            # 1분 윈도우 체크 (분당 80건으로 보수적 조정)
             self._timestamps_1m = [t for t in self._timestamps_1m if now - t < 60.0]
-            if len(self._timestamps_1m) >= 100:
-                wait_time = 60.0 - (now - self._timestamps_1m[0]) + 0.1  # 100ms 여유
+            if len(self._timestamps_1m) >= 80:
+                wait_time = 60.0 - (now - self._timestamps_1m[0]) + 0.5  # 500ms 여유
                 if wait_time > 0:
                     logger.warning(f"1분 Rate Limit 근접, {wait_time:.1f}초 대기")
                     await asyncio.sleep(wait_time)
                     now = time.time()
 
-            # 1시간 윈도우 체크 (시간당 1500건)
+            # 1시간 윈도우 체크 (시간당 1200건으로 보수적 조정)
             self._timestamps_1h = [t for t in self._timestamps_1h if now - t < 3600.0]
-            if len(self._timestamps_1h) >= 1500:
-                wait_time = 3600.0 - (now - self._timestamps_1h[0]) + 1.0  # 1초 여유
+            if len(self._timestamps_1h) >= 1200:
+                wait_time = 3600.0 - (now - self._timestamps_1h[0]) + 2.0  # 2초 여유
                 if wait_time > 0:
                     logger.error(f"시간당 Rate Limit 도달, {wait_time:.1f}초 대기")
                     await asyncio.sleep(wait_time)
@@ -279,13 +280,15 @@ class AsyncKISClient:
 
                         # Rate Limit 에러 처리 (EGW00201)
                         if self._is_rate_limit_error(data):
+                            # Exponential Backoff: 60초 → 120초 → 240초
+                            backoff_time = self.RATE_LIMIT_WAIT_TIME * (2 ** attempt)
                             logger.warning(
                                 f"Rate Limit 에러 발생 ({stock_code}), "
-                                f"{self.RATE_LIMIT_WAIT_TIME}초 대기 후 재시도 "
+                                f"{backoff_time:.0f}초 대기 후 재시도 "
                                 f"({attempt + 1}/{self.retry_count + 1})"
                             )
                             if attempt < self.retry_count:
-                                await asyncio.sleep(self.RATE_LIMIT_WAIT_TIME)
+                                await asyncio.sleep(backoff_time)
                                 continue
                             return (stock_code, None, "Rate Limit 초과 (EGW00201)")
 
