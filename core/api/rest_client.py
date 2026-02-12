@@ -249,7 +249,7 @@ class KISRestClient:
         Args:
             method: HTTP 메서드
             url: 요청 URL
-            headers: 요청 헤더
+            headers: 요청 헤더 (기본값 사용 시 매 재시도마다 최신 토큰으로 재생성)
             params: URL 파라미터
             data: 요청 데이터
             timeout: 타임아웃 (초)
@@ -263,10 +263,19 @@ class KISRestClient:
             requests.Timeout: 타임아웃 에러
             requests.ConnectionError: 연결 에러
         """
+        # 매 재시도마다 최신 토큰을 사용하도록 헤더 재생성
+        if headers is None:
+            request_headers = self.config.get_headers()
+        else:
+            # 헤더가 제공된 경우, authorization 토큰만 최신으로 업데이트
+            request_headers = headers.copy()
+            if 'authorization' not in request_headers or request_headers['authorization'].startswith('Bearer '):
+                request_headers['authorization'] = f'Bearer {self.config.access_token}'
+
         response = requests.request(
             method=method,
             url=url,
-            headers=headers or {},
+            headers=request_headers,
             params=params,
             json=data,
             timeout=timeout
@@ -372,17 +381,15 @@ class KISRestClient:
                         "토큰 갱신 실패 - 2초 대기 후 재시도 (다른 프로세스가 갱신했을 가능성 있음)",
                         extra=log_extra
                     )
+                    time.sleep(2.0)
                     raise RetryableAPIError(
                         f"토큰 갱신 실패 (재시도 예정): {response.text}",
                         kis_error_code=kis_error_code,
-                        wait_seconds=2.0  # 2초 대기 (파일 동기화 + 락 해제 시간)
+                        wait_seconds=0  # 이미 대기했으므로 추가 대기 없음
                     )
                 else:
-                    logger.info("토큰 갱신 성공", extra=log_extra)
-                # 헤더 갱신 (새 토큰)
-                if headers:
-                    headers['authorization'] = f'Bearer {self.config.access_token}'
-                # 토큰 갱신 후 즉시 재시도
+                    logger.info("토큰 갱신 성공 - 재시도 시 새 토큰 자동 적용", extra=log_extra)
+                # 토큰 갱신 후 즉시 재시도 (헤더는 재시도 시 _request에서 재생성됨)
                 raise RetryableAPIError(
                     f"HTTP {status_code}: 토큰 만료 (갱신 완료, 재시도)",
                     kis_error_code=kis_error_code,
