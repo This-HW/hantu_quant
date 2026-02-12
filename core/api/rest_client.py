@@ -273,14 +273,28 @@ class KISRestClient:
                 if key not in ['authorization', 'appkey', 'appsecret']:  # 토큰/인증 관련은 재생성된 값 사용
                     request_headers[key] = value
 
-        response = requests.request(
-            method=method,
-            url=url,
-            headers=request_headers,
-            params=params,
-            json=data,
-            timeout=timeout
-        )
+        try:
+            response = requests.request(
+                method=method,
+                url=url,
+                headers=request_headers,
+                params=params,
+                json=data,
+                timeout=timeout
+            )
+        except requests.ConnectionError as e:
+            # 연결 실패 시 명확한 로깅
+            logger.warning(
+                f"KIS API 연결 실패 (재시도 예정): {url}",
+                exc_info=True,
+                extra={
+                    'method': method,
+                    'url': url,
+                    'error_type': type(e).__name__,
+                    'error_detail': str(e)
+                }
+            )
+            raise  # tenacity가 재시도 처리
 
         status_code = response.status_code
 
