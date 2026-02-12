@@ -263,14 +263,15 @@ class KISRestClient:
             requests.Timeout: 타임아웃 에러
             requests.ConnectionError: 연결 에러
         """
-        # 매 재시도마다 최신 토큰을 사용하도록 헤더 재생성
-        if headers is None:
-            request_headers = self.config.get_headers()
-        else:
-            # 헤더가 제공된 경우, authorization 토큰만 최신으로 업데이트
-            request_headers = headers.copy()
-            if 'authorization' not in request_headers or request_headers['authorization'].startswith('Bearer '):
-                request_headers['authorization'] = f'Bearer {self.config.access_token}'
+        # 매 재시도마다 최신 토큰을 사용하도록 헤더 완전히 재생성
+        # 토큰 갱신 후 재시도 시 get_headers()가 최신 토큰을 반환하므로 항상 재생성 필요
+        request_headers = self.config.get_headers()
+
+        # 기존 헤더에 커스텀 값이 있으면 보존 (tr_id, hashkey 등)
+        if headers:
+            for key, value in headers.items():
+                if key not in ['authorization', 'appkey', 'appsecret']:  # 토큰/인증 관련은 재생성된 값 사용
+                    request_headers[key] = value
 
         response = requests.request(
             method=method,
