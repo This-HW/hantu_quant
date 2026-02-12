@@ -23,8 +23,8 @@ RestartSec=10
 TimeoutStartSec=30
 TimeoutStopSec=30
 
-# 리소스 제한 (1GB RAM 환경)
-MemoryMax=400M
+# 리소스 제한 (6GB RAM 환경 - 병렬 워커 4개 고려)
+MemoryMax=800M
 CPUQuota=50%
 
 # 로깅
