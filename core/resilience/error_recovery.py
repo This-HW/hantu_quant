@@ -549,7 +549,11 @@ class ErrorRecoverySystem:
                 self._recovery_manager.attempt_recovery(error_event)
                 self._save_error_event(error_event)  # 복구 결과 업데이트
             
-            self._logger.error(f"에러 보고: {component} - {error_message} (심각도: {severity.value})", exc_info=True)
+            # 로그 레벨 결정: 시스템 메트릭은 WARNING, 실제 에러는 ERROR
+            if component == "system":
+                self._logger.warning(f"시스템 경고: {component} - {error_message} (심각도: {severity.value})")
+            else:
+                self._logger.error(f"에러 보고: {component} - {error_message} (심각도: {severity.value})", exc_info=True)
             
             return error_event
             
@@ -575,21 +579,12 @@ class ErrorRecoverySystem:
 
         Note: SQLite는 더 이상 사용하지 않음.
         에러 로깅은 logger를 통해 PostgreSQL error_logs 테이블에 자동 저장됨.
+
+        중복 로깅 방지: report_error()에서 이미 로깅했으므로 여기서는 DB 저장만 수행
         """
-        # 에러 이벤트를 logger를 통해 기록 (DB 에러 핸들러가 자동으로 PostgreSQL에 저장)
-        self._logger.error(
-            f"에러 보고: {error_event.component} - {error_event.message} "
-            f"(심각도: {error_event.severity.value})",
-            extra={
-                'error_type': error_event.error_type,
-                'component': error_event.component,
-                'severity': error_event.severity.value,
-                'affected_users': error_event.affected_users,
-                'recovery_attempted': error_event.recovery_attempted,
-                'recovery_action': error_event.recovery_action.value if error_event.recovery_action else None,
-                'recovery_success': error_event.recovery_success,
-            }
-        )
+        # 중복 로깅 제거 (report_error()에서 이미 로깅됨)
+        # DB 저장은 log_utils의 DBErrorHandler가 자동으로 처리
+        pass
     
     def start_monitoring(self, interval_seconds: int = 1800):
         """자동 모니터링 시작 (기본 30분 간격)"""
