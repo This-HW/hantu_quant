@@ -372,6 +372,14 @@ class IntegratedScheduler:
         schedule.every().day.at("00:00").do(self._run_cache_initialization)
 
         # ========================================
+        # Redis 헬스 체크 (Phase 2 통합)
+        # ========================================
+        # 매일 00:05 (캐시 초기화 직후)
+        schedule.every().day.at("00:05").do(self._run_redis_health_check)
+        # 매일 12:00 (점심시간)
+        schedule.every().day.at("12:00").do(self._run_redis_health_check)
+
+        # ========================================
         # Phase 1: 일간 스크리닝 (매일 06:00, 주말 제외)
         # ========================================
         schedule.every().monday.at("06:00").do(self._run_daily_screening)
@@ -491,6 +499,7 @@ class IntegratedScheduler:
         logger.info("통합 스케줄러 시작됨")
         print("통합 스케줄러 시작!")
         print("├─ 캐시 초기화: 매일 00:00")
+        print("├─ Redis 헬스 체크: 매일 00:05, 12:00")
         print("├─ 일간 스크리닝: 매일 06:00")
         print("├─ 일일 업데이트: 07:00-08:30 (18개 배치, 5분 간격)")
         print("├─ 자동 매매 시작: 매일 09:00 (평일)")
@@ -1794,6 +1803,49 @@ class IntegratedScheduler:
                     )
             except Exception:
                 pass  # 알람 실패는 무시
+
+    def _run_redis_health_check(self):
+        """Redis 헬스 체크 실행 (Phase 2 통합)
+
+        목적:
+        - Redis 캐시 시스템 상태 확인
+        - 메모리 사용률, 히트율, 성능 메트릭 수집
+        - 임계값 초과 시 텔레그램 알림
+
+        실행 시점:
+        - 매일 00:05 (캐시 초기화 직후)
+        - 매일 12:00 (점심시간)
+        """
+        try:
+            logger.info("=== Redis 헬스 체크 시작 ===")
+
+            from core.monitoring.redis_health import check_redis_health
+            from core.notification.telegram_bot import TelegramNotifier
+
+            # Redis 헬스 체크 수행
+            result = check_redis_health()
+
+            status = result['status']
+            alert_message = result.get('alert_message')
+
+            logger.info(f"Redis 헬스 체크 완료: {status}")
+
+            # WARNING 이상일 때 텔레그램 알림 발송
+            if alert_message:
+                try:
+                    telegram = TelegramNotifier()
+                    if telegram.is_configured():
+                        send_result = telegram.send_raw(alert_message)
+                        if send_result.success:
+                            logger.info("Redis 헬스 알림 발송 완료")
+                        else:
+                            logger.warning(f"Redis 헬스 알림 발송 실패: {send_result.error}")
+                except Exception as e:
+                    logger.error(f"Redis 헬스 알림 발송 오류: {e}", exc_info=True)
+
+        except Exception as e:
+            logger.error(f"Redis 헬스 체크 실패: {e}", exc_info=True)
+            # 헬스 체크 실패는 치명적이지 않으므로 계속 진행
 
     def _run_auto_maintenance(self):
         """자동 유지보수 실행"""

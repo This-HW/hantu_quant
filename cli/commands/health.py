@@ -139,6 +139,31 @@ def _collect_health_data(verbose: bool) -> dict:
                 'error': str(e),
             }
 
+    # Redis cache status (Phase 2 integration)
+    try:
+        from core.monitoring.redis_health import get_redis_status
+
+        redis_status = get_redis_status()
+        status_map = {'OK': 'healthy', 'WARNING': 'warning', 'CRITICAL': 'error', 'ERROR': 'error'}
+        redis_health = status_map.get(redis_status['status'], 'warning')
+
+        health_data['checks']['redis_cache'] = {
+            'status': redis_health,
+            'available': redis_status['available'],
+            'fallback_mode': redis_status['fallback_mode'],
+            'memory_usage_percent': redis_status['memory_usage'],
+            'hit_rate_percent': redis_status['hit_rate'],
+            'total_keys': redis_status['total_keys'],
+            'latency_ms': redis_status['latency_ms'],
+        }
+
+        # Redis가 사용 불가능하거나 critical 상태면 경고
+        if not redis_status['available'] or redis_health == 'error':
+            health_data['overall_healthy'] = False
+
+    except Exception as e:
+        health_data['checks']['redis_cache'] = {'status': 'error', 'error': str(e)}
+
     return health_data
 
 
