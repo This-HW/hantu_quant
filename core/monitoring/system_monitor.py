@@ -359,8 +359,22 @@ class SystemMonitor:
             # 메트릭 저장
             self._save_performance_metrics(metrics)
 
+            # Redis 메트릭 수집 및 저장 (Phase 2 통합)
+            self._collect_redis_metrics()
+
         except Exception as e:
             self.logger.error(f"성능 메트릭 수집 실패: {e}", exc_info=True)
+
+    def _collect_redis_metrics(self):
+        """Redis 메트릭 수집 및 저장"""
+        try:
+            from core.monitoring.redis_health import collect_and_save_metrics
+
+            success = collect_and_save_metrics()
+            if not success:
+                self.logger.warning("Redis 메트릭 수집/저장 실패")
+        except Exception as e:
+            self.logger.error(f"Redis 메트릭 수집 오류: {e}", exc_info=True)
 
     def _save_performance_metrics(self, metrics: PerformanceMetrics):
         """성능 메트릭 저장"""
