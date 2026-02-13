@@ -141,6 +141,9 @@ def _get_wait_time_for_kis_error(error_code: str) -> float:
     if error_code == KISErrorCode.OPS_ROUTING_ERROR:
         # EGW00203: 서버 과부하/점검 - 긴 대기 필요
         return 15.0
+    elif error_code == KISErrorCode.GATEWAY_ROUTING_ERROR:
+        # EGW00300: Gateway 라우팅 오류 - 일시적 서버 문제
+        return 10.0
     elif error_code == KISErrorCode.RATE_LIMIT:
         # EGW00201: Rate Limit - 슬라이딩 윈도우 리셋 보장
         return 60.0  # 1분 대기로 슬라이딩 윈도우 완전 리셋
@@ -330,6 +333,12 @@ class KISRestClient:
                             f"KIS API 에러 (EGW00203 OPS Routing): {result.get('msg1', '')} - {wait_time}초 대기",
                             extra=log_extra
                         )
+                    elif kis_error_code == KISErrorCode.GATEWAY_ROUTING_ERROR:
+                        # EGW00300: Gateway Routing 에러 - 일시적 서버 문제
+                        logger.warning(
+                            f"KIS API 에러 (EGW00300 Gateway Routing): {result.get('msg1', '')} - {wait_time}초 대기",
+                            extra=log_extra
+                        )
                     elif kis_error_code == KISErrorCode.TOKEN_EXPIRED:
                         # EGW00123: Token Expired - 갱신 시도 기록 (다음 블록에서 처리)
                         logger.warning(
@@ -418,6 +427,12 @@ class KISRestClient:
                 # EGW00203: OPS Routing 에러 - 대기 시간 기록
                 logger.warning(
                     f"KIS OPS 라우팅 에러 (EGW00203) - 서버 과부하/점검 중, {wait_time}초 후 재시도",
+                    extra=log_extra
+                )
+            elif kis_error_code == KISErrorCode.GATEWAY_ROUTING_ERROR:
+                # EGW00300: Gateway Routing 에러 - 일시적 서버 문제
+                logger.warning(
+                    f"KIS Gateway 라우팅 에러 (EGW00300) - 일시적 서버 문제, {wait_time}초 후 재시도",
                     extra=log_extra
                 )
             elif kis_error_code == KISErrorCode.RATE_LIMIT:
