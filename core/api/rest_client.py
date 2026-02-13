@@ -239,8 +239,8 @@ class KISRestClient:
             return {"error": str(e)}
 
     @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=2, min=3, max=30),
+        stop=stop_after_attempt(3),  # 5회 → 3회 (ConnectionError는 빠른 실패)
+        wait=wait_exponential(multiplier=2, min=5, max=60),  # 최소 5초, 최대 60초
         retry=retry_if_exception_type((RetryableAPIError, requests.Timeout, requests.ConnectionError)),
         before_sleep=before_sleep_log(logger, logging.WARNING),
         reraise=True
@@ -286,7 +286,7 @@ class KISRestClient:
                 timeout=timeout
             )
         except requests.ConnectionError as e:
-            # 연결 실패 시 명확한 로깅
+            # 연결 실패 시 명확한 로깅 및 백오프 증가
             logger.warning(
                 f"KIS API 연결 실패 (재시도 예정): {url}",
                 exc_info=True,
@@ -297,6 +297,11 @@ class KISRestClient:
                     'error_detail': str(e)
                 }
             )
+            # 연결 실패는 서버 과부하 또는 네트워크 문제 가능성 → 백오프 증가
+            _increase_backoff()
+            # 5초 대기 (다른 프로세스의 요청이 완료될 시간 확보)
+            import time
+            time.sleep(5.0)
             raise  # tenacity가 재시도 처리
 
         status_code = response.status_code
