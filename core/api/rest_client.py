@@ -288,15 +288,28 @@ class KISRestClient:
         except requests.ConnectionError as e:
             # 연결 실패 시 명확한 로깅 및 백오프 대폭 증가
             backoff_multiplier = _increase_backoff()  # 백오프 증가 (즉시 적용)
+
+            # 에러 원인 분석
+            error_detail = str(e)
+            if "Connection refused" in error_detail:
+                cause = "API 서버가 연결을 거부했습니다 (서버 점검 또는 네트워크 차단 가능성)"
+            elif "Name or service not known" in error_detail or "getaddrinfo failed" in error_detail:
+                cause = "DNS 해석 실패 (네트워크 연결 또는 DNS 문제)"
+            elif "timed out" in error_detail or "timeout" in error_detail.lower():
+                cause = "연결 시도 시간 초과 (네트워크 지연 또는 방화벽)"
+            else:
+                cause = "알 수 없는 연결 오류"
+
             logger.warning(
-                f"KIS API 연결 실패 (재시도 예정): {url} - 백오프 증가: {backoff_multiplier:.1f}x",
+                f"KIS API 연결 실패 (재시도 예정): {url} - {cause} - 백오프 증가: {backoff_multiplier:.1f}x",
                 exc_info=True,
                 extra={
                     'method': method,
                     'url': url,
                     'error_type': type(e).__name__,
-                    'error_detail': str(e),
-                    'backoff_multiplier': backoff_multiplier
+                    'error_detail': error_detail,
+                    'backoff_multiplier': backoff_multiplier,
+                    'diagnosis': cause
                 }
             )
             # tenacity의 지수 백오프가 재시도 처리 (15초 → 75초 → 120초)
