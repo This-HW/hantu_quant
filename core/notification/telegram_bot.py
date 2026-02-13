@@ -543,6 +543,72 @@ class TelegramNotifier(BaseNotifier):
             error="Unknown error",
         )
 
+    def send_redis_health_alert(
+        self,
+        metrics: Any,
+        health_status: str
+    ) -> NotificationResult:
+        """
+        Redis 헬스 알림 발송
+
+        Args:
+            metrics: RedisMetricsData 객체
+            health_status: 헬스 상태 ('OK', 'WARNING', 'CRITICAL', 'ERROR')
+
+        Returns:
+            NotificationResult: 발송 결과
+        """
+        if not self.is_configured():
+            return NotificationResult(
+                success=False,
+                alert_id="redis_health",
+                error="Telegram not configured",
+            )
+
+        try:
+            from core.monitoring.redis_monitor import RedisMonitor
+
+            # RedisMonitor를 사용하여 알림 메시지 생성
+            monitor = RedisMonitor()
+
+            # HealthStatus enum으로 변환
+            from core.monitoring.redis_monitor import HealthStatus
+            try:
+                health = HealthStatus(health_status)
+            except ValueError:
+                # 문자열로 직접 전달된 경우 처리
+                health = HealthStatus.OK
+
+            # 알림 메시지 생성
+            message = monitor.get_alert_message(metrics, health)
+
+            if message is None:
+                # OK 상태는 알림 불필요
+                logger.debug("Redis 상태 정상 (OK), 알림 생략")
+                return NotificationResult(
+                    success=True,
+                    alert_id="redis_health",
+                    error="No alert needed (OK status)",
+                )
+
+            # 메시지 발송
+            result = self._send_message(message, "redis_health")
+
+            if result.success:
+                logger.info(f"Redis 헬스 알림 발송 완료: {health_status}")
+            else:
+                logger.warning(f"Redis 헬스 알림 발송 실패: {result.error}")
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Redis 헬스 알림 발송 에러: {e}", exc_info=True)
+            return NotificationResult(
+                success=False,
+                alert_id="redis_health",
+                error=str(e),
+            )
+
     def test_connection(self) -> Dict[str, Any]:
         """
         연결 테스트
