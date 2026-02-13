@@ -1284,3 +1284,55 @@ class ModelPerformance(Base):
         Index('ix_model_perf_name', 'model_name'),
         Index('ix_model_perf_date', 'evaluation_date'),
     )
+
+
+class RedisMetrics(Base):
+    """Redis 캐싱 시스템 메트릭"""
+    __tablename__ = 'redis_metrics'
+
+    id = Column(Integer, primary_key=True)
+    timestamp = Column(DateTime, nullable=False, default=datetime.now, index=True)
+
+    # 메모리 메트릭
+    used_memory_mb = Column(Float, nullable=False)
+    max_memory_mb = Column(Float, nullable=False)
+    memory_usage_percent = Column(Float, nullable=False)
+    evicted_keys = Column(Integer, default=0)
+
+    # 캐시 성능
+    total_keys = Column(Integer, default=0)
+    keyspace_hits = Column(Integer, default=0)
+    keyspace_misses = Column(Integer, default=0)
+    hit_rate_percent = Column(Float, default=0.0)
+
+    # 성능 지표
+    latency_ms = Column(Float)  # PING 응답 시간 (밀리초)
+
+    # 상태
+    is_available = Column(Integer, default=1)  # Boolean: 1=사용 가능, 0=장애
+    fallback_in_use = Column(Integer, default=0)  # Boolean: 1=MemoryCache 폴백 중
+
+    created_at = Column(DateTime, default=datetime.now)
+
+    __table_args__ = (
+        Index('ix_redis_metrics_timestamp', 'timestamp'),
+        Index('ix_redis_metrics_memory', 'memory_usage_percent'),
+        Index('ix_redis_metrics_hit_rate', 'hit_rate_percent'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'used_memory_mb': self.used_memory_mb,
+            'max_memory_mb': self.max_memory_mb,
+            'memory_usage_percent': self.memory_usage_percent,
+            'evicted_keys': self.evicted_keys,
+            'total_keys': self.total_keys,
+            'keyspace_hits': self.keyspace_hits,
+            'keyspace_misses': self.keyspace_misses,
+            'hit_rate_percent': self.hit_rate_percent,
+            'latency_ms': self.latency_ms,
+            'is_available': bool(self.is_available),
+            'fallback_in_use': bool(self.fallback_in_use),
+        }
