@@ -1053,9 +1053,37 @@ class KISRestClient:
                 return balance
                 
             else:
-                logger.error(f"[get_balance] 잔고 조회 실패: {response.get('msg1')}", exc_info=True)
+                error_msg = response.get('msg1', '알 수 없는 오류')
+                error_code = response.get('msg_cd', 'UNKNOWN')
+
+                # 일시적 서버 오류 vs 영구적 설정 오류 구분
+                is_transient = "INVALID_CHECK_ACNO" in error_msg or error_code in ["EGW00203", "EGW00300"]
+
+                if is_transient:
+                    logger.warning(
+                        f"[get_balance] 일시적 잔고 조회 실패 (재시도 권장): {error_msg}",
+                        extra={
+                            'error_code': error_code,
+                            'error_msg': error_msg,
+                            'account': f"{self.config.account_number}-{self.config.account_prod_code}",
+                            'server': self.config.server,
+                            'is_transient': True
+                        }
+                    )
+                else:
+                    logger.error(
+                        f"[get_balance] 잔고 조회 실패 (설정 확인 필요): {error_msg}",
+                        exc_info=True,
+                        extra={
+                            'error_code': error_code,
+                            'error_msg': error_msg,
+                            'account': f"{self.config.account_number}-{self.config.account_prod_code}",
+                            'server': self.config.server,
+                            'is_transient': False
+                        }
+                    )
                 return {}
-                
+
         except Exception as e:
             logger.error(f"[get_balance] 잔고 조회 중 오류 발생: {str(e)}", exc_info=True)
             return {}
