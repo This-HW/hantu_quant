@@ -129,7 +129,7 @@ def collect_and_save_metrics() -> bool:
         success = monitor.save_metrics(metrics)
 
         if success:
-            logger.debug(
+            logger.info(
                 f"Redis 메트릭 저장 완료: "
                 f"메모리={metrics.memory_usage_percent}%, "
                 f"히트율={metrics.hit_rate_percent}%"

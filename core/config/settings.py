@@ -114,6 +114,14 @@ DB_POOL_RECYCLE = int(os.getenv('DB_POOL_RECYCLE', '1800'))
 # Redis 설정 (캐시용)
 REDIS_URL = os.getenv('REDIS_URL', None)
 
+# Redis 모니터링 임계값 설정
+REDIS_MEMORY_WARNING_THRESHOLD = float(os.getenv('REDIS_MEMORY_WARNING_THRESHOLD', '0.7'))  # 70%
+REDIS_MEMORY_CRITICAL_THRESHOLD = float(os.getenv('REDIS_MEMORY_CRITICAL_THRESHOLD', '0.8'))  # 80%
+REDIS_HIT_RATE_WARNING_THRESHOLD = float(os.getenv('REDIS_HIT_RATE_WARNING_THRESHOLD', '0.5'))  # 50%
+REDIS_HIT_RATE_CRITICAL_THRESHOLD = float(os.getenv('REDIS_HIT_RATE_CRITICAL_THRESHOLD', '0.4'))  # 40%
+REDIS_LATENCY_WARNING_MS = int(os.getenv('REDIS_LATENCY_WARNING_MS', '50'))  # 50ms
+REDIS_LATENCY_CRITICAL_MS = int(os.getenv('REDIS_LATENCY_CRITICAL_MS', '100'))  # 100ms
+
 # API 설정
 APP_KEY = os.getenv('APP_KEY')
 APP_SECRET = os.getenv('APP_SECRET')
@@ -168,6 +176,21 @@ def create_directories():
     
     for directory in directories:
         directory.mkdir(parents=True, exist_ok=True)
-        
+
 # 시작 시 디렉토리 생성
-create_directories() 
+create_directories()
+
+# Settings 인스턴스 생성 (import 편의성을 위해)
+class Settings:
+    """설정 관리 클래스"""
+    def __init__(self):
+        """프로젝트 설정을 인스턴스로 제공"""
+        # Redis 모니터링 임계값
+        self.REDIS_MEMORY_WARNING_THRESHOLD = REDIS_MEMORY_WARNING_THRESHOLD
+        self.REDIS_MEMORY_CRITICAL_THRESHOLD = REDIS_MEMORY_CRITICAL_THRESHOLD
+        self.REDIS_HIT_RATE_WARNING_THRESHOLD = REDIS_HIT_RATE_WARNING_THRESHOLD
+        self.REDIS_HIT_RATE_CRITICAL_THRESHOLD = REDIS_HIT_RATE_CRITICAL_THRESHOLD
+        self.REDIS_LATENCY_WARNING_MS = REDIS_LATENCY_WARNING_MS
+        self.REDIS_LATENCY_CRITICAL_MS = REDIS_LATENCY_CRITICAL_MS
+
+settings = Settings() 

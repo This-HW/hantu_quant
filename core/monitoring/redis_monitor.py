@@ -58,13 +58,14 @@ class RedisMetricsData:
 class RedisMonitor:
     """Redis 모니터링 클래스"""
 
-    # 임계값 설정
-    MEMORY_WARNING_THRESHOLD = 0.7  # 70%
-    MEMORY_CRITICAL_THRESHOLD = 0.8  # 80%
-    HIT_RATE_WARNING_THRESHOLD = 0.5  # 50%
-    HIT_RATE_CRITICAL_THRESHOLD = 0.4  # 40%
-    LATENCY_WARNING_MS = 50
-    LATENCY_CRITICAL_MS = 100
+    # 임계값 설정 (환경변수 기반)
+    from core.config.settings import settings
+    MEMORY_WARNING_THRESHOLD = settings.REDIS_MEMORY_WARNING_THRESHOLD
+    MEMORY_CRITICAL_THRESHOLD = settings.REDIS_MEMORY_CRITICAL_THRESHOLD
+    HIT_RATE_WARNING_THRESHOLD = settings.REDIS_HIT_RATE_WARNING_THRESHOLD
+    HIT_RATE_CRITICAL_THRESHOLD = settings.REDIS_HIT_RATE_CRITICAL_THRESHOLD
+    LATENCY_WARNING_MS = settings.REDIS_LATENCY_WARNING_MS
+    LATENCY_CRITICAL_MS = settings.REDIS_LATENCY_CRITICAL_MS
 
     def __init__(self, redis_client: Optional[redis.Redis] = None):
         """
@@ -142,7 +143,7 @@ class RedisMonitor:
                 fallback_in_use=False,
             )
 
-            logger.debug(
+            logger.info(
                 f"Redis 메트릭 수집 완료: "
                 f"메모리={metrics.memory_usage_percent}%, "
                 f"히트율={metrics.hit_rate_percent}%, "
@@ -335,7 +336,7 @@ class RedisMonitor:
                 session.add(redis_metric)
                 # commit은 context manager에서 자동 처리
 
-                logger.debug(f"Redis 메트릭 DB 저장 완료: ID={redis_metric.id}")
+                logger.info(f"Redis 메트릭 DB 저장 완료: ID={redis_metric.id}")
                 return True
 
         except Exception as e:
