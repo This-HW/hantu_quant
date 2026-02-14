@@ -277,6 +277,25 @@ sudo ./scripts/setup-redis.sh
 ./scripts/monitor-redis.sh --watch  # 실시간 (5초 갱신)
 ```
 
+**프로그래밍 방식 모니터링**:
+
+```python
+from core.monitoring.redis_health import (
+    check_redis_health,         # 헬스 체크 (Dict 반환)
+    get_redis_status,           # 타입 안전 상태 조회 (RedisStatusDict)
+    check_redis_before_workflow, # 워크플로우 전 체크 (로깅 전용)
+    collect_and_save_metrics,   # 메트릭 수집 및 DB 저장
+)
+from core.api.redis_client import (
+    get_redis_client,           # Redis 클라이언트 공개 접근자
+    get_memory_cache,           # MemoryCache 공개 접근자
+)
+```
+
+- **DB 저장**: `redis_metrics` 테이블에 메트릭 자동 저장
+- **알림**: 메모리 80% 초과, 히트율 40% 미만 시 텔레그램 알림
+- **워크플로우 통합**: Phase 1/2 실행 전 자동 헬스 체크
+
 **롤백**:
 
 ```bash

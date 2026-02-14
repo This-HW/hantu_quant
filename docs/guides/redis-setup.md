@@ -21,7 +21,7 @@
 
 ### 설치 내용
 
-- **Redis 서버**: 메모리 캐싱 (256MB 제한)
+- **Redis 서버**: 메모리 캐싱 (1GB 제한)
 - **systemd 관리**: 자동 시작 및 재시작
 - **보안 설정**: localhost 바인딩, 비밀번호 인증
 - **애플리케이션 연동**: hantu-api, hantu-scheduler
@@ -43,7 +43,7 @@
 │  ┌───────────────┐                     │
 │  │  Redis        │                     │
 │  │  (systemd)    │                     │
-│  │  - 256MB      │                     │
+│  │  - 1GB      │                     │
 │  │  - LRU 정책   │                     │
 │  └───────────────┘                     │
 └─────────────────────────────────────────┘
@@ -117,7 +117,7 @@ sudo ./scripts/setup-redis.sh
 - redis.conf 수정:
   - `bind 127.0.0.1` (localhost만 허용)
   - `requirepass [자동생성비밀번호]`
-  - `maxmemory 256mb`
+  - `maxmemory 1gb`
   - `maxmemory-policy allkeys-lru`
   - `supervised systemd`
 - systemd 서비스 파일 생성
@@ -167,7 +167,7 @@ sudo ./scripts/setup-redis.sh
 ✅ Redis 서비스: Active (running)
 ✅ Redis 연결: PONG (성공)
 ✅ 바인딩: 127.0.0.1:6379 (localhost만 허용)
-✅ 메모리 제한: 256MB (설정됨)
+✅ 메모리 제한: 1GB (설정됨)
 ✅ 애플리케이션 로그에서 Redis 연결 확인됨
 
 === 설치 완료 ===
@@ -175,7 +175,7 @@ sudo ./scripts/setup-redis.sh
 Redis 설정:
   - 주소: localhost:6379
   - 비밀번호: .env 파일에 저장됨 (REDIS_URL)
-  - 메모리 제한: 256MB (LRU 정책)
+  - 메모리 제한: 1GB (LRU 정책)
   - 자동 시작: 활성화
 
 백업 위치: /tmp/redis-backup-20260206-100000
@@ -208,7 +208,7 @@ sudo vim /etc/redis/redis.conf
 bind 127.0.0.1
 supervised systemd
 requirepass YOUR_STRONG_PASSWORD
-maxmemory 256mb
+maxmemory 1gb
 maxmemory-policy allkeys-lru
 ```
 
@@ -294,7 +294,7 @@ REDISCLI_AUTH="YOUR_PASSWORD" redis-cli CONFIG GET maxmemory
 
 # 예상 출력:
 # 1) "maxmemory"
-# 2) "268435456"  (256MB = 268435456 bytes)
+# 2) "268435456"  (1GB = 268435456 bytes)
 ```
 
 ### 4. 바인딩 확인
@@ -360,7 +360,7 @@ journalctl -u hantu-scheduler -n 50 | grep -i redis
 [3. 메모리 사용량]
   사용 중: 12.5M
   최대 사용: 15.3M
-  제한: 256MB
+  제한: 1GB
   정책: allkeys-lru
   사용률: 5%
 
@@ -383,6 +383,77 @@ journalctl -u hantu-scheduler -n 50 | grep -i redis
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 실시간 모니터링 중... (5초 갱신, Ctrl+C로 종료)
 ```
+
+### 프로그래밍 방식 모니터링 (Python API)
+
+코드에서 Redis 상태를 확인하고 메트릭을 수집할 수 있습니다.
+
+#### 헬스 체크
+
+```python
+from core.monitoring.redis_health import check_redis_health, get_redis_status
+
+# 간편 헬스 체크
+result = check_redis_health()
+# {'status': 'OK', 'metrics': RedisMetricsData, 'alert_message': None, 'timestamp': '...'}
+
+# 타입 안전 상태 조회 (RedisStatusDict)
+status = get_redis_status()
+# {'available': True, 'fallback_mode': False, 'status': 'OK',
+#  'memory_usage': 12.5, 'hit_rate': 83.0, 'total_keys': 127, 'latency_ms': 0.5}
+```
+
+#### 워크플로우 통합
+
+```python
+from core.monitoring.redis_health import check_redis_before_workflow
+
+# Phase 1/2 실행 전 자동 헬스 체크 (로깅 전용, 워크플로우를 차단하지 않음)
+check_redis_before_workflow("Phase 1 - Screening")
+```
+
+#### 메트릭 수집 및 DB 저장
+
+```python
+from core.monitoring.redis_health import collect_and_save_metrics
+
+# 주기적 호출 (스케줄러에서 사용)
+success = collect_and_save_metrics()  # redis_metrics 테이블에 저장
+```
+
+#### 공개 접근자 API
+
+```python
+from core.api.redis_client import get_redis_client, get_memory_cache
+
+# Redis 클라이언트 접근 (모니터링 등 내부 용도)
+client = get_redis_client()  # Optional[redis.Redis]
+
+# MemoryCache 접근 (폴백 상태 확인)
+cache = get_memory_cache()   # MemoryCache
+```
+
+#### 알림 임계값
+
+| 지표          | 경고 (WARNING) | 위험 (CRITICAL) |
+| ------------- | -------------- | --------------- |
+| 메모리 사용률 | 70%            | 80%             |
+| 캐시 히트율   | 50% 미만       | 40% 미만        |
+| 응답 지연     | 50ms           | 100ms           |
+
+#### DB 테이블
+
+메트릭은 `redis_metrics` 테이블에 자동 저장됩니다:
+
+| 컬럼                   | 타입     | 설명                  |
+| ---------------------- | -------- | --------------------- |
+| `timestamp`            | DateTime | 수집 시간             |
+| `is_available`         | Boolean  | Redis 가용 여부       |
+| `memory_usage_percent` | Float    | 메모리 사용률 (%)     |
+| `hit_rate_percent`     | Float    | 캐시 히트율 (%)       |
+| `total_keys`           | Integer  | 총 키 개수            |
+| `latency_ms`           | Float    | 응답 지연 (ms)        |
+| `fallback_in_use`      | Boolean  | MemoryCache 폴백 여부 |
 
 ### 수동 모니터링
 
@@ -557,12 +628,12 @@ REDISCLI_AUTH="PASSWORD" redis-cli INFO stats | grep evicted_keys
 
 **원인 및 해결**:
 
-1. **메모리 제한 증가** (256MB → 512MB)
+1. **메모리 제한 증가** (1GB → 512MB)
 
    ```bash
    sudo vim /etc/redis/redis.conf
 
-   # maxmemory 256mb → maxmemory 512mb
+   # maxmemory 1gb → maxmemory 512mb
 
    sudo systemctl restart redis-server
    ```
@@ -641,6 +712,8 @@ chmod +x ./scripts/monitor-redis.sh
 
 - [CLAUDE.md - 캐싱 시스템](../../CLAUDE.md#캐싱-시스템)
 - [redis_client.py](../../core/api/redis_client.py) - Python 클라이언트 구현
+- [redis_health.py](../../core/monitoring/redis_health.py) - 헬스 체크 유틸리티 (공개 API)
+- [redis_monitor.py](../../core/monitoring/redis_monitor.py) - 메트릭 수집 및 DB 저장
 
 ### 외부 링크
 
@@ -658,9 +731,10 @@ chmod +x ./scripts/monitor-redis.sh
 
 ## 버전 이력
 
-| 버전  | 날짜       | 변경 내용                  |
-| ----- | ---------- | -------------------------- |
-| 1.0.0 | 2026-02-06 | 최초 작성 (자동 설치 추가) |
+| 버전  | 날짜       | 변경 내용                                                                  |
+| ----- | ---------- | -------------------------------------------------------------------------- |
+| 1.1.0 | 2026-02-14 | 프로그래밍 모니터링 API 섹션 추가, 메모리 1GB 반영, 공개 접근자 API 문서화 |
+| 1.0.0 | 2026-02-06 | 최초 작성 (자동 설치 추가)                                                 |
 
 ---
 
