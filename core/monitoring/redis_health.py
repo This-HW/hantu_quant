@@ -6,7 +6,7 @@ Redis 모니터링을 간편하게 수행하기 위한 헬퍼 함수들을 제�
 Feature: Redis 자동 모니터링
 """
 
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TypedDict
 from datetime import datetime
 
 from core.monitoring.redis_monitor import (
@@ -19,21 +19,40 @@ from core.utils.log_utils import get_logger
 logger = get_logger(__name__)
 
 
+# ========== 타입 정의 ==========
+
+class RedisStatusDict(TypedDict):
+    """Redis 상태 딕셔너리 타입 (타입 안전성 보장)"""
+    available: bool
+    fallback_mode: bool
+    status: str
+    memory_usage: float
+    hit_rate: float
+    total_keys: int
+    latency_ms: float
+
+
 # 글로벌 모니터 인스턴스 (싱글톤)
+import threading
+
 _monitor_instance: Optional[RedisMonitor] = None
+_monitor_lock = threading.Lock()
 
 
 def get_redis_monitor() -> RedisMonitor:
-    """
-    RedisMonitor 싱글톤 인스턴스 반환
+    """RedisMonitor 싱글톤 인스턴스 반환 (thread-safe)
 
     Returns:
         RedisMonitor 인스턴스
     """
     global _monitor_instance
 
+    # Double-checked locking으로 성능과 안전성 보장
     if _monitor_instance is None:
-        _monitor_instance = RedisMonitor()
+        with _monitor_lock:
+            # 락 획득 후 다시 확인 (다른 스레드가 이미 생성했을 수 있음)
+            if _monitor_instance is None:
+                _monitor_instance = RedisMonitor()
 
     return _monitor_instance
 
@@ -78,11 +97,11 @@ def check_redis_health() -> Dict[str, Any]:
         }
 
     except Exception as e:
-        logger.error(f"Redis 헬스 체크 실패: {e}", exc_info=True)
+        logger.error("Redis health check failed", exc_info=True)
         return {
             'status': 'ERROR',
             'metrics': None,
-            'alert_message': f'❌ Redis 헬스 체크 에러: {e}',
+            'alert_message': 'Redis health check unavailable',
             'timestamp': datetime.now().isoformat(),
         }
 
@@ -125,22 +144,20 @@ def collect_and_save_metrics() -> bool:
         return False
 
 
-def get_redis_status() -> Dict[str, Any]:
-    """
-    Redis 현재 상태 조회 (간단한 정보)
+def get_redis_status() -> RedisStatusDict:
+    """Redis 현재 상태 조회 (타입 안전)
 
     CLI health 명령 등에서 사용하기 위한 함수
 
     Returns:
-        Dict: {
-            'available': bool,
-            'fallback_mode': bool,
-            'status': 'OK' | 'WARNING' | 'CRITICAL' | 'ERROR',
-            'memory_usage': float,
-            'hit_rate': float,
-            'total_keys': int,
-            'latency_ms': float
-        }
+        RedisStatusDict: 타입 안전한 상태 딕셔너리
+            - available: Redis 사용 가능 여부
+            - fallback_mode: MemoryCache 폴백 여부
+            - status: 헬스 상태 ('OK' | 'WARNING' | 'CRITICAL' | 'ERROR')
+            - memory_usage: 메모리 사용률 (%)
+            - hit_rate: 캐시 히트율 (%)
+            - total_keys: 총 키 개수
+            - latency_ms: 응답 지연시간 (ms)
     """
     monitor = get_redis_monitor()
 
@@ -148,52 +165,53 @@ def get_redis_status() -> Dict[str, Any]:
         metrics = monitor.collect_metrics()
 
         if metrics is None:
-            return {
-                'available': False,
-                'fallback_mode': True,
-                'status': 'ERROR',
-                'memory_usage': 0.0,
-                'hit_rate': 0.0,
-                'total_keys': 0,
-                'latency_ms': 0.0,
-            }
+            return RedisStatusDict(
+                available=False,
+                fallback_mode=True,
+                status='ERROR',
+                memory_usage=0.0,
+                hit_rate=0.0,
+                total_keys=0,
+                latency_ms=0.0,
+            )
 
         health = monitor.check_health(metrics)
 
-        return {
-            'available': metrics.is_available,
-            'fallback_mode': metrics.fallback_in_use,
-            'status': health.value,
-            'memory_usage': metrics.memory_usage_percent,
-            'hit_rate': metrics.hit_rate_percent,
-            'total_keys': metrics.total_keys,
-            'latency_ms': metrics.latency_ms,
-        }
+        return RedisStatusDict(
+            available=metrics.is_available,
+            fallback_mode=metrics.fallback_in_use,
+            status=health.value,
+            memory_usage=metrics.memory_usage_percent,
+            hit_rate=metrics.hit_rate_percent,
+            total_keys=metrics.total_keys,
+            latency_ms=metrics.latency_ms,
+        )
 
     except Exception as e:
-        logger.error(f"Redis 상태 조회 실패: {e}", exc_info=True)
-        return {
-            'available': False,
-            'fallback_mode': True,
-            'status': 'ERROR',
-            'memory_usage': 0.0,
-            'hit_rate': 0.0,
-            'total_keys': 0,
-            'latency_ms': 0.0,
-        }
+        logger.error("Redis status check failed", exc_info=True)
+        return RedisStatusDict(
+            available=False,
+            fallback_mode=True,
+            status='ERROR',
+            memory_usage=0.0,
+            hit_rate=0.0,
+            total_keys=0,
+            latency_ms=0.0,
+        )
 
 
-def check_redis_before_workflow(workflow_name: str) -> bool:
-    """
-    워크플로우 실행 전 Redis 헬스 체크
+def check_redis_before_workflow(workflow_name: str) -> None:
+    """워크플로우 실행 전 Redis 헬스 체크 (로깅 전용)
 
-    Phase 1/2 workflow에서 사용하기 위한 함수
+    Phase 1/2 workflow에서 사용하기 위한 함수.
+    CRITICAL/ERROR 상태에서도 워크플로우는 계속 진행됨 (MemoryCache 폴백).
 
     Args:
         workflow_name: 워크플로우 이름 (로깅용)
 
-    Returns:
-        bool: Redis가 정상이면 True, 문제 있으면 False
+    Note:
+        이 함수는 로깅 목적으로만 사용되며, 워크플로우 실행을 차단하지 않습니다.
+        Redis 장애 시 자동으로 MemoryCache로 폴백됩니다.
     """
     logger.info(f"[{workflow_name}] Redis 사전 체크 시작")
 
@@ -201,24 +219,14 @@ def check_redis_before_workflow(workflow_name: str) -> bool:
     status = result['status']
 
     if status == 'OK':
-        logger.info(f"[{workflow_name}] Redis 정상 (✅ OK)")
-        return True
-
+        logger.info(f"[{workflow_name}] Redis 정상 (OK)")
     elif status == 'WARNING':
-        logger.warning(
-            f"[{workflow_name}] Redis 경고 상태 (⚠️ WARNING) - 계속 진행"
-        )
-        # WARNING은 진행 허용
-        return True
-
+        logger.warning(f"[{workflow_name}] Redis 경고 상태 (WARNING) - 계속 진행")
     else:  # CRITICAL or ERROR
         logger.error(
-            f"[{workflow_name}] Redis 문제 감지 ({status})",
+            f"[{workflow_name}] Redis 문제 감지 ({status}) - MemoryCache 폴백으로 계속 진행",
             extra={'alert_message': result.get('alert_message')}
         )
-        # CRITICAL/ERROR는 진행 차단 (선택적)
-        # 현재는 계속 진행 (MemoryCache 폴백)
-        return True
 
 
 def format_redis_health_summary(metrics: RedisMetricsData) -> str:

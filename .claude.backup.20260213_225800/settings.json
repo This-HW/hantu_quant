@@ -1,0 +1,310 @@
+{
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(alias:*)",
+      "Bash(apt-get:*)",
+      "Bash(apt:*)",
+      "Bash(awk:*)",
+      "Bash(aws:*)",
+      "Bash(az:*)",
+      "Bash(base64:*)",
+      "Bash(bg:*)",
+      "Bash(brew:*)",
+      "Bash(bun:*)",
+      "Bash(cal:*)",
+      "Bash(cargo:*)",
+      "Bash(cat:*)",
+      "Bash(cd:*)",
+      "Bash(chmod:*)",
+      "Bash(chown:*)",
+      "Bash(clang:*)",
+      "Bash(cmake:*)",
+      "Bash(code:*)",
+      "Bash(cp:*)",
+      "Bash(curl:*)",
+      "Bash(cut:*)",
+      "Bash(date:*)",
+      "Bash(deno:*)",
+      "Bash(df:*)",
+      "Bash(diff:*)",
+      "Bash(dig:*)",
+      "Bash(dnf:*)",
+      "Bash(docker-compose:*)",
+      "Bash(docker:*)",
+      "Bash(du:*)",
+      "Bash(echo:*)",
+      "Bash(env:*)",
+      "Bash(export:*)",
+      "Bash(fg:*)",
+      "Bash(file:*)",
+      "Bash(find:*)",
+      "Bash(g++:*)",
+      "Bash(gcc:*)",
+      "Bash(gcloud:*)",
+      "Bash(gh:*)",
+      "Bash(git:*)",
+      "Bash(go:*)",
+      "Bash(gradle:*)",
+      "Bash(grep:*)",
+      "Bash(gunzip:*)",
+      "Bash(gzip:*)",
+      "Bash(head:*)",
+      "Bash(helm:*)",
+      "Bash(help:*)",
+      "Bash(hexdump:*)",
+      "Bash(history:*)",
+      "Bash(host:*)",
+      "Bash(htop:*)",
+      "Bash(iconv:*)",
+      "Bash(ifconfig:*)",
+      "Bash(ip:*)",
+      "Bash(java:*)",
+      "Bash(javac:*)",
+      "Bash(jobs:*)",
+      "Bash(jq:*)",
+      "Bash(kill:*)",
+      "Bash(kubectl:*)",
+      "Bash(less:*)",
+      "Bash(ln:*)",
+      "Bash(ls:*)",
+      "Bash(lsof:*)",
+      "Bash(make:*)",
+      "Bash(man:*)",
+      "Bash(md5:*)",
+      "Bash(mkdir:*)",
+      "Bash(more:*)",
+      "Bash(mv:*)",
+      "Bash(mvn:*)",
+      "Bash(nano:*)",
+      "Bash(nc:*)",
+      "Bash(netstat:*)",
+      "Bash(node:*)",
+      "Bash(nohup:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(nslookup:*)",
+      "Bash(oci:*)",
+      "Bash(open:*)",
+      "Bash(openssl:*)",
+      "Bash(pacman:*)",
+      "Bash(patch:*)",
+      "Bash(pbcopy:*)",
+      "Bash(pbpaste:*)",
+      "Bash(ping:*)",
+      "Bash(pip3:*)",
+      "Bash(pip:*)",
+      "Bash(pipenv:*)",
+      "Bash(pkill:*)",
+      "Bash(pnpm:*)",
+      "Bash(podman:*)",
+      "Bash(poetry:*)",
+      "Bash(printf:*)",
+      "Bash(ps:*)",
+      "Bash(pulumi:*)",
+      "Bash(pwd:*)",
+      "Bash(pytest:*)",
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "Bash(rm:*)",
+      "Bash(rsync:*)",
+      "Bash(rustc:*)",
+      "Bash(scp:*)",
+      "Bash(sed:*)",
+      "Bash(sha256sum:*)",
+      "Bash(shasum:*)",
+      "Bash(sleep:*)",
+      "Bash(sort:*)",
+      "Bash(source:*)",
+      "Bash(ssh:*)",
+      "Bash(stat:*)",
+      "Bash(tail:*)",
+      "Bash(tar:*)",
+      "Bash(tee:*)",
+      "Bash(terraform:*)",
+      "Bash(time:*)",
+      "Bash(timeout:*)",
+      "Bash(top:*)",
+      "Bash(touch:*)",
+      "Bash(tr:*)",
+      "Bash(tree:*)",
+      "Bash(type:*)",
+      "Bash(uniq:*)",
+      "Bash(unzip:*)",
+      "Bash(uv:*)",
+      "Bash(vim:*)",
+      "Bash(watch:*)",
+      "Bash(wc:*)",
+      "Bash(wget:*)",
+      "Bash(whereis:*)",
+      "Bash(which:*)",
+      "Bash(xargs:*)",
+      "Bash(xxd:*)",
+      "Bash(yarn:*)",
+      "Bash(yq:*)",
+      "Bash(yum:*)",
+      "Bash(zip:*)",
+      "Glob",
+      "Grep",
+      "Read",
+      "WebSearch"
+    ],
+    "deny": [
+      "Bash(dd:*)",
+      "Bash(mkfs:*)",
+      "Bash(shred:*)"
+    ]
+  },
+  "hooks": {
+    "Setup": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/setup-environment.py\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/protect-sensitive.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/governance-check.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Task|Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/log-subagent.py\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/auto-format.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Task|Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/log-subagent.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/hooks/task-completed-metrics.py\""
+          }
+        ]
+      }
+    ]
+  },
+  "model": "sonnet",
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@context7/mcp-server"
+      ],
+      "env": {
+        "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
+      }
+    },
+    "exa": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@exa/mcp-server"
+      ],
+      "env": {
+        "EXA_API_KEY": "${EXA_API_KEY}"
+      }
+    },
+    "tavily": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@tavily/mcp-server"
+      ],
+      "env": {
+        "TAVILY_API_KEY": "${TAVILY_API_KEY}"
+      }
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "magic": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@21st-dev/mcp-server"
+      ],
+      "env": {
+        "MAGIC_API_KEY": "${MAGIC_API_KEY}"
+      }
+    },
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://localhost:15432/hantu_quant"
+      ],
+      "env": {
+        "PGPASSWORD": "${HANTU_QUANT_DB_PASSWORD}"
+      },
+      "notes": [
+        "Replace ${DB_PORT}, ${DB_NAME}, ${DB_PASSWORD} with actual values",
+        "Example: postgresql://localhost:15432/hantu_quant"
+      ]
+    },
+    "kis-trade-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://localhost:3000/sse"
+      ]
+    },
+    "kis-code-assistant": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@anthropics/mcp-proxy"
+      ],
+      "env": {
+        "SERVER_URL": "https://smithery.ai/server/@KISOpenAPI/kis-code-assistant-mcp",
+        "SMITHERY_API_KEY": "${SMITHERY_API_KEY}"
+      }
+    }
+  }
+}

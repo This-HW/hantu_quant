@@ -236,7 +236,7 @@ class Phase2CLI:
         Args:
             p_args: 명령어 인자
         """
-        # Redis 사전 체크 (Phase 3 통합)
+        # Redis 사전 체크 (Phase 3 통합 - 로깅 전용, 워크플로우는 계속 진행)
         from core.monitoring.redis_health import check_redis_before_workflow
         check_redis_before_workflow("Phase 2 - Daily Selection")
 

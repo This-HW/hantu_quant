@@ -76,10 +76,10 @@ class RedisMonitor:
         self._redis = redis_client
         self._fallback_mode = False
 
-        # 자동 감지
+        # 자동 감지 (공개 접근자 사용)
         if not self._redis:
-            from core.api.redis_client import _redis_client
-            self._redis = _redis_client
+            from core.api.redis_client import get_redis_client
+            self._redis = get_redis_client()
             self._fallback_mode = self._redis is None
 
     def collect_metrics(self) -> Optional[RedisMetricsData]:
@@ -176,7 +176,9 @@ class RedisMonitor:
 
     def _get_fallback_metrics(self) -> RedisMetricsData:
         """폴백 모드 메트릭 (MemoryCache 사용 중)"""
-        from core.api.redis_client import _memory_cache
+        from core.api.redis_client import get_memory_cache
+
+        memory_cache = get_memory_cache()
 
         return RedisMetricsData(
             timestamp=datetime.now(),
@@ -184,7 +186,7 @@ class RedisMonitor:
             max_memory_mb=0.0,
             memory_usage_percent=0.0,
             evicted_keys=0,
-            total_keys=_memory_cache.size(),
+            total_keys=memory_cache.size(),
             keyspace_hits=0,
             keyspace_misses=0,
             hit_rate_percent=0.0,

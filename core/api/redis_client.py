@@ -710,3 +710,29 @@ def get_cache_stats() -> Dict[str, Any]:
         stats["max_size"] = _memory_cache._max_size
 
     return stats
+
+
+# ========== 공개 접근자 함수 (모니터링용) ==========
+
+def get_redis_client() -> Optional[redis.Redis]:
+    """Redis 클라이언트 반환 (공개 API)
+
+    모니터링 등 내부 접근이 필요한 경우 사용.
+    Private 변수 직접 접근을 방지합니다.
+
+    Returns:
+        Redis 클라이언트 또는 None (연결 없음)
+    """
+    return _redis_client
+
+
+def get_memory_cache() -> MemoryCache:
+    """MemoryCache 반환 (공개 API)
+
+    모니터링 등 내부 접근이 필요한 경우 사용.
+    Private 변수 직접 접근을 방지합니다.
+
+    Returns:
+        MemoryCache 인스턴스
+    """
+    return _memory_cache

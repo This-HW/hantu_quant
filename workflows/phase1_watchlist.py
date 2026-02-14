@@ -100,7 +100,7 @@ class Phase1Workflow:
             실행 성공 여부
         """
         try:
-            # Redis 사전 체크 (Phase 3 통합)
+            # Redis 사전 체크 (Phase 3 통합 - 로깅 전용, 워크플로우는 계속 진행)
             from core.monitoring.redis_health import check_redis_before_workflow
             check_redis_before_workflow("Phase 1 - Screening")
 
