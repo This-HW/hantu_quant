@@ -249,7 +249,7 @@ ${DB_ERRORS:-없음}
      * write-tests: 테스트 작성
 
 2. **테스트 실행**
-   - pytest tests/unit/ -x --tb=short 실행
+   - pytest tests/unit/ -x --tb=short -m "not integration" 실행
    - 테스트 실패 시: git checkout -- . 로 롤백 후 실패 원인 보고
 
 3. **커밋 및 배포** (테스트 통과 시)
