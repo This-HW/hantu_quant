@@ -1291,7 +1291,7 @@ class RedisMetrics(Base):
     __tablename__ = 'redis_metrics'
 
     id = Column(Integer, primary_key=True)
-    timestamp = Column(DateTime, nullable=False, default=datetime.now, index=True)
+    timestamp = Column(DateTime, nullable=False, default=datetime.now)
 
     # 메모리 메트릭
     used_memory_mb = Column(Float, nullable=False)

@@ -170,7 +170,8 @@ class RedisMonitor:
             self._redis.ping()
             end = time.time()
             return (end - start) * 1000  # 밀리초 변환
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Redis latency measurement failed: {e}", exc_info=True)
             return 0.0
 
     def _get_fallback_metrics(self) -> RedisMetricsData:
@@ -307,16 +308,13 @@ class RedisMonitor:
             성공 여부
         """
         try:
-            from sqlalchemy import create_engine
-            from sqlalchemy.orm import sessionmaker
-            from core.config import settings
+            # 기존 싱글톤 세션 팩토리 재사용
+            from core.database.session import DatabaseSession
             from core.database.models import RedisMetrics
 
-            engine = create_engine(settings.DATABASE_URL)
-            Session = sessionmaker(bind=engine)
-            session = Session()
+            db = DatabaseSession()
 
-            try:
+            with db.get_session() as session:
                 redis_metric = RedisMetrics(
                     timestamp=metrics.timestamp,
                     used_memory_mb=metrics.used_memory_mb,
@@ -333,19 +331,11 @@ class RedisMonitor:
                 )
 
                 session.add(redis_metric)
-                session.commit()
+                # commit은 context manager에서 자동 처리
 
                 logger.debug(f"Redis 메트릭 DB 저장 완료: ID={redis_metric.id}")
                 return True
 
-            except Exception as e:
-                session.rollback()
-                logger.error(f"Redis 메트릭 DB 저장 실패: {e}", exc_info=True)
-                return False
-
-            finally:
-                session.close()
-
         except Exception as e:
-            logger.error(f"Redis 메트릭 저장 중 예외: {e}", exc_info=True)
+            logger.error(f"Redis 메트릭 DB 저장 실패: {e}", exc_info=True)
             return False
