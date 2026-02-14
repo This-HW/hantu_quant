@@ -92,14 +92,18 @@ class Phase1Workflow:
 
     def run_full_screening(self, p_stock_list: Optional[List[str]] = None, p_send_notification: bool = True) -> bool:
         """전체 스크리닝 실행 (배치 처리 최적화)
-        
+
         Args:
             p_stock_list: 스크리닝할 종목 리스트 (None이면 전체 시장)
-            
+
         Returns:
             실행 성공 여부
         """
         try:
+            # Redis 사전 체크 (Phase 3 통합)
+            from core.monitoring.redis_health import check_redis_before_workflow
+            check_redis_before_workflow("Phase 1 - Screening")
+
             logger.info("=== 전체 스크리닝 시작 (배치 처리) ===")
             
             # 종목 리스트 준비

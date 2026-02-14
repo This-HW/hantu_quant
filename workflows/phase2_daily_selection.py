@@ -232,12 +232,16 @@ class Phase2CLI:
     
     def _handle_update(self, p_args):
         """일일 업데이트 처리
-        
+
         Args:
             p_args: 명령어 인자
         """
+        # Redis 사전 체크 (Phase 3 통합)
+        from core.monitoring.redis_health import check_redis_before_workflow
+        check_redis_before_workflow("Phase 2 - Daily Selection")
+
         print("[시작] 일일 업데이트 시작...")
-        
+
         # 시장 상황 설정
         if p_args.market_condition:
             print(f"시장 상황: {p_args.market_condition}")
